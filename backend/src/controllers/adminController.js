@@ -758,7 +758,6 @@ const updateSystemSettings = async (req, res) => {
     const settings = req.body;
 
     // In a real app, you'd save these to a SystemSettings model
-    console.log('System settings updated:', settings);
 
     res.json({
       success: true,
@@ -812,7 +811,6 @@ const updateAnalyticsSettings = async (req, res) => {
   try {
     const settings = req.body;
 
-    console.log('Analytics settings updated:', settings);
 
     res.json({
       success: true,
@@ -871,7 +869,6 @@ const updateSecuritySettings = async (req, res) => {
   try {
     const settings = req.body;
 
-    console.log('Security settings updated:', settings);
 
     res.json({
       success: true,
@@ -937,7 +934,6 @@ const updateNotificationSettings = async (req, res) => {
   try {
     const settings = req.body;
 
-    console.log('Notification settings updated:', settings);
 
     res.json({
       success: true,

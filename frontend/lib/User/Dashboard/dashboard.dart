@@ -35,6 +35,7 @@ import '../Digitise/lenden_coins_page.dart';
 import '../Ads&Updates/updates_page.dart';
 import '../Ads&Updates/ad_popup_dialog.dart';
 import 'package:elegant_notification/elegant_notification.dart';
+import '../../utils/responsive.dart';
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -388,9 +389,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
             ),
             child: Container(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(ctx.sw(22)),
               decoration: BoxDecoration(
-                color: Color(0xFFFCE4EC), // Light pink background
+                color: const Color(0xFFFCE4EC),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: StatefulBuilder(
@@ -398,21 +399,21 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.star, color: Color(0xFF00B4D8), size: 48),
-                      SizedBox(height: 12),
+                      Icon(Icons.star, color: const Color(0xFF00B4D8), size: ctx.sp(44)),
+                      SizedBox(height: ctx.sh(10)),
                       Text(
                         'Rate Our App!',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: ctx.sp(20),
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF00B4D8),
+                          color: const Color(0xFF00B4D8),
                         ),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: ctx.sh(8)),
                       Text(
                         'Your feedback helps us improve.\nHow would you rate your experience?',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: ctx.sp(15), color: Colors.grey[700]),
                       ),
                       SizedBox(height: 18),
                       Row(
@@ -515,57 +516,58 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
-          padding: EdgeInsets.all(32),
+          padding: EdgeInsets.all(ctx.sw(26)),
           decoration: BoxDecoration(
-            color: Color(0xFFE0F7FA),
+            color: const Color(0xFFE0F7FA),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF00B4D8).withOpacity(0.15),
+                color: const Color(0xFF00B4D8).withValues(alpha: 0.15),
                 blurRadius: 18,
-                offset: Offset(0, 8),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.celebration, color: Color(0xFF00B4D8), size: 60),
-              SizedBox(height: 16),
+              Icon(Icons.celebration, color: const Color(0xFF00B4D8), size: ctx.sp(52)),
+              SizedBox(height: ctx.sh(14)),
               Text(
                 'Thank You for Rating!',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: ctx.sp(22),
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF00B4D8),
+                  color: const Color(0xFF00B4D8),
                   letterSpacing: 1.2,
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 12),
+              SizedBox(height: ctx.sh(10)),
               Text(
                 'Your feedback means a lot to us.\nWe appreciate your support!',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ctx.sp(15),
                   color: Colors.grey[800],
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 24),
+              SizedBox(height: ctx.sh(20)),
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF00B4D8),
+                  backgroundColor: const Color(0xFF00B4D8),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: ctx.sw(28), vertical: ctx.sh(12)),
                 ),
                 child: Text(
                   'Continue',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: ctx.sp(16),
                   ),
                 ),
               ),
@@ -654,9 +656,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   child: Text(
                     'Favourites',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: context.sp(22),
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00796B),
+                      color: const Color(0xFF00796B),
                     ),
                   ),
                 ),
@@ -711,11 +713,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.5),
+          color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: Offset(0, 5),
             ),
@@ -728,9 +730,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             Text(
               text,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: context.sp(16),
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF004D40),
+                color: const Color(0xFF004D40),
               ),
             ),
             Spacer(),
@@ -755,14 +757,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       },
       child: Scaffold(
         drawer: Drawer(
-          width: 200,
+          width: context.sw(200),
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(color: Color(0xFF00B4D8)),
+              DrawerHeader(
+                decoration: const BoxDecoration(color: Color(0xFF00B4D8)),
                 child: Text('Menu',
-                    style: TextStyle(color: Colors.white, fontSize: 24)),
+                    style: TextStyle(color: Colors.white, fontSize: context.sp(22))),
               ),
               ListTile(
                 leading: const Icon(Icons.dashboard),
@@ -916,7 +918,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -948,7 +950,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                   contentPadding:
                                       const EdgeInsets.symmetric(vertical: 8),
                                 ),
-                                style: const TextStyle(fontSize: 16),
+                                style: TextStyle(fontSize: context.sp(15)),
                               ),
                             ),
                             if (_searchController.text.isNotEmpty)
@@ -1099,12 +1101,12 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                     Icon(Icons.people,
                                         color: Color(0xFF00B4D8)),
                                     SizedBox(width: 8),
-                                    const Text(
+                                    Text(
                                       'Counterparties',
                                       style: TextStyle(
-                                        fontSize: 18,
+                                        fontSize: context.sp(16),
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFF00B4D8),
+                                        color: const Color(0xFF00B4D8),
                                       ),
                                     ),
                                   ],
@@ -1144,10 +1146,10 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Transaction Options',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: context.sp(16),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1155,7 +1157,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                           Text(
                             'Open the main transaction tools from one place.',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: context.sp(12),
                               color: Colors.grey[600],
                             ),
                           ),
@@ -1225,7 +1227,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               child: ClipPath(
                 clipper: TopWaveClipper(),
                 child: Container(
-                  height: 80,
+                  height: context.sh(78),
                   color: const Color(0xFF00B4D8),
                 ),
               ),
@@ -1324,9 +1326,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                       setState(() {
                                         _imageRefreshKey++;
                                       });
-                                    } catch (e) {
-                                      print('Error navigating to profile: $e');
-                                    }
+                                    } catch (_) {}
                                   },
                                   child: CircleAvatar(
                                     key: ValueKey(_imageRefreshKey),
@@ -1392,14 +1392,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 color: _getBoxColor(index),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: context.sp(22)),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: context.sp(10),
               fontWeight: FontWeight.w600,
               color: Colors.grey[800],
             ),
@@ -1552,7 +1552,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: context.sp(12),
             fontWeight: FontWeight.w700,
             color: selected ? Colors.white : const Color(0xFF00B4D8),
           ),
@@ -1585,7 +1585,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -1607,7 +1607,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   width: 42,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: Colors.white.withOpacity(0.92),
+                    color: Colors.white.withValues(alpha: 0.92),
                   ),
                   child: Icon(icon, color: iconColor),
                 ),
@@ -1616,8 +1616,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: context.sp(14),
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -1626,7 +1626,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 Text(
                   valueLabel,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: context.sp(16),
                     fontWeight: FontWeight.w700,
                     color: iconColor,
                   ),
@@ -1638,7 +1638,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: context.sp(11),
                       color: Colors.grey[700],
                     ),
                   ),
@@ -1667,7 +1667,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: Offset(0, 10),
                       ),
@@ -1677,7 +1677,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        height: 80,
+                        height: context.sh(75),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(20),
@@ -1698,21 +1698,21 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                         ),
                       ),
                       Container(
-                        padding: EdgeInsets.all(24),
+                        padding: EdgeInsets.all(context.sw(22)),
                         child: Column(
                           children: [
                             if (isLoggingOut) ...[
-                              CircularProgressIndicator(
+                              const CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   Color(0xFF00B4D8),
                                 ),
                               ),
-                              SizedBox(height: 20),
+                              SizedBox(height: context.sh(16)),
                               Text(
                                 'Logging out...',
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 18,
+                                  fontSize: context.sp(16),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1721,17 +1721,17 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 'Are you sure?',
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 24,
+                                  fontSize: context.sp(22),
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.2,
                                 ),
                               ),
-                              SizedBox(height: 16),
+                              SizedBox(height: context.sh(14)),
                               Text(
                                 'Do you want to logout?',
                                 style: TextStyle(
                                   color: Colors.grey[700],
-                                  fontSize: 16,
+                                  fontSize: context.sp(15),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -1768,7 +1768,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                             Text(
                                               'NO',
                                               style: TextStyle(
-                                                fontSize: 16,
+                                                fontSize: context.sp(15),
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -1804,7 +1804,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                               vertical: 16),
                                           elevation: 2,
                                           shadowColor: Color(0xFF00B4D8)
-                                              .withOpacity(0.3),
+                                              .withValues(alpha: 0.3),
                                         ),
                                         child: Row(
                                           mainAxisAlignment:
@@ -1815,7 +1815,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                             Text(
                                               'YES',
                                               style: TextStyle(
-                                                fontSize: 16,
+                                                fontSize: context.sp(15),
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),

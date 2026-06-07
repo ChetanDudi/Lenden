@@ -80,7 +80,6 @@ app.options('*', cors(corsOptions));
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'} - User-Agent: ${req.headers['user-agent']?.substring(0, 50) || 'No user-agent'}`);
   next();
 });
 
@@ -130,9 +129,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true,
 })
 .then(async () => {
-  console.log('Database Established');
   await Admin.createDefaultAdmin();
-  console.log('Default admin ensured');
 })
 .catch((err) => console.error('Database connection error:', err));
 
@@ -149,5 +146,4 @@ initializeOfferCleanupScheduler();
 // which are wired up through apiRoutes(io) above.
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });

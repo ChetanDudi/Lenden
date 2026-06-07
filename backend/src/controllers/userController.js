@@ -192,28 +192,20 @@ exports.verifyOtp = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     let { username, password } = req.body;
-    console.log('🔐 Login attempt for username/email:', username);
-    console.log('📝 Request body:', req.body);
     
     if (username && username.includes('@')) username = username.trim().toLowerCase();
-    console.log('🔍 Searching for user or admin with username or email:', username);
     
     // Search in both User and Admin tables
     const user = await User.findOne({ $or: [{ username }, { email: username }] });
     const admin = await Admin.findOne({ $or: [{ username }, { email: username }] });
     
-    console.log('👤 User found:', !!user);
-    console.log('👨‍💼 Admin found:', !!admin);
     
     if (user) {
-      console.log('👤 User details:', { id: user._id, username: user.username, email: user.email });
     }
     if (admin) {
-      console.log('👨‍💼 Admin details:', { id: admin._id, username: admin.username, email: admin.email });
     }
     
     if (!user && !admin) {
-      console.log('❌ User/Admin not found for:', username);
       return res.status(404).json({ error: 'User not found' });
     }
     
@@ -227,14 +219,9 @@ exports.login = async (req, res) => {
           username: user.username
         });
       }
-      console.log('🔑 Comparing passwords for user...');
-      console.log('🔑 Input password length:', password.length);
-      console.log('🔑 Stored password hash length:', user.password.length);
       const match = await bcrypt.compare(password, user.password);
-      console.log('🔑 Password match:', match);
       
       if (!match) {
-        console.log('❌ Incorrect password for user:', username);
         return res.status(401).json({ error: 'Incorrect password' });
       }
       
@@ -266,9 +253,6 @@ exports.login = async (req, res) => {
         expiresAt: TokenService.calculateTokenExpiry()
       });
 
-      console.log('✅ Login successful for user:', username);
-      console.log('🎫 Access token generated successfully');
-      console.log('🎫 Refresh token generated and saved');
       
       // Log login activity
       try {
@@ -333,14 +317,9 @@ exports.login = async (req, res) => {
 
     // Check if it's an admin
     if (admin) {
-      console.log('🔑 Comparing passwords for admin...');
-      console.log('🔑 Input password length:', password.length);
-      console.log('🔑 Stored password hash length:', admin.password.length);
       const match = await bcrypt.compare(password, admin.password);
-      console.log('🔑 Password match:', match);
       
       if (!match) {
-        console.log('❌ Incorrect password for admin:', username);
         return res.status(401).json({ error: 'Incorrect password' });
       }
       
@@ -374,9 +353,6 @@ exports.login = async (req, res) => {
         expiresAt: TokenService.calculateTokenExpiry()
       });
 
-      console.log('✅ Login successful for admin:', username);
-      console.log('🎫 Access token generated successfully');
-      console.log('🎫 Refresh token generated and saved');
 
       const adminResponse = admin.toObject();
       delete adminResponse.password;
@@ -402,10 +378,8 @@ exports.login = async (req, res) => {
 exports.checkUsername = async (req, res) => {
   try {
     const { username } = req.body;
-    console.log('Checking username:', username);
     const userExists = await User.findOne({ username });
     const adminExists = await Admin.findOne({ username });
-    console.log('User exists:', !!userExists, 'Admin exists:', !!adminExists);
     if (userExists || adminExists) {
       return res.status(200).json({ unique: false });
     }
@@ -420,9 +394,7 @@ exports.checkEmail = async (req, res) => {
   try {
     let { email } = req.body;
     email = email.trim().toLowerCase();
-    console.log('Checking email:', email);
     const userExists = await User.findOne({ email });
-    console.log('User exists:', !!userExists);
     if (userExists) {
       return res.status(200).json({ unique: false });
     }
@@ -436,7 +408,6 @@ exports.checkEmail = async (req, res) => {
 exports.listUsers = async (req, res) => {
   try {
     const users = await User.find({}).select('username email name');
-    console.log('📋 All users in database:', users);
     res.json({ users });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -447,26 +418,20 @@ exports.listUsers = async (req, res) => {
 exports.sendLoginOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    console.log('🔍 Looking for user with email:', email);
     
     let userType = null;
     let name = null;
     const user = await User.findOne({ email });
     const admin = await Admin.findOne({ email });
     
-    console.log('👤 User found:', !!user);
-    console.log('👨‍💼 Admin found:', !!admin);
     
     if (user) {
       userType = 'user';
       name = user.name;
-      console.log('✅ User found, sending OTP to:', email);
     } else if (admin) {
       userType = 'admin';
       name = admin.name;
-      console.log('✅ Admin found, sending OTP to:', email);
     } else {
-      console.log('❌ No user or admin found with email:', email);
       return res.status(404).json({ error: 'User not found' });
     }
     
@@ -474,9 +439,7 @@ exports.sendLoginOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[email] = { otp, userType, created: Date.now() };
     
-    console.log('📧 Sending OTP email to:', email);
     await sendLoginOTP(email, otp);
-    console.log('✅ OTP sent successfully');
     
     res.status(200).json({ message: 'OTP sent to email', userType, name });
   } catch (err) {
@@ -489,29 +452,22 @@ exports.sendLoginOtp = async (req, res) => {
 exports.verifyLoginOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    console.log('🔐 OTP verification attempt for email:', email);
-    console.log('🔐 OTP provided:', otp);
     
     const entry = otpStore[email];
     if (!entry) {
-      console.log('❌ No OTP found for email:', email);
       return res.status(400).json({ error: 'No OTP found for this email' });
     }
     
     const now = Date.now();
     if (now - entry.created > OTP_EXPIRY_MS) {
-      console.log('❌ OTP expired for email:', email);
       delete otpStore[email];
       return res.status(400).json({ error: 'OTP expired. Please request a new OTP.' });
     }
     
     if (entry.otp !== otp) {
-      console.log('❌ Invalid OTP for email:', email);
       return res.status(400).json({ error: 'Invalid OTP' });
     }
     
-    console.log('✅ OTP verified successfully for email:', email);
-    console.log('👤 User type from OTP store:', entry.userType);
     
     // Find user or admin
     let user = null;
@@ -519,7 +475,6 @@ exports.verifyLoginOtp = async (req, res) => {
     if (entry.userType === 'user') {
       user = await User.findOne({ email });
       if (!user) {
-        console.log('❌ User not found in database for email:', email);
         return res.status(404).json({ error: 'User not found' });
       }
       if (user.deactivatedAccount) {
@@ -531,7 +486,6 @@ exports.verifyLoginOtp = async (req, res) => {
         });
       }
       
-      console.log('✅ User found in database:', { id: user._id, name: user.name, email: user.email });
       
       // Generate tokens for user
       const deviceId = req.body.deviceId || uuidv4();
@@ -561,9 +515,6 @@ exports.verifyLoginOtp = async (req, res) => {
         expiresAt: TokenService.calculateTokenExpiry()
       });
 
-      console.log('✅ OTP login successful for user:', email);
-      console.log('🎫 Access token generated successfully');
-      console.log('🎫 Refresh token generated and saved');
 
       const dailyReward = applyDailyLoginReward(user);
       await user.save();
@@ -585,11 +536,9 @@ exports.verifyLoginOtp = async (req, res) => {
     } else if (entry.userType === 'admin') {
       admin = await Admin.findOne({ email });
       if (!admin) {
-        console.log('❌ Admin not found in database for email:', email);
         return res.status(404).json({ error: 'User not found' });
       }
       
-      console.log('✅ Admin found in database:', { id: admin._id, name: admin.name, email: admin.email });
       
       // Generate tokens for admin
       const deviceId = req.body.deviceId || uuidv4();
@@ -621,9 +570,6 @@ exports.verifyLoginOtp = async (req, res) => {
         expiresAt: TokenService.calculateTokenExpiry()
       });
 
-      console.log('✅ OTP login successful for admin:', email);
-      console.log('🎫 Access token generated successfully');
-      console.log('🎫 Refresh token generated and saved');
 
       const adminResponse = admin.toObject();
       delete adminResponse.password;
@@ -639,7 +585,6 @@ exports.verifyLoginOtp = async (req, res) => {
       });
     }
     
-    console.log('❌ Unknown user type:', entry.userType);
     return res.status(404).json({ error: 'User not found' });
   } catch (err) {
     console.error('❌ Error in verifyLoginOtp:', err);
@@ -789,7 +734,6 @@ exports.refreshToken = async (req, res) => {
           : {}),
     });
 
-    console.log('✅ Token refreshed successfully for user:', tokenData.userId);
     
     res.json({
       message: 'Token refreshed successfully',

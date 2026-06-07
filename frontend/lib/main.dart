@@ -15,17 +15,16 @@ import 'admin/manage_users/user_management_page.dart';
 import 'Admin/Transactions/manage_secure_transactions_page.dart';
 import 'Admin/Transactions/manage_group_transactions_page.dart';
 import 'splash_screen.dart';
-import 'User/Support/feedback.dart'; // Import the feedback page
+import 'User/Support/feedback.dart';
 import 'admin/rating/admin_ratings_page.dart';
 import 'admin/support/admin_feedbacks_page.dart';
 import 'User/Notifications/notifications_page.dart';
 import 'Admin/Notifications/notifications_page.dart';
 import 'User/Digitise/gift_card_page.dart';
 import 'user/connections/counterparties_page.dart';
-import 'dart:convert';
-import 'api_config.dart';
 import 'widgets/notification_icon.dart';
 import 'utils/auth_navigation.dart';
+import 'utils/responsive.dart';
 
 void main() {
   runApp(
@@ -102,18 +101,14 @@ class _AppInitializerState extends State<AppInitializer>
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F9FF),
-            borderRadius: BorderRadius.circular(24),
-          ),
+        child: Padding(
+          padding: EdgeInsets.all(context.sw(24)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 72,
-                height: 72,
+                width: context.sw(72),
+                height: context.sw(72),
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -122,43 +117,44 @@ class _AppInitializerState extends State<AppInitializer>
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.card_giftcard_rounded,
                   color: Colors.white,
-                  size: 38,
+                  size: context.sp(36),
                 ),
               ),
-              const SizedBox(height: 18),
-              const Text(
+              SizedBox(height: context.sh(16)),
+              Text(
                 'Daily Bonus',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: context.sp(22),
                   fontWeight: FontWeight.w800,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: context.sh(10)),
               Text(
                 'You earned $coins LenDen Coin${coins > 1 ? 's' : ''} on your first app open today.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                style: TextStyle(fontSize: context.sp(15), color: Colors.grey[800]),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: context.sh(20)),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00B4D8),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: context.sh(13)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Nice',
                     style: TextStyle(
                       color: Colors.white,
+                      fontSize: context.sp(15),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -264,7 +260,7 @@ class HomePage extends StatelessWidget {
       extendBodyBehindAppBar: true,
       backgroundColor: const Color(0xFFF8F6FA),
       drawer: Drawer(
-        width: 200,
+        width: context.sw(200),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -275,12 +271,13 @@ class HomePage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset('assets/icon.png', width: 48, height: 48),
-                  const SizedBox(height: 8),
-                  const Text('Lenden App',
+                  Image.asset('assets/icon.png',
+                      width: context.sw(48), height: context.sw(48)),
+                  SizedBox(height: context.sh(8)),
+                  Text('Lenden App',
                       style: TextStyle(
                           color: Colors.white,
-                          fontSize: 22,
+                          fontSize: context.sp(20),
                           fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -347,8 +344,8 @@ class HomePage extends StatelessWidget {
           SafeArea(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 24.0),
+                padding: EdgeInsets.symmetric(
+                    horizontal: context.hPadding, vertical: context.vPadding),
                 child: Column(
                   children: [
                     Row(
@@ -364,9 +361,7 @@ class HomePage extends StatelessWidget {
                         // Right side: notification and profile
                         Row(
                           children: [
-                            // Notification bell
                             NotificationIcon(),
-                            // Profile picture or icon
                             Consumer<SessionProvider>(
                               builder: (context, session, _) {
                                 final user = session.user;
@@ -397,20 +392,20 @@ class HomePage extends StatelessWidget {
                                           title: Row(
                                             children: [
                                               Icon(Icons.lock_outline,
-                                                  color: Color(0xFF00B4D8),
-                                                  size: 28),
-                                              SizedBox(width: 10),
+                                                  color: const Color(0xFF00B4D8),
+                                                  size: context.sp(26)),
+                                              SizedBox(width: context.sw(8)),
                                               Text('Login Required',
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      fontSize: 22)),
+                                                      fontSize: context.sp(20))),
                                             ],
                                           ),
                                           content: Text(
                                             'Please login to view your profile.',
                                             style: TextStyle(
-                                                fontSize: 16,
+                                                fontSize: context.sp(15),
                                                 color: Colors.black87),
                                           ),
                                           actions: [
@@ -418,7 +413,7 @@ class HomePage extends StatelessWidget {
                                               style: TextButton.styleFrom(
                                                 foregroundColor: Colors.white,
                                                 backgroundColor:
-                                                    Color(0xFF00B4D8),
+                                                    const Color(0xFF00B4D8),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(16),
@@ -428,13 +423,13 @@ class HomePage extends StatelessWidget {
                                                   Navigator.of(context).pop(),
                                               child: Padding(
                                                 padding: EdgeInsets.symmetric(
-                                                    horizontal: 18,
-                                                    vertical: 6),
+                                                    horizontal: context.sw(16),
+                                                    vertical: context.sh(6)),
                                                 child: Text('OK',
                                                     style: TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
-                                                        fontSize: 16)),
+                                                        fontSize: context.sp(15))),
                                               ),
                                             ),
                                           ],
@@ -445,9 +440,9 @@ class HomePage extends StatelessWidget {
                                   child: Container(
                                     margin: const EdgeInsets.only(right: 4),
                                     padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
+                                    decoration: const BoxDecoration(
                                       shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
+                                      gradient: LinearGradient(
                                         colors: [
                                           Colors.orange,
                                           Colors.white,
@@ -458,7 +453,7 @@ class HomePage extends StatelessWidget {
                                       ),
                                     ),
                                     child: CircleAvatar(
-                                      radius: 18,
+                                      radius: context.sw(18),
                                       backgroundColor: const Color(0xFF00B4D8),
                                       backgroundImage: profileImage,
                                       child: profileImage == null
@@ -474,16 +469,16 @@ class HomePage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    // Feature cards (auto-scroll, round, with border)
+                    SizedBox(height: context.sh(20)),
+                    // Feature cards (auto-scroll, horizontally swipeable)
                     SizedBox(
-                      height: 160,
+                      height: context.sh(160),
                       child: _FeatureCardCarousel(),
                     ),
-                    const SizedBox(height: 28),
+                    SizedBox(height: context.sh(28)),
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.all(3), // border width
+                        padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Colors.orange, Colors.white, Colors.green],
@@ -491,7 +486,7 @@ class HomePage extends StatelessWidget {
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               color: Colors.black12,
                               blurRadius: 16,
@@ -502,35 +497,37 @@ class HomePage extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(29), // 32 - 3
+                            borderRadius: BorderRadius.circular(29),
                           ),
-                          padding: const EdgeInsets.all(24),
+                          padding: EdgeInsets.all(context.sw(20)),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(24),
                             child: Image.asset(
                               'assets/icon.png',
-                              width: 120,
-                              height: 120,
+                              width: context.sw(110),
+                              height: context.sw(110),
                               errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.account_balance_wallet,
-                                      size: 100, color: Color(0xFF00B4D8)),
+                                  Icon(Icons.account_balance_wallet,
+                                      size: context.sw(90),
+                                      color: const Color(0xFF00B4D8)),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    const Center(
-                      child: Text('Welcome to Lenden',
-                          style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black)),
+                    SizedBox(height: context.sh(16)),
+                    Center(
+                      child: Text(
+                        'Welcome to Lenden',
+                        style: TextStyle(
+                            fontSize: context.sp(28),
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    const SizedBox(height: 28),
+                    SizedBox(height: context.sh(28)),
                     Container(
-                      padding: const EdgeInsets.all(2.5), // border width
+                      padding: const EdgeInsets.all(2.5),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Colors.orange, Colors.white, Colors.green],
@@ -542,7 +539,7 @@ class HomePage extends StatelessWidget {
                           BoxShadow(
                             color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
                             blurRadius: 6,
-                            offset: Offset(0, 4),
+                            offset: const Offset(0, 4),
                           )
                         ],
                       ),
@@ -563,87 +560,63 @@ class HomePage extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00B4D8),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(21.5), // 24 - 2.5
+                            borderRadius: BorderRadius.circular(21.5),
                           ),
                           elevation: 0,
                           shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 32),
+                          padding: EdgeInsets.symmetric(
+                              vertical: context.sh(14),
+                              horizontal: context.sw(28)),
                         ),
-                        icon: const Icon(Icons.arrow_forward,
-                            color: Colors.white),
-                        label: const Text('Get Started',
+                        icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                        label: Text('Get Started',
                             style: TextStyle(
-                                fontSize: 18,
+                                fontSize: context.sp(17),
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2)),
+                                letterSpacing: 1.1)),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: context.sh(16)),
                     Consumer<SessionProvider>(
                       builder: (context, session, _) {
                         if (session.token == null || session.user == null) {
-                          return ElevatedButton(
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/register'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24)),
-                              padding: EdgeInsets.zero,
-                              elevation: 4,
-                              shadowColor:
-                                  const Color(0xFF00B4D8).withValues(alpha: 0.2),
+                          return Container(
+                            padding: const EdgeInsets.all(2.5),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              gradient: const LinearGradient(
+                                colors: [Colors.orange, Colors.white, Colors.green],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                             ),
-                            child: Container(
-                              padding: const EdgeInsets.all(2.5),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(24),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.orange,
-                                    Colors.white,
-                                    Colors.green
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/register'),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(21.5)),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: context.sh(12),
+                                    horizontal: context.sw(28)),
                               ),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 13.5, horizontal: 29.5),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(21.5),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.arrow_forward,
-                                        color: Color(0xFF00B4D8)),
-                                    const SizedBox(width: 8),
-                                    const Text('Register',
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            color: Color(0xFF00B4D8),
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.2)),
-                                  ],
-                                ),
-                              ),
+                              icon: const Icon(Icons.arrow_forward,
+                                  color: Color(0xFF00B4D8)),
+                              label: Text('Register',
+                                  style: TextStyle(
+                                      fontSize: context.sp(17),
+                                      color: const Color(0xFF00B4D8),
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.1)),
                             ),
                           );
-                        } else {
-                          return const SizedBox.shrink();
                         }
+                        return const SizedBox.shrink();
                       },
                     ),
-                    const SizedBox(height: 28),
-                    // ...existing code...
-                    const SizedBox(height: 18),
-                    // ...existing code...
+                    SizedBox(height: context.sh(28)),
                   ],
                 ),
               ),
@@ -665,9 +638,9 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      padding: const EdgeInsets.all(2.5), // border width
+      width: context.sw(170),
+      margin: EdgeInsets.symmetric(horizontal: context.sw(8), vertical: context.sh(8)),
+      padding: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Colors.orange, Colors.white, Colors.green],
@@ -675,7 +648,7 @@ class _FeatureCard extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 8,
@@ -684,7 +657,7 @@ class _FeatureCard extends StatelessWidget {
         ],
       ),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(context.sw(14)),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15.5),
@@ -693,16 +666,16 @@ class _FeatureCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Color(0xFF00B4D8), size: 32),
-            const SizedBox(height: 10),
+            Icon(icon, color: const Color(0xFF00B4D8), size: context.sp(28)),
+            SizedBox(height: context.sh(8)),
             Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: context.sp(14))),
+            SizedBox(height: context.sh(4)),
             Flexible(
               child: Text(
                 description,
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: Colors.grey, fontSize: context.sp(12)),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),

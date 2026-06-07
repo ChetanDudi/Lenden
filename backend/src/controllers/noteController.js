@@ -5,18 +5,14 @@ const { logNoteActivity } = require('./activityController');
 exports.createNote = async (req, res) => {
   try {
     const { title, content } = req.body;
-    console.log('📝 Creating note:', { title, content });
-    console.log('👤 User from JWT:', req.user);
     
     if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
     const user = req.user;
     const role = user.role === 'admin' ? 'Admin' : 'User';
     const userId = user._id || user.id; // Handle both user and admin JWT structures
     
-    console.log('🔧 Note creation details:', { userId, role, title, content });
     
     const note = await Note.create({ user: userId, role, title, content });
-    console.log('✅ Note created successfully:', note._id);
     
     // Log activity
     try {
@@ -43,10 +39,8 @@ exports.getNotes = async (req, res) => {
     const role = user.role === 'admin' ? 'Admin' : 'User';
     const userId = user._id || user.id; // Handle both user and admin JWT structures
     
-    console.log('📋 Fetching notes for:', { userId, role });
     
     const notes = await Note.find({ user: userId, role }).sort({ updatedAt: -1 });
-    console.log('📋 Found notes count:', notes.length);
     res.json({ notes });
   } catch (err) {
     console.error('❌ Failed to fetch notes:', err.message);

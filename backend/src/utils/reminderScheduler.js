@@ -5,7 +5,6 @@ const Notification = require('../models/notification');
 
 // Schedule a job to run every day at midnight
 cron.schedule('0 0 * * *', async () => {
-  console.log('Running daily reminder check...');
   try {
     const users = await User.find({ 
       'notificationSettings.paymentReminders': true
@@ -60,4 +59,3 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
-console.log('Reminder scheduler initialized.');

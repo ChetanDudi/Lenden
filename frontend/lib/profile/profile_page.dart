@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../session.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
+import '../utils/responsive.dart';
 import 'edit_profile_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -60,14 +61,6 @@ class _ProfilePageState extends State<ProfilePage> {
       }
       return;
     }
-
-    // Default: show logged-in user's profile
-    print('🔍 Profile page - Session check:');
-    print('   Token: ${session.accessToken != null ? 'Present' : 'Missing'}');
-    print('   User: ${user != null ? 'Present' : 'Missing'}');
-    print('   User data: $user');
-    print('   Role: ${session.role}');
-    print('   Is Admin: ${session.isAdmin}');
 
     if (session.accessToken == null || user == null) {
       setState(() {
@@ -161,7 +154,7 @@ class _ProfilePageState extends State<ProfilePage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 120,
+                height: context.sh(110),
                 color: const Color(0xFF00B4D8),
               ),
             ),
@@ -174,7 +167,7 @@ class _ProfilePageState extends State<ProfilePage> {
             child: ClipPath(
               clipper: BottomWaveClipper(),
               child: Container(
-                height: 90,
+                height: context.sh(80),
                 color: const Color(0xFF00B4D8),
               ),
             ),
@@ -182,31 +175,31 @@ class _ProfilePageState extends State<ProfilePage> {
           // Main content scrollable to the end
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(28.0, 24.0, 28.0, 120.0),
+              padding: EdgeInsets.fromLTRB(context.hPadding, context.vPadding, context.hPadding, 100.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 30),
+                  SizedBox(height: context.sh(28)),
                   Center(
                     child: CircleAvatar(
                       key: ValueKey(_imageRefreshKey),
-                      radius: 54,
+                      radius: context.sw(50),
                       backgroundColor: const Color(0xFF00B4D8),
                       backgroundImage: avatarProvider,
                       child: null,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: context.sh(16)),
                   Center(
                     child: Text(
                       userName,
-                      style: const TextStyle(
-                          fontSize: 24,
+                      style: TextStyle(
+                          fontSize: context.sp(22),
                           fontWeight: FontWeight.bold,
                           color: Colors.black),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: context.sh(22)),
                   if (userName.isNotEmpty)
                     _profileField(Icons.person, 'Name', userName),
                   if (username.isNotEmpty)
@@ -237,15 +230,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           children: List.generate(5, (i) {
                             if (i < avgRatingNum.floor()) {
                               return Icon(Icons.star,
-                                  color: Color(0xFFFFC107), size: 22);
+                                  color: const Color(0xFFFFC107), size: context.sp(20));
                             } else if (i == avgRatingNum.floor() &&
                                 (avgRatingNum - avgRatingNum.floor()) >= 0.25) {
-                              // Show half star if decimal part >= 0.25
                               return Icon(Icons.star_half,
-                                  color: Color(0xFFFFC107), size: 22);
+                                  color: const Color(0xFFFFC107), size: context.sp(20));
                             } else {
                               return Icon(Icons.star_border,
-                                  color: Color(0xFFFFC107), size: 22);
+                                  color: const Color(0xFFFFC107), size: context.sp(20));
                             }
                           }),
                         ),
@@ -273,10 +265,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundColor: const Color(0xFF00B4D8),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: context.sh(14)),
                       ),
-                      child: const Text('Edit profile',
-                          style: TextStyle(fontSize: 18, color: Colors.white)),
+                      child: Text('Edit profile',
+                          style: TextStyle(fontSize: context.sp(17), color: Colors.white)),
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton(
@@ -288,11 +280,11 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: Color(0xFF00B4D8), width: 2),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: context.sh(14)),
                       ),
-                      child: const Text('Settings',
+                      child: Text('Settings',
                           style: TextStyle(
-                              fontSize: 18, color: Color(0xFF00B4D8))),
+                              fontSize: context.sp(17), color: const Color(0xFF00B4D8))),
                     ),
                   ],
                 ],
@@ -316,7 +308,7 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -332,13 +324,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   TextSpan(
                     text: '$label: ',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: context.sp(15)),
                   ),
                   TextSpan(
                     text: value,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.normal),
+                    style: TextStyle(
+                        fontSize: context.sp(15), fontWeight: FontWeight.normal),
                   ),
                 ],
               ),

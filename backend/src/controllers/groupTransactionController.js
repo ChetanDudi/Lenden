@@ -197,13 +197,10 @@ exports.createGroupWithCoins = async (req, res) => {
 
     // Award gift card every 3 group creations (guaranteed, randomized within window)
     const groupCountWithCoins = await GroupTransaction.countDocuments({ creator: creator._id });
-    console.log(`[Group Creation with Coins] User ${creator.email} has created ${groupCountWithCoins} groups total`);
     let awardedCardWithCoins = null;
     if (shouldAwardGiftCard(creator._id, groupCountWithCoins, 3)) {
-      console.log(`[Group Creation with Coins] Awarding gift card at count ${groupCountWithCoins}!`);
       awardedCardWithCoins = await awardGiftCard(creator._id, 'group');
     } else {
-      console.log(`[Group Creation with Coins] No card award yet. Progress: ${groupCountWithCoins} within window`);
     }
 
     res.status(201).json({ 
@@ -316,13 +313,10 @@ exports.createGroup = async (req, res) => {
 
     // Award gift card every 3 group creations (guaranteed, randomized within window)
     const groupCount = await GroupTransaction.countDocuments({ creator: creator._id });
-    console.log(`[Group Creation] User ${creator.email} has created ${groupCount} groups total`);
     let awardedCard = null;
     if (shouldAwardGiftCard(creator._id, groupCount, 3)) {
-      console.log(`[Group Creation] Awarding gift card at count ${groupCount}!`);
       awardedCard = await awardGiftCard(creator._id, 'group');
     } else {
-      console.log(`[Group Creation] No card award yet. Progress: ${groupCount} within window`);
     }
 
     res.status(201).json({ 
@@ -502,7 +496,6 @@ exports.removeMember = async (req, res) => {
 exports.addExpense = async (req, res) => {
   const EXPENSE_COST = 5;
   try {
-    console.log('addExpense called with body:', req.body);
     const { groupId } = req.params;
     const {
       description,
@@ -514,19 +507,9 @@ exports.addExpense = async (req, res) => {
       selectedMembers,
       useCoins,
     } = req.body;
-    console.log('Parsed data:', {
-      groupId,
-      description,
-      amount,
-      currency,
-      splitType,
-      split,
-      selectedMembers,
-    });
-    
+
     const group = await GroupTransaction.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
-    console.log('Group found:', group._id);
     
     const userId = req.user._id;
     
@@ -537,7 +520,6 @@ exports.addExpense = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     const userEmail = user.email;
     
-    console.log('User:', { userId, userEmail });
     
     if (!group.members.some(m => m.user.toString() === userId.toString() && !m.leftAt)) return res.status(403).json({ error: 'Not a group member' });
     if (!description || !amount || amount <= 0) return res.status(400).json({ error: 'Description and positive amount required' });
@@ -631,8 +613,6 @@ exports.addExpense = async (req, res) => {
       return null;
     }).filter(email => email !== null);
     
-    console.log('Active member emails:', activeMemberEmails);
-    console.log('Selected members:', selectedMembers);
     
     // Validate that all selected members are active members
     const invalidMembers = selectedMembers.filter(email => !activeMemberEmails.includes(email));
@@ -643,7 +623,6 @@ exports.addExpense = async (req, res) => {
     let splitArr = [];
     
     if (splitType === 'equal') {
-      console.log('Processing equal split');
       // Split equally among selected members only
       const per = parseFloat((amount / selectedMembers.length).toFixed(2));
       let total = per * selectedMembers.length;
@@ -663,10 +642,8 @@ exports.addExpense = async (req, res) => {
         return null;
       }).filter(item => item !== null);
       
-      console.log('Equal split array:', splitArr);
       
     } else if (splitType === 'custom') {
-      console.log('Processing custom split');
       if (!Array.isArray(split) || split.length === 0) {
         return res.status(400).json({ error: 'Custom split requires split data for each selected member' });
       }
@@ -701,7 +678,6 @@ exports.addExpense = async (req, res) => {
         });
       }
       
-      console.log('Custom split array:', splitArr);
     } else {
       return res.status(400).json({ error: 'Invalid split type' });
     }
@@ -716,7 +692,6 @@ exports.addExpense = async (req, res) => {
       selectedMembers: selectedMembers,
       split: splitArr 
     };
-    console.log('Adding expense with data:', expenseData);
     
     group.expenses.push(expenseData);
     
@@ -728,9 +703,7 @@ exports.addExpense = async (req, res) => {
     const payerBal = group.balances.find(b => b.user.toString() === userId.toString());
     if (payerBal) payerBal.balance -= amount;
     
-    console.log('Saving group...');
     await group.save();
-    console.log('Group saved successfully');
     
     // Return populated group data
     const populatedGroup = await GroupTransaction.findById(group._id)
@@ -753,7 +726,6 @@ exports.addExpense = async (req, res) => {
     };
     groupObj.expenses = processedExpenses;
     
-    console.log('Sending response with updated group');
     res.json({ group: groupObj });
     
     // Log activity for expense addition - all members get notified
@@ -1165,13 +1137,9 @@ exports.editExpense = async (req, res) => {
     const userId = req.user._id;
     
     // Debug: Check what's in req.user
-    console.log('req.user object:', req.user);
-    console.log('req.user.email:', req.user.email);
-    console.log('req.user._id:', req.user._id);
     
     // If email is not in token, fetch it from database
     if (!userEmail) {
-      console.log('Email not in token, fetching from database...');
       const User = require('../models/user');
       const Admin = require('../models/admin');
       
@@ -1179,12 +1147,10 @@ exports.editExpense = async (req, res) => {
       let user = await User.findById(userId);
       if (user) {
         userEmail = user.email;
-        console.log('Found user email from database:', userEmail);
       } else {
         let admin = await Admin.findById(userId);
         if (admin) {
           userEmail = admin.email;
-          console.log('Found admin email from database:', userEmail);
         }
       }
     }
@@ -1201,19 +1167,13 @@ exports.editExpense = async (req, res) => {
     const expense = group.expenses[expenseIndex];
     
     // Check if the current user is the one who created this expense
-    console.log('Expense addedBy:', expense.addedBy);
-    console.log('Current user email:', userEmail);
-    console.log('Expense data:', expense);
     
     // Normalize email comparison (case-insensitive)
     const normalizedExpenseAddedBy = (expense.addedBy || '').toLowerCase().trim();
     const normalizedUserEmail = (userEmail || '').toLowerCase().trim();
     
-    console.log('Normalized expense addedBy:', normalizedExpenseAddedBy);
-    console.log('Normalized user email:', normalizedUserEmail);
     
     if (normalizedExpenseAddedBy !== normalizedUserEmail) {
-      console.log('Permission denied - emails do not match');
       return res.status(403).json({ 
         error: 'Only the person who created this expense can edit it',
         debug: {
@@ -1225,7 +1185,6 @@ exports.editExpense = async (req, res) => {
       });
     }
     
-    console.log('Permission granted - proceeding with edit');
     
     // Validate required fields
     if (!description || !amount || amount <= 0) {
@@ -1388,7 +1347,6 @@ exports.settleMemberExpenses = async (req, res) => {
       return res.status(400).json({ error: 'User is not an active member of this group' });
     }
     
-    console.log(`Settling expenses for member: ${email} in group: ${group.title}`);
     
     // Mark all split amounts for this member as settled in all expenses
     let expensesUpdated = 0;
@@ -1407,7 +1365,6 @@ exports.settleMemberExpenses = async (req, res) => {
           splitItem.settledAt = new Date();
           splitItem.settledBy = creator.email;
           expenseModified = true;
-          console.log(`Marked split amount ${splitItem.amount} as settled for ${email} in expense: ${expense.description}`);
         }
       }
       
@@ -1416,7 +1373,6 @@ exports.settleMemberExpenses = async (req, res) => {
       }
     }
     
-    console.log(`Updated ${expensesUpdated} expenses for member ${email}`);
     
     await group.save();
     

@@ -112,7 +112,6 @@ module.exports = (io) => {
         metadata: { queryId: newQuery._id, topic, description },
       });
 
-      console.log('Backend: createSupportQuery - Success', populatedQuery);
       res.status(201).json({ message: 'Support query created successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: createSupportQuery - Error', error);
@@ -126,7 +125,6 @@ module.exports = (io) => {
       await deleteOldQueries();
       const userId = req.user._id;
       const queries = await SupportQuery.find({ user: userId }).sort({ createdAt: -1 });
-      console.log('Backend: getUserSupportQueries - Success', queries.length, 'queries found');
       res.status(200).json({ queries });
     } catch (error) {
       console.error('Backend: getUserSupportQueries - Error', error);
@@ -145,12 +143,10 @@ module.exports = (io) => {
       const query = await SupportQuery.findOne({ _id: queryId, user: userId });
 
       if (!query) {
-        console.log('Backend: updateSupportQuery - Query not found or no permission', queryId, userId);
         return res.status(404).json({ error: 'Support query not found or you do not have permission to edit it' });
       }
 
       if (query.replies && query.replies.length > 0) {
-        console.log('Backend: updateSupportQuery - Cannot edit after admin reply', queryId);
         return res.status(403).json({ error: 'Cannot edit query after an admin has replied' });
       }
 
@@ -174,7 +170,6 @@ module.exports = (io) => {
         metadata: { queryId: query._id, newTopic: topic, newDescription: description },
       });
 
-      console.log('Backend: updateSupportQuery - Success', populatedQuery);
       res.status(200).json({ message: 'Support query updated successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: updateSupportQuery - Error', error);
@@ -238,7 +233,6 @@ module.exports = (io) => {
         overdue: mappedQueries.filter((item) => item.isOverdue).length,
       };
 
-      console.log('Backend: getAllSupportQueries - Success', queries.length, 'queries found');
       res.status(200).json({
         queries: mappedQueries,
         summary,
@@ -271,7 +265,6 @@ module.exports = (io) => {
       const query = await SupportQuery.findById(queryId);
 
       if (!query) {
-        console.log('Backend: replyToSupportQuery - Query not found', queryId);
         return res.status(404).json({ error: 'Support query not found' });
       }
 
@@ -316,7 +309,6 @@ module.exports = (io) => {
         details: { replyText },
       });
 
-      console.log('Backend: replyToSupportQuery - Success', populatedQuery);
       res.status(200).json({ message: 'Reply added successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: replyToSupportQuery - Error', error);
@@ -646,7 +638,6 @@ module.exports = (io) => {
       const query = await SupportQuery.findOne({ _id: queryId, user: userId });
 
       if (!query) {
-        console.log('Backend: deleteSupportQuery - Query not found or no permission');
         return res.status(404).json({ error: 'Support query not found or you do not have permission to delete it' });
       }
 
@@ -662,7 +653,6 @@ module.exports = (io) => {
         metadata: { queryId: query._id },
       });
 
-      console.log('Backend: deleteSupportQuery - Success', queryId);
       res.status(200).json({ message: 'Support query deleted successfully' });
     } catch (error) {
       console.error('Backend: deleteSupportQuery - Error', error);

@@ -41,7 +41,6 @@ class EmailOtpLogin {
     String? deviceId,
   }) async {
     try {
-      print('🔐 Attempting OTP verification for email: $email');
       DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
       String deviceName;
       if (kIsWeb) {
@@ -74,8 +73,6 @@ class EmailOtpLogin {
       });
 
       final responseData = jsonDecode(response.body);
-      print('📥 OTP verification response status: ${response.statusCode}');
-      print('📥 OTP verification response data: $responseData');
 
       if (response.statusCode == 200) {
         final userOrAdmin = responseData['user'] ?? responseData['admin'];
@@ -83,34 +80,18 @@ class EmailOtpLogin {
         final accessToken = responseData['accessToken'];
         final refreshToken = responseData['refreshToken'];
 
-        print('✅ OTP verification successful');
-        print('👤 User data: $userOrAdmin');
-        print('🔑 User type: $userType');
         print(
             '🎫 Access Token: ${accessToken != null ? 'Present' : 'Missing'}');
         print(
             '🎫 Refresh Token: ${refreshToken != null ? 'Present' : 'Missing'}');
-        print('🎫 Access Token length: ${accessToken?.length ?? 0}');
-        print('🎫 Refresh Token length: ${refreshToken?.length ?? 0}');
-        print('📋 Full response data: $responseData');
-        print('📋 Response keys: ${responseData.keys.toList()}');
 
         // Check if userOrAdmin is null or empty
-        if (userOrAdmin == null) {
-          print('❌ ERROR: userOrAdmin is null!');
-          print('❌ Available keys in data: ${responseData.keys.toList()}');
-        }
+        if (userOrAdmin == null) {}
 
         // Check if tokens are null or empty
-        if (accessToken == null || accessToken.isEmpty) {
-          print('❌ ERROR: Access token is null or empty!');
-          print('❌ Access token value: "$accessToken"');
-        }
+        if (accessToken == null || accessToken.isEmpty) {}
 
-        if (refreshToken == null || refreshToken.isEmpty) {
-          print('❌ ERROR: Refresh token is null or empty!');
-          print('❌ Refresh token value: "$refreshToken"');
-        }
+        if (refreshToken == null || refreshToken.isEmpty) {}
 
         return {
           'success': true,
@@ -130,14 +111,12 @@ class EmailOtpLogin {
           'username': responseData['username'],
         };
       } else {
-        print('❌ OTP verification failed: ${responseData['error']}');
         return {
           'success': false,
           'error': responseData['error'] ?? 'OTP verification failed.'
         };
       }
     } catch (e) {
-      print('❌ OTP verification exception: $e');
       return {
         'success': false,
         'error': 'OTP verification failed. Please try again.'

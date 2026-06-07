@@ -45,9 +45,7 @@ exports.updateSubscription = async (req, res) => {
 // Get subscription status for the logged-in user
 exports.getSubscriptionStatus = async (req, res) => {
     try {
-        console.log('Fetching subscription status for user:', req.user._id);
         const subscription = await Subscription.findOne({ user: req.user._id, status: 'active' }).sort({ subscribedDate: -1 });
-        console.log('Found subscription:', subscription);
 
         if (subscription && subscription.subscribed && subscription.endDate >= new Date()) {
             res.status(200).json({

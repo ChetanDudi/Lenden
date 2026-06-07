@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../widgets/tricolor_border_text_field.dart';
 import 'dart:ui' as ui;
 import '../utils/http_interceptor.dart';
+import '../utils/responsive.dart';
 
 
 class UserLoginPage extends StatefulWidget {
@@ -275,16 +276,16 @@ class _UserLoginPageState extends State<UserLoginPage> {
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'This account has been deactivated.',
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                fontSize: context.sp(15), fontWeight: FontWeight.bold, color: Colors.red),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Would you like to recover it and log in?',
-            style: TextStyle(fontSize: 14, color: Colors.black87),
+            style: TextStyle(fontSize: context.sp(13), color: Colors.black87),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -294,25 +295,28 @@ class _UserLoginPageState extends State<UserLoginPage> {
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              padding: EdgeInsets.symmetric(
+                  vertical: context.sh(10), horizontal: context.sw(20)),
             ),
             child: _isLoading
                 ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text('Recovering...',
-                          style: TextStyle(fontSize: 16, color: Colors.white)),
+                          style: TextStyle(
+                              fontSize: context.sp(15), color: Colors.white)),
                     ],
                   )
-                : const Text('Recover & Login',
-                    style: TextStyle(fontSize: 16, color: Colors.white)),
+                : Text('Recover & Login',
+                    style: TextStyle(
+                        fontSize: context.sp(15), color: Colors.white)),
           ),
         ],
       ),
@@ -380,7 +384,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6FA),
       body: SizedBox(
-        height: MediaQuery.of(context).size.height, // Ensure Stack fills screen
+        height: MediaQuery.sizeOf(context).height,
         child: Stack(
           children: [
             // Top blue shape
@@ -391,34 +395,32 @@ class _UserLoginPageState extends State<UserLoginPage> {
               child: ClipPath(
                 clipper: TopWaveClipper(),
                 child: Container(
-                  height: 120,
+                  height: context.sh(110),
                   color: const Color(0xFF00B4D8),
-                  child: Container(),
                 ),
               ),
             ),
             SafeArea(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 28.0, vertical: 24.0),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: context.hPadding, vertical: context.vPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 20),
-                      const Text('Login',
+                      SizedBox(height: context.sh(18)),
+                      Text('Login',
                           style: TextStyle(
-                              fontSize: 32,
+                              fontSize: context.sp(28),
                               fontWeight: FontWeight.bold,
                               color: Colors.black),
                           textAlign: TextAlign.center),
                       const SizedBox(height: 8),
-                      const Text('Hello Welcome Back',
-                          style: TextStyle(fontSize: 16, color: Colors.black),
+                      Text('Hello Welcome Back',
+                          style: TextStyle(fontSize: context.sp(15), color: Colors.black),
                           textAlign: TextAlign.center),
-                      const SizedBox(height: 32),
-// Login illustration
-                      const LoginIllustration(height: 180),
+                      SizedBox(height: context.sh(28)),
+                      LoginIllustration(height: context.sh(160)),
                       const SizedBox(height: 24),
                       if (_isDeactivated) _buildDeactivatedAccountWidget(),
                       // Dropdown for login method
@@ -566,13 +568,13 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                         SizedBox(width: 10),
                                         Text('Sending OTP...',
                                             style: TextStyle(
-                                                fontSize: 18,
+                                                fontSize: context.sp(17),
                                                 color: Colors.white)),
                                       ],
                                     )
-                                  : const Text('Send OTP',
+                                  : Text('Send OTP',
                                       style: TextStyle(
-                                          fontSize: 18, color: Colors.white)),
+                                          fontSize: context.sp(17), color: Colors.white)),
                             ),
                           ),
                           if (_otpErrorMessage != null)
@@ -637,13 +639,13 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                         SizedBox(width: 10),
                                         Text('Verifying & Logging in...',
                                             style: TextStyle(
-                                                fontSize: 18,
+                                                fontSize: context.sp(17),
                                                 color: Colors.white)),
                                       ],
                                     )
-                                  : const Text('Verify & Login',
+                                  : Text('Verify & Login',
                                       style: TextStyle(
-                                          fontSize: 18, color: Colors.white)),
+                                          fontSize: context.sp(17), color: Colors.white)),
                             ),
                           ),
                           if (_otpErrorMessage != null)
@@ -710,7 +712,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                                 ? 'Recovering...'
                                                 : 'Logging in...',
                                             style: TextStyle(
-                                                fontSize: 18,
+                                                fontSize: context.sp(17),
                                                 color: Colors.white),
                                           ),
                                         ],
@@ -721,7 +723,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                                 ? 'Recover & Login'
                                                 : 'Login',
                                             style: TextStyle(
-                                                fontSize: 18,
+                                                fontSize: context.sp(17),
                                                 color: Colors.white)),
                                       ),
                               ),
@@ -731,19 +733,19 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text("I Don\'t Have an Account ? ",
-                              style: TextStyle(fontSize: 14)),
+                          Text("I Don\'t Have an Account ? ",
+                              style: TextStyle(fontSize: context.sp(13))),
                           GestureDetector(
                             onTap: _isSubmitting
                                 ? null
                                 : () =>
                                     Navigator.pushNamed(context, '/register'),
-                            child: const Text(
+                            child: Text(
                               'Register',
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: context.sp(13),
                               ),
                             ),
                           ),
@@ -755,7 +757,6 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 ),
               ),
             ),
-            // Move the bottom wave to the end of the stack so it's always at the bottom
             Positioned(
               left: 0,
               right: 0,
@@ -763,8 +764,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
               child: ClipPath(
                 clipper: BottomWaveClipper(),
                 child: Container(
-                  height:
-                      80, // Adjust height as needed (try 80 for a slim wave)
+                  height: context.sh(75),
                   color: const Color(0xFF00B4D8),
                 ),
               ),
@@ -821,7 +821,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
             ),
           ),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(context.sw(22)),
             decoration: BoxDecoration(
               color: const Color(0xFFF0F9FF),
               borderRadius: BorderRadius.circular(22),
@@ -840,8 +840,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
                     );
                   },
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: context.sw(72),
+                    height: context.sw(72),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
@@ -864,24 +864,24 @@ class _UserLoginPageState extends State<UserLoginPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
+                SizedBox(height: context.sh(18)),
+                Text(
                   'Daily Bonus! 🎉',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: context.sp(22),
                     fontWeight: FontWeight.w800,
                     color: Colors.black87,
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: context.sh(10)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'You earned',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: context.sp(15),
                         color: Colors.black54,
                       ),
                     ),
@@ -899,42 +899,42 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       ),
                       child: Text(
                         '$coins LenDen Coin${coins > 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: TextStyle(
+                          fontSize: context.sp(15),
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFF59E0B),
+                          color: const Color(0xFFF59E0B),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: context.sh(10)),
                 Text(
                   'Keep logging in daily to earn more coins!',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: context.sp(12),
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: context.sh(20)),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00B4D8),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: context.sh(12)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 4,
                     ),
-                    child: const Text(
+                    child: Text(
                       'Awesome!',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: context.sp(15),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: 0.5,

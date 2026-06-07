@@ -7,6 +7,7 @@ import 'notification_settings_page.dart';
 import 'privacy_settings_page.dart';
 import 'account_settings_page.dart';
 import '../user/support/help_support_page.dart';
+import '../utils/responsive.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -65,7 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 120,
+                height: context.sh(110),
                 color: const Color(0xFF00B4D8),
               ),
             ),
@@ -130,8 +131,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                                           ?.substring(0, 1)
                                                           .toUpperCase() ??
                                                       'U',
-                                                  style: const TextStyle(
-                                                    fontSize: 24,
+                                                  style: TextStyle(
+                                                    fontSize: context.sp(22),
                                                     fontWeight: FontWeight.bold,
                                                     color: Colors.white,
                                                   ),
@@ -150,8 +151,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                               ?.substring(0, 1)
                                               .toUpperCase() ??
                                           'U',
-                                      style: const TextStyle(
-                                        fontSize: 24,
+                                      style: TextStyle(
+                                        fontSize: context.sp(22),
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
@@ -165,8 +166,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               children: [
                                 Text(
                                   session.user?['name'] ?? 'User',
-                                  style: const TextStyle(
-                                    fontSize: 18,
+                                  style: TextStyle(
+                                    fontSize: context.sp(16),
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
                                   ),
@@ -174,8 +175,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   session.user?['email'] ?? 'user@example.com',
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: TextStyle(
+                                    fontSize: context.sp(13),
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -194,8 +195,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                       const SizedBox(width: 4),
                                       Text(
                                         'Alternative email set',
-                                        style: const TextStyle(
-                                          fontSize: 10,
+                                        style: TextStyle(
+                                          fontSize: context.sp(9),
                                           color: Colors.green,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -401,12 +402,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: context.sh(14)),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Logout',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: context.sp(15),
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -434,7 +435,7 @@ class _SettingsPageState extends State<SettingsPage> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 10,
             offset: const Offset(0, 2),
@@ -454,10 +455,10 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: context.sp(15),
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF00B4D8),
+                  color: const Color(0xFF00B4D8),
                 ),
               ),
             ),
@@ -503,8 +504,8 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16,
+        style: TextStyle(
+          fontSize: context.sp(15),
           fontWeight: FontWeight.w500,
           color: Colors.black87,
         ),
@@ -512,8 +513,8 @@ class _SettingsPageState extends State<SettingsPage> {
       subtitle: subtitle != null
           ? Text(
               subtitle,
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: context.sp(11),
                 color: Colors.grey,
               ),
             )

@@ -33,16 +33,13 @@ exports.awardGiftCard = async (userId, awardedFrom) => {
   try {
     // Get all admin-created gift cards
     const allGiftCards = await GiftCard.find({});
-    console.log(`[Gift Card Award] Found ${allGiftCards.length} gift cards in database for user ${userId}`);
     
     if (allGiftCards.length === 0) {
-      console.log('[Gift Card Award] No gift cards available to award - admin must create cards first');
       return null;
     }
 
     // Pick a random gift card from the pool
     const randomCard = allGiftCards[Math.floor(Math.random() * allGiftCards.length)];
-    console.log(`[Gift Card Award] Awarding card "${randomCard.name}" with ${randomCard.value} coins to user ${userId}`);
 
     // Create user gift card entry
     const userGiftCard = await UserGiftCard.create({
@@ -53,7 +50,6 @@ exports.awardGiftCard = async (userId, awardedFrom) => {
       awardedFrom,
     });
 
-    console.log(`[Gift Card Award] Successfully created user gift card: ${userGiftCard._id}`);
     return userGiftCard;
   } catch (error) {
     console.error('[Gift Card Award] Error awarding gift card:', error);

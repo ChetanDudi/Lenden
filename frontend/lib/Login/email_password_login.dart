@@ -16,7 +16,6 @@ class EmailPasswordLogin {
     String? deviceId,
   }) async {
     try {
-      print('🔐 Attempting login for username: $email');
       DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
       String deviceName;
       if (kIsWeb) {
@@ -50,13 +49,10 @@ class EmailPasswordLogin {
       });
 
       final responseData = jsonDecode(response.body);
-      print('📥 Login response status: ${response.statusCode}');
-      print('📥 Login response data: $responseData');
 
       if (response.statusCode == 200) {
         // Check if it's a user login
         if (responseData['user'] != null) {
-          print('✅ User login successful');
           return {
             'success': true,
             'userOrAdmin': responseData['user'],
@@ -68,7 +64,6 @@ class EmailPasswordLogin {
         }
         // Check if it's an admin login
         else if (responseData['admin'] != null) {
-          print('✅ Admin login successful');
           return {
             'success': true,
             'userOrAdmin': responseData['admin'],
@@ -88,10 +83,8 @@ class EmailPasswordLogin {
           'username': responseData['username'],
         };
       }
-      print('❌ Login failed: ${responseData['error']}');
       return {'success': false, 'error': responseData['error']};
     } catch (e) {
-      print('❌ Login exception: $e');
       return {'success': false, 'error': e.toString()};
     }
   }

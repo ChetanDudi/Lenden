@@ -97,13 +97,10 @@ exports.createQuickTransaction = async (req, res) => {
 
     // Award gift card every 10 quick transactions (guaranteed, randomized within window)
     const quickTxnCount = await QuickTransaction.countDocuments({ creatorEmail: userEmail });
-    console.log(`[Quick Transaction] User ${userEmail} has created ${quickTxnCount} quick transactions`);
     let awardedCard = null;
     if (shouldAwardGiftCard(req.user._id, quickTxnCount, 10)) {
-      console.log(`[Quick Transaction] Awarding gift card at count ${quickTxnCount}!`);
       awardedCard = await awardGiftCard(req.user._id, 'quickTransaction');
     } else {
-      console.log(`[Quick Transaction] No card award yet. Progress: ${quickTxnCount} within window`);
     }
 
     res.status(201).json({ 
@@ -205,13 +202,10 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
 
     // Award gift card every 10 quick transactions (guaranteed, randomized within window)
     const quickTxnCount = await QuickTransaction.countDocuments({ creatorEmail: userEmail });
-    console.log(`[Quick Transaction with Coins] User ${userEmail} has created ${quickTxnCount} quick transactions`);
     let awardedCard = null;
     if (shouldAwardGiftCard(user._id, quickTxnCount, 10)) {
-      console.log(`[Quick Transaction with Coins] Awarding gift card at count ${quickTxnCount}!`);
       awardedCard = await awardGiftCard(user._id, 'quickTransaction');
     } else {
-      console.log(`[Quick Transaction with Coins] No card award yet. Progress: ${quickTxnCount} within window`);
     }
 
     res.status(201).json({ 

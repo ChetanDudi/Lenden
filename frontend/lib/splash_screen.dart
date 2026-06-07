@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'utils/responsive.dart';
 
 class SplashScreen extends StatefulWidget {
   final bool autoNavigate;
@@ -54,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
             child: ClipPath(
               clipper: _TopWaveClipper(),
               child: Container(
-                height: MediaQuery.of(context).size.height * 0.18,
+                height: MediaQuery.sizeOf(context).height * 0.18,
                 color: const Color(0xFF00B4D8),
               ),
             ),
@@ -67,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen>
             child: ClipPath(
               clipper: _BottomWaveClipper(),
               child: Container(
-                height: MediaQuery.of(context).size.height * 0.15,
+                height: MediaQuery.sizeOf(context).height * 0.15,
                 color: const Color(0xFF00B4D8),
               ),
             ),
@@ -127,7 +128,7 @@ class _SplashScreenState extends State<SplashScreen>
                     'Loading your workspace...',
                     style: TextStyle(
                       color: Colors.grey[700],
-                      fontSize: 14,
+                      fontSize: context.sp(13),
                       fontWeight: FontWeight.w600,
                     ),
                   ),

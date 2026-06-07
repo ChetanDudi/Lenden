@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
-import '../api_config.dart';
 import '../otp_input.dart';
 import '../widgets/tricolor_border_text_field.dart';
 import 'dart:ui' as ui;
 import '../utils/api_client.dart';
+import '../utils/responsive.dart';
 
 class UserRegisterPage extends StatefulWidget {
   const UserRegisterPage({super.key});
@@ -208,41 +208,22 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   Future<Map<String, dynamic>> _post(
       String path, Map<String, dynamic> body) async {
     try {
-      print('🌐 Making API call to: ${ApiConfig.baseUrl + path}');
-      print('📤 Request body: ${jsonEncode(body)}');
-
       final response = await ApiClient.post(path, body: body)
           .timeout(const Duration(minutes: 2));
 
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response headers: ${response.headers}');
-      print('📥 Response body: ${response.body}');
-
-      // Handle different response status codes
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
         return {'status': response.statusCode, 'data': data};
-      } else if (response.statusCode == 404) {
-        return {
-          'status': 404,
-          'data': {'error': 'API endpoint not found'}
-        };
-      } else if (response.statusCode == 500) {
-        return {
-          'status': 500,
-          'data': {'error': 'Server error'}
-        };
       } else {
         final data = jsonDecode(response.body);
         return {'status': response.statusCode, 'data': data};
       }
     } on TimeoutException catch (_) {
       return {
-        'status': 408, // Request Timeout
+        'status': 408,
         'data': {'error': 'The request timed out. Please try again.'}
       };
     } catch (e) {
-      print('❌ API call error: $e');
       if (e.toString().contains('SocketException')) {
         return {
           'status': 0,
@@ -263,7 +244,6 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   }
 
   void _showSnackBar(String message) {
-    // Show a stylish dialog for OTP sent
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -271,31 +251,31 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         backgroundColor: const Color(0xFFE0F7FA),
         title: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.email, color: Color(0xFF00B4D8), size: 60),
-            SizedBox(height: 12),
+          children: [
+            Icon(Icons.email, color: const Color(0xFF00B4D8), size: context.sp(52)),
+            SizedBox(height: context.sh(10)),
             Text('OTP Sent!',
                 style: TextStyle(
-                    color: Color(0xFF0077B5),
+                    color: const Color(0xFF0077B5),
                     fontWeight: FontWeight.bold,
-                    fontSize: 22),
+                    fontSize: context.sp(20)),
                 textAlign: TextAlign.center),
           ],
         ),
         content: Text(
           message,
-          style: const TextStyle(fontSize: 16, color: Colors.black87),
+          style: TextStyle(fontSize: context.sp(15), color: Colors.black87),
           textAlign: TextAlign.center,
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK',
+            child: Text('OK',
                 style: TextStyle(
-                    color: Color(0xFF00B4D8),
+                    color: const Color(0xFF00B4D8),
                     fontWeight: FontWeight.bold,
-                    fontSize: 16)),
+                    fontSize: context.sp(15))),
           ),
         ],
       ),
@@ -305,7 +285,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   void _showRegistrationSuccessDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // User must tap button to close
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -324,29 +304,29 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(context.sw(22)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 80),
-                  const SizedBox(height: 24),
-                  const Text(
+                  Icon(Icons.check_circle, color: Colors.green, size: context.sp(68)),
+                  SizedBox(height: context.sh(20)),
+                  Text(
                     'Registration Successful!',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: context.sp(20),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: context.sh(12)),
+                  Text(
                     'You can now log in with your new account.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: context.sp(15)),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: context.sh(20)),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
+                      Navigator.of(context).pop();
                       Navigator.pushReplacementNamed(context, '/login');
                     },
                     style: ElevatedButton.styleFrom(
@@ -354,9 +334,12 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.sw(32), vertical: context.sh(10)),
                     ),
-                    child: const Text('Go to Login', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    child: Text('Go to Login',
+                        style: TextStyle(
+                            fontSize: context.sp(15), color: Colors.white)),
                   ),
                 ],
               ),
@@ -367,7 +350,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     );
   }
 
-  List<Widget> _buildPasswordRules() {
+  List<Widget> _buildPasswordRules(BuildContext context) {
     final rules = <Map<String, bool>>[
       {'At least one uppercase letter': _hasUpper},
       {'At least one lowercase letter': _hasLower},
@@ -379,10 +362,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         .where((rule) => !rule.values.first)
         .map((rule) => Row(
               children: [
-                const Icon(Icons.cancel, color: Colors.red, size: 18),
+                Icon(Icons.cancel, color: Colors.red, size: context.sp(16)),
                 const SizedBox(width: 6),
                 Text(rule.keys.first,
-                    style: const TextStyle(color: Colors.red, fontSize: 13)),
+                    style: TextStyle(color: Colors.red, fontSize: context.sp(12))),
               ],
             ))
         .toList();
@@ -402,7 +385,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 120,
+                height: context.sh(110),
                 color: const Color(0xFF00B4D8),
                 child: SafeArea(
                   bottom: false,
@@ -422,7 +405,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
             child: ClipPath(
               clipper: BottomWaveClipper(),
               child: Container(
-                height: 90,
+                height: context.sh(80),
                 color: const Color(0xFF00B4D8),
               ),
             ),
@@ -430,24 +413,24 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
           SafeArea(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 28.0, vertical: 24.0),
+                padding: EdgeInsets.symmetric(
+                    horizontal: context.hPadding, vertical: context.vPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 20),
-                    const Text('Register',
+                    SizedBox(height: context.sh(18)),
+                    Text('Register',
                         style: TextStyle(
-                            fontSize: 32,
+                            fontSize: context.sp(28),
                             fontWeight: FontWeight.bold,
                             color: Colors.black),
                         textAlign: TextAlign.center),
                     const SizedBox(height: 8),
-                    const Text('Hello Welcome :)',
-                        style: TextStyle(fontSize: 16, color: Colors.black),
+                    Text('Hello Welcome :)',
+                        style: TextStyle(fontSize: context.sp(15), color: Colors.black),
                         textAlign: TextAlign.center),
-                    const SizedBox(height: 32),
-                    const LoginIllustration(height: 180),
+                    SizedBox(height: context.sh(28)),
+                    LoginIllustration(height: context.sh(160)),
                     const SizedBox(height: 24),
                     TricolorBorderTextField(
                       child: TextField(
@@ -519,8 +502,6 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    // Rating field removed
-                    const SizedBox(height: 18),
                     TricolorBorderTextField(
                       child: TextField(
                         controller: _emailController,
@@ -576,7 +557,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ..._buildPasswordRules(),
+                    ..._buildPasswordRules(context),
                     const SizedBox(height: 18),
                     TricolorBorderTextField(
                       child: TextField(
@@ -642,24 +623,24 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                                   ? Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
-                                      children: const [
-                                        SizedBox(
+                                      children: [
+                                        const SizedBox(
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
                                                 strokeWidth: 2,
                                                 color: Colors.white)),
-                                        SizedBox(width: 12),
+                                        const SizedBox(width: 12),
                                         Text('Sending OTP...',
                                             style: TextStyle(
-                                                fontSize: 18,
+                                                fontSize: context.sp(17),
                                                 color: Colors.white)),
                                       ],
                                     )
-                                  : const Center(
+                                  : Center(
                                       child: Text('Register',
                                           style: TextStyle(
-                                              fontSize: 18,
+                                              fontSize: context.sp(17),
                                               color: Colors.white)),
                                     ),
                             ),
@@ -734,22 +715,24 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           child: _isVerifyingOtp
                               ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    SizedBox(
+                                  children: [
+                                    const SizedBox(
                                         height: 20,
                                         width: 20,
                                         child: CircularProgressIndicator(
                                             strokeWidth: 2,
                                             color: Colors.white)),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 12),
                                     Text('Verifying OTP...',
                                         style: TextStyle(
-                                            fontSize: 18, color: Colors.white)),
+                                            fontSize: context.sp(17),
+                                            color: Colors.white)),
                                   ],
                                 )
-                              : const Text('Verify OTP & Register',
+                              : Text('Verify OTP & Register',
                                   style: TextStyle(
-                                      fontSize: 18, color: Colors.white)),
+                                      fontSize: context.sp(17),
+                                      color: Colors.white)),
                         ),
                       ),
                     ],
@@ -757,15 +740,15 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('I Have an Account ? ',
-                            style: TextStyle(fontSize: 14)),
+                        Text('I Have an Account ? ',
+                            style: TextStyle(fontSize: context.sp(13))),
                         GestureDetector(
                           onTap: () => Navigator.pushNamed(context, '/login'),
-                          child: const Text('Login',
+                          child: Text('Login',
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14)),
+                                  fontSize: context.sp(13))),
                         ),
                       ],
                     ),
@@ -801,7 +784,7 @@ class SocialIconButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -956,7 +939,7 @@ class LoginIllustrationPainter extends CustomPainter {
 
     // Phone notch and top icons
     final notchPaint = Paint()
-      ..color = const Color(0xFFEAF7FF).withOpacity(0.9);
+      ..color = const Color(0xFFEAF7FF).withValues(alpha: 0.9);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
@@ -1097,7 +1080,7 @@ class LoginIllustrationPainter extends CustomPainter {
 
     // --- PERSON (right side, seated) ---
     // Shadow under person
-    final groundShadow = Paint()..color = Colors.black.withOpacity(0.08);
+    final groundShadow = Paint()..color = Colors.black.withValues(alpha: 0.08);
     canvas.drawOval(
         Rect.fromCenter(
             center: Offset(cx + sw(0.2), cy + sh(0.30)),
@@ -1231,7 +1214,7 @@ class LoginIllustrationPainter extends CustomPainter {
     canvas.drawPath(smile, smilePaint);
 
     // Cheeks (blush)
-    final blush = Paint()..color = const Color(0xFFFFB3BA).withOpacity(0.55);
+    final blush = Paint()..color = const Color(0xFFFFB3BA).withValues(alpha: 0.55);
     canvas.drawCircle(Offset(headCenter.dx - sw(0.06), headCenter.dy + sh(0.0)),
         sw(0.015), blush);
     canvas.drawCircle(Offset(headCenter.dx + sw(0.06), headCenter.dy + sh(0.0)),
@@ -1272,7 +1255,6 @@ class LoginIllustrationPainter extends CustomPainter {
         paperRect.deflate(6), Paint()..color = const Color(0xFFEFF6F8));
 
     // dotted lines on paper
-    final dotPaint = Paint()..color = const Color(0xFFD6E6EA);
     for (int i = 0; i < 3; i++) {
       final dy = paperRect.top + 10 + i * 14;
       canvas.drawLine(
@@ -1316,11 +1298,10 @@ class LoginIllustrationPainter extends CustomPainter {
         Offset(bottomBtn.left + 24, bottomBtn.center.dy),
         Offset(bottomBtn.right - 24, bottomBtn.center.dy),
         Paint()
-          ..color = Colors.white.withOpacity(0.06)
+          ..color = Colors.white.withValues(alpha: 0.06)
           ..strokeWidth = 12);
 
     // final small signature lines (mimic text under 'Login' heading)
-    final headingPaint = Paint()..color = const Color(0xFF2C3E50);
     final titleY = cy - sh(0.4);
     canvas.drawRect(Rect.fromLTWH(cx - sw(0.35), titleY, sw(0.26), sh(0.02)),
         Paint()..color = const Color(0xFF2C3E50));

@@ -149,10 +149,6 @@ const settlePreviousMonthRewards = async () => {
     rewardedUsers,
     totalCoinsAwarded,
   });
-
-  console.log(
-    `[MonthlyLeaderboardReward] ${monthKey} processed. Winners: ${rewardedUsers.length}, coins: ${totalCoinsAwarded}`
-  );
 };
 
 const initializeMonthlyLeaderboardRewardScheduler = () => {
@@ -170,7 +166,6 @@ const initializeMonthlyLeaderboardRewardScheduler = () => {
     console.error('[MonthlyLeaderboardReward] Startup settlement error:', error);
   });
 
-  console.log('Monthly leaderboard reward scheduler initialized.');
 };
 
 module.exports = {

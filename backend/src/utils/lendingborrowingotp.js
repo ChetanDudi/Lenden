@@ -78,22 +78,16 @@ exports.resendOtp = async (email) => {
     text: `Your OTP for transaction confirmation is: ${otp}\nThis OTP will expire in 2 minutes.`, 
     html: getStylishOtpHtml(otp),
   });
-  console.log('OTP sent:', email, otp);
-  console.log('Current otpStore:', otpStore);
   return otp;
 };
 
 exports.verifyLendingBorrowingOtp = (email, otp) => {
   const record = otpStore[email];
-  console.log('Verifying OTP for', email, 'Expected:', record ? record.otp : undefined, 'Provided:', otp, 'Expires:', record ? record.expires : undefined, 'Now:', Date.now());
   if (!record) return false;
   if (record.otp === otp && Date.now() < record.expires) {
     delete otpStore[email];
-    console.log('OTP verified and deleted for', email);
-    console.log('Current otpStore:', otpStore);
     return true;
   }
-  console.log('OTP verification failed for', email);
   return false;
 };
 

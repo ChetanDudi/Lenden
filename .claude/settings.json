@@ -4,7 +4,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
-      "Read(//c/Users/CHETAN DUDI/OneDOpen/Desktop/LenDen/Lenden/backend/src/**)"
+      "Read(//c/Users/CHETAN DUDI/OneDOpen/Desktop/LenDen/Lenden/backend/src/**)",
+      "Bash(node --check src/app.js)"
     ]
   }
 }

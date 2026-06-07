@@ -668,13 +668,10 @@ exports.createTransaction = async (req, res) => {
     
     // Award gift card every 5 user transactions (guaranteed, randomized within window)
     const userTxnCount = await Transaction.countDocuments({ userEmail });
-    console.log(`[User Transaction] User ${userEmail} has created ${userTxnCount} transactions total`);
     let awardedCard = null;
     if (shouldAwardGiftCard(user._id, userTxnCount, 5)) {
-      console.log(`[User Transaction] Awarding gift card at count ${userTxnCount}!`);
       awardedCard = await awardGiftCard(user._id, 'userTransaction');
     } else {
-      console.log(`[User Transaction] No card award yet. Progress: ${userTxnCount} within window`);
     }
 
     res.json({ 

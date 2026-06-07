@@ -16,7 +16,6 @@ const sendGroupLeaveRequestEmail = async (creatorEmail, groupDetails, requesting
   try {
     const creator = await User.findOne({ email: creatorEmail });
     if (!creator || !creator.notificationSettings.emailNotifications || !shouldSendNotification(creator)) {
-      console.log(`Email notifications are disabled for ${creatorEmail} or user is in quiet hours.`);
       return false;
     }
 
@@ -311,7 +310,6 @@ const sendGroupLeaveRequestEmail = async (creatorEmail, groupDetails, requesting
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`Group leave request email sent to ${creatorEmail}`);
     return true;
   } catch (error) {
     console.error('Error sending group leave request email:', error);
