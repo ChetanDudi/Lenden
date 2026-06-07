@@ -225,7 +225,99 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
 exports.getQuickTransactions = async (req, res) => {
   try {
     const userEmail = req.user.email;
-    const quickTransactions = await QuickTransaction.find({ users: userEmail }).sort({ createdAt: -1 }).lean();
+    const {
+      search,
+      sortBy = 'created_desc',
+      filterBy = 'all',
+      role = 'all',
+      dateFilter = 'all',
+      favouritesOnly,
+      counterparty,
+    } = req.query;
+
+    // Base query
+    const query = { users: userEmail };
+
+    // Clearance filter
+    if (filterBy === 'cleared') {
+      query.cleared = true;
+    } else if (filterBy === 'not_cleared') {
+      query.cleared = { $ne: true };
+    }
+
+    // Role filter (based on creator's role field)
+    if (role === 'lender') {
+      query.role = 'lender';
+    } else if (role === 'borrower') {
+      query.role = 'borrower';
+    }
+
+    // Favourites only
+    if (favouritesOnly === 'true') {
+      query.favourite = userEmail;
+    }
+
+    // Counterparty filter
+    if (counterparty && counterparty.trim()) {
+      query.users = { $all: [userEmail, counterparty.trim()] };
+    }
+
+    // Date filter
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      if (dateFilter === 'today') {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        query.$or = [
+          { date: { $gte: start, $lt: end } },
+          { createdAt: { $gte: start, $lt: end } },
+        ];
+      } else if (dateFilter === 'week') {
+        const dayOfWeek = now.getDay();
+        const diff = now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+        const weekStart = new Date(now.setDate(diff));
+        weekStart.setHours(0, 0, 0, 0);
+        query.$or = [
+          { date: { $gte: weekStart } },
+          { createdAt: { $gte: weekStart } },
+        ];
+      } else if (dateFilter === 'month') {
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        query.$or = [
+          { date: { $gte: monthStart } },
+          { createdAt: { $gte: monthStart } },
+        ];
+      }
+    }
+
+    // Build sort
+    let sortObj = { createdAt: -1 };
+    switch (sortBy) {
+      case 'created_asc': sortObj = { createdAt: 1 }; break;
+      case 'created_desc': sortObj = { createdAt: -1 }; break;
+      case 'updated_asc': sortObj = { updatedAt: 1 }; break;
+      case 'updated_desc': sortObj = { updatedAt: -1 }; break;
+      case 'amount_asc': sortObj = { amount: 1 }; break;
+      case 'amount_desc': sortObj = { amount: -1 }; break;
+      default: sortObj = { createdAt: -1 };
+    }
+
+    let quickTransactions = await QuickTransaction.find(query).sort(sortObj).lean();
+
+    // Text search (post-populate, across description, amount, counterparty name/email)
+    if (search && search.trim()) {
+      const searchLower = search.trim().toLowerCase();
+      quickTransactions = quickTransactions.filter((t) => {
+        const desc = (t.description || '').toLowerCase();
+        const amountStr = String(t.amount || '');
+        const usersStr = (t.users || []).join(' ').toLowerCase();
+        return (
+          desc.includes(searchLower) ||
+          amountStr.includes(searchLower) ||
+          usersStr.includes(searchLower)
+        );
+      });
+    }
 
     const populatedTransactions = await Promise.all(quickTransactions.map(async (t) => {
       const users = await User.find({ email: { $in: t.users } }).select('name email');

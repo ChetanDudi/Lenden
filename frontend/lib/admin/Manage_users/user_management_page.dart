@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'user_details_page.dart';
@@ -25,13 +26,13 @@ class UserManagementPage extends StatefulWidget {
 class _UserManagementPageState extends State<UserManagementPage> {
   bool _isLoading = false;
   List<Map<String, dynamic>> _users = [];
-  List<Map<String, dynamic>> _filteredUsers = [];
   Map<String, dynamic>? _currentAdmin;
   String _searchQuery = '';
   String _statusFilter = 'All';
   String _sortBy = 'name';
   bool _sortAscending = true;
   final Set<String> _selectedUserIds = {};
+  Timer? _searchDebounceTimer;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -44,30 +45,41 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadUsers() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final response = await ApiClient.get('/api/admin/users');
+      final params = <String, String>{
+        'sortBy': _sortBy,
+        'sortOrder': _sortAscending ? 'asc' : 'desc',
+      };
+      if (_searchQuery.isNotEmpty) params['search'] = _searchQuery;
+      if (_statusFilter != 'All') params['statusFilter'] = _statusFilter.toLowerCase();
+
+      final query = params.entries
+          .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+      final response = await ApiClient.get('/api/admin/users?$query');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _users = List<Map<String, dynamic>>.from(data['users']);
-          _filteredUsers = List.from(_users);
-          _currentAdmin = data['currentAdmin'] is Map
-              ? Map<String, dynamic>.from(data['currentAdmin'])
-              : null;
-        });
-        _applyFilters();
+        if (mounted) {
+          setState(() {
+            _users = List<Map<String, dynamic>>.from(data['users']);
+            _currentAdmin = data['currentAdmin'] is Map
+                ? Map<String, dynamic>.from(data['currentAdmin'])
+                : null;
+            _isLoading = false;
+          });
+        }
       } else {
         if (mounted) {
+          setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to load users: ${response.statusCode}'),
@@ -78,18 +90,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading users: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -407,7 +414,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           };
         }
       });
-      _applyFilters();
+      _loadUsers();
 
       if (!mounted) return;
       _showStyledBanner(
@@ -753,46 +760,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
     );
   }
 
-  void _applyFilters() {
-    setState(() {
-      _filteredUsers = _users.where((user) {
-        // Search filter
-        final matchesSearch = _searchQuery.isEmpty ||
-            user['name']
-                .toString()
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            user['email']
-                .toString()
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            user['username']
-                .toString()
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase());
-
-        // Status filter
-        final matchesStatus = _statusFilter == 'All' ||
-            (_statusFilter == 'Active' && user['isActive'] == true) ||
-            (_statusFilter == 'Inactive' && user['isActive'] == false) ||
-            (_statusFilter == 'Pending' && user['isVerified'] == false);
-
-        return matchesSearch && matchesStatus;
-      }).toList();
-
-      // Sort
-      _filteredUsers.sort((a, b) {
-        var aValue = a[_sortBy] ?? '';
-        var bValue = b[_sortBy] ?? '';
-
-        if (aValue is String) aValue = aValue.toLowerCase();
-        if (bValue is String) bValue = bValue.toLowerCase();
-
-        int comparison = aValue.compareTo(bValue);
-        return _sortAscending ? comparison : -comparison;
-      });
-    });
-  }
 
   Future<void> _toggleUserStatus(String userId, bool currentStatus) async {
     try {
@@ -807,7 +774,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             _users[userIndex]['isActive'] = !currentStatus;
           }
         });
-        _applyFilters();
+        _loadUsers();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -863,7 +830,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           setState(() {
             _users.removeWhere((user) => user['_id'] == userId);
           });
-          _applyFilters();
+          _loadUsers();
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -992,10 +959,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                       icon: const Icon(Icons.clear),
                                       onPressed: () {
                                         _searchController.clear();
-                                        setState(() {
-                                          _searchQuery = '';
-                                        });
-                                        _applyFilters();
+                                        _searchDebounceTimer?.cancel();
+                                        setState(() => _searchQuery = '');
+                                        _loadUsers();
                                       },
                                     )
                                   : null,
@@ -1006,10 +972,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
                               ),
                             ),
                             onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                              _applyFilters();
+                              setState(() => _searchQuery = value);
+                              _searchDebounceTimer?.cancel();
+                              _searchDebounceTimer = Timer(
+                                const Duration(milliseconds: 300),
+                                _loadUsers,
+                              );
                             },
                           ),
                         ),
@@ -1042,7 +1010,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                       setState(() {
                                         _statusFilter = value!;
                                       });
-                                      _applyFilters();
+                                      _loadUsers();
                                     },
                                   ),
                                 ),
@@ -1060,7 +1028,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                   _sortAscending = true;
                                 }
                               });
-                              _applyFilters();
+                              _loadUsers();
                             },
                             itemBuilder: (context) => [
                               const PopupMenuItem(
@@ -1150,7 +1118,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             setState(() {
                               _statusFilter = 'Pending';
                             });
-                            _applyFilters();
+                            _loadUsers();
                           },
                           icon: const Icon(Icons.fact_check_outlined),
                           label: const Text('Review One by One'),
@@ -1207,7 +1175,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : _filteredUsers.isEmpty
+                      : _users.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1233,9 +1201,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           : ListView.builder(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _filteredUsers.length,
+                              itemCount: _users.length,
                               itemBuilder: (context, index) {
-                                final user = _filteredUsers[index];
+                                final user = _users[index];
                                 return _buildUserCard(user, index);
                               },
                             ),

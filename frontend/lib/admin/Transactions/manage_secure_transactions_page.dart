@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -37,6 +37,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   String _searchQuery = '';
   String _currencyFilter = 'All';
   String _sortBy = 'latest';
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -68,16 +70,32 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     setState(() {
       _loading = true;
       _error = null;
+      _showAll = false;
     });
 
     try {
-      final response = await ApiClient.get('/api/admin/transactions');
+      final params = <String, String>{};
+      if (_searchQuery.trim().isNotEmpty) params['search'] = _searchQuery.trim();
+      if (_currencyFilter != 'All') params['currency'] = _currencyFilter;
+      if (_sortBy == 'amount_desc') {
+        params['sortBy'] = 'amount';
+        params['order'] = 'desc';
+      } else if (_sortBy == 'amount_asc') {
+        params['sortBy'] = 'amount';
+        params['order'] = 'asc';
+      } else {
+        params['sortBy'] = 'date';
+        params['order'] = 'desc';
+      }
+
+      final query = params.isNotEmpty
+          ? '?${params.entries.map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}').join('&')}'
+          : '';
+      final response = await ApiClient.get('/api/admin/transactions$query');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final transactions =
-            List<Map<String, dynamic>>.from(data['transactions'] ?? []);
         setState(() {
-          _transactions = transactions;
+          _transactions = List<Map<String, dynamic>>.from(data['transactions'] ?? []);
           _loading = false;
         });
       } else {
@@ -673,50 +691,9 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     return ['All', ...values];
   }
 
-  List<Map<String, dynamic>> get _filteredTransactions {
-    final query = _searchQuery.trim().toLowerCase();
-    final filtered = _transactions.where((transaction) {
-      final matchesQuery = query.isEmpty ||
-          jsonEncode(transaction).toLowerCase().contains(query);
-      final matchesCurrency = _currencyFilter == 'All' ||
-          (transaction['currency']?.toString() ?? '') == _currencyFilter;
-      return matchesQuery && matchesCurrency;
-    }).toList();
-
-    filtered.sort((a, b) {
-      if (_sortBy == 'amount_desc') {
-        final aAmount = (a['amount'] as num?)?.toDouble() ??
-            double.tryParse('${a['amount']}') ??
-            0;
-        final bAmount = (b['amount'] as num?)?.toDouble() ??
-            double.tryParse('${b['amount']}') ??
-            0;
-        return bAmount.compareTo(aAmount);
-      }
-      if (_sortBy == 'amount_asc') {
-        final aAmount = (a['amount'] as num?)?.toDouble() ??
-            double.tryParse('${a['amount']}') ??
-            0;
-        final bAmount = (b['amount'] as num?)?.toDouble() ??
-            double.tryParse('${b['amount']}') ??
-            0;
-        return aAmount.compareTo(bAmount);
-      }
-
-      final aDate = DateTime.tryParse('${a['createdAt'] ?? ''}') ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-      final bDate = DateTime.tryParse('${b['createdAt'] ?? ''}') ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-      return bDate.compareTo(aDate);
-    });
-
-    return filtered;
-  }
-
   List<Map<String, dynamic>> get _visibleTransactions {
-    final filtered = _filteredTransactions;
-    if (_showAll || filtered.length <= 5) return filtered;
-    return filtered.take(5).toList();
+    if (_showAll || _transactions.length <= 5) return _transactions;
+    return _transactions.take(5).toList();
   }
 
   Future<void> _showDeleteConfirmationDialog(
@@ -1353,7 +1330,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   Widget _buildStatsRow() {
     final total = _transactions.length;
     final visible = _visibleTransactions.length;
-    final totalAmount = _filteredTransactions.fold<double>(
+    final totalAmount = _transactions.fold<double>(
       0,
       (sum, item) =>
           sum +
@@ -1541,7 +1518,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   @override
   Widget build(BuildContext context) {
     final visibleTransactions = _visibleTransactions;
-    final filteredTransactions = _filteredTransactions;
+    final filteredTransactions = _transactions;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6FA),
@@ -1612,10 +1589,12 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                       child: TextField(
                                         controller: _searchController,
                                         onChanged: (value) {
-                                          setState(() {
-                                            _searchQuery = value;
-                                            _showAll = false;
-                                          });
+                                          setState(() => _searchQuery = value);
+                                          _searchDebounceTimer?.cancel();
+                                          _searchDebounceTimer = Timer(
+                                            const Duration(milliseconds: 300),
+                                            _fetchTransactions,
+                                          );
                                         },
                                         decoration: InputDecoration(
                                           border: InputBorder.none,
@@ -1631,9 +1610,9 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                                   icon: const Icon(Icons.clear),
                                                   onPressed: () {
                                                     _searchController.clear();
-                                                    setState(() {
-                                                      _searchQuery = '';
-                                                    });
+                                                    _searchDebounceTimer?.cancel();
+                                                    setState(() => _searchQuery = '');
+                                                    _fetchTransactions();
                                                   },
                                                 ),
                                         ),
@@ -1668,10 +1647,8 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                                     )
                                                     .toList(),
                                                 onChanged: (value) {
-                                                  setState(() {
-                                                    _currencyFilter = value!;
-                                                    _showAll = false;
-                                                  });
+                                                  setState(() => _currencyFilter = value!);
+                                                  _fetchTransactions();
                                                 },
                                               ),
                                             ),
@@ -1709,9 +1686,8 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                                   ),
                                                 ],
                                                 onChanged: (value) {
-                                                  setState(() {
-                                                    _sortBy = value!;
-                                                  });
+                                                  setState(() => _sortBy = value!);
+                                                  _fetchTransactions();
                                                 },
                                               ),
                                             ),

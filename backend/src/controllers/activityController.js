@@ -26,25 +26,53 @@ const createActivityLog = async (userId, type, title, description, metadata = {}
 exports.getUserActivities = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { page = 1, limit = 20, type, startDate, endDate, search, bookmarked } = req.query;
-    
+    const {
+      page = 1,
+      limit = 20,
+      type,
+      startDate,
+      endDate,
+      search,
+      bookmarked,
+      excludeTypes,
+      friendOnly,
+    } = req.query;
+
     // Build query
     const query = { user: userId };
-    
+
     if (type) {
       query.type = type;
+    }
+
+    // Exclude specific types
+    if (excludeTypes && excludeTypes.trim()) {
+      const typesToExclude = excludeTypes.split(',').map((t) => t.trim()).filter(Boolean);
+      if (typesToExclude.length > 0) {
+        query.type = { ...(query.type ? { $eq: query.type } : {}), $nin: typesToExclude };
+        // If both type and excludeTypes are set, we need $and
+        if (type) {
+          delete query.type;
+          query.$and = [
+            { type: type },
+            { type: { $nin: typesToExclude } },
+          ];
+        } else {
+          query.type = { $nin: typesToExclude };
+        }
+      }
     }
 
     if (bookmarked) {
       query.bookmarked = bookmarked === 'true';
     }
-    
+
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
-    
+
     // Add search functionality
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
@@ -56,10 +84,35 @@ exports.getUserActivities = async (req, res) => {
         { 'metadata.clearedBy': searchRegex }
       ];
     }
-    
+
+    // Friend-only filter: restrict to friend-related activity types
+    if (friendOnly === 'true') {
+      const friendActivityTypes = [
+        'friend_request_sent',
+        'friend_request_received',
+        'friend_request_accepted',
+        'friend_request_declined',
+        'friend_request_canceled',
+        'friend_removed',
+        'user_blocked',
+        'user_unblocked',
+      ];
+      if (query.type && !Array.isArray(query.type)) {
+        // Keep only if type is in friendActivityTypes
+        if (!friendActivityTypes.includes(query.type)) {
+          return res.json({
+            activities: [],
+            pagination: { currentPage: 1, totalPages: 0, totalItems: 0, hasNext: false, hasPrev: false },
+          });
+        }
+      } else {
+        query.type = { ...(query.type || {}), $in: friendActivityTypes };
+      }
+    }
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     // Get activities with populated references
     const activities = await Activity.find(query)
       .populate('relatedTransaction', 'transactionId amount currency date place')
@@ -68,10 +121,10 @@ exports.getUserActivities = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     // Get total count for pagination
     const total = await Activity.countDocuments(query);
-    
+
     res.json({
       activities,
       pagination: {

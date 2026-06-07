@@ -79,17 +79,6 @@ class _ActivityPageState extends State<ActivityPage> {
     'offer_accepted',
   ];
 
-  final Set<String> _friendActivityTypes = {
-    'friend_request_sent',
-    'friend_request_received',
-    'friend_request_accepted',
-    'friend_request_declined',
-    'friend_request_canceled',
-    'friend_removed',
-    'user_blocked',
-    'user_unblocked',
-  };
-
   @override
   void initState() {
     super.initState();
@@ -116,6 +105,7 @@ class _ActivityPageState extends State<ActivityPage> {
       final queryParams = <String, String>{
         'page': currentPage.toString(),
         'limit': '50', // Increased limit for better search experience
+        'excludeTypes': 'user_rating_received',
       };
 
       if (selectedType != null) {
@@ -138,6 +128,10 @@ class _ActivityPageState extends State<ActivityPage> {
         queryParams['bookmarked'] = 'true';
       }
 
+      if (_showFriendOnly) {
+        queryParams['friendOnly'] = 'true';
+      }
+
       final uri = Uri.parse('$baseUrl/api/activities')
           .replace(queryParameters: queryParams);
       final response = await ApiClient.get(
@@ -145,13 +139,8 @@ class _ActivityPageState extends State<ActivityPage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Filter out 'user_rating_received' activities
-        final filteredActivities = List<Map<String, dynamic>>.from(
-                data['activities'])
-            .where((a) => a['type'] != 'user_rating_received')
-            .where((a) =>
-                !_showFriendOnly || _friendActivityTypes.contains(a['type']))
-            .toList();
+        final filteredActivities =
+            List<Map<String, dynamic>>.from(data['activities']);
         setState(() {
           if (refresh) {
             activities = filteredActivities;

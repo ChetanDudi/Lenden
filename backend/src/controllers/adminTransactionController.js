@@ -32,12 +32,14 @@ const parsePositiveInteger = (value) => {
 const buildAdminTransactionFilter = (query = {}) => {
   const {
     q,
+    search,
     currency,
     role,
     interestType,
     userEmail,
     counterpartyEmail,
     isPartiallyPaid,
+    clearanceFilter,
   } = query;
 
   const filter = {};
@@ -69,8 +71,21 @@ const buildAdminTransactionFilter = (query = {}) => {
     };
   }
 
-  if (q && q.trim()) {
-    const searchRegex = new RegExp(escapeRegex(q.trim()), 'i');
+  // Clearance filter
+  if (clearanceFilter && clearanceFilter !== 'all') {
+    if (clearanceFilter === 'totally_cleared') {
+      filter.userCleared = true;
+      filter.counterpartyCleared = true;
+    } else if (clearanceFilter === 'totally_uncleared') {
+      filter.userCleared = { $ne: true };
+      filter.counterpartyCleared = { $ne: true };
+    }
+  }
+
+  // Support both q (existing) and search (new alias)
+  const searchTerm = (q || search || '').trim();
+  if (searchTerm) {
+    const searchRegex = new RegExp(escapeRegex(searchTerm), 'i');
     filter.$or = [
       { transactionId: searchRegex },
       { place: searchRegex },

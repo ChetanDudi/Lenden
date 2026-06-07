@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -16,6 +16,7 @@ class ManageGroupTransactionsPage extends StatefulWidget {
 class _ManageGroupTransactionsPageState
     extends State<ManageGroupTransactionsPage> {
   final _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
   List<dynamic> groups = [];
   bool loading = true;
   String? error;
@@ -32,6 +33,7 @@ class _ManageGroupTransactionsPageState
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -40,9 +42,27 @@ class _ManageGroupTransactionsPageState
     setState(() {
       loading = true;
       error = null;
+      _showAll = false;
     });
     try {
-      final response = await ApiClient.get('/api/admin/group-transactions');
+      final params = <String, String>{};
+      if (_searchQuery.trim().isNotEmpty) params['search'] = _searchQuery.trim();
+      if (_statusFilter != 'all') params['status'] = _statusFilter;
+      // Map UI sort values to API params
+      if (_sortBy == 'members') {
+        params['sortBy'] = 'memberCount';
+        params['sortOrder'] = 'desc';
+      } else if (_sortBy == 'expenses') {
+        params['sortBy'] = 'expenseCount';
+        params['sortOrder'] = 'desc';
+      } else {
+        params['sortBy'] = 'createdAt';
+        params['sortOrder'] = 'desc';
+      }
+      final query = params.isNotEmpty
+          ? '?${params.entries.map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}').join('&')}'
+          : '';
+      final response = await ApiClient.get('/api/admin/group-transactions$query');
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         setState(() {
@@ -772,36 +792,8 @@ class _ManageGroupTransactionsPageState
     }
   }
 
-  List<dynamic> get _filteredGroups {
-    final filtered = groups.where((group) {
-      final matchesStatus = _statusFilter == 'all' ||
-          (_statusFilter == 'active' && group['isActive'] != false) ||
-          (_statusFilter == 'inactive' && group['isActive'] == false);
-      if (!matchesStatus) return false;
-      if (_searchQuery.trim().isEmpty) return true;
-      return jsonEncode(group)
-          .toLowerCase()
-          .contains(_searchQuery.toLowerCase());
-    }).toList();
-    filtered.sort((a, b) {
-      if (_sortBy == 'members') {
-        return ((b['members'] as List?)?.length ?? 0)
-            .compareTo((a['members'] as List?)?.length ?? 0);
-      }
-      if (_sortBy == 'expenses') {
-        return ((b['expenses'] as List?)?.length ?? 0)
-            .compareTo((a['expenses'] as List?)?.length ?? 0);
-      }
-      return DateTime.tryParse('${b['createdAt']}')?.compareTo(
-              DateTime.tryParse('${a['createdAt']}') ?? DateTime(0)) ??
-          0;
-    });
-    return filtered;
-  }
-
-  List<dynamic> get _visibleGroups => _showAll || _filteredGroups.length <= 5
-      ? _filteredGroups
-      : _filteredGroups.take(5).toList();
+  List<dynamic> get _visibleGroups =>
+      _showAll || groups.length <= 5 ? groups : groups.take(5).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -860,7 +852,7 @@ class _ManageGroupTransactionsPageState
                                   const SizedBox(height: 12),
                                   _statsRow(),
                                   const SizedBox(height: 16),
-                                  if (_filteredGroups.isEmpty)
+                                  if (groups.isEmpty)
                                     const Padding(
                                       padding: EdgeInsets.only(top: 80),
                                       child: Column(
@@ -878,12 +870,12 @@ class _ManageGroupTransactionsPageState
                                   else
                                     ..._visibleGroups.map((group) => _groupCard(
                                         Map<String, dynamic>.from(group))),
-                                  if (!_showAll && _filteredGroups.length > 5)
+                                  if (!_showAll && groups.length > 5)
                                     TextButton(
                                       onPressed: () =>
                                           setState(() => _showAll = true),
                                       child: Text(
-                                          'View All (${_filteredGroups.length})'),
+                                          'View All (${groups.length})'),
                                     ),
                                 ],
                               ),
@@ -918,10 +910,14 @@ class _ManageGroupTransactionsPageState
             ),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) => setState(() {
-                _searchQuery = value;
-                _showAll = false;
-              }),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+                _searchDebounceTimer?.cancel();
+                _searchDebounceTimer = Timer(
+                  const Duration(milliseconds: 300),
+                  _fetchGroups,
+                );
+              },
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: 'Search group, member, creator, id...',
@@ -947,7 +943,10 @@ class _ManageGroupTransactionsPageState
                   DropdownMenuItem(value: 'active', child: Text('Active')),
                   DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
                 ],
-                onChanged: (value) => setState(() => _statusFilter = value!),
+                onChanged: (value) {
+                  setState(() => _statusFilter = value!);
+                  _fetchGroups();
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -966,7 +965,10 @@ class _ManageGroupTransactionsPageState
                   DropdownMenuItem(
                       value: 'expenses', child: Text('Most Expenses')),
                 ],
-                onChanged: (value) => setState(() => _sortBy = value!),
+                onChanged: (value) {
+                  setState(() => _sortBy = value!);
+                  _fetchGroups();
+                },
               ),
             ),
           ],
@@ -981,7 +983,7 @@ class _ManageGroupTransactionsPageState
       ('Showing', '${_visibleGroups.length}', Icons.visibility_rounded),
       (
         'Expenses',
-        '${_filteredGroups.fold<int>(0, (s, g) => s + ((g['expenses'] as List?)?.length ?? 0))}',
+        '${groups.fold<int>(0, (s, g) => s + ((g['expenses'] as List?)?.length ?? 0))}',
         Icons.receipt_long_rounded
       ),
     ];

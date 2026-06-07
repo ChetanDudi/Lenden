@@ -12,7 +12,6 @@ import 'dart:async';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:string_similarity/string_similarity.dart';
 import '../../otp_input.dart';
 import '../chats/chat_page.dart';
 import '../../utils/display_currency_helper.dart';
@@ -80,6 +79,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   String? _displayCurrencyError;
   final Set<String> _expandedTransactionIds = <String>{};
   Timer? _countdownTimer;
+  Timer? _searchDebounceTimer;
   DateTime _now = DateTime.now();
 
   @override
@@ -109,6 +109,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _searchDebounceTimer?.cancel();
     _counterpartyController.dispose();
     _placeController.dispose();
     _transactionIdController.dispose();
@@ -245,8 +246,75 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       return;
     }
     try {
-      final res = await ApiClient.get(
-          '/api/transactions/user?email=${Uri.encodeComponent(email)}');
+      // Build query params from current filter state
+      final params = <String, String>{
+        'email': email,
+      };
+
+      // Filter (lending/borrowing/all)
+      if (filter != 'All') {
+        params['filter'] = filter.toLowerCase();
+      }
+
+      // Clearance filter
+      if (clearanceFilter != 'All') {
+        final clearanceMap = {
+          'Totally Cleared': 'totally_cleared',
+          'Totally Uncleared': 'totally_uncleared',
+          'Partially Cleared': 'partially_cleared',
+        };
+        params['clearanceFilter'] = clearanceMap[clearanceFilter] ?? 'all';
+        if (clearanceFilter == 'Partially Cleared') {
+          params['partialClearedType'] = partialClearedType;
+        }
+      }
+
+      // Interest type filter
+      if (interestTypeFilter != 'All') {
+        params['interestTypeFilter'] = interestTypeFilter;
+      }
+
+      // Date range
+      if (_startDate != null) {
+        params['startDate'] = _startDate!.toIso8601String();
+      }
+      if (_endDate != null) {
+        params['endDate'] = _endDate!.toIso8601String();
+      }
+
+      // Amount range
+      if (_minAmount != null) {
+        params['minAmount'] = _minAmount!.toString();
+      }
+      if (_maxAmount != null) {
+        params['maxAmount'] = _maxAmount!.toString();
+      }
+
+      // Global search
+      if (globalSearch.isNotEmpty) {
+        params['search'] = globalSearch;
+      }
+
+      // Sort
+      final sortByMap = {
+        'Created': 'created',
+        'Transaction Date': 'transaction_date',
+        'Amount': 'amount',
+        'Status': 'status',
+      };
+      params['sortBy'] = sortByMap[_sortBy] ?? 'created';
+      params['sortOrder'] = _sortAsc ? 'asc' : 'desc';
+
+      // Favourites only
+      if (showFavouritesOnly) {
+        params['favouritesOnly'] = 'true';
+      }
+
+      final queryString = params.entries
+          .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+
+      final res = await ApiClient.get('/api/transactions/user?$queryString');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         setState(() {
@@ -1779,14 +1847,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
           ChoiceChip(
             label: Text('All'),
             selected: filter == 'All',
-            onSelected: (_) => setState(() => filter = 'All'),
+            onSelected: (_) { setState(() => filter = 'All'); fetchTransactions(); },
             selectedColor: Color(0xFF00B4D8).withOpacity(0.2),
           ),
           SizedBox(width: 8),
           ChoiceChip(
             label: Text('Lending'),
             selected: filter == 'Lending',
-            onSelected: (_) => setState(() => filter = 'Lending'),
+            onSelected: (_) { setState(() => filter = 'Lending'); fetchTransactions(); },
             selectedColor: Colors.green.withOpacity(0.2),
             labelStyle: TextStyle(color: Colors.green[800]),
           ),
@@ -1794,7 +1862,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
           ChoiceChip(
             label: Text('Borrowing'),
             selected: filter == 'Borrowing',
-            onSelected: (_) => setState(() => filter = 'Borrowing'),
+            onSelected: (_) { setState(() => filter = 'Borrowing'); fetchTransactions(); },
             selectedColor: Colors.orange.withOpacity(0.2),
             labelStyle: TextStyle(color: Colors.orange[800]),
           ),
@@ -1802,8 +1870,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
           ChoiceChip(
             label: Text('Favourites'),
             selected: showFavouritesOnly,
-            onSelected: (selected) =>
-                setState(() => showFavouritesOnly = selected),
+            onSelected: (selected) {
+                setState(() => showFavouritesOnly = selected);
+                fetchTransactions();
+            },
             selectedColor: Colors.red.withOpacity(0.2),
             labelStyle: TextStyle(color: Colors.red[800]),
           ),
@@ -1846,8 +1916,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       child: ChoiceChip(
                         label: Text('All'),
                         selected: clearanceFilter == 'All',
-                        onSelected: (_) =>
-                            setState(() => clearanceFilter = 'All'),
+                        onSelected: (_) {
+                          setState(() => clearanceFilter = 'All');
+                          fetchTransactions();
+                        },
                         selectedColor: Color(0xFF00B4D8).withOpacity(0.2),
                       ),
                     ),
@@ -1857,8 +1929,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       child: ChoiceChip(
                         label: Text('Totally Cleared'),
                         selected: clearanceFilter == 'Totally Cleared',
-                        onSelected: (_) =>
-                            setState(() => clearanceFilter = 'Totally Cleared'),
+                        onSelected: (_) {
+                          setState(() => clearanceFilter = 'Totally Cleared');
+                          fetchTransactions();
+                        },
                         selectedColor: Colors.green.withOpacity(0.2),
                         labelStyle: TextStyle(color: Colors.green[800]),
                       ),
@@ -1869,8 +1943,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       child: ChoiceChip(
                         label: Text('Totally Uncleared'),
                         selected: clearanceFilter == 'Totally Uncleared',
-                        onSelected: (_) => setState(
-                            () => clearanceFilter = 'Totally Uncleared'),
+                        onSelected: (_) {
+                          setState(() => clearanceFilter = 'Totally Uncleared');
+                          fetchTransactions();
+                        },
                         selectedColor: Colors.orange.withOpacity(0.2),
                         labelStyle: TextStyle(color: Colors.orange[800]),
                       ),
@@ -1881,8 +1957,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       child: ChoiceChip(
                         label: Text('Partially Cleared'),
                         selected: clearanceFilter == 'Partially Cleared',
-                        onSelected: (_) => setState(
-                            () => clearanceFilter = 'Partially Cleared'),
+                        onSelected: (_) {
+                          setState(() => clearanceFilter = 'Partially Cleared');
+                          fetchTransactions();
+                        },
                         selectedColor: Colors.blue.withOpacity(0.2),
                         labelStyle: TextStyle(color: Colors.blue[800]),
                       ),
@@ -1901,8 +1979,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                           partialClearedType == 'my',
                           partialClearedType == 'other'
                         ],
-                        onPressed: (idx) => setState(() =>
-                            partialClearedType = idx == 0 ? 'my' : 'other'),
+                        onPressed: (idx) {
+                          setState(() => partialClearedType = idx == 0 ? 'my' : 'other');
+                          fetchTransactions();
+                        },
                         borderRadius: BorderRadius.circular(8),
                         selectedColor: Colors.white,
                         fillColor: Colors.teal,
@@ -1943,15 +2023,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 ChoiceChip(
                   label: Text('All'),
                   selected: interestTypeFilter == 'All',
-                  onSelected: (_) => setState(() => interestTypeFilter = 'All'),
+                  onSelected: (_) { setState(() => interestTypeFilter = 'All'); fetchTransactions(); },
                   selectedColor: Color(0xFF00B4D8).withOpacity(0.2),
                 ),
                 SizedBox(width: 8),
                 ChoiceChip(
                   label: Text('Simple Interest'),
                   selected: interestTypeFilter == 'simple',
-                  onSelected: (_) =>
-                      setState(() => interestTypeFilter = 'simple'),
+                  onSelected: (_) { setState(() => interestTypeFilter = 'simple'); fetchTransactions(); },
                   selectedColor: Colors.green.withOpacity(0.2),
                   labelStyle: TextStyle(color: Colors.green[800]),
                 ),
@@ -1959,8 +2038,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 ChoiceChip(
                   label: Text('Compound Interest'),
                   selected: interestTypeFilter == 'compound',
-                  onSelected: (_) =>
-                      setState(() => interestTypeFilter = 'compound'),
+                  onSelected: (_) { setState(() => interestTypeFilter = 'compound'); fetchTransactions(); },
                   selectedColor: Colors.blue.withOpacity(0.2),
                   labelStyle: TextStyle(color: Colors.blue[800]),
                 ),
@@ -1968,8 +2046,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 ChoiceChip(
                   label: Text('With Interest'),
                   selected: interestTypeFilter == 'with_interest',
-                  onSelected: (_) =>
-                      setState(() => interestTypeFilter = 'with_interest'),
+                  onSelected: (_) { setState(() => interestTypeFilter = 'with_interest'); fetchTransactions(); },
                   selectedColor: Colors.purple.withOpacity(0.2),
                   labelStyle: TextStyle(color: Colors.purple[800]),
                 ),
@@ -2009,21 +2086,21 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     label: 'All',
                     selected: filter == 'All',
                     accentColor: const Color(0xFF00B4D8),
-                    onTap: () => setState(() => filter = 'All'),
+                    onTap: () { setState(() => filter = 'All'); fetchTransactions(); },
                   ),
                   const SizedBox(width: 10),
                   _buildPrimaryFilterTab(
                     label: 'Lending',
                     selected: filter == 'Lending',
                     accentColor: Colors.green,
-                    onTap: () => setState(() => filter = 'Lending'),
+                    onTap: () { setState(() => filter = 'Lending'); fetchTransactions(); },
                   ),
                   const SizedBox(width: 10),
                   _buildPrimaryFilterTab(
                     label: 'Borrowing',
                     selected: filter == 'Borrowing',
                     accentColor: Colors.orange,
-                    onTap: () => setState(() => filter = 'Borrowing'),
+                    onTap: () { setState(() => filter = 'Borrowing'); fetchTransactions(); },
                   ),
                   const SizedBox(width: 10),
                   _buildToolbarAction(
@@ -2033,8 +2110,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     label: 'Fav',
                     accentColor: Colors.red,
                     isActive: showFavouritesOnly,
-                    onTap: () => setState(
-                        () => showFavouritesOnly = !showFavouritesOnly),
+                    onTap: () {
+                      setState(() => showFavouritesOnly = !showFavouritesOnly);
+                      fetchTransactions();
+                    },
                   ),
                   const SizedBox(width: 10),
                   _buildToolbarAction(
@@ -2855,6 +2934,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                         _maxAmount = tempMaxAmount;
                                       });
                                       Navigator.pop(context);
+                                      fetchTransactions();
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF00B4D8),
@@ -3022,61 +3102,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     );
   }
 
-  bool _transactionMatchesFilters(Map t) {
-    final date = t['date'] != null ? DateTime.tryParse(t['date']) : null;
-    final amount = t['amount'] is num
-        ? t['amount'].toDouble()
-        : double.tryParse(t['amount'].toString() ?? '');
-    if (_startDate != null && (date == null || date.isBefore(_startDate!)))
-      return false;
-    if (_endDate != null && (date == null || date.isAfter(_endDate!)))
-      return false;
-    if (_minAmount != null && (amount == null || amount < _minAmount!))
-      return false;
-    if (_maxAmount != null && (amount == null || amount > _maxAmount!))
-      return false;
-    final transactionInterestType =
-        (t['interestType'] ?? '').toString().toLowerCase();
-    if (interestTypeFilter == 'with_interest') {
-      if (transactionInterestType == 'none' ||
-          transactionInterestType.isEmpty) {
-        return false;
-      }
-    } else if (interestTypeFilter != 'All' &&
-        transactionInterestType != interestTypeFilter) {
-      return false;
-    }
-    // Global fuzzy search
-    if (globalSearch.isNotEmpty) {
-      final q = globalSearch.toLowerCase();
-      bool match(String? s) => s != null && s.toLowerCase().contains(q);
-      bool fuzzyMatch(String? a, String? b) {
-        if (a == null || b == null) return false;
-        a = a.toLowerCase();
-        b = b.toLowerCase();
-        if (a.contains(b) || b.contains(a)) return true;
-        return StringSimilarity.compareTwoStrings(a, b) > 0.6;
-      }
-
-      final user = Provider.of<SessionProvider>(context, listen: false).user;
-      final userEmail = user?['email'];
-      final isLending = userEmail == t['userEmail'];
-      final isBorrowing = userEmail == t['counterpartyEmail'];
-      if (fuzzyMatch(t['counterpartyEmail']?.toString(), q) ||
-          fuzzyMatch(t['place']?.toString(), q) ||
-          fuzzyMatch(t['interestType']?.toString(), q) ||
-          fuzzyMatch(t['transactionId']?.toString(), q) ||
-          (amount != null && amount.toString().contains(q)) ||
-          (isLending && 'lending'.contains(q)) ||
-          (isBorrowing && 'borrowing'.contains(q))) {
-        // pass
-      } else {
-        return false;
-      }
-    }
-    return true;
-  }
-
   bool _hasActiveFilters() {
     return filter != 'All' ||
         clearanceFilter != 'All' ||
@@ -3120,6 +3145,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       _amountController.clear();
       _globalSearchController.clear();
     });
+    fetchTransactions();
   }
 
   String? _viewerEmail() {
@@ -3180,123 +3206,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     return '${hours}h ${minutes}m ${seconds}s remaining';
   }
 
-  bool _matchesSearch(Map t) {
-    bool fuzzyMatch(String a, String b) {
-      if (a.isEmpty || b.isEmpty) return false;
-      a = a.toLowerCase();
-      b = b.toLowerCase();
-      if (a.contains(b) || b.contains(a)) return true;
-      return StringSimilarity.compareTwoStrings(a, b) > 0.6;
-    }
-
-    if (globalSearch.isNotEmpty) {
-      final q = globalSearch.toLowerCase();
-      final userEmail = _viewerEmail();
-      final isLending = userEmail == t['userEmail'];
-      final isBorrowing = userEmail == t['counterpartyEmail'];
-      if (fuzzyMatch((t['counterpartyEmail']?.toString() ?? ''), q) ||
-          fuzzyMatch((t['place']?.toString() ?? ''), q) ||
-          fuzzyMatch((t['interestType']?.toString() ?? ''), q) ||
-          fuzzyMatch((t['transactionId']?.toString() ?? ''), q) ||
-          (t['amount'] is num &&
-              (t['amount'] as num).toDouble().toString().contains(q)) ||
-          (isLending && 'lending'.contains(q)) ||
-          (isBorrowing && 'borrowing'.contains(q))) {
-        return true;
-      }
-      return false;
-    }
-    return true;
-  }
-
-  List<dynamic> _applyCollectionFilters(List<dynamic> source) {
-    var filtered = source.where((item) {
-      final t = Map<String, dynamic>.from(item as Map);
-      return _transactionMatchesFilters(t) && _matchesSearch(t);
-    }).toList();
-
-    if (clearanceFilter == 'Totally Cleared') {
-      filtered = filtered
-          .where((item) =>
-              _isTotallyCleared(Map<String, dynamic>.from(item as Map)))
-          .toList();
-    } else if (clearanceFilter == 'Totally Uncleared') {
-      filtered = filtered
-          .where((item) =>
-              _isTotallyUncleared(Map<String, dynamic>.from(item as Map)))
-          .toList();
-    } else if (clearanceFilter == 'Partially Cleared') {
-      filtered = filtered
-          .where((item) =>
-              _isPartiallyCleared(Map<String, dynamic>.from(item as Map)))
-          .toList();
-    }
-
-    if (showFavouritesOnly) {
-      final email = _viewerEmail();
-      filtered = filtered.where((item) {
-        final favouriteList =
-            Map<String, dynamic>.from(item as Map)['favourite'] as List?;
-        return favouriteList?.contains(email) == true;
-      }).toList();
-    }
-
-    return filtered;
-  }
-
+  // Returns already server-filtered data as-is
   Map<String, List<dynamic>> _getFilteredTransactionBuckets() {
-    var lendingFiltered = _applyCollectionFilters(lending);
-    var borrowingFiltered = _applyCollectionFilters(borrowing);
-
-    int sortCompare(a, b) {
-      if (_sortBy == 'Created') {
-        final da =
-            a['createdAt'] != null ? DateTime.tryParse(a['createdAt']) : null;
-        final db =
-            b['createdAt'] != null ? DateTime.tryParse(b['createdAt']) : null;
-        if (da == null && db == null) return 0;
-        if (da == null) return _sortAsc ? -1 : 1;
-        if (db == null) return _sortAsc ? 1 : -1;
-        return _sortAsc ? da.compareTo(db) : db.compareTo(da);
-      } else if (_sortBy == 'Transaction Date') {
-        final da = a['date'] != null ? DateTime.tryParse(a['date']) : null;
-        final db = b['date'] != null ? DateTime.tryParse(b['date']) : null;
-        if (da == null && db == null) return 0;
-        if (da == null) return _sortAsc ? -1 : 1;
-        if (db == null) return _sortAsc ? 1 : -1;
-        return _sortAsc ? da.compareTo(db) : db.compareTo(da);
-      } else if (_sortBy == 'Amount') {
-        final aa = a['amount'] is num
-            ? a['amount'].toDouble()
-            : double.tryParse(a['amount'].toString()) ?? 0.0;
-        final ab = b['amount'] is num
-            ? b['amount'].toDouble()
-            : double.tryParse(b['amount'].toString()) ?? 0.0;
-        return _sortAsc ? aa.compareTo(ab) : ab.compareTo(aa);
-      } else if (_sortBy == 'Status') {
-        final sa =
-            (a['userCleared'] == true && a['counterpartyCleared'] == true)
-                ? 2
-                : (a['userCleared'] == true || a['counterpartyCleared'] == true)
-                    ? 1
-                    : 0;
-        final sb =
-            (b['userCleared'] == true && b['counterpartyCleared'] == true)
-                ? 2
-                : (b['userCleared'] == true || b['counterpartyCleared'] == true)
-                    ? 1
-                    : 0;
-        return _sortAsc ? sa.compareTo(sb) : sb.compareTo(sa);
-      }
-      return 0;
-    }
-
-    lendingFiltered.sort(sortCompare);
-    borrowingFiltered.sort(sortCompare);
-
     return {
-      'lending': lendingFiltered,
-      'borrowing': borrowingFiltered,
+      'lending': List<dynamic>.from(lending),
+      'borrowing': List<dynamic>.from(borrowing),
     };
   }
 
@@ -3534,7 +3448,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               borderSide: BorderSide.none,
                             ),
                           ),
-                          onChanged: (v) => setState(() => globalSearch = v),
+                          onChanged: (v) {
+                            setState(() => globalSearch = v);
+                            _searchDebounceTimer?.cancel();
+                            _searchDebounceTimer = Timer(
+                              const Duration(milliseconds: 300),
+                              fetchTransactions,
+                            );
+                          },
                         ),
                       ),
                     ),

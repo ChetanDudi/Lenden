@@ -817,57 +817,144 @@ exports.otpVerifySettle = async (req, res) => {
 exports.getUserGroups = async (req, res) => {
   try {
     const userId = req.user._id;
-    // Find groups where user is creator or a member (and not left)
-    const groups = await GroupTransaction.find({
+    const userEmail = req.user.email;
+    const { search, status = 'all', favouritesOnly } = req.query;
+
+    // Base query: user is creator or member (including left members)
+    const baseQuery = {
       $or: [
         { creator: userId },
-        { 'members.user': userId, 'members.leftAt': null }
-      ]
-    })
+        { 'members.user': userId },
+      ],
+    };
+
+    // Status filter (joined vs left)
+    if (status === 'joined') {
+      baseQuery['members.user'] = userId;
+      baseQuery['members.leftAt'] = null;
+      delete baseQuery.$or;
+    } else if (status === 'left') {
+      // User must be a member with leftAt set
+      baseQuery['members.user'] = userId;
+      baseQuery['members.leftAt'] = { $ne: null };
+      delete baseQuery.$or;
+    }
+
+    let groups = await GroupTransaction.find(baseQuery)
       .populate('members.user', 'email')
       .populate('creator', 'email')
       .sort({ createdAt: -1 });
-    
-    const createdGroupsCount = groups.filter(g => g.creator && g.creator._id.toString() === userId.toString()).length;
 
-    // Map to summary format
-    const groupSummaries = await Promise.all(groups.map(async g => {
-      const obj = g.toObject();
-      
-      // Process expenses to convert Object IDs to emails in addedBy field
-      const processedExpenses = await processExpenses(obj.expenses);
-      const totalAmountInr = processedExpenses.reduce(
-        (sum, expense) => sum + Number(expense.amountInr || 0),
-        0
-      );
-      
-      return {
-        _id: obj._id,
-        title: obj.title,
-        creator: obj.creator ? { _id: obj.creator._id, email: obj.creator.email } : null,
-        members: (obj.members || []).map(m => {
-          if (m && m.user) {
-            return {
-              _id: m.user._id,
-              email: m.user.email,
-              joinedAt: m.joinedAt,
-              leftAt: m.leftAt
-            };
+    const createdGroupsCount = groups.filter(
+      (g) => g.creator && g.creator._id.toString() === userId.toString()
+    ).length;
+
+    // Map to summary format with computed fields
+    let groupSummaries = await Promise.all(
+      groups.map(async (g) => {
+        const obj = g.toObject();
+
+        // Process expenses to convert Object IDs to emails in addedBy field
+        const processedExpenses = await processExpenses(obj.expenses);
+        const totalAmountInr = processedExpenses.reduce(
+          (sum, expense) => sum + Number(expense.amountInr || 0),
+          0
+        );
+
+        // Determine userStatus based on member entry
+        const myMemberEntry = (obj.members || []).find(
+          (m) => m && m.user && m.user._id && m.user._id.toString() === userId.toString()
+        );
+        const userStatus = myMemberEntry && myMemberEntry.leftAt ? 'left' : 'joined';
+
+        // Compute userPendingBalance: sum of unsettled split amounts for this user
+        let userPendingBalance = 0;
+        for (const expense of processedExpenses) {
+          for (const splitItem of expense.split || []) {
+            const splitUserId =
+              splitItem.user?._id?.toString?.() ||
+              splitItem.user?.toString?.() ||
+              '';
+            if (splitUserId === userId.toString() && !splitItem.settled) {
+              userPendingBalance += Number(splitItem.amountInr || splitItem.amount || 0);
+            }
           }
-          return null;
-        }).filter(m => m !== null),
-        expenses: processedExpenses,
-        totalAmountInr: Number(totalAmountInr.toFixed(2)),
-        balances: obj.balances || [],
-        color: obj.color,
-        favourite: obj.favourite || [],
-        messageCount: obj.messageCount || 0,
-        createdAt: obj.createdAt,
-        updatedAt: obj.updatedAt
-      };
-    }));
-    
-    res.json({ groups: groupSummaries, totalGroups: groupSummaries.length, createdGroupsCount });
+        }
+
+        return {
+          _id: obj._id,
+          title: obj.title,
+          description: obj.description || '',
+          creator: obj.creator
+            ? { _id: obj.creator._id, email: obj.creator.email }
+            : null,
+          members: (obj.members || [])
+            .map((m) => {
+              if (m && m.user) {
+                return {
+                  _id: m.user._id,
+                  email: m.user.email,
+                  joinedAt: m.joinedAt,
+                  leftAt: m.leftAt,
+                };
+              }
+              return null;
+            })
+            .filter((m) => m !== null),
+          expenses: processedExpenses,
+          totalExpenses: processedExpenses.length,
+          totalAmountInr: Number(totalAmountInr.toFixed(2)),
+          balances: obj.balances || [],
+          color: obj.color,
+          favourite: obj.favourite || [],
+          messageCount: obj.messageCount || 0,
+          createdAt: obj.createdAt,
+          updatedAt: obj.updatedAt,
+          userStatus,
+          userPendingBalance: Number(userPendingBalance.toFixed(2)),
+        };
+      })
+    );
+
+    // Apply favourites filter
+    if (favouritesOnly === 'true') {
+      groupSummaries = groupSummaries.filter(
+        (g) =>
+          (g.favourite || []).includes(userEmail) ||
+          (g.favourite || []).some(
+            (f) => f && f.toString() === userId.toString()
+          )
+      );
+    }
+
+    // Apply search filter
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      groupSummaries = groupSummaries.filter((g) => {
+        if ((g.title || '').toLowerCase().includes(q)) return true;
+        if ((g.description || '').toLowerCase().includes(q)) return true;
+        for (const m of g.members || []) {
+          if ((m.email || '').toLowerCase().includes(q)) return true;
+        }
+        for (const e of g.expenses || []) {
+          if ((e.description || '').toLowerCase().includes(q)) return true;
+        }
+        return false;
+      });
+    }
+
+    // Apply status filter post-processing if needed (handles edge case where base query may return extra)
+    if (status === 'joined') {
+      groupSummaries = groupSummaries.filter((g) => g.userStatus === 'joined');
+    } else if (status === 'left') {
+      groupSummaries = groupSummaries.filter((g) => g.userStatus === 'left');
+    }
+
+    res.json({
+      groups: groupSummaries,
+      totalGroups: groupSummaries.length,
+      createdGroupsCount,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

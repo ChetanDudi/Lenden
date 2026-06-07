@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +18,7 @@ class FriendsPage extends StatefulWidget {
 
 class _FriendsPageState extends State<FriendsPage> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _friendsDebounceTimer;
   bool _loading = true;
   bool _searching = false;
   String? _searchError;
@@ -42,6 +44,7 @@ class _FriendsPageState extends State<FriendsPage> {
 
   @override
   void dispose() {
+    _friendsDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -49,7 +52,10 @@ class _FriendsPageState extends State<FriendsPage> {
   Future<void> _fetchFriends() async {
     setState(() => _loading = true);
     try {
-      final res = await ApiClient.get('/api/friends');
+      final query = _friendsQuery.trim().isNotEmpty
+          ? '?search=${Uri.encodeComponent(_friendsQuery.trim())}'
+          : '';
+      final res = await ApiClient.get('/api/friends$query');
       final reqRes = await ApiClient.get('/api/friends/requests');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -610,26 +616,6 @@ class _FriendsPageState extends State<FriendsPage> {
         (u['email'] ?? '').toString().toLowerCase().trim() == target);
   }
 
-  List<Map<String, dynamic>> _filteredFriends() {
-    if (_friendsQuery.isEmpty) return _friends;
-    final q = _friendsQuery.toLowerCase();
-    return _friends.where((f) {
-      final email = (f['email'] ?? '').toString().toLowerCase();
-      final name = (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
-      return email.contains(q) || name.contains(q);
-    }).toList();
-  }
-
-  List<Map<String, dynamic>> _filteredBlocked() {
-    if (_blockedQuery.isEmpty) return _blocked;
-    final q = _blockedQuery.toLowerCase();
-    return _blocked.where((u) {
-      final email = (u['email'] ?? '').toString().toLowerCase();
-      final name = (u['name'] ?? u['username'] ?? '').toString().toLowerCase();
-      return email.contains(q) || name.contains(q);
-    }).toList();
-  }
-
   Future<void> _loadMutualCounts() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
     final now = DateTime.now();
@@ -801,7 +787,13 @@ class _FriendsPageState extends State<FriendsPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                ..._filteredBlocked()
+                                ...(_blockedQuery.isEmpty
+                                        ? _blocked
+                                        : _blocked.where((u) {
+                                            final q = _blockedQuery.toLowerCase();
+                                            return (u['email'] ?? '').toString().toLowerCase().contains(q) ||
+                                                (u['name'] ?? u['username'] ?? '').toString().toLowerCase().contains(q);
+                                          }).toList())
                                     .take(_blockedVisibleCount)
                                     .toList()
                                     .asMap()
@@ -822,7 +814,11 @@ class _FriendsPageState extends State<FriendsPage> {
                                     ),
                                   );
                                 }).toList(),
-                                if (_filteredBlocked().length >
+                                if ((_blockedQuery.isEmpty ? _blocked : _blocked.where((u) {
+                                      final q = _blockedQuery.toLowerCase();
+                                      return (u['email'] ?? '').toString().toLowerCase().contains(q) ||
+                                          (u['name'] ?? u['username'] ?? '').toString().toLowerCase().contains(q);
+                                    }).toList()).length >
                                     _blockedVisibleCount)
                                   Center(
                                     child: TextButton(
@@ -985,6 +981,11 @@ class _FriendsPageState extends State<FriendsPage> {
                                         _friendsQuery = val.trim();
                                         _friendsVisibleCount = 10;
                                       });
+                                      _friendsDebounceTimer?.cancel();
+                                      _friendsDebounceTimer = Timer(
+                                        const Duration(milliseconds: 300),
+                                        _fetchFriends,
+                                      );
                                     },
                                   ),
                                 ),
@@ -997,7 +998,7 @@ class _FriendsPageState extends State<FriendsPage> {
                                     ),
                                   )
                                 else
-                                  ..._filteredFriends()
+                                  ..._friends
                                       .take(_friendsVisibleCount)
                                       .toList()
                                       .asMap()
@@ -1005,7 +1006,7 @@ class _FriendsPageState extends State<FriendsPage> {
                                       .map((entry) => _buildFriendTile(
                                           entry.value, entry.key))
                                       .toList(),
-                                if (_filteredFriends().length >
+                                if (_friends.length >
                                     _friendsVisibleCount)
                                   Center(
                                     child: TextButton(

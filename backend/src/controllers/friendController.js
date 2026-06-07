@@ -50,23 +50,42 @@ exports.searchUsers = async (req, res) => {
 
 exports.getFriends = async (req, res) => {
   try {
+    const { search } = req.query;
     const user = await User.findById(req.user._id)
       .populate('friends', 'name username email blockedUsers')
       .populate('blockedUsers', 'name username email')
       .select('friends blockedUsers');
 
-    res.status(200).json({
-      friends: (user?.friends || []).map((f) => ({
-        _id: f._id,
-        name: f.name,
-        username: f.username,
-        email: f.email,
-        blockedByThem: (f.blockedUsers || []).some(
-          (id) => id.toString() === req.user._id.toString()
-        ),
-      })),
-      blockedUsers: user?.blockedUsers || [],
-    });
+    let friends = (user?.friends || []).map((f) => ({
+      _id: f._id,
+      name: f.name,
+      username: f.username,
+      email: f.email,
+      blockedByThem: (f.blockedUsers || []).some(
+        (id) => id.toString() === req.user._id.toString()
+      ),
+    }));
+
+    let blockedUsers = user?.blockedUsers || [];
+
+    // Apply search filter
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      friends = friends.filter(
+        (f) =>
+          (f.name || '').toLowerCase().includes(q) ||
+          (f.email || '').toLowerCase().includes(q) ||
+          (f.username || '').toLowerCase().includes(q)
+      );
+      blockedUsers = blockedUsers.filter(
+        (u) =>
+          (u.name || '').toLowerCase().includes(q) ||
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.username || '').toLowerCase().includes(q)
+      );
+    }
+
+    res.status(200).json({ friends, blockedUsers });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

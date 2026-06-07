@@ -332,13 +332,66 @@ const getAllUsers = async (req, res) => {
       });
     }
 
-    const users = await User.find({}, '-password')
-      .populate('adminNotes.admin', 'email name')
-      .sort({ createdAt: -1 });
-    
+    const {
+      search,
+      statusFilter = 'all',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 50,
+    } = req.query;
+
+    const query = {};
+
+    // Text search
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { username: searchRegex },
+      ];
+    }
+
+    // Status filter
+    const statusLower = (statusFilter || 'all').toLowerCase();
+    if (statusLower === 'active') {
+      query.isActive = true;
+    } else if (statusLower === 'inactive') {
+      query.isActive = false;
+    } else if (statusLower === 'pending') {
+      query.isVerified = false;
+    } else if (statusLower === 'suspended') {
+      query.suspended = true;
+    } else if (statusLower === 'deactivated') {
+      query.deactivated = true;
+    }
+
+    // Sort
+    const allowedSortFields = new Set(['name', 'email', 'createdAt', 'status', 'isActive']);
+    const sortField = allowedSortFields.has(sortBy) ? sortBy : 'createdAt';
+    const sortDir = sortOrder === 'asc' ? 1 : -1;
+
+    const pageNumber = Math.max(1, parseInt(page) || 1);
+    const limitNumber = Math.max(1, Math.min(200, parseInt(limit) || 50));
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const [users, total] = await Promise.all([
+      User.find(query, '-password')
+        .populate('adminNotes.admin', 'email name')
+        .sort({ [sortField]: sortDir })
+        .skip(skip)
+        .limit(limitNumber),
+      User.countDocuments(query),
+    ]);
+
     res.json({
       success: true,
-      users: users,
+      users,
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(total / limitNumber),
       currentAdmin: currentAdmin
         ? {
             _id: currentAdmin._id,
@@ -1955,15 +2008,42 @@ const toggleSuperAdminStatus = async (req, res) => {
 // Get all group transactions (for admin)
 const getAllGroupTransactions = async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
-    const sortOrder = order === 'asc' ? 1 : -1;
-    const groups = await GroupTransaction.find({})
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      order = 'desc',
+      search,
+      sortOrder: sortOrderParam,
+    } = req.query;
+    const sortDir = (sortOrderParam || order) === 'asc' ? 1 : -1;
+
+    // Build query with optional search
+    const query = {};
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(
+        search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i'
+      );
+      query.$or = [
+        { title: searchRegex },
+      ];
+    }
+
+    // Determine sort field
+    const allowedSortFields = { createdAt: 'createdAt', title: 'title', memberCount: 'members' };
+    const sortField = allowedSortFields[sortBy] ? sortBy : 'createdAt';
+
+    // For memberCount sort, we need to sort after population; use createdAt as a fallback sort in DB
+    const dbSortField = sortBy === 'memberCount' ? 'createdAt' : sortField;
+
+    const groups = await GroupTransaction.find(query)
       .populate('members.user', 'email')
       .populate('creator', 'email')
-      .sort({ [sortBy]: sortOrder })
+      .sort({ [dbSortField]: sortDir })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
-    const totalGroups = await GroupTransaction.countDocuments();
+    const totalGroups = await GroupTransaction.countDocuments(query);
 
     for (const group of groups) {
       if (await rebuildGroupBalances(group)) {
@@ -1971,13 +2051,38 @@ const getAllGroupTransactions = async (req, res) => {
       }
     }
 
-    const groupSummaries = groups.map(formatAdminGroupResponse);
+    let groupSummaries = groups.map(formatAdminGroupResponse);
+
+    // If searching creator email or member emails (post-populate), apply additional filter
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      groupSummaries = groupSummaries.filter((g) => {
+        if ((g.title || '').toLowerCase().includes(q)) return true;
+        if ((g.creator?.email || '').toLowerCase().includes(q)) return true;
+        if (Array.isArray(g.members)) {
+          for (const m of g.members) {
+            if ((m.email || m.user?.email || '').toLowerCase().includes(q)) return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    // Sort by memberCount in memory if needed
+    if (sortBy === 'memberCount') {
+      groupSummaries.sort((a, b) => {
+        const aCount = Array.isArray(a.members) ? a.members.length : 0;
+        const bCount = Array.isArray(b.members) ? b.members.length : 0;
+        return sortDir === 1 ? aCount - bCount : bCount - aCount;
+      });
+    }
 
     res.json({
       success: true,
       groups: groupSummaries,
       totalPages: Math.ceil(totalGroups / limit),
       currentPage: parseInt(page),
+      totalGroups,
     });
   } catch (error) {
     console.error('Error fetching group transactions:', error);

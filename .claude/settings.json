@@ -5,7 +5,11 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
       "Read(//c/Users/CHETAN DUDI/OneDOpen/Desktop/LenDen/Lenden/backend/src/**)",
-      "Bash(node --check src/app.js)"
+      "Bash(node --check src/app.js)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\\\\frontend\\\\lib\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(grep -v \"//\\\\|logAdmin\\\\|normalizeAdmin\\\\|buildAdmin\\\\|startOf\\\\|endOf\\\\|roundTo\")",
+      "Bash(grep -v \"//\\\\|logAdmin\\\\|normalizeAdmin\\\\|buildAdmin\\\\|startOf\\\\|endOf\\\\|roundTo\\\\|getUserDetails\\\\|Group\\\\|group\\\\|quick\\\\|Quick\")"
     ]
   }
 }

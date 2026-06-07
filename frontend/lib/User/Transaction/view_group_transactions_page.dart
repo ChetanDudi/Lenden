@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import '../../api_config.dart';
+import 'dart:async';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
@@ -20,12 +20,10 @@ class ViewGroupTransactionsPage extends StatefulWidget {
 
 class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   List<Map<String, dynamic>> userGroups = [];
-  List<Map<String, dynamic>> filteredGroups = [];
-  List<Map<String, dynamic>> joinedGroups = [];
-  List<Map<String, dynamic>> leftGroups = [];
   bool loading = true;
   String? error;
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
   String selectedGroupFilter =
       'All Groups'; // 'All Groups', 'Joined Groups', 'Left Groups'
   bool _showFavouritesOnly = false;
@@ -54,11 +52,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     _loadSupportedCurrencies();
     _loadDisplayCurrencies();
     _fetchUserGroups();
-    _searchController.addListener(_filterGroups);
   }
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -79,7 +77,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       } else {
         (group['favourite'] as List).add(email);
       }
-      _filterGroups();
     });
 
     try {
@@ -88,15 +85,18 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         body: {'email': email},
       );
       if (response.statusCode != 200) {
-        // Revert on failure
+        // Revert on failure and refetch
         setState(() {
           if (isFavourited) {
             (group['favourite'] as List).add(email);
           } else {
             (group['favourite'] as List).remove(email);
           }
-          _filterGroups();
         });
+        _fetchUserGroups();
+      } else if (_showFavouritesOnly) {
+        // If showing favourites only, refetch so the toggled group disappears/appears
+        _fetchUserGroups();
       }
     } catch (e) {
       // Revert on failure
@@ -106,7 +106,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         } else {
           (group['favourite'] as List).remove(email);
         }
-        _filterGroups();
       });
     }
   }
@@ -118,45 +117,28 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
+      final params = <String, String>{};
+      final searchText = _searchController.text.trim();
+      if (searchText.isNotEmpty) params['search'] = searchText;
+      if (_showFavouritesOnly) params['favouritesOnly'] = 'true';
+      if (selectedGroupFilter == 'Joined Groups') {
+        params['status'] = 'joined';
+      } else if (selectedGroupFilter == 'Left Groups') {
+        params['status'] = 'left';
+      }
+
+      final query = params.isNotEmpty
+          ? '?${params.entries.map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}').join('&')}'
+          : '';
       final response =
-          await ApiClient.get('/api/group-transactions/user-groups');
+          await ApiClient.get('/api/group-transactions/user-groups$query');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final allGroups = List<Map<String, dynamic>>.from(data['groups'] ?? []);
         final createdCount = data['createdGroupsCount'] ?? 0;
-
-        // Categorize groups into joined and left groups
-        List<Map<String, dynamic>> joined = [];
-        List<Map<String, dynamic>> left = [];
-
-        for (var group in allGroups) {
-          final members = group['members'] ?? [];
-          final currentUserEmail = session.user?['email'];
-
-          // Find current user in members
-          bool isLeft = false;
-          for (var member in members) {
-            if ((member['email'] ?? '').toString().toLowerCase() ==
-                (currentUserEmail ?? '').toLowerCase()) {
-              isLeft = member['leftAt'] != null;
-              break;
-            }
-          }
-
-          if (isLeft) {
-            left.add(group);
-          } else {
-            joined.add(group);
-          }
-        }
-
         setState(() {
           userGroups = allGroups;
-          joinedGroups = joined;
-          leftGroups = left;
           createdGroupsCount = createdCount;
-          _filterGroups(); // Apply initial filter
           loading = false;
         });
       } else {
@@ -331,149 +313,27 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     return null;
   }
 
-  void _filterGroups() {
-    final query = _searchController.text.toLowerCase().trim();
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    final myEmail = session.user?['email'] ?? '';
-
-    List<Map<String, dynamic>> temp = userGroups;
-
-    if (_showFavouritesOnly) {
-      temp = temp.where((g) {
-        final isFavourite = (g['favourite'] as List? ?? []).contains(myEmail);
-        return isFavourite;
-      }).toList();
-    }
-
-    // First, get the base list based on selected filter
-    List<Map<String, dynamic>> baseList;
-    switch (selectedGroupFilter) {
-      case 'Joined Groups':
-        baseList = List.from(joinedGroups);
-        break;
-      case 'Left Groups':
-        baseList = List.from(leftGroups);
-        break;
-      default:
-        baseList = List.from(temp);
-    }
-
-    if (query.isEmpty) {
-      setState(() {
-        filteredGroups = baseList;
-      });
-    } else {
-      setState(() {
-        filteredGroups = baseList.where((group) {
-          // Search in group title
-          final title = (group['title'] ?? '').toString().toLowerCase();
-          if (title.contains(query)) return true;
-
-          // Search in group description
-          final description =
-              (group['description'] ?? '').toString().toLowerCase();
-          if (description.contains(query)) return true;
-
-          // Search in member emails
-          final members = group['members'] ?? [];
-          for (var member in members) {
-            final memberEmail =
-                (member['email'] ?? '').toString().toLowerCase();
-            if (memberEmail.contains(query)) return true;
-          }
-
-          // Search in expense descriptions
-          final expenses = group['expenses'] ?? [];
-          for (var expense in expenses) {
-            final expenseDesc =
-                (expense['description'] ?? '').toString().toLowerCase();
-            if (expenseDesc.contains(query)) return true;
-          }
-
-          return false;
-        }).toList();
-      });
-    }
-  }
-
   void _onGroupFilterChanged(String? newValue) {
     if (newValue != null) {
-      setState(() {
-        selectedGroupFilter = newValue;
-      });
-      _filterGroups(); // Re-filter with new selection
+      setState(() => selectedGroupFilter = newValue);
+      _fetchUserGroups();
     }
   }
 
-  // Calculate user's total split amount for all expenses in a group (excluding settled amounts)
-  double _calculateUserTotalSplit(
-      Map<String, dynamic> group, String userEmail) {
-    double total = 0.0;
-    final expenses = group['expenses'] ?? [];
-    final members = group['members'] ?? [];
-
-    // Find the member with this email to get their ID
-    String? userMemberId;
-    for (var member in members) {
-      if (member['email'] == userEmail) {
-        userMemberId = member['_id'].toString();
-        break;
-      }
-    }
-
-    if (userMemberId == null) {
-      return 0.0;
-    }
-
-    for (var expense in expenses) {
-      final split = expense['split'] ?? [];
-
-      for (var splitItem in split) {
-        // Check if this split item belongs to the current user and is not settled
-        String splitUserId = splitItem['user'].toString();
-        double splitAmount =
-            _splitAmountInInr(Map<String, dynamic>.from(splitItem as Map));
-        bool isSettled = splitItem['settled'] == true;
-
-        if (splitUserId == userMemberId && !isSettled) {
-          total += splitAmount;
-        }
-      }
-    }
-
-    return total;
-  }
-
-  // Get user's pending balance for a group
-  double _getUserPendingBalance(Map<String, dynamic> group, String userEmail) {
-    return _calculateUserTotalSplit(group, userEmail);
-  }
-
-  // Calculate total pending balance across all groups
+  // Total pending balance across displayed groups using server-computed field
   double _calculateTotalPendingBalance() {
-    double total = 0.0;
-    final currentUserEmail =
-        Provider.of<SessionProvider>(context, listen: false).user?['email'];
-
-    // Use filtered groups based on current filter and search
-    final groupsToCalculate = filteredGroups;
-
-    for (var group in groupsToCalculate) {
-      total += _getUserPendingBalance(group, currentUserEmail ?? '');
-    }
-    return total;
+    return userGroups.fold(
+      0.0,
+      (sum, g) => sum + (g['userPendingBalance'] as num? ?? 0).toDouble(),
+    );
   }
 
-  // Calculate total expenses across all groups
+  // Total expenses across displayed groups using server-computed field
   int _calculateTotalExpenses() {
-    num total = 0;
-    // Use filtered groups based on current filter and search
-    final groupsToCalculate = filteredGroups;
-
-    for (var group in groupsToCalculate) {
-      total += (group['expenses'] ?? []).length;
-    }
-    return total.toInt();
+    return userGroups.fold(
+      0,
+      (sum, g) => sum + ((g['totalExpenses'] as num? ?? (g['expenses'] as List?)?.length ?? 0).toInt()),
+    );
   }
 
   Future<void> _editExpense(String groupId, String expenseId,
@@ -1268,7 +1128,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                               ),
                                             ),
                                             onChanged: (value) {
-                                              // The _filterGroups function is called automatically via listener
+                                              _searchDebounceTimer?.cancel();
+                                              _searchDebounceTimer = Timer(
+                                                const Duration(milliseconds: 300),
+                                                _fetchUserGroups,
+                                              );
                                             },
                                           ),
                                         ),
@@ -1400,10 +1264,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                       ),
                                       value: _showFavouritesOnly,
                                       onChanged: (bool value) {
-                                        setState(() {
-                                          _showFavouritesOnly = value;
-                                          _filterGroups();
-                                        });
+                                        setState(() => _showFavouritesOnly = value);
+                                        _fetchUserGroups();
                                       },
                                       activeColor: const Color(0xFF00B4D8),
                                     ),
@@ -1470,7 +1332,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                             textAlign: TextAlign.center,
                                           ),
                                           Text(
-                                            '${filteredGroups.length}',
+                                            '${userGroups.length}',
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 18,
@@ -1568,7 +1430,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                           // Groups List
                           Expanded(
                             child:
-                                filteredGroups.isEmpty &&
+                                userGroups.isEmpty &&
                                         _searchController.text.isNotEmpty
                                     ? Center(
                                         child: Column(
@@ -1596,9 +1458,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                     : ListView.builder(
                                         padding: EdgeInsets.symmetric(
                                             horizontal: 16),
-                                        itemCount: filteredGroups.length,
+                                        itemCount: userGroups.length,
                                         itemBuilder: (context, index) {
-                                          final group = filteredGroups[index];
+                                          final group = userGroups[index];
                                           final expenses =
                                               group['expenses'] ?? [];
                                           final members =
@@ -1611,15 +1473,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                       [])
                                                   .contains(currentUserEmail);
 
-                                          // Calculate user's total split amount
-                                          final userTotalSplit =
-                                              _calculateUserTotalSplit(group,
-                                                  currentUserEmail ?? '');
-
-                                          // Get user's pending balance
+                                          // Use server-computed pending balance
                                           final userPendingBalance =
-                                              _getUserPendingBalance(group,
-                                                  currentUserEmail ?? '');
+                                              (group['userPendingBalance'] as num? ?? 0).toDouble();
+                                          final userTotalSplit = userPendingBalance;
 
                                           return Card(
                                             margin: EdgeInsets.only(bottom: 16),

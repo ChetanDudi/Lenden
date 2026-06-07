@@ -751,18 +751,145 @@ exports.verifyUserOTP = async (req, res) => {
 // Get all transactions for a user, grouped by role
 exports.getUserTransactions = async (req, res) => {
   try {
-    const { email } = req.query;
+    const {
+      email,
+      filter = 'all',
+      clearanceFilter = 'all',
+      partialClearedType = 'my',
+      interestTypeFilter = 'all',
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+      search,
+      sortBy = 'created',
+      sortOrder = 'desc',
+      favouritesOnly,
+    } = req.query;
+
     if (!email) return res.status(400).json({ error: 'Email is required' });
-    const transactions = await Transaction.find({
-      $or: [
-        { userEmail: email },
-        { counterpartyEmail: email }
-      ]
-    }).sort({ createdAt: -1 });
-    // Group into lending and borrowing for both userEmail and counterpartyEmail
-    const lending = transactions.filter(t => (t.role === 'lender' && t.userEmail === email) || (t.role === 'borrower' && t.counterpartyEmail === email));
-    const borrowing = transactions.filter(t => (t.role === 'borrower' && t.userEmail === email) || (t.role === 'lender' && t.counterpartyEmail === email));
-    res.json({ lending, borrowing, totalTransactions: transactions.length });
+
+    // Base query: user is party to the transaction
+    const baseQuery = {
+      $or: [{ userEmail: email }, { counterpartyEmail: email }],
+    };
+
+    // Date range filter
+    if (startDate || endDate) {
+      baseQuery.date = {};
+      if (startDate) baseQuery.date.$gte = new Date(startDate);
+      if (endDate) baseQuery.date.$lte = new Date(endDate);
+    }
+
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      baseQuery.amount = {};
+      if (minAmount) baseQuery.amount.$gte = parseFloat(minAmount);
+      if (maxAmount) baseQuery.amount.$lte = parseFloat(maxAmount);
+    }
+
+    // Interest type filter
+    if (interestTypeFilter && interestTypeFilter !== 'all') {
+      if (interestTypeFilter === 'with_interest') {
+        baseQuery.interestType = { $nin: ['none', null, ''] };
+      } else {
+        baseQuery.interestType = interestTypeFilter;
+      }
+    }
+
+    // Text search
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      baseQuery.$or = [
+        { description: searchRegex },
+        { place: searchRegex },
+        { transactionId: searchRegex },
+        { userEmail: searchRegex },
+        { counterpartyEmail: searchRegex },
+      ];
+    }
+
+    // Favourites only
+    if (favouritesOnly === 'true') {
+      baseQuery.favourite = email;
+    }
+
+    // Sort field mapping
+    const sortFieldMap = {
+      created: 'createdAt',
+      transaction_date: 'date',
+      amount: 'amount',
+      status: 'userCleared',
+    };
+    const sortField = sortFieldMap[sortBy] || 'createdAt';
+    const sortDir = sortOrder === 'asc' ? 1 : -1;
+
+    const transactions = await Transaction.find(baseQuery).sort({ [sortField]: sortDir });
+
+    // Group into lending and borrowing
+    let lending = transactions.filter(
+      (t) =>
+        (t.role === 'lender' && t.userEmail === email) ||
+        (t.role === 'borrower' && t.counterpartyEmail === email)
+    );
+    let borrowing = transactions.filter(
+      (t) =>
+        (t.role === 'borrower' && t.userEmail === email) ||
+        (t.role === 'lender' && t.counterpartyEmail === email)
+    );
+
+    // Apply clearance filter
+    const applyClearanceFilter = (list) => {
+      if (!clearanceFilter || clearanceFilter === 'all') return list;
+      return list.filter((t) => {
+        const userCleared = t.userCleared === true;
+        const counterpartyCleared = t.counterpartyCleared === true;
+        const hasPartialPayment =
+          t.isPartiallyPaid === true ||
+          (Array.isArray(t.partialPayments) && t.partialPayments.length > 0);
+
+        if (clearanceFilter === 'totally_cleared') {
+          return userCleared && counterpartyCleared;
+        }
+        if (clearanceFilter === 'totally_uncleared') {
+          return !userCleared && !counterpartyCleared && !hasPartialPayment;
+        }
+        if (clearanceFilter === 'partially_cleared') {
+          // One side cleared but not both, OR has partial payments
+          const oneSideCleared = userCleared !== counterpartyCleared;
+          if (!oneSideCleared && !hasPartialPayment) return false;
+          if (partialClearedType === 'my') {
+            // My side cleared but other not
+            if (t.userEmail === email) {
+              return userCleared && !counterpartyCleared;
+            } else {
+              return counterpartyCleared && !userCleared;
+            }
+          } else {
+            // Other side cleared but not mine
+            if (t.userEmail === email) {
+              return counterpartyCleared && !userCleared;
+            } else {
+              return userCleared && !counterpartyCleared;
+            }
+          }
+        }
+        return true;
+      });
+    };
+
+    // Apply filter (lending/borrowing/all)
+    const filterLower = (filter || 'all').toLowerCase();
+    if (filterLower === 'lending') {
+      borrowing = [];
+    } else if (filterLower === 'borrowing') {
+      lending = [];
+    }
+
+    lending = applyClearanceFilter(lending);
+    borrowing = applyClearanceFilter(borrowing);
+
+    res.json({ lending, borrowing, totalTransactions: lending.length + borrowing.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch transactions', details: err.message });
   }

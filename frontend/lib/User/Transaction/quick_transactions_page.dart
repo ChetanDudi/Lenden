@@ -6,7 +6,6 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../api_config.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -50,6 +49,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
+  Timer? _searchDebounceTimer;
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final Map<String, int> _deleteActionTokens = {};
   final Map<String, int> _clearActionTokens = {};
@@ -164,7 +164,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       } else {
         _pinnedTransactionIds.add(id);
       }
-      sortTransactions();
+      _applyPinSort();
     });
     await _persistPinnedTransactions();
   }
@@ -196,30 +196,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       }
     }
     return users.isNotEmpty ? users.first : null;
-  }
-
-  bool _matchesDateFilter(Map<String, dynamic> transaction) {
-    if (_dateFilter == 'all') return true;
-    final rawDate =
-        (transaction['date'] ?? transaction['createdAt'] ?? '').toString();
-    final date = DateTime.tryParse(rawDate);
-    if (date == null) return false;
-    final now = DateTime.now();
-    final localDate = date.toLocal();
-    if (_dateFilter == 'today') {
-      return localDate.year == now.year &&
-          localDate.month == now.month &&
-          localDate.day == now.day;
-    }
-    if (_dateFilter == 'week') {
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
-      final start = DateTime(weekStart.year, weekStart.month, weekStart.day);
-      return !localDate.isBefore(start);
-    }
-    if (_dateFilter == 'month') {
-      return localDate.year == now.year && localDate.month == now.month;
-    }
-    return true;
   }
 
   List<Map<String, String>> _counterpartyOptions() {
@@ -490,137 +466,45 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     }
   }
 
-  void sortTransactions() {
-    int compareTransactions(Map<String, dynamic> a, Map<String, dynamic> b) {
-      final aPinned =
-          _pinnedTransactionIds.contains((a['_id'] ?? '').toString());
-      final bPinned =
-          _pinnedTransactionIds.contains((b['_id'] ?? '').toString());
-      if (aPinned != bPinned) {
-        return aPinned ? -1 : 1;
-      }
-      switch (sortBy) {
-        case 'created_asc':
-          return (a['createdAt'] ?? '').compareTo(b['createdAt'] ?? '');
-        case 'created_desc':
-          return (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? '');
-        case 'updated_asc':
-          return (a['updatedAt'] ?? '').compareTo(b['updatedAt'] ?? '');
-        case 'updated_desc':
-          return (b['updatedAt'] ?? '').compareTo(a['updatedAt'] ?? '');
-        case 'amount_asc':
-          return (a['amount'] ?? 0).compareTo(b['amount'] ?? 0);
-        case 'amount_desc':
-          return (b['amount'] ?? 0).compareTo(a['amount'] ?? 0);
-        default:
-          return 0;
-      }
-    }
-
-    transactions.sort(compareTransactions);
-    filteredTransactions.sort(compareTransactions);
+  // Pin-aware local sort for display ordering (pinned first)
+  void _applyPinSort() {
+    filteredTransactions.sort((a, b) {
+      final aPinned = _pinnedTransactionIds.contains((a['_id'] ?? '').toString());
+      final bPinned = _pinnedTransactionIds.contains((b['_id'] ?? '').toString());
+      return aPinned == bPinned ? 0 : (aPinned ? -1 : 1);
+    });
   }
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  void filterTransactions(String query) {
-    setState(() {
-      searchQuery = query;
-      filteredTransactions = transactions.where((transaction) {
-        bool matchesStatusFilter = true;
-        if (filterBy == 'cleared') {
-          matchesStatusFilter = transaction['cleared'] == true;
-        } else if (filterBy == 'not_cleared') {
-          matchesStatusFilter = transaction['cleared'] != true;
-        }
-
-        if (!matchesStatusFilter) return false;
-
-        if (_roleFilter == 'lent' && _roleForViewer(transaction) != 'lender') {
-          return false;
-        }
-        if (_roleFilter == 'borrowed' &&
-            _roleForViewer(transaction) != 'borrower') {
-          return false;
-        }
-
-        if (!_matchesDateFilter(transaction)) return false;
-
-        if (_showFavouritesOnly) {
-          final currentUserEmail = _currentUserEmail();
-          final favourites = List<dynamic>.from(transaction['favourite'] ?? []);
-          if (currentUserEmail == null ||
-              !favourites.contains(currentUserEmail)) {
-            return false;
-          }
-        }
-
-        final counterparty = _counterpartyForViewer(transaction);
-        final counterpartyEmail =
-            (counterparty?['email'] ?? '').toString().toLowerCase().trim();
-        if (_selectedCounterparty != 'all' &&
-            counterpartyEmail != _selectedCounterparty.toLowerCase().trim()) {
-          return false;
-        }
-
-        if (query.isEmpty) return true;
-
-        final description = (transaction['description'] ?? '').toLowerCase();
-        final searchLower = query.toLowerCase();
-        final amount = transaction['amount']?.toString() ?? '';
-        final users = transaction['users'] as List? ?? [];
-        final counterpartyInfo = users.map((u) {
-          return '${u['name'] ?? ''} ${u['email'] ?? ''}'.toLowerCase();
-        }).join(' ');
-        final roleLabel =
-            _roleForViewer(transaction) == 'lender' ? 'lent' : 'borrowed';
-
-        return description.contains(searchLower) ||
-            amount.contains(searchLower) ||
-            counterpartyInfo.contains(searchLower) ||
-            roleLabel.contains(searchLower);
-      }).toList();
-      sortTransactions();
-    });
-  }
-
   void applyFilter(String filter) {
-    setState(() {
-      filterBy = filter;
-      filterTransactions(searchQuery);
-    });
+    setState(() => filterBy = filter);
+    fetchQuickTransactions();
   }
 
   void _applyRoleFilter(String value) {
-    setState(() {
-      _roleFilter = value;
-      filterTransactions(searchQuery);
-    });
+    setState(() => _roleFilter = value);
+    fetchQuickTransactions();
   }
 
   void _toggleShowFavourites() {
-    setState(() {
-      _showFavouritesOnly = !_showFavouritesOnly;
-      filterTransactions(searchQuery);
-    });
+    setState(() => _showFavouritesOnly = !_showFavouritesOnly);
+    fetchQuickTransactions();
   }
 
   void _applyDateFilter(String value) {
-    setState(() {
-      _dateFilter = value;
-      filterTransactions(searchQuery);
-    });
+    setState(() => _dateFilter = value);
+    fetchQuickTransactions();
   }
 
   void _applyCounterpartyFilter(String value) {
-    setState(() {
-      _selectedCounterparty = value;
-      filterTransactions(searchQuery);
-    });
+    setState(() => _selectedCounterparty = value);
+    fetchQuickTransactions();
   }
 
   bool _hasActiveFilters() {
@@ -732,9 +616,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       _selectedCounterparty = 'all';
       _showFavouritesOnly = false;
       _showAll = false;
-      filteredTransactions = List<Map<String, dynamic>>.from(transactions);
-      sortTransactions();
     });
+    fetchQuickTransactions();
   }
 
   Future<void> fetchQuickTransactions() async {
@@ -742,9 +625,24 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       loading = true;
       error = null;
     });
-    final session = Provider.of<SessionProvider>(context, listen: false);
     try {
-      final res = await ApiClient.get('/api/quick-transactions');
+      // Build query params from current filter state
+      final params = <String, String>{};
+      if (searchQuery.isNotEmpty) params['search'] = searchQuery;
+      if (sortBy != 'created_desc') params['sortBy'] = sortBy;
+      if (filterBy != 'all') params['filterBy'] = filterBy;
+      if (_roleFilter != 'all') params['role'] = _roleFilter == 'lent' ? 'lender' : 'borrower';
+      if (_dateFilter != 'all') params['dateFilter'] = _dateFilter;
+      if (_showFavouritesOnly) params['favouritesOnly'] = 'true';
+      if (_selectedCounterparty != 'all') params['counterparty'] = _selectedCounterparty;
+
+      final queryString = params.isEmpty
+          ? ''
+          : '?' + params.entries
+              .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+              .join('&');
+
+      final res = await ApiClient.get('/api/quick-transactions$queryString');
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         final rawTransactions = body['quickTransactions'];
@@ -757,15 +655,16 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             : <Map<String, dynamic>>[];
         setState(() {
           transactions = fetchedTransactions;
-          filteredTransactions = fetchedTransactions;
+          filteredTransactions = List.from(fetchedTransactions);
+          // Reset counterparty filter if it no longer exists in returned data
           final counterpartyStillExists = _counterpartyOptions().any(
             (item) => item['email'] == _selectedCounterparty,
           );
           if (!counterpartyStillExists) {
             _selectedCounterparty = 'all';
           }
-          sortTransactions();
-          filterTransactions(searchQuery); // Apply current filters
+          // Apply pin-based sort for display order only
+          _applyPinSort();
           loading = false;
         });
       } else {
@@ -1041,7 +940,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
       setState(() {
         transactions.removeWhere((t) => t['_id'] == id);
-        filterTransactions(searchQuery);
+        filteredTransactions = List.from(transactions);
+        _applyPinSort();
       });
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -1054,7 +954,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               _deleteActionTokens.remove(id);
               setState(() {
                 transactions.insert(snapshotIndex, snapshot);
-                filterTransactions(searchQuery);
+                filteredTransactions = List.from(transactions);
+                _applyPinSort();
               });
             },
           ),
@@ -1080,7 +981,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 ? transactions.length
                 : snapshotIndex;
             transactions.insert(insertIndex, snapshot);
-            filterTransactions(searchQuery);
+            filteredTransactions = List.from(transactions);
+            _applyPinSort();
           });
           ElegantNotification.error(
             title: Text("Error"),
@@ -1126,7 +1028,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
       setState(() {
         transactions[index]['cleared'] = true;
-        filterTransactions(searchQuery);
+        filteredTransactions = List.from(transactions);
+        _applyPinSort();
       });
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -1139,7 +1042,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               _clearActionTokens.remove(id);
               setState(() {
                 transactions[index]['cleared'] = previousValue;
-                filterTransactions(searchQuery);
+                filteredTransactions = List.from(transactions);
+                _applyPinSort();
               });
             },
           ),
@@ -1163,7 +1067,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           if (!mounted) return;
           setState(() {
             transactions[index]['cleared'] = previousValue;
-            filterTransactions(searchQuery);
+            filteredTransactions = List.from(transactions);
+            _applyPinSort();
           });
           ElegantNotification.error(
             title: Text("Error"),
@@ -1370,7 +1275,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         if (index != -1) {
           transactions[index] =
               Map<String, dynamic>.from(body['quickTransaction'] ?? {});
-          filterTransactions(searchQuery);
+          filteredTransactions = List.from(transactions); _applyPinSort();
         }
       });
       ElegantNotification.success(
@@ -1400,7 +1305,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         if (index != -1) {
           transactions[index] =
               Map<String, dynamic>.from(body['quickTransaction'] ?? {});
-          filterTransactions(searchQuery);
+          filteredTransactions = List.from(transactions); _applyPinSort();
         }
       });
       ElegantNotification.success(
@@ -1660,7 +1565,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _showFavouritesOnly = result['favourites'] == true;
         _showAll = false;
       });
-      filterTransactions(searchQuery);
+      fetchQuickTransactions();
     });
   }
 
@@ -1695,11 +1600,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ),
       trailing: isSelected ? Icon(Icons.check, color: Color(0xFF00B4D8)) : null,
       onTap: () {
-        setState(() {
-          sortBy = value;
-          sortTransactions();
-        });
+        setState(() => sortBy = value);
         Navigator.pop(context);
+        fetchQuickTransactions();
       },
     );
   }
@@ -1933,7 +1836,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             Expanded(
                               child: TextField(
                                 controller: _searchController,
-                                onChanged: filterTransactions,
+                                onChanged: (value) {
+                                  setState(() => searchQuery = value);
+                                  _searchDebounceTimer?.cancel();
+                                  _searchDebounceTimer = Timer(
+                                    const Duration(milliseconds: 300),
+                                    fetchQuickTransactions,
+                                  );
+                                },
                                 decoration: InputDecoration(
                                   hintText:
                                       'Search by description, amount, or user...',
@@ -1951,10 +1861,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                 icon: Icon(Icons.clear,
                                     color: Colors.grey[400], size: 20),
                                 onPressed: () {
-                                  setState(() {
-                                    searchQuery = '';
-                                  });
-                                  filterTransactions('');
+                                  _searchController.clear();
+                                  setState(() => searchQuery = '');
+                                  _searchDebounceTimer?.cancel();
+                                  fetchQuickTransactions();
                                 },
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
