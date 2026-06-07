@@ -76,7 +76,10 @@ class HttpInterceptor {
     if (_isRefreshing) return await _queueRequest(request);
 
     // First attempt
-    http.Response response = await request();
+    http.Response response = await request().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => http.Response('{"error":"timeout"}', 408),
+    );
 
     if (response.statusCode == 440) {
       await _clearTokens();
@@ -138,18 +141,27 @@ class HttpInterceptor {
             await _processPendingRequests();
 
             // Retry the original request with new token
-            response = await request();
+            response = await request().timeout(
+              const Duration(seconds: 10),
+              onTimeout: () => http.Response('{"error":"timeout"}', 408),
+            );
           } else {
             // Refresh failed, clear tokens and process pending requests
             await _clearTokensAndProcessPending();
             AuthNavigation.redirectToLogin();
-            response = await request();
+            response = await request().timeout(
+              const Duration(seconds: 10),
+              onTimeout: () => http.Response('{"error":"timeout"}', 408),
+            );
           }
         } catch (e) {
           // Refresh failed, clear tokens and process pending requests
           await _clearTokensAndProcessPending();
           AuthNavigation.redirectToLogin();
-          response = await request();
+          response = await request().timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => http.Response('{"error":"timeout"}', 408),
+          );
         } finally {
           _isRefreshing = false;
         }

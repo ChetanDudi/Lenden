@@ -67,26 +67,35 @@ class ApiClient {
       if (extraHeaders != null) ...extraHeaders,
     };
 
+    http.Response Function() _onTimeout =
+        () => http.Response('{"error":"timeout"}', 408);
     http.Response resp;
     try {
       switch (method.toUpperCase()) {
         case 'GET':
-          resp = await _client.get(uri, headers: headers);
+          resp = await _client
+              .get(uri, headers: headers)
+              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
           break;
         case 'POST':
-          resp = await _client.post(uri,
-              headers: headers, body: jsonEncode(body ?? {}));
+          resp = await _client
+              .post(uri, headers: headers, body: jsonEncode(body ?? {}))
+              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
           break;
         case 'PUT':
-          resp = await _client.put(uri,
-              headers: headers, body: jsonEncode(body ?? {}));
+          resp = await _client
+              .put(uri, headers: headers, body: jsonEncode(body ?? {}))
+              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
           break;
         case 'PATCH':
-          resp = await _client.patch(uri,
-              headers: headers, body: jsonEncode(body ?? {}));
+          resp = await _client
+              .patch(uri, headers: headers, body: jsonEncode(body ?? {}))
+              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
           break;
         case 'DELETE':
-          resp = await _client.delete(uri, headers: headers);
+          resp = await _client
+              .delete(uri, headers: headers)
+              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
           break;
         default:
           throw UnsupportedError('Unsupported HTTP method: $method');
@@ -114,22 +123,29 @@ class ApiClient {
         };
         switch (method.toUpperCase()) {
           case 'GET':
-            resp = await _client.get(uri, headers: retryHeaders);
+            resp = await _client
+                .get(uri, headers: retryHeaders)
+                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
             break;
           case 'POST':
-            resp = await _client.post(uri,
-                headers: retryHeaders, body: jsonEncode(body ?? {}));
+            resp = await _client
+                .post(uri, headers: retryHeaders, body: jsonEncode(body ?? {}))
+                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
             break;
           case 'PUT':
-            resp = await _client.put(uri,
-                headers: retryHeaders, body: jsonEncode(body ?? {}));
+            resp = await _client
+                .put(uri, headers: retryHeaders, body: jsonEncode(body ?? {}))
+                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
             break;
           case 'PATCH':
-            resp = await _client.patch(uri,
-                headers: retryHeaders, body: jsonEncode(body ?? {}));
+            resp = await _client
+                .patch(uri, headers: retryHeaders, body: jsonEncode(body ?? {}))
+                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
             break;
           case 'DELETE':
-            resp = await _client.delete(uri, headers: retryHeaders);
+            resp = await _client
+                .delete(uri, headers: retryHeaders)
+                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
             break;
         }
       } else {

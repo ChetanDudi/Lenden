@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
-import 'api_config.dart';
 import 'utils/http_interceptor.dart';
 import 'User/chats/chat_encryption_service.dart';
 
@@ -16,8 +15,6 @@ class SessionProvider extends ChangeNotifier {
   Map<String, int>? _mutualFriendCounts;
   DateTime? _mutualCountsLastFetched;
   String? _role;
-  bool _userDataManuallySet =
-      false; // Flag to track if user data was set manually
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
   String? get token => _accessToken; // For backward compatibility
@@ -53,8 +50,12 @@ class SessionProvider extends ChangeNotifier {
   static const String _deviceIdKey = 'device_id';
 
   Future<void> loadTokens() async {
-    _accessToken = await _storage.read(key: 'access_token');
-    _refreshToken = await _storage.read(key: 'refresh_token');
+    final results = await Future.wait([
+      _storage.read(key: 'access_token'),
+      _storage.read(key: 'refresh_token'),
+    ]);
+    _accessToken = results[0];
+    _refreshToken = results[1];
     notifyListeners();
   }
 
@@ -76,7 +77,6 @@ class SessionProvider extends ChangeNotifier {
     _refreshToken = null;
     _user = null;
     _role = null;
-    _userDataManuallySet = false;
     await _storage.delete(key: 'access_token');
     await _storage.delete(key: 'refresh_token');
     await _storage.delete(key: 'user_data');
@@ -91,75 +91,120 @@ class SessionProvider extends ChangeNotifier {
   }
 
   Future<void> initSession() async {
-    await loadTokens();
+    // Read all three storage keys in parallel — single round trip.
+    final results = await Future.wait([
+      _storage.read(key: 'access_token'),
+      _storage.read(key: 'refresh_token'),
+      _storage.read(key: 'user_data'),
+    ]);
+    _accessToken = results[0];
+    _refreshToken = results[1];
 
-    if (_accessToken != null) {
-      await _loadUserData();
-
-      if (_user == null && !_userDataManuallySet) {
-
-        var response = await HttpInterceptor.get('/api/users/me');
-
-        if (response.statusCode != 200) {
-          response = await HttpInterceptor.get('/api/admins/me');
-        }
-
-        if (response.statusCode == 200) {
-          var user = jsonDecode(response.body);
-          if (user['profileImage'] is Map &&
-              user['profileImage']['url'] != null) {
-            user['profileImage'] = user['profileImage']['url'];
-          }
-          final resolvedRole =
-              response.request?.url.path.contains('/admins/') ?? false
-                  ? 'admin'
-                  : 'user';
-          user['role'] = resolvedRole;
-          _user = user;
-          _role = resolvedRole;
-          await _saveUserData(user);
-          await _ensureChatEncryptionReady();
-          await checkSubscriptionStatus();
-          await loadFreebieCounts();
-          notifyListeners();
-        } else {
-          await clearTokens();
-        }
-      } else {
-        if (_user != null) {
-          final resolvedRole = _role == 'admin' ? 'admin' : 'user';
-          final profileUrl =
-              resolvedRole == 'admin' ? '/api/admins/me' : '/api/users/me';
-
-          try {
-            final profileResponse = await HttpInterceptor.get(profileUrl);
-            if (profileResponse.statusCode == 200) {
-              final freshUser = jsonDecode(profileResponse.body);
-              if (freshUser['profileImage'] is Map &&
-                  freshUser['profileImage']['url'] != null) {
-                freshUser['profileImage'] = freshUser['profileImage']['url'];
-              }
-              freshUser['role'] = resolvedRole;
-              _user = freshUser;
-              _role = resolvedRole;
-              await _saveUserData(freshUser);
-            }
-          } catch (e) {
-            print('Error refreshing cached session profile: $e');
-          }
-        }
-
-        // We already have user data, just notify listeners
-        await _ensureChatEncryptionReady();
-        await checkSubscriptionStatus();
-        await loadFreebieCounts();
-        notifyListeners();
-      }
-    } else {
+    if (_accessToken == null) {
       _user = null;
       _role = null;
       notifyListeners();
+      return;
     }
+
+    // Restore cached user — avoids a network round-trip on every app open.
+    if (results[2] != null) {
+      try {
+        final user = jsonDecode(results[2]!);
+        _user = user;
+        _role = (user['role'] as String?) ?? 'user';
+      } catch (_) {}
+    }
+
+    if (_user != null) {
+      // Returning user with cached session: show the app immediately,
+      // then do all secondary network work in the background.
+      notifyListeners();
+      unawaited(_doBackgroundInit(refreshProfile: true));
+      return;
+    }
+
+    // First launch / cleared cache: we must fetch the profile before
+    // showing the app so the UI knows who is logged in.
+    try {
+      var response = await HttpInterceptor.get('/api/users/me')
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        response = await HttpInterceptor.get('/api/admins/me')
+            .timeout(const Duration(seconds: 10));
+      }
+      if (response.statusCode == 200) {
+        var user = jsonDecode(response.body);
+        if (user['profileImage'] is Map &&
+            user['profileImage']['url'] != null) {
+          user['profileImage'] = user['profileImage']['url'];
+        }
+        final resolvedRole =
+            response.request?.url.path.contains('/admins/') ?? false
+                ? 'admin'
+                : 'user';
+        user['role'] = resolvedRole;
+        _user = user;
+        _role = resolvedRole;
+        await _saveUserData(user);
+        notifyListeners();
+        unawaited(_doBackgroundInit(refreshProfile: false));
+      } else {
+        await clearTokens();
+        notifyListeners();
+      }
+    } catch (_) {
+      // Timeout or no network: clear stale tokens and show login.
+      await clearTokens();
+      notifyListeners();
+    }
+  }
+
+  /// Runs after the UI is already visible: refreshes profile (optional),
+  /// initialises chat encryption, and loads subscription/freebie data —
+  /// all in parallel so none of them block each other.
+  Future<void> _doBackgroundInit({required bool refreshProfile}) async {
+    try {
+      await Future.wait([
+        if (refreshProfile) _refreshProfileSilently(),
+        _ensureChatEncryptionReady(),
+        _loadSecondaryData(),
+      ]);
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> _refreshProfileSilently() async {
+    try {
+      final resolvedRole = _role == 'admin' ? 'admin' : 'user';
+      final profileUrl =
+          resolvedRole == 'admin' ? '/api/admins/me' : '/api/users/me';
+      final response = await HttpInterceptor.get(profileUrl)
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final freshUser = jsonDecode(response.body);
+        if (freshUser['profileImage'] is Map &&
+            freshUser['profileImage']['url'] != null) {
+          freshUser['profileImage'] = freshUser['profileImage']['url'];
+        }
+        freshUser['role'] = resolvedRole;
+        _user = freshUser;
+        _role = resolvedRole;
+        await _saveUserData(freshUser);
+      } else if (response.statusCode == 401 || response.statusCode == 440) {
+        await clearTokens();
+      }
+    } catch (_) {}
+  }
+
+  /// Fetches subscription status, subscription history, and freebie counts
+  /// all in parallel — previously these ran sequentially.
+  Future<void> _loadSecondaryData() async {
+    await Future.wait([
+      checkSubscriptionStatus(),
+      fetchSubscriptionHistory(),
+      loadFreebieCounts(),
+    ]);
   }
 
   void setUser(Map<String, dynamic> user) {
@@ -169,7 +214,6 @@ class SessionProvider extends ChangeNotifier {
     }
     _user = user;
     _role = user['role'] ?? 'user';
-    _userDataManuallySet = true;
     _saveUserData(user);
     unawaited(_ensureChatEncryptionReady());
     notifyListeners();
@@ -193,8 +237,6 @@ class SessionProvider extends ChangeNotifier {
           _subscriptionEndDate = null;
           _free = null;
         }
-        await fetchSubscriptionHistory();
-        await loadFreebieCounts();
         notifyListeners();
       }
     } catch (e) {
@@ -304,18 +346,6 @@ class SessionProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> _loadUserData() async {
-    try {
-      final userData = await _storage.read(key: 'user_data');
-      if (userData != null) {
-        final user = jsonDecode(userData);
-        _user = user;
-        _role = user['role'] ?? 'user';
-        _userDataManuallySet = true;
-      }
-    } catch (_) {}
-  }
-
   Future<void> refreshUserProfile() async {
     if (_accessToken == null) return;
 
@@ -366,7 +396,6 @@ class SessionProvider extends ChangeNotifier {
   void clearUser() async {
     _user = null;
     _role = null;
-    _userDataManuallySet = false;
     await _storage.delete(key: 'user_data');
     notifyListeners();
   }

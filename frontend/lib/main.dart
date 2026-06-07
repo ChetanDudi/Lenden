@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -61,7 +62,7 @@ class _AppInitializerState extends State<AppInitializer>
     final session = Provider.of<SessionProvider>(context, listen: false);
     final startedAt = DateTime.now();
     await session.initSession();
-    await _maybeQueueDailyReward(session);
+    unawaited(_maybeQueueDailyReward(session));
 
     final elapsed = DateTime.now().difference(startedAt);
     const minimumSplash = Duration(milliseconds: 700);
@@ -74,6 +75,7 @@ class _AppInitializerState extends State<AppInitializer>
     final reward = await session.checkDailyLoginRewardOnAppOpen();
     if (reward != null && reward['awarded'] == true) {
       _pendingDailyRewardCoins = (reward['coinsAwarded'] as num?)?.toInt() ?? 1;
+      _showPendingDailyRewardIfNeeded();
     }
   }
 
