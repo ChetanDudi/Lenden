@@ -9,9 +9,6 @@ const Transaction = require('./models/transaction');
 const User = require('./models/user');
 const http = require('http');
 const socketio = require('socket.io');
-const server = http.createServer(app);
-const io = socketio(server, { cors: { origin: '*' } });
-
 const leoProfanity = require('leo-profanity');
 
 const apiRoutes = require('./routes/api');
@@ -30,9 +27,22 @@ const allowedOrigins = [
   'https://lendenbackend.onrender.com'
 ];
 
+const server = http.createServer(app);
+const io = socketio(server, {
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+      if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('Request origin:', origin);
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
@@ -124,7 +134,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   await Admin.createDefaultAdmin();
   console.log('Default admin ensured');
 })
-.catch((err) => console.error('Batabase connection error:', err));
+.catch((err) => console.error('Database connection error:', err));
 
 // Initialize reminder scheduler
 require('./utils/reminderScheduler');
@@ -135,50 +145,8 @@ const { initializeOfferCleanupScheduler } = require('./utils/offerCleanupSchedul
 initializeMonthlyLeaderboardRewardScheduler();
 initializeOfferCleanupScheduler();
 
-io.on('connection', (socket) => {
-  // Transaction chat
-  socket.on('join', ({ transactionId }) => {
-    socket.join(transactionId);
-  });
-  socket.on('chatMessage', async ({ transactionId, senderId, content, parentId, image, imageType, imageName }) => {
-    if ((!content || leoProfanity.check(content)) && !image) return;
-    let thread = await ChatThread.findOne({ transactionId });
-    if (!thread) {
-      thread = await ChatThread.create({ transactionId, messages: [] });
-    }
-    const message = {
-      sender: senderId,
-      content: content || '',
-      parentId: parentId || null,
-      image: image ? { data: image, type: imageType, name: imageName } : undefined
-    };
-    thread.messages.push(message);
-    await thread.save();
-    const populatedMsg = await ChatThread.populate(thread.messages[thread.messages.length - 1], { path: 'sender', select: 'name email' });
-    io.to(transactionId).emit('chatMessage', populatedMsg);
-  });
-
-  // Group chat
-  socket.on('joinGroup', ({ groupTransactionId }) => {
-    socket.join(`group_${groupTransactionId}`);
-  });
-  socket.on('groupChatMessage', async ({ groupTransactionId, senderId, content, parentId }) => {
-    if (!content || leoProfanity.check(content)) return;
-    let thread = await GroupChatThread.findOne({ groupTransactionId });
-    if (!thread) {
-      thread = await GroupChatThread.create({ groupTransactionId, messages: [] });
-    }
-    const message = {
-      sender: senderId,
-      content: content || '',
-      parentId: parentId || null,
-    };
-    thread.messages.push(message);
-    await thread.save();
-    const populatedMsg = await GroupChatThread.populate(thread.messages[thread.messages.length - 1], { path: 'sender', select: 'name email' });
-    io.to(`group_${groupTransactionId}`).emit('groupChatMessage', populatedMsg);
-  });
-});
+// Chat and group-chat socket events are handled inside chatController and groupChatController,
+// which are wired up through apiRoutes(io) above.
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -59,15 +59,11 @@ class SessionProvider extends ChangeNotifier {
   }
 
   Future<void> saveTokens(String accessToken, String refreshToken) async {
-    print(
-        '💾 SessionProvider.saveTokens called with accessToken: ${accessToken != null ? 'Present' : 'Missing'}, refreshToken: ${refreshToken != null ? 'Present' : 'Missing'}');
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     await _storage.write(key: 'access_token', value: accessToken);
     await _storage.write(key: 'refresh_token', value: refreshToken);
-    print('💾 Tokens saved to storage');
     notifyListeners();
-    print('💾 SessionProvider.notifyListeners() called');
   }
 
   Future<void> saveToken(String token) async {
@@ -95,21 +91,12 @@ class SessionProvider extends ChangeNotifier {
   }
 
   Future<void> initSession() async {
-    print('🔄 SessionProvider.initSession() called');
     await loadTokens();
-    print(
-        '🔄 Access token from storage: ${_accessToken != null ? 'Present' : 'Missing'}');
-    print(
-        '🔄 Refresh token from storage: ${_refreshToken != null ? 'Present' : 'Missing'}');
 
     if (_accessToken != null) {
       await _loadUserData();
-      print(
-          '🔄 After loading user data: _user = ${_user != null ? 'Present' : 'Missing'}, _role = $_role');
 
       if (_user == null && !_userDataManuallySet) {
-        print(
-            '🔄 No user data found and not manually set, fetching from API...');
 
         var response = await HttpInterceptor.get('/api/users/me');
 
@@ -136,7 +123,6 @@ class SessionProvider extends ChangeNotifier {
           await loadFreebieCounts();
           notifyListeners();
         } else {
-          print('Both user and admin endpoints failed, clearing tokens');
           await clearTokens();
         }
       } else {
@@ -177,49 +163,26 @@ class SessionProvider extends ChangeNotifier {
   }
 
   void setUser(Map<String, dynamic> user) {
-    print('🔧 SessionProvider.setUser called with: $user');
-
     // Normalize profileImage to always be a String
     if (user['profileImage'] is Map && user['profileImage']['url'] != null) {
       user['profileImage'] = user['profileImage']['url'];
     }
     _user = user;
     _role = user['role'] ?? 'user';
-    _userDataManuallySet = true; // Mark that user data was set manually
-
-    print('🔧 SessionProvider: _user set to: $_user');
-    print('🔧 SessionProvider: _role set to: $_role');
-    print(
-        '🔧 SessionProvider: _userDataManuallySet set to: $_userDataManuallySet');
-
-    // Save user data to secure storage
+    _userDataManuallySet = true;
     _saveUserData(user);
     unawaited(_ensureChatEncryptionReady());
-
     notifyListeners();
-    print('🔧 SessionProvider: notifyListeners() called');
-
-    // Verify the session state after setting
-    print('🔍 Session state after setUser:');
-    print('   _accessToken: ${_accessToken != null ? 'Present' : 'Missing'}');
-    print('   _user: ${_user != null ? 'Present' : 'Missing'}');
-    print('   _role: $_role');
-    print('   isAdmin: $isAdmin');
   }
 
   Future<void> checkSubscriptionStatus() async {
-    if (_accessToken == null) {
-      print('Subscription check: No access token');
-      return;
-    }
+    if (_accessToken == null) return;
 
-    print('Subscription check: Fetching status...');
     try {
       final response = await HttpInterceptor.get('/api/subscription/status');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Subscription check: Data received: $data');
         _isSubscribed = data['subscribed'] ?? false;
         if (_isSubscribed) {
           _subscriptionPlan = data['subscriptionPlan'];
@@ -232,37 +195,25 @@ class SessionProvider extends ChangeNotifier {
         }
         await fetchSubscriptionHistory();
         await loadFreebieCounts();
-        print('Subscription check: isSubscribed set to $_isSubscribed');
         notifyListeners();
-      } else {
-        print('Subscription check: Failed with status ${response.statusCode}');
       }
     } catch (e) {
-      print('Error checking subscription status: $e');
+      // ignore — subscription status is non-critical
     }
   }
 
   Future<void> fetchSubscriptionHistory() async {
-    if (_accessToken == null) {
-      print('Subscription history: No access token');
-      return;
-    }
+    if (_accessToken == null) return;
 
-    print('Subscription history: Fetching history...');
     try {
       final response = await HttpInterceptor.get('/api/subscription/history');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Subscription history: Data received: $data');
         _subscriptionHistory = List<Map<String, dynamic>>.from(data);
         notifyListeners();
-      } else {
-        print(
-            'Subscription history: Failed with status ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching subscription history: $e');
+      // ignore — subscription history is non-critical
     }
   }
 
@@ -349,12 +300,8 @@ class SessionProvider extends ChangeNotifier {
 
   Future<void> _saveUserData(Map<String, dynamic> user) async {
     try {
-      print('💾 Saving user data to secure storage: $user');
       await _storage.write(key: 'user_data', value: jsonEncode(user));
-      print('✅ User data saved successfully');
-    } catch (e) {
-      print('❌ Error saving user data: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadUserData() async {
@@ -364,17 +311,9 @@ class SessionProvider extends ChangeNotifier {
         final user = jsonDecode(userData);
         _user = user;
         _role = user['role'] ?? 'user';
-        _userDataManuallySet =
-            true; // Mark that user data was loaded from storage
-        print('📱 Loaded saved user data: $_user');
-        print('📱 User role: $_role');
-        print('📱 _userDataManuallySet: $_userDataManuallySet');
-      } else {
-        print('📱 No saved user data found');
+        _userDataManuallySet = true;
       }
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> refreshUserProfile() async {

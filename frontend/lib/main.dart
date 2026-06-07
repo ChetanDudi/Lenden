@@ -529,7 +529,6 @@ class HomePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     const SizedBox(height: 28),
-                    // ...removed testimonial carousel...
                     Container(
                       padding: const EdgeInsets.all(2.5), // border width
                       decoration: BoxDecoration(
@@ -541,7 +540,7 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00B4D8).withOpacity(0.3),
+                            color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
                             blurRadius: 6,
                             offset: Offset(0, 4),
                           )
@@ -596,7 +595,7 @@ class HomePage extends StatelessWidget {
                               padding: EdgeInsets.zero,
                               elevation: 4,
                               shadowColor:
-                                  const Color(0xFF00B4D8).withOpacity(0.2),
+                                  const Color(0xFF00B4D8).withValues(alpha: 0.2),
                             ),
                             child: Container(
                               padding: const EdgeInsets.all(2.5),

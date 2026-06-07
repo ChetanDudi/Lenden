@@ -317,17 +317,20 @@ exports.login = async (req, res) => {
       await user.save();
       await recordDailyLoginRewardIfNeeded(user, dailyReward);
 
-      res.json({ 
-        message: 'Login successful', 
-        user, 
-        accessToken, 
+      const userResponse = user.toObject();
+      delete userResponse.password;
+
+      res.json({
+        message: 'Login successful',
+        user: userResponse,
+        accessToken,
         refreshToken,
         deviceId,
         dailyLoginReward: dailyReward,
       });
       return;
     }
-    
+
     // Check if it's an admin
     if (admin) {
       console.log('🔑 Comparing passwords for admin...');
@@ -374,17 +377,20 @@ exports.login = async (req, res) => {
       console.log('✅ Login successful for admin:', username);
       console.log('🎫 Access token generated successfully');
       console.log('🎫 Refresh token generated and saved');
-      
-      res.json({ 
-        message: 'Login successful', 
-        admin, 
-        accessToken, 
+
+      const adminResponse = admin.toObject();
+      delete adminResponse.password;
+
+      res.json({
+        message: 'Login successful',
+        admin: adminResponse,
+        accessToken,
         refreshToken,
-        deviceId 
+        deviceId,
       });
       return;
     }
-    
+
   } catch (err) {
     console.error('❌ Login error:', err.message);
     console.error('❌ Full error:', err);
@@ -562,12 +568,15 @@ exports.verifyLoginOtp = async (req, res) => {
       const dailyReward = applyDailyLoginReward(user);
       await user.save();
       await recordDailyLoginRewardIfNeeded(user, dailyReward);
-      
+
+      const userResponse = user.toObject();
+      delete userResponse.password;
+
       delete otpStore[email];
-      return res.status(200).json({ 
-        message: 'Login successful', 
-        userType: 'user', 
-        user, 
+      return res.status(200).json({
+        message: 'Login successful',
+        userType: 'user',
+        user: userResponse,
         accessToken,
         refreshToken,
         deviceId,
@@ -615,15 +624,18 @@ exports.verifyLoginOtp = async (req, res) => {
       console.log('✅ OTP login successful for admin:', email);
       console.log('🎫 Access token generated successfully');
       console.log('🎫 Refresh token generated and saved');
-      
+
+      const adminResponse = admin.toObject();
+      delete adminResponse.password;
+
       delete otpStore[email];
-      return res.status(200).json({ 
-        message: 'Login successful', 
-        userType: 'admin', 
-        admin, 
+      return res.status(200).json({
+        message: 'Login successful',
+        userType: 'admin',
+        admin: adminResponse,
         accessToken,
         refreshToken,
-        deviceId 
+        deviceId,
       });
     }
     

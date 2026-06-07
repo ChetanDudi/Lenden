@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
-import '../api_config.dart';
 import '../otp_input.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
@@ -13,19 +12,6 @@ import '../widgets/tricolor_border_text_field.dart';
 import 'dart:ui' as ui;
 import '../utils/http_interceptor.dart';
 
-/// Minimal ApiClient stub to satisfy references from this file.
-/// Replace with your real API client implementation (e.g. using `package:http`)
-/// that prefixes paths with your backend base URL and returns responses
-/// with `statusCode` and `body`.
-class ApiClient {
-  static Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
-    return await HttpInterceptor.post(path, body: body);
-  }
-
-  static Future<dynamic> get(String path) async {
-    return await HttpInterceptor.get(path);
-  }
-}
 
 class UserLoginPage extends StatefulWidget {
   const UserLoginPage({super.key});
@@ -198,42 +184,13 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
       // Save tokens and fetch user info
       if (token != null && refreshToken != null && userType != null) {
-        print('🔐 Saving authentication data for login method: $_loginMethod');
-        print('🎫 Access Token: ${token != null ? 'Present' : 'Missing'}');
-        print(
-            '🎫 Refresh Token: ${refreshToken != null ? 'Present' : 'Missing'}');
-        print('👤 User type: $userType');
-        print('👤 User data: $userOrAdmin');
-
         final session = Provider.of<SessionProvider>(context, listen: false);
-        print('🔐 About to save tokens to session');
-        print(
-            '🔐 Access token to save: ${token != null ? 'Present' : 'Missing'}');
-        print(
-            '🔐 Refresh token to save: ${refreshToken != null ? 'Present' : 'Missing'}');
-        print('🔐 Access token length: ${token?.length ?? 0}');
-        print('🔐 Refresh token length: ${refreshToken?.length ?? 0}');
         await session.saveTokens(token, refreshToken);
-        print('✅ Tokens saved to session');
-
-        // Verify tokens were saved
-        print('🔍 Token verification after save:');
-        print(
-            '   Session access token: ${session.accessToken != null ? 'Present' : 'Missing'}');
-        print(
-            '   Session refresh token: ${session.refreshToken != null ? 'Present' : 'Missing'}');
-        print(
-            '   Session access token length: ${session.accessToken?.length ?? 0}');
-        print(
-            '   Session refresh token length: ${session.refreshToken?.length ?? 0}');
 
         // For Email + OTP, also fetch the complete profile to ensure all fields are present
         if (_loginMethod == 'Email + OTP' && userOrAdmin != null) {
-          print(
-              '📱 Using user data from OTP response and fetching complete profile');
           final userData = Map<String, dynamic>.from(userOrAdmin);
 
-          // Ensure required fields are present
           if (!userData.containsKey('name') || userData['name'] == null) {
             userData['name'] = userData['username'] ?? 'User';
           }
@@ -245,57 +202,25 @@ class _UserLoginPageState extends State<UserLoginPage> {
             userData['username'] = userData['name'] ?? 'user';
           }
 
-          if (userType == 'admin') {
-            userData['role'] = 'admin';
-          } else {
-            userData['role'] = 'user';
-          }
+          userData['role'] = userType == 'admin' ? 'admin' : 'user';
 
-          // Also fetch the complete profile to ensure we have all fields including profileImage
-          print('🌐 Fetching complete profile for email+OTP login');
           final profileRes = await _fetchProfile(token, userType);
           if (profileRes != null) {
-            // Merge the profile data with the OTP response data
             final completeUserData = Map<String, dynamic>.from(profileRes);
             completeUserData['role'] = userType == 'admin' ? 'admin' : 'user';
-            print('👤 Setting complete user data: $completeUserData');
             session.setUser(completeUserData);
             await session.checkSubscriptionStatus();
-            print('✅ Complete user data set in session');
           } else {
-            // Fallback to OTP response data if profile fetch fails
-            print('⚠️ Profile fetch failed, using OTP response data');
-            print('👤 Setting user data from OTP response: $userData');
             session.setUser(userData);
             await session.checkSubscriptionStatus();
-            print('✅ User data set in session');
           }
-
-          // Verify the session was set correctly
-          print('🔍 Verifying session data after setting:');
-          print(
-              '   Access Token: ${session.accessToken != null ? 'Present' : 'Missing'}');
-          print(
-              '   Refresh Token: ${session.refreshToken != null ? 'Present' : 'Missing'}');
-          print('   User: ${session.user}');
-          print('   Role: ${session.role}');
-          print('   Is Admin: ${session.isAdmin}');
         } else {
           // For other login methods, fetch profile
-          print('🌐 Fetching user profile from API');
           final profileRes = await _fetchProfile(token, userType);
           if (profileRes != null) {
-            if (userType == 'admin') {
-              profileRes['role'] = 'admin';
-            } else {
-              profileRes['role'] = 'user';
-            }
-            print('👤 Setting user data from profile: $profileRes');
+            profileRes['role'] = userType == 'admin' ? 'admin' : 'user';
             session.setUser(profileRes);
             await session.checkSubscriptionStatus();
-            print('✅ User data set in session');
-          } else {
-            print('❌ Failed to fetch user profile');
           }
         }
       }
@@ -344,9 +269,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withOpacity(0.5), width: 1),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 1),
       ),
       child: Column(
         children: [
@@ -398,7 +323,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
     setState(() => _isLoading = true);
     try {
       final emailOrUsername = recoverInfo['email'] ?? recoverInfo['username'];
-      final response = await ApiClient.post(
+      final response = await HttpInterceptor.post(
         '/api/users/recover-account',
         body: {'emailOrUsername': emailOrUsername},
       );
@@ -420,21 +345,11 @@ class _UserLoginPageState extends State<UserLoginPage> {
       String token, String userType) async {
     final path = userType == 'admin' ? '/api/admins/me' : '/api/users/me';
     try {
-      print('🌐 Fetching profile from: $path');
-      final response = await ApiClient.get(path);
-      print('🌐 Profile response status: ${response.statusCode}');
+      final response = await HttpInterceptor.get(path);
       if (response.statusCode == 200) {
-        final profileData = jsonDecode(response.body);
-        print('🌐 Profile data received: $profileData');
-        print('🌐 Profile image URL: ${profileData['profileImage']}');
-        return profileData;
-      } else {
-        print('❌ Profile fetch failed with status: ${response.statusCode}');
-        print('❌ Response body: ${response.body}');
+        return jsonDecode(response.body);
       }
-    } catch (e) {
-      print('❌ Error fetching profile: $e');
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -1062,7 +977,7 @@ class SocialIconButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -1232,7 +1147,7 @@ class LoginIllustrationPainter extends CustomPainter {
 
     // Phone notch and top icons
     final notchPaint = Paint()
-      ..color = const Color(0xFFEAF7FF).withOpacity(0.9);
+      ..color = const Color(0xFFEAF7FF).withValues(alpha: 0.9);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
@@ -1373,7 +1288,7 @@ class LoginIllustrationPainter extends CustomPainter {
 
     // --- PERSON (right side, seated) ---
     // Shadow under person
-    final groundShadow = Paint()..color = Colors.black.withOpacity(0.08);
+    final groundShadow = Paint()..color = Colors.black.withValues(alpha: 0.08);
     canvas.drawOval(
         Rect.fromCenter(
             center: Offset(cx + sw(0.2), cy + sh(0.30)),
@@ -1507,7 +1422,7 @@ class LoginIllustrationPainter extends CustomPainter {
     canvas.drawPath(smile, smilePaint);
 
     // Cheeks (blush)
-    final blush = Paint()..color = const Color(0xFFFFB3BA).withOpacity(0.55);
+    final blush = Paint()..color = const Color(0xFFFFB3BA).withValues(alpha: 0.55);
     canvas.drawCircle(Offset(headCenter.dx - sw(0.06), headCenter.dy + sh(0.0)),
         sw(0.015), blush);
     canvas.drawCircle(Offset(headCenter.dx + sw(0.06), headCenter.dy + sh(0.0)),
@@ -1548,7 +1463,6 @@ class LoginIllustrationPainter extends CustomPainter {
         paperRect.deflate(6), Paint()..color = const Color(0xFFEFF6F8));
 
     // dotted lines on paper
-    final dotPaint = Paint()..color = const Color(0xFFD6E6EA);
     for (int i = 0; i < 3; i++) {
       final dy = paperRect.top + 10 + i * 14;
       canvas.drawLine(
@@ -1592,11 +1506,10 @@ class LoginIllustrationPainter extends CustomPainter {
         Offset(bottomBtn.left + 24, bottomBtn.center.dy),
         Offset(bottomBtn.right - 24, bottomBtn.center.dy),
         Paint()
-          ..color = Colors.white.withOpacity(0.06)
+          ..color = Colors.white.withValues(alpha: 0.06)
           ..strokeWidth = 12);
 
     // final small signature lines (mimic text under 'Login' heading)
-    final headingPaint = Paint()..color = const Color(0xFF2C3E50);
     final titleY = cy - sh(0.4);
     canvas.drawRect(Rect.fromLTWH(cx - sw(0.35), titleY, sw(0.26), sh(0.02)),
         Paint()..color = const Color(0xFF2C3E50));
