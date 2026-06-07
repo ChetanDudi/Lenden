@@ -73,6 +73,7 @@ class _AppInitializerState extends State<AppInitializer>
 
   Future<void> _maybeQueueDailyReward(SessionProvider session) async {
     final reward = await session.checkDailyLoginRewardOnAppOpen();
+    if (!mounted) return;
     if (reward != null && reward['awarded'] == true) {
       _pendingDailyRewardCoins = (reward['coinsAwarded'] as num?)?.toInt() ?? 1;
       _showPendingDailyRewardIfNeeded();

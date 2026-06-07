@@ -50,12 +50,18 @@ class SessionProvider extends ChangeNotifier {
   static const String _deviceIdKey = 'device_id';
 
   Future<void> loadTokens() async {
-    final results = await Future.wait([
-      _storage.read(key: 'access_token'),
-      _storage.read(key: 'refresh_token'),
-    ]);
-    _accessToken = results[0];
-    _refreshToken = results[1];
+    try {
+      final results = await Future.wait([
+        _storage.read(key: 'access_token'),
+        _storage.read(key: 'refresh_token'),
+      ]);
+      _accessToken = results[0];
+      _refreshToken = results[1];
+    } catch (_) {
+      try { await _storage.deleteAll(); } catch (_) {}
+      _accessToken = null;
+      _refreshToken = null;
+    }
     notifyListeners();
   }
 
@@ -77,9 +83,15 @@ class SessionProvider extends ChangeNotifier {
     _refreshToken = null;
     _user = null;
     _role = null;
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
-    await _storage.delete(key: 'user_data');
+    try {
+      await Future.wait([
+        _storage.delete(key: 'access_token'),
+        _storage.delete(key: 'refresh_token'),
+        _storage.delete(key: 'user_data'),
+      ]);
+    } catch (_) {
+      try { await _storage.deleteAll(); } catch (_) {}
+    }
     clearCounterparties();
     clearSubscription();
     notifyListeners();
@@ -92,11 +104,22 @@ class SessionProvider extends ChangeNotifier {
 
   Future<void> initSession() async {
     // Read all three storage keys in parallel — single round trip.
-    final results = await Future.wait([
-      _storage.read(key: 'access_token'),
-      _storage.read(key: 'refresh_token'),
-      _storage.read(key: 'user_data'),
-    ]);
+    // Wrapped in try-catch: on Windows, a corrupt .dat file causes all concurrent
+    // reads to race on deletion (errno=32). We wipe and treat as logged out.
+    List<String?> results;
+    try {
+      results = await Future.wait([
+        _storage.read(key: 'access_token'),
+        _storage.read(key: 'refresh_token'),
+        _storage.read(key: 'user_data'),
+      ]);
+    } catch (_) {
+      try { await _storage.deleteAll(); } catch (_) {}
+      _user = null;
+      _role = null;
+      notifyListeners();
+      return;
+    }
     _accessToken = results[0];
     _refreshToken = results[1];
 
