@@ -9,6 +9,13 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../widgets/stylish_dialog.dart';
 import '../Digitise/subscriptions_page.dart';
 import '../Digitise/gift_card_page.dart';
+import 'group_detail_page.dart';
+
+String _emailOf(dynamic field) {
+  if (field == null) return '-';
+  if (field is Map) return (field['email'] ?? '-').toString();
+  return field.toString();
+}
 
 class GroupTransactionPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
@@ -1478,22 +1485,23 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
 
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
+        final loaded =
+            List<Map<String, dynamic>>.from(data['groups'] ?? []);
         setState(() {
-          userGroups = List<Map<String, dynamic>>.from(data['groups'] ?? []);
-          _filterAndSearchGroups();
+          userGroups = loaded;
+          groupsLoading = false;
         });
+        _filterAndSearchGroups();
       } else {
         setState(() {
           error =
               'Failed to load groups. Status code: ${res.statusCode}\nBody: ${res.body}';
+          groupsLoading = false;
         });
       }
     } catch (e) {
       setState(() {
         error = 'An error occurred: $e';
-      });
-    } finally {
-      setState(() {
         groupsLoading = false;
       });
     }
@@ -1622,11 +1630,15 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   }
 
   void _showGroupDetails(Map<String, dynamic> g) {
-    setState(() {
-      group = g;
-      isCreator = g['creator']?['email'] ==
-          Provider.of<SessionProvider>(context, listen: false).user?['email'];
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GroupDetailPage(
+          groupId: g['_id'].toString(),
+          initialGroup: g,
+        ),
+      ),
+    ).then((_) => _fetchUserGroups());
   }
 
   void _showCreateGroup() {
@@ -4795,24 +4807,22 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
           ),
           Positioned(
             top: 40,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  group == null
-                      ? 'Group Transactions'
-                      : 'Group: ${group?['title'] ?? ''}',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
-                  ),
+            left: 16,
+            right: 16,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Text(
+                group == null
+                    ? 'Group Transactions'
+                    : 'Group: ${group?['title'] ?? ''}',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
                 ),
-              ],
+              ),
             ),
           ),
           Padding(
@@ -4823,9 +4833,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               padding: EdgeInsets.all(16),
               child: groupsLoading
                   ? Center(child: CircularProgressIndicator())
-                  : group != null
-                      ? _buildGroupDetailsCard()
-                      : userGroups.isEmpty
+                  : userGroups.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -5535,121 +5543,70 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                       ],
                                                     ),
                                                     SizedBox(height: 10),
-                                                    Row(
-                                                      children: [
-                                                        Icon(Icons.person,
-                                                            size: 18,
-                                                            color: Colors.grey),
-                                                        SizedBox(width: 4),
-                                                        Text(
-                                                            'Creator: ${g['creator']?['email'] ?? ''}',
-                                                            style: TextStyle(
-                                                                fontSize: 14,
-                                                                color:
-                                                                    Colors.grey[
-                                                                        700])),
-                                                      ],
-                                                    ),
-                                                    SizedBox(height: 6),
-                                                    Row(
-                                                      children: [
-                                                        Icon(Icons.people,
-                                                            size: 18,
-                                                            color: Colors.grey),
-                                                        SizedBox(width: 4),
-                                                        Text(
-                                                            'Members: ${(g['members'] as List).length}',
-                                                            style: TextStyle(
-                                                                fontSize: 14,
-                                                                color:
-                                                                    Colors.grey[
-                                                                        700])),
-                                                        SizedBox(width: 12),
-                                                        // Member avatars
-                                                        ...((g['members']
-                                                                as List)
-                                                            .take(5)
-                                                            .map((m) =>
-                                                                GestureDetector(
-                                                                  onTap: () =>
-                                                                      _showMemberDetails(
-                                                                          m),
-                                                                  child:
-                                                                      Padding(
-                                                                    padding: const EdgeInsets
-                                                                        .symmetric(
-                                                                        horizontal:
-                                                                            2),
-                                                                    child:
-                                                                        CircleAvatar(
-                                                                      radius:
-                                                                          12,
-                                                                      backgroundColor: Colors
-                                                                          .primaries[(m['email'] ?? '').toString().hashCode %
-                                                                              Colors.primaries.length]
-                                                                          .shade200,
-                                                                      child:
-                                                                          Text(
-                                                                        () {
-                                                                          final email =
-                                                                              (m['email'] ?? '').toString();
-                                                                          return email.isNotEmpty
-                                                                              ? email[0].toUpperCase()
-                                                                              : '?';
-                                                                        }(),
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                12,
-                                                                            color:
-                                                                                Colors.white,
-                                                                            fontWeight: FontWeight.bold),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ))),
-                                                        if ((g['members']
-                                                                    as List)
-                                                                .length >
-                                                            5)
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                                    horizontal:
-                                                                        2),
-                                                            child: CircleAvatar(
-                                                              radius: 12,
-                                                              backgroundColor:
-                                                                  Colors.grey[
-                                                                      400],
-                                                              child: Text(
-                                                                  '+${(g['members'] as List).length - 5}',
-                                                                  style: TextStyle(
-                                                                      fontSize:
-                                                                          12,
-                                                                      color: Colors
-                                                                          .white)),
-                                                            ),
+                                                    // Creator — horizontal scroll
+                                                    SingleChildScrollView(
+                                                      scrollDirection: Axis.horizontal,
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(Icons.person, size: 18, color: Colors.grey),
+                                                          SizedBox(width: 4),
+                                                          Text(
+                                                            'Creator: ${_emailOf(g['creator'])}',
+                                                            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                                                           ),
-                                                      ],
+                                                        ],
+                                                      ),
                                                     ),
                                                     SizedBox(height: 6),
-                                                    Row(
-                                                      children: [
-                                                        Icon(
-                                                            Icons
-                                                                .calendar_today,
-                                                            size: 16,
-                                                            color: Colors.grey),
-                                                        SizedBox(width: 4),
-                                                        Text(
+                                                    // Members count + all avatars — horizontal scroll
+                                                    SingleChildScrollView(
+                                                      scrollDirection: Axis.horizontal,
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(Icons.people, size: 18, color: Colors.grey),
+                                                          SizedBox(width: 4),
+                                                          Text(
+                                                            'Members: ${(g['members'] as List).length}',
+                                                            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                                          ),
+                                                          SizedBox(width: 10),
+                                                          ...((g['members'] as List).map((m) => GestureDetector(
+                                                            onTap: () => _showMemberDetails(m),
+                                                            child: Padding(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                                                              child: CircleAvatar(
+                                                                radius: 13,
+                                                                backgroundColor: Colors
+                                                                    .primaries[
+                                                                      (_emailOf(m).hashCode.abs()) %
+                                                                          Colors.primaries.length
+                                                                    ].shade200,
+                                                                child: Text(
+                                                                  _emailOf(m).isNotEmpty && _emailOf(m) != '-'
+                                                                      ? _emailOf(m)[0].toUpperCase()
+                                                                      : '?',
+                                                                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ))),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 6),
+                                                    // Created at — horizontal scroll
+                                                    SingleChildScrollView(
+                                                      scrollDirection: Axis.horizontal,
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                                          SizedBox(width: 4),
+                                                          Text(
                                                             'Created: ${g['createdAt'] != null ? g['createdAt'].toString().substring(0, 10) : ''}',
-                                                            style: TextStyle(
-                                                                fontSize: 13,
-                                                                color:
-                                                                    Colors.grey[
-                                                                        600])),
-                                                      ],
+                                                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
@@ -6042,554 +5999,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGroupDetailsCard() {
-    final members = (group?['members'] ?? []) as List<dynamic>;
-    final creator = group?['creator'];
-    final expenses = (group?['expenses'] ?? []) as List<dynamic>;
-    final groupColor = group?['color'] != null
-        ? Color(int.parse(group!['color'].toString().replaceFirst('#', '0xff')))
-        : Colors.blue.shade300;
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 4,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: groupColor,
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: Icon(Icons.close, color: Colors.red),
-                  tooltip: 'Close',
-                  onPressed: () => setState(() => group = null),
-                ),
-              ),
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: groupColor,
-                    radius: 28,
-                    child: Text(() {
-                      final title = group?['title'] ?? '';
-                      return title.isNotEmpty ? title[0].toUpperCase() : '?';
-                    }(),
-                        style: TextStyle(
-                            fontSize: 28,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Text('Group Details',
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  if (isCreator)
-                    GestureDetector(
-                      onTap: () async {
-                        Color picked = groupColor;
-                        await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text('Change Group Color'),
-                            content: SingleChildScrollView(
-                              child: ColorPicker(
-                                pickerColor: picked,
-                                onColorChanged: (color) {
-                                  picked = color;
-                                },
-                                showLabel: false,
-                                pickerAreaHeightPercent: 0.7,
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                child: Text('Cancel'),
-                                onPressed: () => Navigator.of(context).pop(),
-                              ),
-                              TextButton(
-                                child: Text('Update'),
-                                onPressed: () {
-                                  _updateGroupColor(picked);
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: groupColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey, width: 2),
-                        ),
-                        child: Icon(Icons.edit, color: Colors.white, size: 18),
-                      ),
-                    ),
-                  if (isCreator) SizedBox(width: 8),
-                  if (isCreator)
-                    GestureDetector(
-                      onTap: loading ? null : _showDeleteGroupDialog,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFDC2626),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0xFFDC2626).withOpacity(0.3),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child:
-                            Icon(Icons.delete, color: Colors.white, size: 18),
-                      ),
-                    ),
-                ],
-              ),
-              SizedBox(height: 16),
-              Text('Members:', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showMembersDialog(members, creator),
-                      icon: Icon(Icons.people, color: Colors.white),
-                      label: Text('View Members (${members.length})',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  if (isCreator)
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _showAddMemberDialog(),
-                        icon: Icon(Icons.person_add, color: Colors.white),
-                        label: Text('Add Member',
-                            style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              SizedBox(height: 24),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_displayCurrencyError != null ||
-                      _hasMissingDisplayConversionForExpenses(expenses))
-                    Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.only(bottom: 12),
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Color(0xFFFFF1F1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFFF6B6B)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.error_outline,
-                              color: Color(0xFFD62828), size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _displayCurrencyError ??
-                                  'Conversion for one or more expenses is not available in $_selectedDisplayCurrency yet. Showing original expense currencies instead.',
-                              style: TextStyle(
-                                color: Color(0xFFD62828),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Row(
-                    children: [
-                      Text('Expenses:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Spacer(),
-                      ElevatedButton.icon(
-                        onPressed: () => _showExpensesDialog(expenses),
-                        icon: Icon(Icons.receipt_long,
-                            color: Colors.white, size: 18),
-                        label: Text('View All (${expenses.length})',
-                            style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF1E3A8A),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Show In',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      _buildDisplayCurrencySelector(),
-                    ],
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-              SizedBox(height: 8),
-              if (expenses.isEmpty)
-                Container(
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.receipt_long, color: Colors.grey, size: 48),
-                        SizedBox(height: 8),
-                        Text(
-                          'No expenses yet',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          'Add your first expense to get started',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                ...expenses.take(3).map<Widget>((expense) {
-                  return Container(
-                    margin: EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Color(0xFF1E3A8A).withOpacity(0.2),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Color(0xFF1E3A8A),
-                        child: Icon(
-                          Icons.receipt,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        expense['description'] ?? 'No description',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E3A8A),
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Amount: ${_formatAmountWithCurrency(expense['amount'], expense['currency']?.toString())}',
-                            style: TextStyle(
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Added by: ${expense['addedBy'] ?? 'Unknown'}',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                          if (expense['createdAt'] != null ||
-                              expense['date'] != null)
-                            Row(
-                              children: [
-                                Icon(Icons.access_time,
-                                    color: Colors.grey[500], size: 12),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Created: ${_formatDateTime(expense['createdAt'] ?? expense['date'])}',
-                                  style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          // Show split details
-                          if (expense['split'] != null &&
-                              expense['split'].isNotEmpty)
-                            Container(
-                              margin: EdgeInsets.only(top: 8),
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF1E3A8A).withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: Color(0xFF1E3A8A).withOpacity(0.2)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.people_outline,
-                                          color: Color(0xFF1E3A8A), size: 16),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Split Details:',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF1E3A8A),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 4),
-                                  Container(
-                                    constraints: BoxConstraints(maxHeight: 120),
-                                    child: SingleChildScrollView(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: (expense['split'] as List)
-                                            .map<Widget>((splitItem) {
-                                          final member = members.firstWhere(
-                                            (m) =>
-                                                m['_id'] == splitItem['user'],
-                                            orElse: () =>
-                                                {'email': 'Unknown User'},
-                                          );
-                                          final isSettled =
-                                              splitItem['settled'] == true;
-                                          return Padding(
-                                            padding: EdgeInsets.only(bottom: 2),
-                                            child: Row(
-                                              children: [
-                                                Text(
-                                                  '• ${(member['email'] ?? '').toString()}: ',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                ),
-                                                Text(
-                                                  _formatAmountWithCurrency(
-                                                    splitItem['amount'],
-                                                    expense['currency']
-                                                        ?.toString(),
-                                                  ),
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: isSettled
-                                                        ? Colors.grey[500]
-                                                        : Colors.green[700],
-                                                    decoration: isSettled
-                                                        ? TextDecoration
-                                                            .lineThrough
-                                                        : null,
-                                                  ),
-                                                ),
-                                                if (isSettled)
-                                                  Text(
-                                                    ' (Settled)',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: Colors.grey[500],
-                                                      fontStyle:
-                                                          FontStyle.italic,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      trailing: null,
-                    ),
-                  );
-                }).toList(),
-              if (expenses.length > 3)
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    '... and ${expenses.length - 3} more expenses',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: addingExpense
-                    ? null
-                    : () {
-                        _showAddExpenseDialog();
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF00B4D8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: Text('Add Expense',
-                    style: TextStyle(fontSize: 18, color: Colors.white)),
-              ),
-              SizedBox(height: 24),
-              if (!isCreator) ...[
-                // Check if current user is still an active member
-                Builder(
-                  builder: (context) {
-                    final currentUserEmail =
-                        Provider.of<SessionProvider>(context, listen: false)
-                            .user?['email'];
-                    final isActiveMember = (group?['members'] ?? []).any(
-                        (member) =>
-                            member['email'] == currentUserEmail &&
-                            member['leftAt'] == null);
-
-                    if (isActiveMember) {
-                      // User is still an active member - show Leave Group button
-                      return ElevatedButton(
-                        onPressed: loading ? null : _showLeaveGroupDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFF59E0B),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          elevation: 4,
-                          shadowColor: Color(0xFFF59E0B).withOpacity(0.3),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.exit_to_app,
-                                color: Colors.white, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'Leave Group',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      // User is no longer an active member - show disabled button
-                      return ElevatedButton(
-                        onPressed: null, // Disabled
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[400],
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.person_off,
-                                color: Colors.white, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'No longer a member of this group',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
-              if (error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(error!, style: TextStyle(color: Colors.red)),
-                ),
-            ],
-          ),
         ),
       ),
     );

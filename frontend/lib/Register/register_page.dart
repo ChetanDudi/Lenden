@@ -40,6 +40,9 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   bool _isEmailUnique = true;
   bool _checkingUsername = false;
   bool _checkingEmail = false;
+  // true when the check request failed (timeout/network) — don't block registration
+  bool _usernameCheckFailed = false;
+  bool _emailCheckFailed = false;
 
   // Password validation
   bool get _hasUpper => RegExp(r'[A-Z]').hasMatch(_passwordController.text);
@@ -64,24 +67,40 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   }
 
   Future<void> _checkUsernameUnique(String username) async {
+    setState(() { _checkingUsername = true; });
+    final res = await _post(
+      '/api/users/check-username',
+      {'username': username},
+      timeout: const Duration(seconds: 20),
+    );
     setState(() {
-      _checkingUsername = true;
-    });
-    final res =
-        await _post('/api/users/check-username', {'username': username});
-    setState(() {
-      _isUsernameUnique = res['status'] == 200 && res['data']['unique'] == true;
+      if (res['status'] == 200) {
+        _isUsernameUnique = res['data']['unique'] == true;
+        _usernameCheckFailed = false;
+      } else {
+        // Timeout or network error — don't block the user; server will validate on submit
+        _isUsernameUnique = true;
+        _usernameCheckFailed = true;
+      }
       _checkingUsername = false;
     });
   }
 
   Future<void> _checkEmailUnique(String email) async {
+    setState(() { _checkingEmail = true; });
+    final res = await _post(
+      '/api/users/check-email',
+      {'email': email},
+      timeout: const Duration(seconds: 20),
+    );
     setState(() {
-      _checkingEmail = true;
-    });
-    final res = await _post('/api/users/check-email', {'email': email});
-    setState(() {
-      _isEmailUnique = res['status'] == 200 && res['data']['unique'] == true;
+      if (res['status'] == 200) {
+        _isEmailUnique = res['data']['unique'] == true;
+        _emailCheckFailed = false;
+      } else {
+        _isEmailUnique = true;
+        _emailCheckFailed = true;
+      }
       _checkingEmail = false;
     });
   }
@@ -99,13 +118,13 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       });
       return;
     }
-    if (!_isUsernameUnique) {
+    if (!_isUsernameUnique && !_usernameCheckFailed) {
       setState(() {
         _errorMessage = 'Username already exists.';
       });
       return;
     }
-    if (!_isEmailUnique) {
+    if (!_isEmailUnique && !_emailCheckFailed) {
       setState(() {
         _errorMessage = 'Email already exists.';
       });
@@ -118,15 +137,14 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       _detailsLocked = true; // Lock fields before sending OTP
     });
 
-    // Send OTP
+    // Send OTP — use 90s timeout to survive Render cold start (30–60s)
     final res = await _post('/api/users/register', {
       'name': _nameController.text,
       'username': _usernameController.text,
       'email': _emailController.text,
       'password': _passwordController.text,
       'gender': _selectedGender,
-      // 'rating': _rating, // Rating removed
-    });
+    }, timeout: const Duration(seconds: 90));
 
     if (res['status'] == 200) {
       setState(() {
@@ -137,10 +155,14 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       _showSnackBar('OTP sent to your email.');
       _startOtpTimer();
     } else {
+      final raw = res['data']['error'] ?? '';
+      final errorMsg = (res['status'] == 408 || raw == 'timeout')
+          ? 'Server is starting up, please wait a moment and try again.'
+          : (raw.isNotEmpty ? raw : 'Failed to send OTP.');
       setState(() {
-        _errorMessage = res['data']['error'] ?? 'Failed to send OTP.';
+        _errorMessage = errorMsg;
         _isLoading = false;
-        _detailsLocked = false; // Unlock fields on failure
+        _detailsLocked = false;
       });
     }
   }
@@ -167,7 +189,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     final res = await _post('/api/users/verify-otp', {
       'email': _emailController.text,
       'otp': _otpController.text,
-    });
+    }, timeout: const Duration(seconds: 30));
     if (res['status'] == 201) {
       setState(() {
         _isVerifyingOtp = false;
@@ -190,7 +212,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     final res = await _post('/api/users/verify-otp', {
       'email': _emailController.text,
       'otp': otp,
-    });
+    }, timeout: const Duration(seconds: 30));
     if (res['status'] == 201) {
       setState(() {
         _isVerifyingOtp = false;
@@ -206,10 +228,9 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   }
 
   Future<Map<String, dynamic>> _post(
-      String path, Map<String, dynamic> body) async {
+      String path, Map<String, dynamic> body, {Duration? timeout}) async {
     try {
-      final response = await ApiClient.post(path, body: body)
-          .timeout(const Duration(minutes: 2));
+      final response = await ApiClient.post(path, body: body, timeout: timeout);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
@@ -463,15 +484,14 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2))
-                              : _isUsernameUnique
-                                  ? null
-                                  : const Icon(Icons.error, color: Colors.red),
+                                  child: CircularProgressIndicator(strokeWidth: 2))
+                              : (!_isUsernameUnique && !_usernameCheckFailed)
+                                  ? const Icon(Icons.error, color: Colors.red)
+                                  : null,
                         ),
                       ),
                     ),
-                    if (!_isUsernameUnique)
+                    if (!_isUsernameUnique && !_usernameCheckFailed)
                       const Padding(
                         padding: EdgeInsets.only(left: 8, top: 4),
                         child: Text('Username already exists.',
@@ -519,15 +539,14 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2))
-                              : _isEmailUnique
-                                  ? null
-                                  : const Icon(Icons.error, color: Colors.red),
+                                  child: CircularProgressIndicator(strokeWidth: 2))
+                              : (!_isEmailUnique && !_emailCheckFailed)
+                                  ? const Icon(Icons.error, color: Colors.red)
+                                  : null,
                         ),
                       ),
                     ),
-                    if (!_isEmailUnique)
+                    if (!_isEmailUnique && !_emailCheckFailed)
                       const Padding(
                         padding: EdgeInsets.only(left: 8, top: 4),
                         child: Text('Email already exists.',

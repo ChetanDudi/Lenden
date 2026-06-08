@@ -56,7 +56,9 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? extraHeaders,
+    Duration? timeout,
   }) async {
+    final effectiveTimeout = timeout ?? const Duration(seconds: 10);
     final uri = Uri.parse('$_baseUrl$path');
     String? token = await _getAccessToken();
 
@@ -75,27 +77,27 @@ class ApiClient {
         case 'GET':
           resp = await _client
               .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+              .timeout(effectiveTimeout, onTimeout: _onTimeout);
           break;
         case 'POST':
           resp = await _client
               .post(uri, headers: headers, body: jsonEncode(body ?? {}))
-              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+              .timeout(effectiveTimeout, onTimeout: _onTimeout);
           break;
         case 'PUT':
           resp = await _client
               .put(uri, headers: headers, body: jsonEncode(body ?? {}))
-              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+              .timeout(effectiveTimeout, onTimeout: _onTimeout);
           break;
         case 'PATCH':
           resp = await _client
               .patch(uri, headers: headers, body: jsonEncode(body ?? {}))
-              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+              .timeout(effectiveTimeout, onTimeout: _onTimeout);
           break;
         case 'DELETE':
           resp = await _client
               .delete(uri, headers: headers)
-              .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+              .timeout(effectiveTimeout, onTimeout: _onTimeout);
           break;
         default:
           throw UnsupportedError('Unsupported HTTP method: $method');
@@ -125,27 +127,27 @@ class ApiClient {
           case 'GET':
             resp = await _client
                 .get(uri, headers: retryHeaders)
-                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+                .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
           case 'POST':
             resp = await _client
                 .post(uri, headers: retryHeaders, body: jsonEncode(body ?? {}))
-                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+                .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
           case 'PUT':
             resp = await _client
                 .put(uri, headers: retryHeaders, body: jsonEncode(body ?? {}))
-                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+                .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
           case 'PATCH':
             resp = await _client
                 .patch(uri, headers: retryHeaders, body: jsonEncode(body ?? {}))
-                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+                .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
           case 'DELETE':
             resp = await _client
                 .delete(uri, headers: retryHeaders)
-                .timeout(const Duration(seconds: 10), onTimeout: _onTimeout);
+                .timeout(effectiveTimeout, onTimeout: _onTimeout);
             break;
         }
       } else {
@@ -191,28 +193,28 @@ class ApiClient {
 
   // Public methods
   static Future<http.Response> get(String path,
-      {Map<String, String>? headers}) {
-    return _request('GET', path, extraHeaders: headers);
+      {Map<String, String>? headers, Duration? timeout}) {
+    return _request('GET', path, extraHeaders: headers, timeout: timeout);
   }
 
   static Future<http.Response> post(String path,
-      {Map<String, dynamic>? body, Map<String, String>? headers}) {
-    return _request('POST', path, body: body, extraHeaders: headers);
+      {Map<String, dynamic>? body, Map<String, String>? headers, Duration? timeout}) {
+    return _request('POST', path, body: body, extraHeaders: headers, timeout: timeout);
   }
 
   static Future<http.Response> put(String path,
-      {Map<String, dynamic>? body, Map<String, String>? headers}) {
-    return _request('PUT', path, body: body, extraHeaders: headers);
+      {Map<String, dynamic>? body, Map<String, String>? headers, Duration? timeout}) {
+    return _request('PUT', path, body: body, extraHeaders: headers, timeout: timeout);
   }
 
   static Future<http.Response> patch(String path,
-      {Map<String, dynamic>? body, Map<String, String>? headers}) {
-    return _request('PATCH', path, body: body, extraHeaders: headers);
+      {Map<String, dynamic>? body, Map<String, String>? headers, Duration? timeout}) {
+    return _request('PATCH', path, body: body, extraHeaders: headers, timeout: timeout);
   }
 
   static Future<http.Response> delete(String path,
-      {Map<String, String>? headers}) {
-    return _request('DELETE', path, extraHeaders: headers);
+      {Map<String, String>? headers, Duration? timeout}) {
+    return _request('DELETE', path, extraHeaders: headers, timeout: timeout);
   }
 
   static Future<http.Response> postMultipart(

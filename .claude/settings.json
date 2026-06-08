@@ -14,7 +14,9 @@
       "Bash(flutter pub *)",
       "Bash(npm install *)",
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
-      "Bash(build\")"
+      "Bash(build\")",
+      "Bash(awk 'NR>1')",
+      "Bash(dart analyze *)"
     ]
   }
 }
