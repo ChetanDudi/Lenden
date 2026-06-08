@@ -73,6 +73,12 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
+
+// Razorpay webhook needs the raw request body for HMAC-SHA256 signature verification.
+// express.raw() captures it as a Buffer BEFORE express.json() parses anything.
+// Must be registered BEFORE express.json().
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 
 // Add preflight handling for complex requests

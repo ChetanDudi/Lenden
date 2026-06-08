@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
@@ -94,6 +97,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   bool _isLoadingPlans = false;
   bool _isLoadingBenefits = false;
   bool _isLoadingFaqs = false;
+  bool _isProcessingPayment = false;
+  String? _pendingPlanId;
+
+  Razorpay? _razorpay;
+
+  bool get _isMobilePlatform =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -104,10 +114,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         .checkSubscriptionStatus();
     _loadDisplayCurrencies();
     _fetchSubscriptionData();
+    if (_isMobilePlatform) {
+      _razorpay = Razorpay();
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    }
   }
 
   @override
   void dispose() {
+    _razorpay?.clear();
     _searchController.dispose();
     super.dispose();
   }
@@ -271,7 +288,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     });
   }
 
-  Future<void> _subscribe() async {
+  Future<void> _startPayment() async {
     if (_selectedPlan == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a subscription plan.')),
@@ -280,99 +297,190 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     }
 
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final token = session.token;
-    final user = session.user;
-
-    if (token == null || user == null) {
+    if (session.token == null || session.user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please login to subscribe.')),
       );
       return;
     }
 
+    if (!_isMobilePlatform) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment is only supported on Android & iOS. Please use the mobile app.'),
+        ),
+      );
+      return;
+    }
+
     final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
 
+    setState(() => _isProcessingPayment = true);
+
     try {
-      final response = await ApiClient.post(
-        '/api/subscription/update',
+      // Step 1: Create order on backend
+      final orderRes = await ApiClient.post(
+        '/api/payment/create-order',
+        body: {'planId': plan.id},
+      );
+
+      if (!mounted) return;
+
+      if (orderRes.statusCode != 200) {
+        final err = jsonDecode(orderRes.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err['error'] ?? 'Failed to create payment order')),
+        );
+        setState(() => _isProcessingPayment = false);
+        return;
+      }
+
+      final orderData = jsonDecode(orderRes.body);
+      _pendingPlanId = orderData['plan']['id'];
+
+      // Step 2: Open Razorpay checkout
+      final user = session.user!;
+      final options = {
+        'key': orderData['keyId'],
+        'amount': orderData['amount'],
+        'currency': orderData['currency'] ?? 'INR',
+        'name': 'LenDen App',
+        'description': '${plan.name} Subscription',
+        'order_id': orderData['orderId'],
+        'prefill': {
+          'email': user['email'] ?? '',
+          'contact': user['phone'] ?? '',
+          'name': user['name'] ?? '',
+        },
+        'theme': {'color': '#00B4D8'},
+        'retry': {'enabled': true, 'max_count': 2},
+      };
+
+      _razorpay!.open(options);
+      // Payment result arrives in _handlePaymentSuccess / _handlePaymentError
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error initiating payment: $e')),
+      );
+      setState(() => _isProcessingPayment = false);
+    }
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    if (!mounted) return;
+    // Step 3: Verify payment signature on backend
+    try {
+      final verifyRes = await ApiClient.post(
+        '/api/payment/verify',
         body: {
-          'userId': user['_id'],
-          'subscriptionPlan': plan.name,
-          'duration': plan.duration,
-          'price': plan.price,
-          'discount': plan.discount,
-          'free': plan.free,
+          'razorpayOrderId': response.orderId,
+          'razorpayPaymentId': response.paymentId,
+          'razorpaySignature': response.signature,
+          'planId': _pendingPlanId,
         },
       );
 
-      if (response.statusCode == 200) {
+      if (!mounted) return;
+      setState(() => _isProcessingPayment = false);
+
+      if (verifyRes.statusCode == 200) {
         final session = Provider.of<SessionProvider>(context, listen: false);
         await session.checkSubscriptionStatus();
-
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  colors: [Colors.orange, Colors.white, Colors.green],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              padding: const EdgeInsets.all(2),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  color: const Color(0xFFFCE4EC),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle,
-                              color: Colors.green, size: 30),
-                          SizedBox(width: 10),
-                          Text('Success!',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: const Text(
-                          'You are now a premium member. Enjoy unlimited access!'),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: TextButton(
-                        child: const Text('OK'),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
+        await session.fetchSubscriptionHistory();
+        if (!mounted) return;
+        _showSuccessDialog();
       } else {
+        final err = jsonDecode(verifyRes.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to subscribe: ${response.body}')),
+          SnackBar(content: Text('Payment received but verification failed: ${err['error'] ?? ''}. Contact support.')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() => _isProcessingPayment = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
+        SnackBar(content: Text('Payment done but verification error: $e')),
       );
     }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    setState(() => _isProcessingPayment = false);
+    final message = response.message ?? 'Payment failed';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment cancelled or failed: $message'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    setState(() => _isProcessingPayment = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('External wallet selected: ${response.walletName}')),
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              colors: [Colors.orange, Colors.white, Colors.green],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          padding: const EdgeInsets.all(2),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: const Color(0xFFE8F5E9),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 60),
+                const SizedBox(height: 16),
+                const Text(
+                  'Payment Successful!',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'You are now a premium member. Enjoy unlimited access!',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00B4D8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Awesome!',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Color _getBenefitColor(int index) {
@@ -954,29 +1062,50 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               ],
             ),
             child: ElevatedButton(
-              onPressed: _subscribe,
+              onPressed: _isProcessingPayment ? null : _startPayment,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.rocket_launch, color: Colors.black),
-                  SizedBox(width: 10),
-                  Text(
-                    'Subscribe Now',
-                    style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+              child: _isProcessingPayment
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Processing...',
+                            style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.payment, color: Colors.black),
+                        SizedBox(width: 10),
+                        Text(
+                          'Pay & Subscribe',
+                          style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ),

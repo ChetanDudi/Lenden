@@ -44,6 +44,15 @@ const subscriptionSchema = new mongoose.Schema({
     },
     subscribedDate: {
         type: Date
+    },
+    razorpayOrderId: {
+        type: String,
+        default: null
+    },
+    razorpayPaymentId: {
+        type: String,
+        default: null,
+        index: true
     }
 }, { timestamps: true });
 

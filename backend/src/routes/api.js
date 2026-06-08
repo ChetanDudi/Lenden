@@ -78,6 +78,7 @@ module.exports = (io) => {
   const chatController = require('../controllers/chatController')(io);
   const groupChatController = require('../controllers/groupChatController')(io);
   const subscriptionController = require('../controllers/subscriptionController');
+  const paymentController = require('../controllers/paymentController');
   const adminFeatureController = require('../controllers/adminFeatureController');
   const giftCardController = require('../controllers/giftCardController');
   const friendController = require('../controllers/friendController');
@@ -475,8 +476,8 @@ module.exports = (io) => {
   // Group Chat routes
   router.get('/group-chat/messages/:groupTransactionId', auth, groupChatController.getGroupMessages);
 
-  // Subscription routes
-  router.post('/subscription/update', auth, subscriptionController.updateSubscription);
+  // Subscription routes (update is admin-only — normal users must go through /payment/verify)
+  router.post('/subscription/update', auth, isAdmin, subscriptionController.updateSubscription);
   router.get('/subscription/status', auth, subscriptionController.getSubscriptionStatus);
   router.get('/subscription/history', auth, subscriptionController.getSubscriptionHistory);
 
@@ -484,6 +485,11 @@ module.exports = (io) => {
   router.get('/subscription/plans', subscriptionController.getSubscriptionPlans);
   router.get('/subscription/benefits', subscriptionController.getPremiumBenefits);
   router.get('/subscription/faqs', subscriptionController.getFaqs);
+
+  // Payment routes (Razorpay)
+  router.post('/payment/create-order', auth, paymentController.createOrder);
+  router.post('/payment/verify', auth, paymentController.verifyPayment);
+  router.post('/payment/webhook', paymentController.razorpayWebhook); // no auth — Razorpay calls this
 
   // Admin feature routes
   // Subscription Plans
