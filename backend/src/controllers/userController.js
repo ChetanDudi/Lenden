@@ -264,19 +264,15 @@ exports.login = async (req, res) => {
         console.error('Failed to log login activity:', e);
       }
 
-      // Send login notification email if enabled
-      if (user.loginNotifications !== false) { // default true if undefined
-        try {
-          await sendLoginNotificationEmail({
-            to: user.email,
-            name: user.name,
-            ipAddress: req.ip,
-            userAgent: req.get('User-Agent'),
-            loginTime: new Date()
-          });
-        } catch (e) {
-          console.error('Failed to send login notification email:', e);
-        }
+      // Send login notification email if enabled — fire-and-forget so SMTP delays never block login
+      if (user.loginNotifications !== false) {
+        sendLoginNotificationEmail({
+          to: user.email,
+          name: user.name,
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+          loginTime: new Date()
+        }).catch(e => console.error('Failed to send login notification email:', e));
       }
 
       // Device management: enforce single-device login if needed

@@ -5,11 +5,17 @@ const { shouldSendNotification } = require('./shouldSendNotification');
 const otpStore = {};
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 8000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
 });
 
 function generateOtp() {
