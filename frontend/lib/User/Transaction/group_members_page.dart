@@ -217,45 +217,47 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          gradient: _tricolorGradient,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 0,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
         ),
-        padding: const EdgeInsets.all(3),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: _tricolorGradient,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.person_add_rounded,
-                        color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text('Add Member',
-                      style: TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: const BoxDecoration(
+                gradient: _tricolorGradient,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(24)),
               ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: _tricolorGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.person_add_rounded,
+                      color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text('Add Member',
+                    style: TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
+            ),
               const SizedBox(height: 16),
               TextField(
                 controller: _addEmailCtrl,
@@ -307,7 +309,6 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
             ],
           ),
         ),
-      ),
     );
   }
 

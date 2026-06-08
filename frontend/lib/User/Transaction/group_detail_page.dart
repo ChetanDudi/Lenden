@@ -7,6 +7,28 @@ import '../../utils/api_client.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 
+const _kCardColors = [
+  Color(0xFFFFF4E6), Color(0xFFE8F5E9), Color(0xFFFCE4EC),
+  Color(0xFFE3F2FD), Color(0xFFFFF9C4), Color(0xFFF3E5F5),
+];
+
+String _fmtDt(dynamic dt) {
+  if (dt == null) return '';
+  try {
+    final d = dt is String ? DateTime.parse(dt).toLocal() : dt as DateTime;
+    const months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'
+    ];
+    final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final m = d.minute.toString().padLeft(2, '0');
+    final period = d.hour >= 12 ? 'PM' : 'AM';
+    return '${months[d.month - 1]} ${d.day}, ${d.year}  $h:$m $period';
+  } catch (_) {
+    return '';
+  }
+}
+
 const _tricolorGradient = LinearGradient(
   colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
   begin: Alignment.topLeft,
@@ -93,6 +115,29 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _resolveEmail(dynamic userField) {
+    final direct = _emailOf(userField);
+    if (direct.contains('@')) return direct;
+    for (final m in List<dynamic>.from(_group['members'] ?? [])) {
+      // Primary: member sub-doc _id IS the user ObjectId
+      final memberId = (m['_id'] ?? '').toString();
+      if (memberId.isNotEmpty && memberId == direct) {
+        final email = (m['email'] ?? '').toString();
+        if (email.contains('@')) return email;
+      }
+      // Fallback: member has a separate user field
+      final mUser = m['user'];
+      final mId = mUser is Map
+          ? (mUser['_id'] ?? mUser['id'] ?? '').toString()
+          : (mUser ?? '').toString();
+      if (mId.isNotEmpty && mId == direct) {
+        final email = (m['email'] ?? _emailOf(mUser)).toString();
+        if (email.contains('@')) return email;
+      }
+    }
+    return direct;
   }
 
   Color get _groupColor {
@@ -901,7 +946,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                               margin: const EdgeInsets.only(bottom: 10),
                               radius: 16,
                               child: Container(
-                              color: Colors.white,
+                              color: _kCardColors[i % _kCardColors.length],
                               padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
@@ -934,13 +979,31 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                               TextOverflow.ellipsis,
                                         ),
                                         Text(
-                                          'by ${_emailOf(e['addedBy'])}',
+                                          'by ${_resolveEmail(e['addedBy'])}',
                                           style: TextStyle(
                                               fontSize: 11,
                                               color: Colors.grey[500]),
                                           overflow:
                                               TextOverflow.ellipsis,
                                         ),
+                                        if ((e['createdAt'] ?? e['date']) != null) ...[
+                                          const SizedBox(height: 2),
+                                          Row(children: [
+                                            Icon(Icons.access_time_rounded,
+                                                size: 11,
+                                                color: Colors.grey[400]),
+                                            const SizedBox(width: 3),
+                                            Flexible(
+                                              child: Text(
+                                                _fmtDt(e['createdAt'] ?? e['date']),
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey[400]),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ]),
+                                        ],
                                       ],
                                     ),
                                   ),

@@ -6,7 +6,7 @@ import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../Transaction/quick_transactions_page.dart';
 import '../Transaction/secure_transaction_page.dart';
-import '../Transaction/group_transaction_page.dart';
+import '../Transaction/create_group_page.dart';
 import '../../widgets/stylish_dialog.dart';
 
 class FriendsPage extends StatefulWidget {
@@ -372,7 +372,7 @@ class _FriendsPageState extends State<FriendsPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => GroupTransactionPage(
+        builder: (_) => CreateGroupPage(
           prefillMemberEmails: _selectedForGroup.toList(),
         ),
       ),

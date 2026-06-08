@@ -1511,10 +1511,14 @@ exports.settleMemberExpenses = async (req, res) => {
 exports.settleExpenseSplits = async (req, res) => {
   try {
     const { groupId, expenseId } = req.params;
-    const { memberEmails } = req.body; // Array of member emails to settle
-    
+    const { memberEmails } = req.body || {}; // Array of member emails to settle
+
     if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!memberEmails || !Array.isArray(memberEmails) || memberEmails.length === 0) {
+      return res.status(400).json({ error: 'memberEmails array is required' });
     }
     
     const group = await GroupTransaction.findById(groupId);

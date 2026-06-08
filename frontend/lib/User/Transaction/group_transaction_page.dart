@@ -10,6 +10,7 @@ import '../../widgets/stylish_dialog.dart';
 import '../Digitise/subscriptions_page.dart';
 import '../Digitise/gift_card_page.dart';
 import 'group_detail_page.dart';
+import 'create_group_page.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -77,7 +78,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   List<Map<String, dynamic>> userGroups = [];
   List<Map<String, dynamic>> filteredGroups = [];
   bool groupsLoading = true;
-  bool showCreateGroupForm = false;
   String groupSearchQuery = '';
   String groupFilter = 'all'; // all, created, member
   String groupSort =
@@ -94,15 +94,19 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     super.initState();
     if (widget.prefillMemberEmails != null &&
         widget.prefillMemberEmails!.isNotEmpty) {
-      memberEmails = List<String>.from(widget.prefillMemberEmails!);
-      showCreateGroupForm = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showCreateGroup(prefill: widget.prefillMemberEmails);
+      });
     }
-    _loadFriends();
     _loadSupportedCurrencies();
     _loadDisplayCurrencies();
-    _loadDailyLimits();
-    _memberEmailController.addListener(_updateFriendSuggestions);
     _fetchUserGroups();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<SessionProvider>(context, listen: false)
+            .loadFreebieCounts();
+      }
+    });
   }
 
   Future<void> _addMembersFromFriends() async {
@@ -1641,21 +1645,18 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     ).then((_) => _fetchUserGroups());
   }
 
-  void _showCreateGroup() {
-    setState(() {
-      group = null;
-      _titleController.clear();
-      memberEmails.clear();
-      error = null;
-      memberAddError = null;
-      showCreateGroupForm = true;
-    });
-  }
-
-  void _hideCreateGroup() {
-    setState(() {
-      showCreateGroupForm = false;
-    });
+  void _showCreateGroup({List<String>? prefill}) async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateGroupPage(prefillMemberEmails: prefill),
+      ),
+    );
+    if (!mounted) return;
+    _fetchUserGroups();
+    if (result != null) {
+      _showGroupDetails(result);
+    }
   }
 
   Future<void> _updateGroupColor(Color newColor) async {
@@ -4897,27 +4898,17 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     ),
                                   ),
                                   SizedBox(height: 24),
-                                  if (!showCreateGroupForm)
-                                    ElevatedButton.icon(
-                                      onPressed: _showCreateGroup,
-                                      icon: Icon(Icons.add),
-                                      label: Text('Create Group'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFF00B4D8),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12)),
-                                      ),
+                                  ElevatedButton.icon(
+                                    onPressed: _showCreateGroup,
+                                    icon: Icon(Icons.add),
+                                    label: Text('Create Group'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color(0xFF00B4D8),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
                                     ),
-                                  if (showCreateGroupForm) ...[
-                                    _buildCreateGroupCard(),
-                                    SizedBox(height: 12),
-                                    TextButton(
-                                      onPressed: _hideCreateGroup,
-                                      child: Text('Cancel',
-                                          style: TextStyle(color: Colors.red)),
-                                    ),
-                                  ],
+                                  ),
                                 ],
                               ),
                             )
@@ -5270,8 +5261,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                   ),
                                 ),
                                 SizedBox(height: 16),
-                                if (!showCreateGroupForm)
-                                  Center(
+                                Center(
                                     child: Container(
                                       padding: const EdgeInsets.all(
                                           3), // border width
@@ -5302,12 +5292,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                     _dailyGroupRemaining !=
                                                         null &&
                                                     _dailyGroupRemaining! <= 0;
+                                            // null = still loading → optimistically enabled
+                                            final freeRemaining =
+                                                session.freeGroupsRemaining;
                                             final bool canCreate = session
                                                     .isSubscribed ||
                                                 (!dailyLimitReached &&
-                                                    (session.freeGroupsRemaining ??
-                                                            0) >
-                                                        0) ||
+                                                    (freeRemaining == null ||
+                                                        freeRemaining > 0)) ||
                                                 (session.lenDenCoins ?? 0) >=
                                                     20;
                                             return Column(
@@ -5367,15 +5359,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     ),
                                   ),
                                 SizedBox(height: 20),
-                                if (showCreateGroupForm) ...[
-                                  _buildCreateGroupCard(),
-                                  SizedBox(height: 12),
-                                  TextButton(
-                                    onPressed: _hideCreateGroup,
-                                    child: Text('Cancel',
-                                        style: TextStyle(color: Colors.red)),
-                                  ),
-                                ],
                                 if (_showFavouritesOnly &&
                                     filteredGroups.isEmpty)
                                   Container(
@@ -5946,9 +5929,11 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   final bool dailyLimitReached = !session.isSubscribed &&
                       _dailyGroupRemaining != null &&
                       _dailyGroupRemaining! <= 0;
+                  // null = still loading → optimistically enabled
+                  final freeRemaining = session.freeGroupsRemaining;
                   final bool canCreate = session.isSubscribed ||
                       (!dailyLimitReached &&
-                          (session.freeGroupsRemaining ?? 0) > 0) ||
+                          (freeRemaining == null || freeRemaining > 0)) ||
                       (session.lenDenCoins ?? 0) >= 20;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
