@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../session.dart';
-import '../Admin/Notifications/notifications_page.dart';
+import '../admin/Notifications/notifications_page.dart';
 import '../User/Notifications/notifications_page.dart';
 import '../utils/api_client.dart';
 

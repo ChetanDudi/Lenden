@@ -6,23 +6,22 @@ import 'Login/login_page.dart';
 import 'Register/register_page.dart';
 import 'Password Management/forgot_password_page.dart';
 import 'User/Dashboard/dashboard.dart';
-import 'Admin/Dashboard/dashboard.dart';
-import 'Profile/profile_page.dart';
+import 'admin/Dashboard/dashboard.dart';
+import 'profile/profile_page.dart';
 import 'session.dart';
-import 'settings/settings_page.dart';
-import 'settings/admin_settings_page.dart';
+import 'Settings/settings_page.dart';
+import 'Settings/admin_settings_page.dart';
 import 'User/Support/contact_page.dart';
-import 'admin/manage_users/user_management_page.dart';
-import 'Admin/Transactions/manage_secure_transactions_page.dart';
-import 'Admin/Transactions/manage_group_transactions_page.dart';
+import 'admin/Manage_users/user_management_page.dart';
+import 'admin/Transactions/manage_secure_transactions_page.dart';
+import 'admin/Transactions/manage_group_transactions_page.dart';
 import 'splash_screen.dart';
 import 'User/Support/feedback.dart';
-import 'admin/rating/admin_ratings_page.dart';
-import 'admin/support/admin_feedbacks_page.dart';
+import 'admin/Rating/admin_ratings_page.dart';
+import 'admin/Support/admin_feedbacks_page.dart';
 import 'User/Notifications/notifications_page.dart';
-import 'Admin/Notifications/notifications_page.dart';
 import 'User/Digitise/gift_card_page.dart';
-import 'user/connections/counterparties_page.dart';
+import 'User/Connections/counterparties_page.dart';
 import 'widgets/notification_icon.dart';
 import 'utils/auth_navigation.dart';
 import 'utils/responsive.dart';
@@ -661,6 +660,7 @@ class _FeatureCard extends StatelessWidget {
       ),
       child: Container(
         padding: EdgeInsets.all(context.sw(14)),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15.5),
@@ -670,11 +670,11 @@ class _FeatureCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: const Color(0xFF00B4D8), size: context.sp(28)),
-            SizedBox(height: context.sh(8)),
+            SizedBox(height: context.sh(6)),
             Text(title,
                 style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: context.sp(14))),
-            SizedBox(height: context.sh(4)),
+            SizedBox(height: context.sh(3)),
             Flexible(
               child: Text(
                 description,
