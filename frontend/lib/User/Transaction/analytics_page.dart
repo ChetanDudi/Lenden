@@ -6,8 +6,8 @@ import '../../Settings/privacy_settings_page.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
-import 'quick_transactions_page.dart';
-import 'view_secure_transactions_page.dart';
+import 'Quick Transactions/quick_transactions_page.dart';
+import 'Secure Transactions/view_secure_transactions_page.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final List<dynamic>? transactions;

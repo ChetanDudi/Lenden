@@ -1,10 +1,10 @@
 //This file is to view user transactions
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../session.dart';
-import '../../api_config.dart';
+import '../../../session.dart';
+import '../../../api_config.dart';
 import 'dart:convert';
-import '../../utils/api_client.dart';
+import '../../../utils/api_client.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
 import 'dart:typed_data';
@@ -12,9 +12,9 @@ import 'dart:async';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import '../../otp_input.dart';
-import '../chats/chat_page.dart';
-import '../../utils/display_currency_helper.dart';
+import '../../../otp_input.dart';
+import '../../chats/chat_page.dart';
+import '../../../utils/display_currency_helper.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 

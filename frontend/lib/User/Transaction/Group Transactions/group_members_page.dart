@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../utils/api_client.dart';
+import '../../../utils/api_client.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';

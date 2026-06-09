@@ -7,14 +7,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
-import '../../session.dart';
-import '../../utils/api_client.dart';
-import '../../utils/display_currency_helper.dart';
-import '../../widgets/subscription_prompt.dart';
-import '../../widgets/stylish_dialog.dart';
-import '../Digitise/subscriptions_page.dart';
-import '../Digitise/gift_card_page.dart';
-import 'analytics_page.dart';
+import '../../../session.dart';
+import '../../../utils/api_client.dart';
+import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/subscription_prompt.dart';
+import '../../../widgets/stylish_dialog.dart';
+import '../../Digitise/subscriptions_page.dart';
+import '../../Digitise/gift_card_page.dart';
+import '../analytics_page.dart';
 
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;

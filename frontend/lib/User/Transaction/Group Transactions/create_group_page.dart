@@ -2,12 +2,12 @@ import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
-import '../../session.dart';
-import '../../utils/api_client.dart';
+import '../../../session.dart';
+import '../../../utils/api_client.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import '../../widgets/stylish_dialog.dart';
-import '../Digitise/subscriptions_page.dart';
-import '../Digitise/gift_card_page.dart';
+import '../../../widgets/stylish_dialog.dart';
+import '../../Digitise/subscriptions_page.dart';
+import '../../Digitise/gift_card_page.dart';
 
 const _tricolorGradient = LinearGradient(
   colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],

@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
-import '../../session.dart';
-import '../../utils/api_client.dart';
+import '../../../session.dart';
+import '../../../utils/api_client.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 

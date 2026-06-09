@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
-import '../Transaction/quick_transactions_page.dart';
-import '../Transaction/secure_transaction_page.dart';
-import '../Transaction/create_group_page.dart';
+import '../Transaction/Quick Transactions/quick_transactions_page.dart';
+import '../Transaction/Secure Transactions/secure_transaction_page.dart';
+import '../Transaction/Group Transactions/create_group_page.dart';
 import '../../widgets/stylish_dialog.dart';
 
 class FriendsPage extends StatefulWidget {
