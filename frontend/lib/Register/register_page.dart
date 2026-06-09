@@ -137,14 +137,14 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       _detailsLocked = true; // Lock fields before sending OTP
     });
 
-    // Send OTP — use 90s timeout to survive Render cold start (30–60s)
+    // Send OTP — 120s timeout to survive Render cold start + email sending retries
     final res = await _post('/api/users/register', {
       'name': _nameController.text,
       'username': _usernameController.text,
       'email': _emailController.text,
       'password': _passwordController.text,
       'gender': _selectedGender,
-    }, timeout: const Duration(seconds: 90));
+    }, timeout: const Duration(seconds: 120));
 
     if (res['status'] == 200) {
       setState(() {
@@ -155,10 +155,18 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       _showSnackBar('OTP sent to your email.');
       _startOtpTimer();
     } else {
-      final raw = res['data']['error'] ?? '';
-      final errorMsg = (res['status'] == 408 || raw == 'timeout')
-          ? 'Server is starting up, please wait a moment and try again.'
-          : (raw.isNotEmpty ? raw : 'Failed to send OTP.');
+      final raw = (res['data']['error'] ?? '').toString();
+      final status = res['status'] as int;
+      String errorMsg;
+      if (status == 408 || raw.toLowerCase().contains('timeout') || raw.toLowerCase().contains('timed out')) {
+        errorMsg = 'Server is starting up. Please wait a moment and try again.';
+      } else if (status == 503 || raw.toLowerCase().contains('unavailable')) {
+        errorMsg = 'Service temporarily unavailable. Please try again in a few seconds.';
+      } else if (status == 0 || raw.toLowerCase().contains('internet') || raw.toLowerCase().contains('socket')) {
+        errorMsg = 'No internet connection. Please check your network and try again.';
+      } else {
+        errorMsg = raw.isNotEmpty ? raw : 'Failed to send OTP. Please try again.';
+      }
       setState(() {
         _errorMessage = errorMsg;
         _isLoading = false;
@@ -179,29 +187,6 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       }
       return false;
     });
-  }
-
-  void _verifyOtp() async {
-    setState(() {
-      _isVerifyingOtp = true;
-      _errorMessage = null;
-    });
-    final res = await _post('/api/users/verify-otp', {
-      'email': _emailController.text,
-      'otp': _otpController.text,
-    }, timeout: const Duration(seconds: 30));
-    if (res['status'] == 201) {
-      setState(() {
-        _isVerifyingOtp = false;
-      });
-      _showRegistrationSuccessDialog();
-    } else {
-      setState(() {
-        _errorMessage = res['data']['error'] ?? 'OTP verification failed.';
-        _isVerifyingOtp = false;
-        _otpSecondsLeft = 0;
-      });
-    }
   }
 
   void _verifyOtpWithOtp(String otp) async {

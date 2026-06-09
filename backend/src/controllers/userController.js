@@ -118,9 +118,19 @@ exports.register = async (req, res) => {
       }
     }
   otpStore[email] = { otp, data: { name, username, password, email, gender, referralCode }, created: Date.now() };
-    await sendRegistrationOTP(email, otp);
+    try {
+      await sendRegistrationOTP(email, otp);
+    } catch (emailErr) {
+      console.error('[register] Email send failed after retries:', emailErr.message);
+      delete otpStore[email];
+      return res.status(503).json({ error: 'Could not send OTP email. Please check your email address and try again.' });
+    }
     res.status(200).json({ message: 'OTP sent to email' });
   } catch (err) {
+    console.error('[register] Error:', err.message);
+    if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError' || err.message?.includes('connect')) {
+      return res.status(503).json({ error: 'Server is temporarily unavailable. Please try again in a moment.' });
+    }
     res.status(400).json({ error: err.message });
   }
 };
@@ -136,7 +146,12 @@ exports.resendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[email].otp = otp;
     otpStore[email].created = Date.now();
-    await sendRegistrationOTP(email, otp);
+    try {
+      await sendRegistrationOTP(email, otp);
+    } catch (emailErr) {
+      console.error('[resendOtp] Email send failed:', emailErr.message);
+      return res.status(503).json({ error: 'Could not send OTP email. Please try again.' });
+    }
     res.status(200).json({ message: 'New OTP sent to email' });
   } catch (err) {
     res.status(400).json({ error: err.message });
