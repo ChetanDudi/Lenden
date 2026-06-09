@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -237,7 +237,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
   }
 
-  // ── Group insight helpers ─────────────────────────────────────────────────
+  // â”€â”€ Group insight helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Map<String, double> _computeMemberContributions() {
     final Map<String, double> contrib = {};
@@ -268,11 +268,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     final target = _selectedDisplayCurrency.toUpperCase();
     if (target != 'INR' &&
         !(_displayCurrencyData?.canConvert('INR', target) ?? false)) {
-      return '₹${amtInr.toStringAsFixed(0)}';
+      return 'â‚¹${amtInr.toStringAsFixed(0)}';
     }
     final converted =
         _displayCurrencyData?.convert(amtInr, 'INR', target) ?? amtInr;
-    final sym = _displayCurrencyData?.symbolFor(target) ?? '₹';
+    final sym = _displayCurrencyData?.symbolFor(target) ?? 'â‚¹';
     return '$sym${converted.toStringAsFixed(0)}';
   }
 
@@ -314,7 +314,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        // ── Member contributions ──────────────────────────────────────
+        // â”€â”€ Member contributions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Text('Member Contributions',
             style: TextStyle(
                 fontSize: 18,
@@ -366,7 +366,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
         if (sortedCats.isNotEmpty) ...[
           const SizedBox(height: 28),
-          // ── Top categories ────────────────────────────────────────────
+          // â”€â”€ Top categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Text('Spending by Category',
               style: TextStyle(
                   fontSize: 18,
@@ -563,7 +563,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         (sourceCurrency == targetCurrency);
     if (!canConvert) {
       final sourceSymbol = _displayCurrencyData?.symbolFor(sourceCurrency) ??
-          (sourceCurrency == 'INR' ? '₹' : sourceCurrency);
+          (sourceCurrency == 'INR' ? 'â‚¹' : sourceCurrency);
       return '$sourceSymbol${value.toStringAsFixed(2)}';
     }
 
@@ -574,14 +574,14 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         ) ??
         value;
     final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ??
-        (targetCurrency == 'INR' ? '₹' : targetCurrency);
+        (targetCurrency == 'INR' ? 'â‚¹' : targetCurrency);
     return '$symbol${converted.toStringAsFixed(2)}';
   }
 
   Widget _buildCurrencySelector() {
     final currencies = _displayCurrencyData?.currencies ??
         const <Map<String, String>>[
-          {'code': 'INR', 'symbol': '₹', 'label': ''},
+          {'code': 'INR', 'symbol': 'â‚¹', 'label': ''},
         ];
     return Container(
       padding: const EdgeInsets.all(2),
@@ -651,7 +651,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   String _formatSelectedCurrencyValue(num value) {
     final targetCurrency = _selectedDisplayCurrency.toUpperCase();
     final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ??
-        (targetCurrency == 'INR' ? '₹' : targetCurrency);
+        (targetCurrency == 'INR' ? 'â‚¹' : targetCurrency);
     return '$symbol${value.toStringAsFixed(2)}';
   }
 
@@ -676,10 +676,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   Map<String, String> _buildQuickInsights() {
     if (_quickTransactions.isEmpty) {
       return {
-        'biggestPending': '₹0.00',
+        'biggestPending': 'â‚¹0.00',
         'mostFrequentCounterparty': 'No data',
-        'thisMonthNetFlow': '₹0.00',
-        'averageQuickAmount': '₹0.00',
+        'thisMonthNetFlow': 'â‚¹0.00',
+        'averageQuickAmount': 'â‚¹0.00',
       };
     }
 
@@ -736,7 +736,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
     return {
       'biggestPending': biggestPending == null
-          ? '₹0.00'
+          ? 'â‚¹0.00'
           : _formatSelectedCurrencyValue(
               _displayAmountForTransaction(biggestPending),
             ),
@@ -813,7 +813,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   Map<String, String> _buildSecureInsights() {
     if (_secureTransactions.isEmpty) {
       return {
-        'largestPending': '₹0.00',
+        'largestPending': 'â‚¹0.00',
         'averageRepayment': 'No data',
         'topCounterparty': 'No data',
         'interestMix': '0 with interest / 0 no interest',
@@ -865,7 +865,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
     return {
       'largestPending': largestPending == null
-          ? '₹0.00'
+          ? 'â‚¹0.00'
           : _formatSelectedCurrencyValue(_secureDisplayAmount(largestPending)),
       'averageRepayment': averageRepayment,
       'topCounterparty': topCounterparty,
@@ -930,6 +930,159 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       return 'Most secure analytics are based on a single currency: ${currencies.first}.';
     }
     return 'Secure analytics include mixed currencies (${currencies.take(4).join(', ')}), so totals may blend converted and original values.';
+  }
+
+  Map<String, String> _buildSecureExtendedInsights() {
+    if (_secureTransactions.isEmpty) {
+      return {
+        'netPosition': 'â‚¹0.00',
+        'netPositionSign': '+',
+        'partialPaymentRatio': '0%',
+        'defaultRate': '0%',
+        'avgClearTime': 'No data',
+      };
+    }
+
+    double totalLent = 0;
+    double totalBorrowed = 0;
+    int partialCount = 0;
+    int overdueCount = 0;
+    int clearedCount = 0;
+    int totalClearDays = 0;
+    final now = DateTime.now();
+
+    for (final t in _secureTransactions) {
+      final role = _secureViewerRole(t);
+      final amount = _secureDisplayAmount(t);
+      if (role == 'lender') {
+        totalLent += amount;
+      } else {
+        totalBorrowed += amount;
+      }
+
+      final pp = t['partialPayments'];
+      if (t['isPartiallyPaid'] == true || (pp is List && pp.isNotEmpty)) {
+        partialCount++;
+      }
+
+      final fullyCleared =
+          t['userCleared'] == true && t['counterpartyCleared'] == true;
+      final expected =
+          DateTime.tryParse((t['expectedReturnDate'] ?? '').toString());
+      if (!fullyCleared && expected != null && expected.isBefore(now)) {
+        overdueCount++;
+      }
+
+      if (fullyCleared) {
+        final startDate = DateTime.tryParse(
+            (t['date'] ?? t['createdAt'] ?? '').toString());
+        if (startDate != null) {
+          totalClearDays += now.difference(startDate).inDays;
+          clearedCount++;
+        }
+      }
+    }
+
+    final netPosition = totalLent - totalBorrowed;
+    final partialRatio =
+        (partialCount / _secureTransactions.length * 100);
+    final defaultRate =
+        (overdueCount / _secureTransactions.length * 100);
+    final avgClear = clearedCount == 0
+        ? 'No data'
+        : '${(totalClearDays / clearedCount).round()} days avg';
+
+    return {
+      'netPosition': _formatSelectedCurrencyValue(netPosition.abs()),
+      'netPositionSign': netPosition >= 0 ? '+' : '-',
+      'partialPaymentRatio': '${partialRatio.toStringAsFixed(0)}%',
+      'defaultRate': '${defaultRate.toStringAsFixed(0)}%',
+      'avgClearTime': avgClear,
+    };
+  }
+
+  List<Map<String, dynamic>> _buildSecureCounterpartyData() {
+    final Map<String, Map<String, dynamic>> data = {};
+
+    for (final t in _secureTransactions) {
+      final cp = _secureCounterpartyLabel(t);
+      if (cp.isEmpty) continue;
+
+      if (!data.containsKey(cp)) {
+        data[cp] = {
+          'email': cp,
+          'totalLent': 0.0,
+          'totalBorrowed': 0.0,
+          'count': 0,
+          'clearedCount': 0,
+        };
+      }
+
+      final role = _secureViewerRole(t);
+      final amount = _secureDisplayAmount(t);
+      if (role == 'lender') {
+        data[cp]!['totalLent'] =
+            (data[cp]!['totalLent'] as double) + amount;
+      } else {
+        data[cp]!['totalBorrowed'] =
+            (data[cp]!['totalBorrowed'] as double) + amount;
+      }
+      data[cp]!['count'] = (data[cp]!['count'] as int) + 1;
+      final fullyCleared =
+          t['userCleared'] == true && t['counterpartyCleared'] == true;
+      if (fullyCleared) {
+        data[cp]!['clearedCount'] =
+            (data[cp]!['clearedCount'] as int) + 1;
+      }
+    }
+
+    final sorted = data.values.toList();
+    sorted.sort((a, b) {
+      final aTotal =
+          (a['totalLent'] as double) + (a['totalBorrowed'] as double);
+      final bTotal =
+          (b['totalLent'] as double) + (b['totalBorrowed'] as double);
+      return bTotal.compareTo(aTotal);
+    });
+    return sorted.take(5).toList();
+  }
+
+  String _buildSecureForecastText() {
+    final cleared = _secureTransactions
+        .where((t) =>
+            t['userCleared'] == true && t['counterpartyCleared'] == true)
+        .length;
+    final total = _secureTransactions.length;
+    final uncleared = total - cleared;
+    if (total == 0) return 'No transactions to forecast.';
+    if (uncleared == 0) return 'All transactions cleared! ðŸŽ‰';
+
+    if (cleared == 0) {
+      return '$uncleared transactions pending â€” start clearing to see forecast.';
+    }
+
+    final now = DateTime.now();
+    DateTime? earliest;
+    for (final t in _secureTransactions) {
+      final d = DateTime.tryParse((t['date'] ?? t['createdAt'] ?? '').toString());
+      if (d != null && (earliest == null || d.isBefore(earliest))) {
+        earliest = d;
+      }
+    }
+    final months =
+        earliest == null ? 1 : ((now.difference(earliest).inDays) / 30).ceil().clamp(1, 120);
+    final clearRatePerMonth = cleared / months;
+    if (clearRatePerMonth <= 0) return 'Rate too slow to estimate.';
+
+    final monthsNeeded = (uncleared / clearRatePerMonth).ceil();
+    final forecastDate = DateTime(now.year, now.month + monthsNeeded);
+    final monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final mIdx = ((forecastDate.month - 1) % 12).clamp(0, 11);
+    return 'At current pace: ~$uncleared pending cleared by '
+        '${monthNames[mIdx]} ${forecastDate.year}';
   }
 
   List<Map<String, dynamic>> _buildQuickNetBalances() {
@@ -1052,7 +1205,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -1065,7 +1218,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             drawVerticalLine: false,
             horizontalInterval: maxY / 4,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.withOpacity(0.16),
+              color: Colors.grey.withValues(alpha: 0.16),
               strokeWidth: 1,
             ),
           ),
@@ -1124,8 +1277,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF7C9DFF).withOpacity(0.25),
-                    const Color(0xFF58C4DD).withOpacity(0.05)
+                    const Color(0xFF7C9DFF).withValues(alpha: 0.25),
+                    const Color(0xFF58C4DD).withValues(alpha: 0.05)
                   ],
                 ),
               ),
@@ -1163,7 +1316,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           boxShadow: [
             BoxShadow(
               color: (useTricolorBorder ? colors.first : Colors.black)
-                  .withOpacity(0.14),
+                  .withValues(alpha: 0.14),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -1349,11 +1502,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             child: Container(
               margin: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.96),
+                color: Colors.white.withValues(alpha: 0.96),
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -1789,7 +1942,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     children: [
                       _buildSummaryCard(
                         title: 'Largest Pending',
-                        value: _buildSecureInsights()['largestPending'] ?? '₹0.00',
+                        value: _buildSecureInsights()['largestPending'] ?? 'â‚¹0.00',
                         icon: Icons.priority_high_rounded,
                         colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                         useTricolorBorder: true,
@@ -1906,6 +2059,259 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
+                // Extended metrics row
+                Text(
+                  'Extended Metrics',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Builder(builder: (context) {
+                  final ext = _buildSecureExtendedInsights();
+                  return SizedBox(
+                    height: 110,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        _buildSummaryCard(
+                          title: 'Net Position',
+                          value:
+                              '${ext['netPositionSign']}${ext['netPosition']}',
+                          icon: Icons.balance_rounded,
+                          colors: const [
+                            Color(0xFF6BCB91),
+                            Color(0xFFA9E4A7)
+                          ],
+                          useTricolorBorder: true,
+                        ),
+                        _buildSummaryCard(
+                          title: 'Partial Pay Rate',
+                          value: ext['partialPaymentRatio'] ?? '0%',
+                          icon: Icons.payments_outlined,
+                          colors: const [
+                            Color(0xFF7C9DFF),
+                            Color(0xFFA9B8FF)
+                          ],
+                          useTricolorBorder: true,
+                        ),
+                        _buildSummaryCard(
+                          title: 'Default Rate',
+                          value: ext['defaultRate'] ?? '0%',
+                          icon: Icons.warning_amber_rounded,
+                          colors: const [
+                            Color(0xFFFF8B7B),
+                            Color(0xFFFFC2AE)
+                          ],
+                          useTricolorBorder: true,
+                        ),
+                        _buildSummaryCard(
+                          title: 'Avg Clear Time',
+                          value: ext['avgClearTime'] ?? 'No data',
+                          icon: Icons.timer_outlined,
+                          colors: const [
+                            Color(0xFF58C4DD),
+                            Color(0xFF89E0EF)
+                          ],
+                          useTricolorBorder: true,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+                // Counterparty drilldown
+                Text(
+                  'Top Counterparties',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text('Most active lending/borrowing partners.',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade500)),
+                const SizedBox(height: 12),
+                Builder(builder: (context) {
+                  final partners = _buildSecureCounterpartyData();
+                  if (partners.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No counterparty data yet.',
+                          style: TextStyle(
+                              color: Colors.grey.shade500)),
+                    );
+                  }
+                  return Column(
+                    children: partners.map((p) {
+                      final lent = p['totalLent'] as double;
+                      final borrowed = p['totalBorrowed'] as double;
+                      final net = lent - borrowed;
+                      final total = lent + borrowed;
+                      final count = p['count'] as int;
+                      final cleared = p['clearedCount'] as int;
+                      final email = p['email'].toString();
+                      final displayName = email.contains('@')
+                          ? email.split('@').first
+                          : email;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border:
+                              Border.all(color: Colors.grey.shade200),
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 2))
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: const Color(0xFF00B4D8)
+                                    .withValues(alpha: 0.15),
+                                child: Text(
+                                  displayName.isNotEmpty
+                                      ? displayName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                      color: Color(0xFF0077B6),
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(displayName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                        overflow: TextOverflow.ellipsis),
+                                    Text(
+                                        '$count txn${count > 1 ? 's' : ''}'
+                                        ' Â· $cleared cleared',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade500)),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                      _formatSelectedCurrencyValue(total),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                  Text(
+                                      '${net >= 0 ? '+' : ''}${_formatSelectedCurrencyValue(net.abs())} net',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: net >= 0
+                                              ? Colors.green.shade600
+                                              : Colors.red.shade600)),
+                                ],
+                              ),
+                            ]),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: count > 0
+                                    ? (cleared / count).clamp(0.0, 1.0)
+                                    : 0,
+                                minHeight: 6,
+                                backgroundColor: Colors.grey.shade200,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    cleared == count
+                                        ? Colors.green
+                                        : Colors.orange),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
+                const SizedBox(height: 24),
+                // Clearance forecast card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF0F7FF), Color(0xFFE8F5E9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border(
+                      top: const BorderSide(
+                          color: Color(0xFFFF9933), width: 2),
+                      bottom: const BorderSide(
+                          color: Color(0xFF138808), width: 2),
+                      left: BorderSide(
+                          color: Colors.blue.shade200, width: 1),
+                      right: BorderSide(
+                          color: Colors.blue.shade200, width: 1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0077B6)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.auto_graph,
+                            color: Color(0xFF0077B6), size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Clearance Forecast',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Color(0xFF0077B6))),
+                            const SizedBox(height: 4),
+                            Text(
+                              _buildSecureForecastText(),
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
+                                  height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
               const SizedBox(height: 24),
             ],
@@ -1957,7 +2363,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       _buildSummaryCard(
                         title: 'Biggest Pending',
                         value:
-                            _buildQuickInsights()['biggestPending'] ?? '₹0.00',
+                            _buildQuickInsights()['biggestPending'] ?? 'â‚¹0.00',
                         icon: Icons.priority_high_rounded,
                         colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                         useTricolorBorder: true,
@@ -1974,7 +2380,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       _buildSummaryCard(
                         title: 'Month Net Flow',
                         value: _buildQuickInsights()['thisMonthNetFlow'] ??
-                            '₹0.00',
+                            'â‚¹0.00',
                         icon: Icons.swap_vert_circle_rounded,
                         colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                         useTricolorBorder: true,
@@ -1982,7 +2388,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       _buildSummaryCard(
                         title: 'Average Amount',
                         value: _buildQuickInsights()['averageQuickAmount'] ??
-                            '₹0.00',
+                            'â‚¹0.00',
                         icon: Icons.analytics_rounded,
                         colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                         useTricolorBorder: true,
@@ -2030,7 +2436,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
+                                  color: Colors.black.withValues(alpha: 0.06),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -2210,7 +2616,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 14,
                                   offset: const Offset(0, 8),
                                 ),
@@ -2234,7 +2640,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                                 Text(
                                   'Quick interaction',
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.85),
+                                    color: Colors.white.withValues(alpha: 0.85),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -2324,7 +2730,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.08),
+            color: Colors.blue.withValues(alpha: 0.08),
             blurRadius: 22,
             offset: const Offset(0, 12),
           ),
@@ -2456,7 +2862,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: metric.colors.first.withOpacity(0.30),
+              color: metric.colors.first.withValues(alpha: 0.30),
               blurRadius: 24,
               offset: const Offset(0, 12),
             ),
@@ -2509,7 +2915,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -2706,31 +3112,6 @@ class _AnalyticsDetailPage extends StatelessWidget {
     required this.hasMissingConversion,
   });
 
-  String _formatAmount(double value, {String originalCurrency = 'INR'}) {
-    final sourceCurrency = originalCurrency.toUpperCase();
-    final targetCurrency =
-        hasMissingConversion ? 'INR' : selectedDisplayCurrency.toUpperCase();
-    final canConvert = displayCurrencyData?.canConvert(
-          sourceCurrency,
-          targetCurrency,
-        ) ??
-        (sourceCurrency == targetCurrency);
-    if (!canConvert) {
-      final sourceSymbol = displayCurrencyData?.symbolFor(sourceCurrency) ??
-          (sourceCurrency == 'INR' ? '₹' : sourceCurrency);
-      return '$sourceSymbol${value.toStringAsFixed(2)}';
-    }
-    final converted = displayCurrencyData?.convert(
-          value,
-          sourceCurrency,
-          targetCurrency,
-        ) ??
-        value;
-    final symbol = displayCurrencyData?.symbolFor(targetCurrency) ??
-        (targetCurrency == 'INR' ? '₹' : targetCurrency);
-    return '$symbol${converted.toStringAsFixed(2)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final months = List<String>.from(analytics['months'] ?? const []);
@@ -2774,7 +3155,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: metric.colors.first.withOpacity(0.30),
+                    color: metric.colors.first.withValues(alpha: 0.30),
                     blurRadius: 28,
                     offset: const Offset(0, 16),
                   ),
@@ -2814,7 +3195,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -3044,8 +3425,8 @@ class _AnalyticsDetailPage extends StatelessWidget {
         show: true,
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF7C9DFF).withOpacity(0.25),
-            const Color(0xFF7C9DFF).withOpacity(0.03),
+            const Color(0xFF7C9DFF).withValues(alpha: 0.25),
+            const Color(0xFF7C9DFF).withValues(alpha: 0.03),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -3088,8 +3469,8 @@ class _AnalyticsDetailPage extends StatelessWidget {
         show: true,
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFFF8B7B).withOpacity(0.16),
-            const Color(0xFFFF8B7B).withOpacity(0.02),
+            const Color(0xFFFF8B7B).withValues(alpha: 0.16),
+            const Color(0xFFFF8B7B).withValues(alpha: 0.02),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -3119,7 +3500,7 @@ class _MiniInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -3171,7 +3552,7 @@ class _ChartShell extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 22,
             offset: const Offset(0, 12),
           ),
@@ -3366,3 +3747,4 @@ class TopWaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+

@@ -12,6 +12,8 @@ import '../../../utils/api_client.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../chats/chat_page.dart';
 import '../../../otp_input.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -668,6 +670,365 @@ class _SecureTransactionDetailPageState
     );
   }
 
+  double _calculateDailyInterestAccrual(Map t) {
+    final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0.0;
+    final rate = (t['interestRate'] as num?)?.toDouble() ?? 0.0;
+    if (t['interestType'] == 'simple') {
+      return remaining * rate / 100 / 365;
+    } else if (t['interestType'] == 'compound') {
+      return remaining * (pow(1 + rate / 100, 1.0 / 365) - 1);
+    }
+    return 0.0;
+  }
+
+  String _paymentVelocity(Map t) {
+    final pp = t['partialPayments'];
+    if (pp is! List || pp.length < 2) return '—';
+    final dates = pp
+        .map((p) => DateTime.tryParse(p['date']?.toString() ?? ''))
+        .whereType<DateTime>()
+        .toList();
+    if (dates.length < 2) return '—';
+    dates.sort();
+    double totalGap = 0;
+    for (int i = 1; i < dates.length; i++) {
+      totalGap += dates[i].difference(dates[i - 1]).inDays;
+    }
+    final avg = (totalGap / (dates.length - 1)).round();
+    return 'Every ~$avg days';
+  }
+
+  int _daysOutstanding(Map t) {
+    final createdAt = DateTime.tryParse(
+        (t['createdAt'] ?? t['date'] ?? '').toString());
+    if (createdAt == null) return 0;
+    return _now.difference(createdAt).inDays;
+  }
+
+  void _copyTransactionId() {
+    final id = _t['transactionId']?.toString() ?? '';
+    Clipboard.setData(ClipboardData(text: id));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Transaction ID copied!'),
+        duration: Duration(seconds: 2)));
+  }
+
+  void _shareTransaction() {
+    final t = _t;
+    final role = widget.isLending ? 'Lent' : 'Borrowed';
+    final amount =
+        _formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString());
+    final counterparty = t['counterpartyEmail'] ?? '—';
+    final rawDate = t['date']?.toString() ?? '';
+    final date = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+    final interest =
+        (t['interestType'] != null && t['interestRate'] != null)
+            ? '${t['interestType']} @ ${t['interestRate']}%'
+            : 'None';
+    final remaining = _formatDisplayAmount(
+        double.tryParse(_calculateRemainingAmount(t)) ?? 0,
+        t['currency']?.toString());
+    final txId = t['transactionId'] ?? '—';
+    Share.share(
+      '📋 Transaction Summary\n'
+      '━━━━━━━━━━━━━━━━━━━\n'
+      '$role: $amount\n'
+      'Counterparty: $counterparty\n'
+      'Date: $date\n'
+      'Interest: $interest\n'
+      'Remaining: $remaining\n'
+      'ID: $txId\n'
+      '━━━━━━━━━━━━━━━━━━━\n'
+      'Shared via LenDen',
+      subject: 'LenDen Transaction: $amount',
+    );
+  }
+
+  void _showPaymentTimeline() {
+    final t = _t;
+    final txDate = DateTime.tryParse(t['date']?.toString() ?? '');
+    final returnDate =
+        DateTime.tryParse(t['expectedReturnDate']?.toString() ?? '');
+    final partialPayments = ((t['partialPayments'] as List?) ?? [])
+        .map((p) => p as Map)
+        .toList();
+    partialPayments.sort((a, b) {
+      final da = DateTime.tryParse(a['date']?.toString() ?? '');
+      final db = DateTime.tryParse(b['date']?.toString() ?? '');
+      if (da == null || db == null) return 0;
+      return da.compareTo(db);
+    });
+    final fullyCleared =
+        t['userCleared'] == true && t['counterpartyCleared'] == true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (_, ctrl) => SingleChildScrollView(
+          controller: ctrl,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF00B4D8), Color(0xFF0077B6)]),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.timeline,
+                        color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('Payment Timeline',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0077B6))),
+                ]),
+                const SizedBox(height: 20),
+                _timelineItem(
+                    icon: Icons.flag_circle,
+                    color: Colors.teal,
+                    label: 'Transaction Created',
+                    date: txDate != null
+                        ? DateFormat('MMM d, yyyy').format(txDate)
+                        : '—',
+                    amount: _formatDisplayAmount(
+                        (t['amount'] as num?) ?? 0,
+                        t['currency']?.toString()),
+                    isFirst: true),
+                ...partialPayments.map((p) {
+                  final pDate =
+                      DateTime.tryParse(p['date']?.toString() ?? '');
+                  final pAmount = (p['amount'] as num?) ?? 0;
+                  final pDesc = p['description']?.toString() ?? '';
+                  return _timelineItem(
+                    icon: Icons.payments,
+                    color: Colors.purple,
+                    label:
+                        'Partial Payment${pDesc.isNotEmpty ? ': $pDesc' : ''}',
+                    date: pDate != null
+                        ? DateFormat('MMM d, yyyy').format(pDate)
+                        : '—',
+                    amount: _formatDisplayAmount(
+                        pAmount, t['currency']?.toString()),
+                  );
+                }),
+                if (returnDate != null)
+                  _timelineItem(
+                      icon: Icons.event,
+                      color: Colors.orange,
+                      label: 'Expected Return',
+                      date: DateFormat('MMM d, yyyy').format(returnDate),
+                      amount: _formatDisplayAmount(
+                          double.tryParse(
+                                  _calculateCurrentAmountWithInterest(t)) ??
+                              0,
+                          t['currency']?.toString())),
+                _timelineItem(
+                    icon: Icons.check_circle,
+                    color: fullyCleared ? Colors.green : Colors.grey,
+                    label:
+                        fullyCleared ? 'Fully Cleared' : 'Pending Clearance',
+                    date: fullyCleared ? 'Done' : 'Awaiting…',
+                    isLast: true),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _timelineItem({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String date,
+    String? amount,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: 2),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            if (!isLast)
+              Expanded(
+                  child: Container(width: 2, color: Colors.grey.shade200)),
+          ]),
+          const SizedBox(width: 14),
+          Expanded(
+              child: Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 20, top: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 2),
+                Text(date,
+                    style:
+                        const TextStyle(color: Colors.grey, fontSize: 12)),
+                if (amount != null) ...[
+                  const SizedBox(height: 2),
+                  Text(amount,
+                      style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
+                ],
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  void _showRepaymentSchedule() {
+    final t = _t;
+    if (t['interestType'] == null || t['interestRate'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No interest on this transaction')));
+      return;
+    }
+    final remaining =
+        double.tryParse(_calculateRemainingAmount(t)) ?? 0.0;
+    final rate = (t['interestRate'] as num).toDouble();
+    final type = t['interestType']?.toString() ?? '';
+
+    double amountAt(int days) {
+      if (type == 'simple') {
+        return remaining + (remaining * rate * days / 36500);
+      } else {
+        final n = (t['compoundingFrequency'] as num?)?.toInt() ?? 1;
+        return remaining * pow(1 + rate / 100, days.toDouble() / n);
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFFFF9933), Color(0xFF138808)]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.table_chart,
+                      color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text('Repayment Schedule',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0077B6))),
+              ]),
+              const SizedBox(height: 12),
+              Text(
+                  'Amount owed grows over time if not cleared.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ...[30, 60, 90, 180].map((days) {
+                final amt = amountAt(days);
+                final isEarly = days <= 30;
+                final isMid = days <= 60;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isEarly
+                        ? Colors.green.shade50
+                        : isMid
+                            ? Colors.orange.shade50
+                            : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: isEarly
+                            ? Colors.green.shade200
+                            : isMid
+                                ? Colors.orange.shade200
+                                : Colors.red.shade200),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('In $days days',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(
+                          _formatDisplayAmount(
+                              amt, t['currency']?.toString()),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isEarly
+                                  ? Colors.green[700]
+                                  : isMid
+                                      ? Colors.orange[700]
+                                      : Colors.red[700])),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0077B6)),
+                child: const Text('Close',
+                    style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user =
@@ -869,6 +1230,96 @@ class _SecureTransactionDetailPageState
                                   color: Colors.white70, fontSize: 13),
                               overflow: TextOverflow.ellipsis)),
                     ]),
+                    const SizedBox(height: 8),
+                    // Days outstanding + daily interest accrual
+                    Row(children: [
+                      const Icon(Icons.hourglass_top,
+                          color: Colors.white70, size: 14),
+                      const SizedBox(width: 4),
+                      Text('${_daysOutstanding(t)} days outstanding',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
+                      const Spacer(),
+                      if (t['interestType'] != null &&
+                          t['interestRate'] != null &&
+                          !fullyCleared)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.trending_up,
+                                    color: Colors.redAccent, size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                    '+${_formatDisplayAmount(_calculateDailyInterestAccrual(t), t['currency']?.toString())}/day',
+                                    style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600)),
+                              ]),
+                        ),
+                    ]),
+                    const SizedBox(height: 6),
+                    // Cleared status side-by-side
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                      youCleared
+                                          ? Icons.check_circle
+                                          : Icons.cancel,
+                                      color: youCleared
+                                          ? Colors.greenAccent
+                                          : Colors.white54,
+                                      size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                      'You: ${youCleared ? 'Cleared ✓' : 'Pending'}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11)),
+                                ]),
+                            Container(
+                                width: 1,
+                                height: 16,
+                                color: Colors.white30),
+                            Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                      otherCleared
+                                          ? Icons.check_circle
+                                          : Icons.cancel,
+                                      color: otherCleared
+                                          ? Colors.greenAccent
+                                          : Colors.white54,
+                                      size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                      'Them: ${otherCleared ? 'Cleared ✓' : 'Pending'}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11)),
+                                ]),
+                          ]),
+                    ),
                   ],
                 ),
               ),
@@ -930,6 +1381,23 @@ class _SecureTransactionDetailPageState
                           label: 'Delete',
                           color: Colors.red,
                           onTap: _showDeleteConfirmationDialog),
+                    _serviceChip(
+                        icon: Icons.share,
+                        label: 'Share',
+                        color: Colors.deepPurple,
+                        onTap: _shareTransaction),
+                    _serviceChip(
+                        icon: Icons.timeline,
+                        label: 'Timeline',
+                        color: Colors.cyan,
+                        onTap: _showPaymentTimeline),
+                    if (t['interestType'] != null &&
+                        t['interestRate'] != null)
+                      _serviceChip(
+                          icon: Icons.table_chart,
+                          label: 'Schedule',
+                          color: Colors.brown,
+                          onTap: _showRepaymentSchedule),
                   ],
                 ),
               ),
@@ -981,6 +1449,90 @@ class _SecureTransactionDetailPageState
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Repayment progress bar
+              Builder(builder: (context) {
+                final totalWithInterest = double.tryParse(
+                        _calculateCurrentAmountWithInterest(t)) ??
+                    (t['amount'] as num? ?? 0).toDouble();
+                final paid =
+                    double.tryParse(_calculateAmountPaidTillNow(t)) ?? 0.0;
+                final progress = fullyCleared
+                    ? 1.0
+                    : (totalWithInterest > 0
+                        ? (paid / totalWithInterest).clamp(0.0, 1.0)
+                        : 0.0);
+                if (paid == 0 && !fullyCleared) return const SizedBox.shrink();
+                final pct = (progress * 100).toStringAsFixed(1);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, 2))
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Repayment Progress',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13)),
+                          Text('$pct%',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: progress >= 1.0
+                                      ? Colors.green
+                                      : progress > 0.5
+                                          ? Colors.orange
+                                          : Colors.red)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 10,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              progress >= 1.0
+                                  ? Colors.green
+                                  : progress > 0.5
+                                      ? Colors.orange
+                                      : Colors.red),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                              _formatDisplayAmount(
+                                  paid, t['currency']?.toString()),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey)),
+                          Text(
+                              _formatDisplayAmount(totalWithInterest,
+                                  t['currency']?.toString()),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
 
               // Details card
               Container(
@@ -1055,8 +1607,31 @@ class _SecureTransactionDetailPageState
                                 _detailRow(Icons.place, const Color(0xFF9C27B0),
                                     'Place', (t['place'] ?? '').toString().isNotEmpty ? t['place'].toString() : '—'),
                                 _detailDivider(),
-                                _detailRow(Icons.confirmation_number, Colors.grey.shade600,
-                                    'Transaction ID', t['transactionId'] ?? '—'),
+                                _detailDivider(),
+                                GestureDetector(
+                                  onTap: _copyTransactionId,
+                                  child: _detailRow(
+                                      Icons.confirmation_number,
+                                      Colors.grey.shade600,
+                                      'Transaction ID',
+                                      '${t['transactionId'] ?? '—'}  📋'),
+                                ),
+                                _detailDivider(),
+                                _detailRow(
+                                    Icons.history_toggle_off,
+                                    Colors.blue.shade400,
+                                    'Days Outstanding',
+                                    '${_daysOutstanding(t)} days'),
+                                if (_hasPartialPayment(t) &&
+                                    ((_t['partialPayments'] as List?)
+                                                ?.length ??
+                                            0) >
+                                        1) ...[
+                                  _detailDivider(),
+                                  _detailRow(Icons.speed, Colors.purple,
+                                      'Payment Velocity',
+                                      _paymentVelocity(t)),
+                                ],
                               ],
                             ),
                           ),
