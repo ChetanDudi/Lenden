@@ -1,27 +1,24 @@
 const nodemailer = require('nodemailer');
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    pool: false,
-  });
-}
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  connectionTimeout: 8000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
+});
 
 exports.sendRegistrationOTP = async (to, otp) => {
-  const mailOptions = {
+  await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to,
     subject: 'Welcome to Lenden! Your Registration OTP',
-    text: `Your OTP for registration is: ${otp}`,
     html: `
       <div style="font-family: Arial, sans-serif; background: #f8f6fa; padding: 24px; border-radius: 12px; max-width: 480px; margin: auto;">
         <h2 style="color: #00B4D8; text-align: center;">Welcome to <span style='color:#0077B5;'>Lenden</span>!</h2>
@@ -33,19 +30,5 @@ exports.sendRegistrationOTP = async (to, otp) => {
         </div>
       </div>
     `,
-  };
-
-  let lastErr;
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const t = createTransporter();
-      await t.sendMail(mailOptions);
-      return;
-    } catch (err) {
-      lastErr = err;
-      console.error(`[OTP email] attempt ${attempt} failed: ${err.message}`);
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-    }
-  }
-  throw lastErr;
+  });
 };
