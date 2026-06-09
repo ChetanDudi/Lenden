@@ -5,14 +5,22 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   requireTLS: true,
+  pool: true,
+  maxConnections: 2,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  connectionTimeout: 8000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
+  connectionTimeout: 30000,
+  greetingTimeout: 15000,
+  socketTimeout: 30000,
 });
+
+// Pre-warm the SMTP connection pool at server startup so the first OTP email
+// doesn't pay the connection establishment cost during a user request.
+transporter.verify().catch(e =>
+  console.warn('[Login OTP] SMTP warm-up:', e.message)
+);
 
 exports.sendLoginOTP = async (to, otp) => {
   await transporter.sendMail({
