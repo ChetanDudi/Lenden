@@ -13,18 +13,26 @@ class EmailOtpLogin {
     required BuildContext context,
   }) async {
     try {
-      final response = await ApiClient.post('/api/users/send-login-otp', body: {
-        'email': email,
-      });
+      final response = await ApiClient.post(
+        '/api/users/send-login-otp',
+        body: {'email': email},
+        timeout: const Duration(seconds: 90),
+      );
 
       if (response.statusCode == 200) {
         return {'success': true};
       } else {
         final responseData = jsonDecode(response.body);
-        return {
-          'success': false,
-          'error': responseData['error'] ?? 'User not found'
-        };
+        final raw = (responseData['error'] ?? '').toString().toLowerCase();
+        String errorMsg;
+        if (response.statusCode == 408 || raw.contains('timeout') || raw.contains('timed out')) {
+          errorMsg = 'Server is starting up. Please wait a moment and try again.';
+        } else if (response.statusCode == 503 || raw.contains('unavailable')) {
+          errorMsg = 'Could not send OTP email. Please check your email address and try again.';
+        } else {
+          errorMsg = responseData['error'] ?? 'User not found';
+        }
+        return {'success': false, 'error': errorMsg};
       }
     } catch (e) {
       return {

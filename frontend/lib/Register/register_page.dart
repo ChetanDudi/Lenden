@@ -56,6 +56,13 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       _hasUpper && _hasLower && _hasSpecial && _hasLength;
 
   @override
+  void initState() {
+    super.initState();
+    // Fire-and-forget ping to wake Render before user finishes filling the form
+    ApiClient.get('/', timeout: const Duration(seconds: 90)).catchError((_) {});
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();

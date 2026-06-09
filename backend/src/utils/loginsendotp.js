@@ -3,16 +3,15 @@ const nodemailer = require('nodemailer');
 function createTransporter() {
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout: 30000,
-    greetingTimeout: 20000,
-    socketTimeout: 30000,
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     pool: false,
   });
 }
@@ -37,7 +36,7 @@ exports.sendLoginOTP = async (to, otp) => {
   };
 
   let lastErr;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const t = createTransporter();
       await t.sendMail(mailOptions);
@@ -45,7 +44,7 @@ exports.sendLoginOTP = async (to, otp) => {
     } catch (err) {
       lastErr = err;
       console.error(`[Login OTP email] attempt ${attempt} failed: ${err.message}`);
-      if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
     }
   }
   throw lastErr;

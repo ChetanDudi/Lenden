@@ -449,13 +449,19 @@ exports.sendLoginOtp = async (req, res) => {
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[email] = { otp, userType, created: Date.now() };
-    
-    await sendLoginOTP(email, otp);
-    
+
+    try {
+      await sendLoginOTP(email, otp);
+    } catch (emailErr) {
+      console.error('[sendLoginOtp] Email send failed:', emailErr.message);
+      delete otpStore[email];
+      return res.status(503).json({ error: 'Could not send OTP email. Please check your email address and try again.' });
+    }
+
     res.status(200).json({ message: 'OTP sent to email', userType, name });
   } catch (err) {
     console.error('❌ Error in sendLoginOtp:', err.message);
-    res.status(400).json({ error: err.message });
+    res.status(503).json({ error: 'Server is temporarily unavailable. Please try again in a moment.' });
   }
 };
 

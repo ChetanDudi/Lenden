@@ -10,6 +10,7 @@ import 'email_otp_login.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/tricolor_border_text_field.dart';
 import 'dart:ui' as ui;
+import '../utils/api_client.dart';
 import '../utils/http_interceptor.dart';
 import '../utils/responsive.dart';
 
@@ -53,6 +54,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
   void initState() {
     super.initState();
     _initDeviceId();
+    // Fire-and-forget ping to wake Render before user clicks login
+    ApiClient.get('/', timeout: const Duration(seconds: 90)).catchError((_) {});
   }
 
   Future<void> _initDeviceId() async {
