@@ -399,7 +399,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       }
     } catch (e) {
       setState(() {
-        error = 'Failed to load transactions: $e';
+        error = 'Unable to connect. Please check your internet connection.';
         loading = false;
       });
     }

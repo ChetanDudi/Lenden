@@ -554,6 +554,74 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     }
   }
 
+  Widget _buildErrorState(String message, VoidCallback onRetry) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.red[300]!, Colors.orange[400]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(21),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
+                      child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Oops! Something went wrong',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 8),
+                    Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00B4D8),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _currencySymbol([String? code]) {
     final currencyCode = (code ?? _expenseCurrency).toUpperCase();
     final match = _currencies.firstWhere(
@@ -800,7 +868,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -1044,7 +1112,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -1465,7 +1533,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -1494,13 +1562,13 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       } else {
         setState(() {
           error =
-              'Failed to load groups. Status code: ${res.statusCode}\nBody: ${res.body}';
+              'Failed to load groups. Please try again.';
           groupsLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        error = 'An error occurred: $e';
+        error = 'Unable to connect. Please check your internet connection.';
         groupsLoading = false;
       });
     }
@@ -2271,7 +2339,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2310,7 +2378,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2345,7 +2413,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2378,7 +2446,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2417,7 +2485,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2466,7 +2534,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2498,7 +2566,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2539,7 +2607,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
@@ -2597,7 +2665,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -4828,7 +4896,9 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             child: SingleChildScrollView(
               padding: EdgeInsets.all(16),
               child: groupsLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
+                  : error != null && userGroups.isEmpty
+                      ? _buildErrorState(error!, _fetchUserGroups)
                   : userGroups.isEmpty
                           ? Center(
                               child: Padding(

@@ -176,7 +176,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       }
     } catch (e) {
       setState(() {
-        _secureError = 'Error: $e';
+        _secureError = 'Unable to connect. Please check your internet connection.';
         _secureLoading = false;
       });
     }
@@ -213,7 +213,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       }
     } catch (e) {
       setState(() {
-        _groupError = 'Error: $e';
+        _groupError = 'Unable to connect. Please check your internet connection.';
         _groupLoading = false;
       });
     }
@@ -463,7 +463,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       }
     } catch (e) {
       setState(() {
-        _quickError = 'Error: $e';
+        _quickError = 'Unable to connect. Please check your internet connection.';
         _quickLoading = false;
       });
     }
@@ -1605,10 +1605,70 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
 
     if (error != null) {
-      return _buildEmptyState(
-        icon: Icons.error_outline_rounded,
-        title: 'Unable to load analytics',
-        message: error,
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.red[300]!, Colors.orange[400]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(21),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
+                        child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
+                      ),
+                      const SizedBox(height: 16),
+                      Text('Oops! Something went wrong',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: 8),
+                      Text(error, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: ElevatedButton.icon(
+                  onPressed: _refreshActiveTab,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00B4D8),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

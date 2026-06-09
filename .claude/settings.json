@@ -17,7 +17,8 @@
       "Bash(build\")",
       "Bash(awk 'NR>1')",
       "Bash(dart analyze *)",
-      "Bash(flutter analyze *)"
+      "Bash(flutter analyze *)",
+      "Bash(grep -n 'error = .*$e\\\\|error = .*e\\\\.toString\\\\|error = .*Error.*$e\\\\|error = .*occurred' 'c:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\\\\frontend\\\\lib\\\\User\\\\Transaction\\\\quick_transactions_page.dart')"
     ]
   }
 }

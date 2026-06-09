@@ -149,7 +149,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       }
     } catch (e) {
       setState(() {
-        error = 'Network error: ${e.toString()}';
+        error = 'Unable to connect. Please check your internet connection.';
         loading = false;
       });
     }
@@ -500,7 +500,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       }
     } catch (e) {
       setState(() {
-        error = e.toString();
+        error = 'Something went wrong. Please try again.';
       });
     } finally {
       setState(() {
