@@ -61,7 +61,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   String? expenseError;
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
-  String? _displayCurrencyError;
   List<Map<String, String>> _currencies = [
     {'code': 'INR', 'symbol': '₹'},
     {'code': 'USD', 'symbol': '\$'},
@@ -540,7 +539,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       if (!mounted) return;
       setState(() {
         _displayCurrencyData = data;
-        _displayCurrencyError = null;
         if (!data.currencies.any(
           (item) => item['code'] == _selectedDisplayCurrency,
         )) {
@@ -552,8 +550,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError =
-            'Currency conversion options are not available right now.';
       });
     }
   }
@@ -632,7 +628,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               if (value == null) return;
               setState(() {
                 _selectedDisplayCurrency = value;
-                _displayCurrencyError = null;
               });
             },
           ),
@@ -4836,80 +4831,60 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   ? Center(child: CircularProgressIndicator())
                   : userGroups.isEmpty
                           ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding:
-                                        const EdgeInsets.all(3), // border width
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Colors.orange,
-                                          Colors.white,
-                                          Colors.green
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(21),
-                                    ),
-                                    child: Container(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(28),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(18),
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFFE0F7FA), Color(0xFFB2EBF2)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        shape: BoxShape.circle,
                                       ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(32.0),
-                                        child: Column(
-                                          children: [
-                                            Icon(Icons.group_off,
-                                                color: Colors.grey, size: 60),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              'No Groups Yet!',
-                                              style: TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF00B4D8),
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              'Start splitting expenses with friends and family effortlessly.',
-                                              style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.grey[700]),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              'Create your first group to get started!',
-                                              style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w500),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
+                                      child: Icon(Icons.group_rounded, size: 72, color: Color(0xFF00B4D8)),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      'No Groups Yet!',
+                                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8)),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Split expenses with friends & family effortlessly.\nTap "+" to create your first group!',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
+                                    ),
+                                    const SizedBox(height: 28),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      padding: const EdgeInsets.all(2),
+                                      child: ElevatedButton.icon(
+                                        onPressed: _showCreateGroup,
+                                        icon: const Icon(Icons.add_rounded),
+                                        label: const Text('Create First Group', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Color(0xFF00B4D8),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                                          elevation: 0,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(height: 24),
-                                  ElevatedButton.icon(
-                                    onPressed: _showCreateGroup,
-                                    icon: Icon(Icons.add),
-                                    label: Text('Create Group'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xFF00B4D8),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12)),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             )
                           : Column(

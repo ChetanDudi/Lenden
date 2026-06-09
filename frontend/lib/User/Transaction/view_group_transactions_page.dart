@@ -272,6 +272,141 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
   String _formatInr(num amount) => '₹${amount.toStringAsFixed(2)}';
 
+  Widget _buildErrorState(String message, VoidCallback onRetry) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.red[300]!, Colors.orange[400]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(21),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Oops! Something went wrong',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00B4D8),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _subtitleChip(IconData icon, String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(right: 10, top: 4, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      constraints: const BoxConstraints(maxWidth: 220),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF00B4D8).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: const Color(0xFF00B4D8)),
+          const SizedBox(width: 4),
+          Flexible(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Text(
+                '$label: $value',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF00B4D8), fontWeight: FontWeight.w500),
+                softWrap: false,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryStatChip(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatDisplayAmountFromInr(num amount) {
     final targetCurrency = _selectedDisplayCurrency.toUpperCase();
     if (targetCurrency != 'INR' &&
@@ -951,24 +1086,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         ],
       ),
       body: loading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      SizedBox(height: 16),
-                      Text(error!,
-                          style: TextStyle(fontSize: 16, color: Colors.red)),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchUserGroups,
-                        child: Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildErrorState(error!, _fetchUserGroups)
               : userGroups.isEmpty
                   ? Center(
                       child: Column(
@@ -1312,117 +1432,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                   ],
                                 ),
                                 SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // Total Groups
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Total Groups',
-                                            style: TextStyle(
-                                              color:
-                                                  Colors.white.withOpacity(0.8),
-                                              fontSize: 11,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          Text(
-                                            '${userGroups.length}',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Created Groups
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Created',
-                                            style: TextStyle(
-                                              color:
-                                                  Colors.white.withOpacity(0.8),
-                                              fontSize: 11,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          Text(
-                                            '$createdGroupsCount',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Total Expenses
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Expenses',
-                                            style: TextStyle(
-                                              color:
-                                                  Colors.white.withOpacity(0.8),
-                                              fontSize: 11,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          Text(
-                                            '${_calculateTotalExpenses()}',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Total Pending
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Pending',
-                                            style: TextStyle(
-                                              color:
-                                                  Colors.white.withOpacity(0.8),
-                                              fontSize: 11,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          Text(
-                                            _formatDisplayAmountFromInr(
-                                              _calculateTotalPendingBalance(),
-                                            ),
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      _summaryStatChip('Total Groups', '${userGroups.length}'),
+                                      _summaryStatChip('Created', '$createdGroupsCount'),
+                                      _summaryStatChip('Expenses', '${_calculateTotalExpenses()}'),
+                                      _summaryStatChip('Pending', _formatDisplayAmountFromInr(_calculateTotalPendingBalance())),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -1521,32 +1540,38 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                   ),
                                                   title: Row(
                                                     children: [
-                                                      Text(
-                                                        group['title'] ??
-                                                            'Untitled Group',
-                                                        style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 18),
+                                                      Flexible(
+                                                        child: Text(
+                                                          group['title'] ??
+                                                              'Untitled Group',
+                                                          style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight.bold,
+                                                              fontSize: 16),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
                                                       ),
-                                                      Spacer(),
                                                       IconButton(
+                                                        padding: EdgeInsets.zero,
+                                                        constraints: BoxConstraints(minWidth: 32, minHeight: 32),
                                                         icon: Icon(
                                                           isFavourite
                                                               ? Icons.star
-                                                              : Icons
-                                                                  .star_border,
+                                                              : Icons.star_border,
                                                           color: isFavourite
                                                               ? Colors.amber
                                                               : Colors.grey,
+                                                          size: 20,
                                                         ),
                                                         onPressed: () =>
                                                             _toggleFavourite(
                                                                 group['_id']),
                                                       ),
                                                       IconButton(
+                                                        padding: EdgeInsets.zero,
+                                                        constraints: BoxConstraints(minWidth: 32, minHeight: 32),
                                                         icon: Icon(Icons.chat,
-                                                            color: Colors.blue),
+                                                            color: Colors.blue, size: 20),
                                                         onPressed: () {
                                                           Navigator.push(
                                                             context,
@@ -1554,8 +1579,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                               builder: (context) =>
                                                                   GroupChatPage(
                                                                 groupTransactionId:
-                                                                    group[
-                                                                        '_id'],
+                                                                    group['_id'],
                                                                 groupTitle: group[
                                                                         'title'] ??
                                                                     'Group Chat',
@@ -1569,20 +1593,18 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                       ),
                                                     ],
                                                   ),
-                                                  subtitle: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                          'Creator: ${creator?['email'] ?? 'Unknown'}'),
-                                                      Text(
-                                                          'Members: ${members.length}'),
-                                                      Text(
-                                                          'Expenses: ${expenses.length}'),
-                                                      Text(
-                                                          'Messages: ${group['messageCount'] ?? 0}'),
-                                                    ],
+                                                  subtitle: Padding(
+                                                    padding: const EdgeInsets.only(top: 4),
+                                                    child: Wrap(
+                                                      spacing: 6,
+                                                      runSpacing: 4,
+                                                      children: [
+                                                        _subtitleChip(Icons.person_outline, 'Creator', creator?['email'] ?? 'Unknown'),
+                                                        _subtitleChip(Icons.group_outlined, 'Members', '${members.length}'),
+                                                        _subtitleChip(Icons.receipt_outlined, 'Expenses', '${expenses.length}'),
+                                                        _subtitleChip(Icons.chat_bubble_outline, 'Messages', '${group['messageCount'] ?? 0}'),
+                                                      ],
+                                                    ),
                                                   ),
                                                   children: [
                                                     Container(
@@ -1630,47 +1652,34 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                 SizedBox(
                                                                     height: 8),
                                                                 Row(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .spaceBetween,
                                                                   children: [
-                                                                    Text(
-                                                                        'Total Split Amount:'),
-                                                                    Text(
-                                                                      _formatDisplayAmountFromInr(
-                                                                        userTotalSplit,
-                                                                      ),
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        color: Colors
-                                                                            .green[700],
+                                                                    Expanded(child: Text('Total Split Amount:')),
+                                                                    Flexible(
+                                                                      child: Text(
+                                                                        _formatDisplayAmountFromInr(userTotalSplit),
+                                                                        style: TextStyle(
+                                                                          fontWeight: FontWeight.bold,
+                                                                          color: Colors.green[700],
+                                                                        ),
+                                                                        overflow: TextOverflow.ellipsis,
                                                                       ),
                                                                     ),
                                                                   ],
                                                                 ),
-                                                                SizedBox(
-                                                                    height: 4),
+                                                                SizedBox(height: 4),
                                                                 Row(
-                                                                  mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .spaceBetween,
                                                                   children: [
-                                                                    Text(
-                                                                        'Pending Balance:'),
-                                                                    Text(
-                                                                      _formatDisplayAmountFromInr(
-                                                                        userPendingBalance,
-                                                                      ),
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        color: userPendingBalance >
-                                                                                0
-                                                                            ? Colors.red[700]
-                                                                            : Colors.green[700],
+                                                                    Expanded(child: Text('Pending Balance:')),
+                                                                    Flexible(
+                                                                      child: Text(
+                                                                        _formatDisplayAmountFromInr(userPendingBalance),
+                                                                        style: TextStyle(
+                                                                          fontWeight: FontWeight.bold,
+                                                                          color: userPendingBalance > 0
+                                                                              ? Colors.red[700]
+                                                                              : Colors.green[700],
+                                                                        ),
+                                                                        overflow: TextOverflow.ellipsis,
                                                                       ),
                                                                     ),
                                                                   ],
@@ -1824,75 +1833,45 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                   children: [
                                                                     Row(
                                                                       children: [
-                                                                        Icon(
-                                                                            Icons
-                                                                                .receipt,
-                                                                            color:
-                                                                                Color(0xFF00B4D8),
-                                                                            size: 20),
-                                                                        SizedBox(
-                                                                            width:
-                                                                                8),
+                                                                        Icon(Icons.receipt, color: Color(0xFF00B4D8), size: 20),
+                                                                        SizedBox(width: 8),
                                                                         Expanded(
-                                                                          child:
-                                                                              Text(
-                                                                            expense['description'] ??
-                                                                                'No description',
-                                                                            style:
-                                                                                TextStyle(
-                                                                              fontWeight: FontWeight.w600,
-                                                                              fontSize: 14,
-                                                                            ),
+                                                                          child: Text(
+                                                                            expense['description'] ?? 'No description',
+                                                                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                                                            overflow: TextOverflow.ellipsis,
                                                                           ),
                                                                         ),
-                                                                        Text(
-                                                                          _formatDisplayAmountFromInr(
-                                                                            _expenseAmountInInr(
-                                                                              Map<String, dynamic>.from(expense),
+                                                                        SizedBox(width: 8),
+                                                                        Flexible(
+                                                                          flex: 0,
+                                                                          child: Text(
+                                                                            _formatDisplayAmountFromInr(
+                                                                              _expenseAmountInInr(Map<String, dynamic>.from(expense)),
                                                                             ),
-                                                                          ),
-                                                                          style:
-                                                                              TextStyle(
-                                                                            fontWeight:
-                                                                                FontWeight.bold,
-                                                                            color:
-                                                                                Colors.green[700],
+                                                                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700]),
+                                                                            overflow: TextOverflow.ellipsis,
                                                                           ),
                                                                         ),
                                                                       ],
                                                                     ),
-                                                                    SizedBox(
-                                                                        height:
-                                                                            4),
+                                                                    SizedBox(height: 4),
                                                                     Text(
                                                                       'Added by: ${expense['addedBy'] ?? 'Unknown'}',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: Colors
-                                                                            .grey[600],
-                                                                        fontSize:
-                                                                            12,
-                                                                      ),
+                                                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                                                      overflow: TextOverflow.ellipsis,
+                                                                      maxLines: 1,
                                                                     ),
-                                                                    if (expense['createdAt'] !=
-                                                                            null ||
-                                                                        expense['date'] !=
-                                                                            null)
+                                                                    if (expense['createdAt'] != null || expense['date'] != null)
                                                                       Row(
                                                                         children: [
-                                                                          Icon(
-                                                                              Icons.access_time,
-                                                                              color: Colors.grey[500],
-                                                                              size: 12),
-                                                                          SizedBox(
-                                                                              width: 4),
-                                                                          Text(
-                                                                            _formatDateTime(expense['createdAt'] ??
-                                                                                expense['date']),
-                                                                            style:
-                                                                                TextStyle(
-                                                                              color: Colors.grey[500],
-                                                                              fontSize: 11,
+                                                                          Icon(Icons.access_time, color: Colors.grey[500], size: 12),
+                                                                          SizedBox(width: 4),
+                                                                          Expanded(
+                                                                            child: Text(
+                                                                              _formatDateTime(expense['createdAt'] ?? expense['date']),
+                                                                              style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                                                                              overflow: TextOverflow.ellipsis,
                                                                             ),
                                                                           ),
                                                                         ],
@@ -1952,14 +1931,18 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                                 padding: EdgeInsets.only(bottom: 2),
                                                                                 child: Row(
                                                                                   children: [
-                                                                                    Text(
-                                                                                      '• ${member['email']}: ',
-                                                                                      style: TextStyle(
-                                                                                        fontSize: 11,
-                                                                                        color: Colors.grey[600],
-                                                                                        fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
+                                                                                    Expanded(
+                                                                                      child: Text(
+                                                                                        '• ${member['email']}',
+                                                                                        style: TextStyle(
+                                                                                          fontSize: 11,
+                                                                                          color: Colors.grey[600],
+                                                                                          fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
+                                                                                        ),
+                                                                                        overflow: TextOverflow.ellipsis,
                                                                                       ),
                                                                                     ),
+                                                                                    SizedBox(width: 4),
                                                                                     Text(
                                                                                       _formatDisplayAmountFromInr(_splitAmountInInr(Map<String, dynamic>.from(splitItem))),
                                                                                       style: TextStyle(
@@ -1970,23 +1953,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                                       ),
                                                                                     ),
                                                                                     if (isCurrentUser)
-                                                                                      Text(
-                                                                                        ' (You)',
-                                                                                        style: TextStyle(
-                                                                                          fontSize: 10,
-                                                                                          color: Color(0xFF00B4D8),
-                                                                                          fontStyle: FontStyle.italic,
-                                                                                        ),
-                                                                                      ),
+                                                                                      Text(' (You)', style: TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontStyle: FontStyle.italic)),
                                                                                     if (isSettled)
-                                                                                      Text(
-                                                                                        ' (Settled)',
-                                                                                        style: TextStyle(
-                                                                                          fontSize: 10,
-                                                                                          color: Colors.grey[500],
-                                                                                          fontStyle: FontStyle.italic,
-                                                                                        ),
-                                                                                      ),
+                                                                                      Text(' ✓', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
                                                                                   ],
                                                                                 ),
                                                                               );
