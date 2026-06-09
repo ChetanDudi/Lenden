@@ -1,22 +1,7 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 8000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-});
+const { sendEmail } = require('./sendEmailApi');
 
 const sendReceiptEmail = async (to, transaction, pdfBuffer) => {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
+  await sendEmail({
     to,
     subject: `Transaction Receipt: ${transaction.transactionId}`,
     html: `
@@ -35,9 +20,7 @@ const sendReceiptEmail = async (to, transaction, pdfBuffer) => {
         contentType: 'application/pdf',
       },
     ],
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };
 
 module.exports = { sendReceiptEmail };

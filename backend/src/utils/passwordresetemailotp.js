@@ -1,22 +1,7 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 8000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-});
+const { sendEmail } = require('./sendEmailApi');
 
 exports.sendPasswordResetOTP = async (to, otp) => {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
+  await sendEmail({
     to,
     subject: 'Lenden Password Reset - OTP Verification',
     text: `Your OTP for password reset is: ${otp}\nIf you did not request this, please ignore this email.`,
@@ -31,6 +16,5 @@ exports.sendPasswordResetOTP = async (to, otp) => {
         </div>
       </div>
     `,
-  };
-  return transporter.sendMail(mailOptions);
-}; 
+  });
+};

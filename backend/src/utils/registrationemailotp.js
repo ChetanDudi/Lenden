@@ -1,22 +1,7 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 8000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-});
+const { sendEmail } = require('./sendEmailApi');
 
 exports.sendRegistrationOTP = async (to, otp) => {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendEmail({
     to,
     subject: 'Welcome to Lenden! Your Registration OTP',
     text: `Your OTP for registration is: ${otp}`,

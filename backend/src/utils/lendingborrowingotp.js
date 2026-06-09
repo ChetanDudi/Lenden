@@ -1,22 +1,8 @@
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('./sendEmailApi');
 const User = require('../models/user');
 const { shouldSendNotification } = require('./shouldSendNotification');
 
 const otpStore = {};
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 8000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-});
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -42,18 +28,16 @@ exports.sendDualOtp = async (email1, email2) => {
   const expires = Date.now() + 2 * 60 * 1000; // 2 minutes
   otpStore[email1] = {otp: otp1, expires };
   otpStore[email2] = {otp: otp2, expires };
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendEmail({
     to: email1,
     subject: 'Lending/Borrowing OTP Verification',
-    text: `Your OTP for transaction confirmation is: ${otp1}\nThis OTP will expire in 2 minutes.`, 
+    text: `Your OTP for transaction confirmation is: ${otp1}\nThis OTP will expire in 2 minutes.`,
     html: getStylishOtpHtml(otp1),
   });
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendEmail({
     to: email2,
     subject: 'Lending/Borrowing OTP Verification',
-    text: `Your OTP for transaction confirmation is: ${otp2}\nThis OTP will expire in 2 minutes.`, 
+    text: `Your OTP for transaction confirmation is: ${otp2}\nThis OTP will expire in 2 minutes.`,
     html: getStylishOtpHtml(otp2),
   });
   return {otp1, otp2 };
@@ -77,11 +61,10 @@ exports.resendOtp = async (email) => {
   const otp = generateOtp();
   const expires = Date.now() + 2 * 60 * 1000;
   otpStore[email] = {otp, expires };
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendEmail({
     to: email,
     subject: 'Lending/Borrowing OTP Verification (Resend)',
-    text: `Your OTP for transaction confirmation is: ${otp}\nThis OTP will expire in 2 minutes.`, 
+    text: `Your OTP for transaction confirmation is: ${otp}\nThis OTP will expire in 2 minutes.`,
     html: getStylishOtpHtml(otp),
   });
   return otp;
@@ -147,12 +130,7 @@ exports.sendTransactionReceipt = async (email, transaction, counterpartyNameOrEm
       </div>
     </div>
   `;
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Lenden Transaction Receipt',
-    html
-  });
+  await sendEmail({ to: email, subject: 'Lenden Transaction Receipt', html });
 };
 
 exports.sendTransactionClearedNotification = async (email, transaction, clearedByEmail) => {
@@ -181,12 +159,7 @@ exports.sendTransactionClearedNotification = async (email, transaction, clearedB
       </div>
     </div>
   `;
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Lenden Transaction Clearance Update',
-    html
-  });
+  await sendEmail({ to: email, subject: 'Lenden Transaction Clearance Update', html });
 };
 
 exports.sendReminderEmail = async (email, transaction, daysLeft) => {
@@ -195,14 +168,6 @@ exports.sendReminderEmail = async (email, transaction, daysLeft) => {
     return; // Do not send email if notifications are disabled or in quiet hours
   }
 
-  const nodemailer = require('nodemailer');
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
   const subject = daysLeft === 0
     ? `Lenden: Today is the due date for your transaction!`
     : `Lenden: Your transaction is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
@@ -224,10 +189,5 @@ exports.sendReminderEmail = async (email, transaction, daysLeft) => {
       <p style="margin-top: 32px; font-size: 13px; color: #aaa;">This is an automated reminder from Lenden. Please do not reply to this email.</p>
     </div>
   `;
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject,
-    html
-  });
+  await sendEmail({ to: email, subject, html });
 };
