@@ -45,6 +45,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   bool _groupTabLoaded = false;
   bool _quickDetailsLoaded = false;
   bool _secureDetailsLoaded = false;
+  List<dynamic> _userGroups = [];
+  bool _groupDetailsLoading = false;
 
   @override
   void initState() {
@@ -106,7 +108,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
 
     if (!force && _groupTabLoaded) return;
-    await _fetchGroupAnalytics(email);
+    await Future.wait([
+      _fetchGroupAnalytics(email),
+      _fetchUserGroups(),
+    ]);
     _groupTabLoaded = true;
   }
 
@@ -212,6 +217,219 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         _groupLoading = false;
       });
     }
+  }
+
+  Future<void> _fetchUserGroups() async {
+    setState(() => _groupDetailsLoading = true);
+    try {
+      final res = await ApiClient.get('/api/group-transactions/user-groups');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        setState(() {
+          _userGroups = List<dynamic>.from(data['groups'] ?? []);
+          _groupDetailsLoading = false;
+        });
+      } else {
+        if (mounted) setState(() => _groupDetailsLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _groupDetailsLoading = false);
+    }
+  }
+
+  // ── Group insight helpers ─────────────────────────────────────────────────
+
+  Map<String, double> _computeMemberContributions() {
+    final Map<String, double> contrib = {};
+    for (final g in _userGroups) {
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        final by = (e['addedBy'] ?? '').toString();
+        if (!by.contains('@')) continue;
+        final amt = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        contrib[by] = (contrib[by] ?? 0) + amt;
+      }
+    }
+    return contrib;
+  }
+
+  Map<String, double> _computeCategoryTotals() {
+    final Map<String, double> cats = {};
+    for (final g in _userGroups) {
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        final cat = (e['category'] ?? 'other').toString();
+        final amt = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        cats[cat] = (cats[cat] ?? 0) + amt;
+      }
+    }
+    return cats;
+  }
+
+  String _fmtGroupAmt(double amtInr) {
+    final target = _selectedDisplayCurrency.toUpperCase();
+    if (target != 'INR' &&
+        !(_displayCurrencyData?.canConvert('INR', target) ?? false)) {
+      return '₹${amtInr.toStringAsFixed(0)}';
+    }
+    final converted =
+        _displayCurrencyData?.convert(amtInr, 'INR', target) ?? amtInr;
+    final sym = _displayCurrencyData?.symbolFor(target) ?? '₹';
+    return '$sym${converted.toStringAsFixed(0)}';
+  }
+
+  static const _kCategoryMeta = {
+    'food':          {'label': 'Food',          'color': Color(0xFFFF7043)},
+    'transport':     {'label': 'Transport',     'color': Color(0xFF42A5F5)},
+    'accommodation': {'label': 'Stay',          'color': Color(0xFF7E57C2)},
+    'entertainment': {'label': 'Fun',           'color': Color(0xFFEC407A)},
+    'shopping':      {'label': 'Shopping',      'color': Color(0xFFFF7043)},
+    'utilities':     {'label': 'Utilities',     'color': Color(0xFF26A69A)},
+    'medical':       {'label': 'Medical',       'color': Color(0xFFEF5350)},
+    'education':     {'label': 'Education',     'color': Color(0xFF66BB6A)},
+    'other':         {'label': 'Other',         'color': Color(0xFF90A4AE)},
+  };
+
+  Widget _buildGroupInsights() {
+    if (_groupDetailsLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+            child: CircularProgressIndicator(color: Color(0xFF00B4D8))),
+      );
+    }
+    if (_userGroups.isEmpty) return const SizedBox.shrink();
+
+    final contrib = _computeMemberContributions();
+    final cats = _computeCategoryTotals();
+    if (contrib.isEmpty && cats.isEmpty) return const SizedBox.shrink();
+
+    final sortedContrib = contrib.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final sortedCats = cats.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final maxContrib =
+        sortedContrib.isEmpty ? 1.0 : sortedContrib.first.value;
+    final maxCat = sortedCats.isEmpty ? 1.0 : sortedCats.first.value;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 28),
+        // ── Member contributions ──────────────────────────────────────
+        Text('Member Contributions',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade900)),
+        const SizedBox(height: 4),
+        Text('Who paid into the group (total across all your groups)',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+        const SizedBox(height: 12),
+        ...sortedContrib.take(8).map((entry) {
+          final pct = maxContrib > 0 ? entry.value / maxContrib : 0.0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.key.split('@').first,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      _fmtGroupAmt(entry.value),
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 7,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF2E7D32)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+
+        if (sortedCats.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          // ── Top categories ────────────────────────────────────────────
+          Text('Spending by Category',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade900)),
+          const SizedBox(height: 4),
+          Text('Across all your group expenses',
+              style:
+                  TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+          const SizedBox(height: 12),
+          ...sortedCats.map((entry) {
+            final meta = _kCategoryMeta[entry.key] ??
+                _kCategoryMeta['other']!;
+            final pct = maxCat > 0 ? entry.value / maxCat : 0.0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(
+                          color: meta['color'] as Color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          meta['label'] as String,
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Text(
+                        _fmtGroupAmt(entry.value),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      minHeight: 7,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          meta['color'] as Color),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ],
+    );
   }
 
   Future<void> _fetchQuickAnalytics(String email) async {
@@ -1630,6 +1848,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
               ],
               const SizedBox(height: 24),
+            ],
+            if (config.tabTitle == 'Group Analytics') ...[
+              _buildGroupInsights(),
             ],
             if (config.tabTitle == 'Quick Analytics') ...[
               const SizedBox(height: 4),

@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
 
@@ -66,6 +69,34 @@ const _kCardColors = [
   Color(0xFFE3F2FD), Color(0xFFFFF9C4), Color(0xFFF3E5F5),
 ];
 
+const _kCategories = [
+  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
+  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
+  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
+  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
+  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
+  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
+  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
+  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
+];
+
+IconData _categoryIcon(String? key) {
+  final cat = _kCategories.firstWhere(
+    (c) => c['key'] == key,
+    orElse: () => _kCategories.last,
+  );
+  return cat['icon'] as IconData;
+}
+
+String _categoryLabel(String? key) {
+  final cat = _kCategories.firstWhere(
+    (c) => c['key'] == key,
+    orElse: () => _kCategories.last,
+  );
+  return cat['label'] as String;
+}
+
 // All supported currencies
 const _kCurrencies = [
   {'code': 'INR', 'symbol': '₹', 'label': 'Indian Rupee'},
@@ -99,6 +130,7 @@ class _AddExpenseSheet extends StatefulWidget {
     String splitType,
     List<String> selectedEmails,
     List<Map<String, dynamic>> split,
+    String category,
   ) onSubmit;
 
   const _AddExpenseSheet({
@@ -122,6 +154,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   late String currency;
   late String splitType;
   late Set<String> selectedEmails;
+  late String category;
 
   @override
   void initState() {
@@ -136,6 +169,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
         widget.lockedCurrency ??
         'INR';
     splitType = 'equal';
+    category = widget.expense?['category']?.toString() ?? 'other';
     selectedEmails = Set<String>.from(widget.initialSelectedEmails);
     splitCtrls = {
       for (final e in widget.allEmails)
@@ -273,7 +307,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
 
     Navigator.pop(context);
     widget.onSubmit(
-        desc, amount, effectiveCurrency, splitType, chosenEmails, split);
+        desc, amount, effectiveCurrency, splitType, chosenEmails, split, category);
   }
 
   @override
@@ -380,6 +414,61 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Category picker
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _kCategories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (_, i) {
+                  final cat = _kCategories[i];
+                  final selected = category == cat['key'];
+                  return GestureDetector(
+                    onTap: () => setState(() => category = cat['key'] as String),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? const Color(0xFF2E7D32)
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFF2E7D32)
+                              : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            cat['icon'] as IconData,
+                            size: 14,
+                            color: selected ? Colors.white : Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            cat['label'] as String,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: selected
+                                  ? Colors.white
+                                  : Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 12),
@@ -788,10 +877,12 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   late List<dynamic> _members;
   bool _loading = false;
   String _filter = 'all';
+  String _searchQuery = '';
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
 
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
-  String? _displayCurrencyError;
   static const _kFallbackCurrencies = [
     {'code': 'INR', 'symbol': '₹'},
     {'code': 'USD', 'symbol': '\$'},
@@ -820,7 +911,6 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       if (!mounted) return;
       setState(() {
         _displayCurrencyData = data;
-        _displayCurrencyError = null;
         if (!data.currencies.any((c) => c['code'] == _selectedDisplayCurrency)) {
           _selectedDisplayCurrency = 'INR';
         }
@@ -830,7 +920,6 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError = 'Currency conversion unavailable.';
       });
     }
   }
@@ -862,23 +951,41 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   List<dynamic> get _filtered {
-    if (_filter == 'mine') {
-      return _expenses.where((e) {
+    var list = _expenses.where((e) {
+      // tab filter
+      if (_filter == 'mine') {
         final addedBy = _resolveEmail(e['addedBy']).toLowerCase();
-        return addedBy == widget.userEmail.toLowerCase();
-      }).toList();
-    }
-    if (_filter == 'unsettled') {
-      return _expenses.where((e) {
+        if (addedBy != widget.userEmail.toLowerCase()) return false;
+      } else if (_filter == 'unsettled') {
         final split = List<dynamic>.from(e['split'] ?? []);
-        return split.any((s) {
+        final hasPending = split.any((s) {
           final email = _resolveEmail(s['user']).toLowerCase();
-          return email == widget.userEmail.toLowerCase() &&
-              s['settled'] != true;
+          return email == widget.userEmail.toLowerCase() && s['settled'] != true;
         });
-      }).toList();
-    }
-    return _expenses;
+        if (!hasPending) return false;
+      }
+      // search
+      if (_searchQuery.isNotEmpty) {
+        final desc = (e['description'] ?? '').toString().toLowerCase();
+        final by = _resolveEmail(e['addedBy']).toLowerCase();
+        if (!desc.contains(_searchQuery.toLowerCase()) &&
+            !by.contains(_searchQuery.toLowerCase())) return false;
+      }
+      // date range
+      if (_dateFrom != null || _dateTo != null) {
+        final raw = e['createdAt'] ?? e['date'];
+        if (raw == null) return false;
+        try {
+          final d = DateTime.parse(raw.toString()).toLocal();
+          if (_dateFrom != null && d.isBefore(_dateFrom!)) return false;
+          if (_dateTo != null && d.isAfter(_dateTo!.add(const Duration(days: 1)))) return false;
+        } catch (_) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+    return list;
   }
 
   Future<void> _refresh() async {
@@ -905,6 +1012,137 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _sendReminder(String memberEmail) async {
+    final res = await ApiClient.post(
+      '/api/group-transactions/${widget.groupId}/remind',
+      body: {'memberEmail': memberEmail},
+    );
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      _showSnack('Reminder sent to $memberEmail', success: true);
+    } else {
+      _showError(jsonDecode(res.body)['error'] ?? 'Failed to send reminder');
+    }
+  }
+
+  void _showReceiptDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: _tricolorBorderBox(
+          radius: 20,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(20),
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.picture_as_pdf_rounded,
+                      color: Color(0xFF2E7D32)),
+                  const SizedBox(width: 8),
+                  const Text('Group Report',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.email_outlined),
+                    label: const Text('Send to my email'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _requestReceipt('email');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF2E7D32),
+                      side: const BorderSide(color: Color(0xFF2E7D32)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.download_rounded),
+                    label: const Text('Download PDF'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _requestReceipt('download');
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _requestReceipt(String action) async {
+    setState(() => _loading = true);
+    final res = await ApiClient.post(
+      '/api/group-transactions/${widget.groupId}/receipt',
+      body: {'action': action, 'email': widget.userEmail},
+    );
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (res.statusCode == 200) {
+      if (action == 'download') {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/group-receipt-${widget.groupId}.pdf');
+          await file.writeAsBytes(res.bodyBytes);
+          await OpenFile.open(file.path);
+        } catch (e) {
+          _showError('Could not open PDF: $e');
+        }
+      } else {
+        _showSnack('Report sent to your email!', success: true);
+      }
+    } else {
+      _showError(jsonDecode(res.body)['error'] ?? 'Failed to generate report');
+    }
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDateRange: _dateFrom != null && _dateTo != null
+          ? DateTimeRange(start: _dateFrom!, end: _dateTo!)
+          : null,
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(primary: Color(0xFF2E7D32)),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _dateFrom = picked.start;
+        _dateTo = picked.end;
+      });
     }
   }
 
@@ -1127,7 +1365,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         skippedLeftCount: skippedLeftCount,
         initialSelectedEmails: selectedEmails,
         initialSplitAmounts: initialSplitAmounts,
-        onSubmit: (desc, amount, currency, splitType, selectedEmails, split) {
+        onSubmit: (desc, amount, currency, splitType, selectedEmails, split, category) {
           _doExpenseSubmit(
             expense: expense,
             desc: desc,
@@ -1136,6 +1374,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             splitType: splitType,
             selectedEmails: selectedEmails,
             split: split,
+            category: category,
           );
         },
       ),
@@ -1150,6 +1389,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     required String splitType,
     required List<String> selectedEmails,
     required List<Map<String, dynamic>> split,
+    required String category,
   }) async {
     setState(() => _loading = true);
     if (expense == null) {
@@ -1162,6 +1402,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           'splitType': splitType,
           'split': split,
           'selectedMembers': selectedEmails,
+          'category': category,
         },
       );
       if (!mounted) return;
@@ -1170,8 +1411,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         _refresh();
       } else {
         setState(() => _loading = false);
-        _showError(
-            jsonDecode(res.body)['error'] ?? 'Failed to add expense');
+        _showError(jsonDecode(res.body)['error'] ?? 'Failed to add expense');
       }
     } else {
       final res = await ApiClient.put(
@@ -1183,6 +1423,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           'splitType': splitType,
           'split': split,
           'selectedMembers': selectedEmails,
+          'category': category,
         },
       );
       if (!mounted) return;
@@ -1191,8 +1432,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         _refresh();
       } else {
         setState(() => _loading = false);
-        _showError(
-            jsonDecode(res.body)['error'] ?? 'Failed to update expense');
+        _showError(jsonDecode(res.body)['error'] ?? 'Failed to update expense');
       }
     }
   }
@@ -1284,6 +1524,20 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           onPressed: () =>
                               setDlg(() => selected.clear()),
                           child: const Text('Clear'),
+                        ),
+                        const Spacer(),
+                        // Settle All for this expense — one tap
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _settleMembers(expenseId, unsettled);
+                          },
+                          icon: const Icon(Icons.done_all_rounded,
+                              size: 15),
+                          label: const Text('Settle All'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF2E7D32),
+                          ),
                         ),
                       ],
                     ),
@@ -1438,8 +1692,15 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                     itemBuilder: (_, i) {
                       final s = split[i] as Map<String, dynamic>;
                       final email = _resolveEmail(s['user']);
+                      final splitAmtInr =
+                          (s['amountInr'] ?? s['amount'] ?? 0) as num;
                       final amt = (s['amount'] ?? 0).toString();
                       final settled = s['settled'] == true;
+                      final settledBy =
+                          s['settledBy']?.toString();
+                      final settledAt = s['settledAt'] != null
+                          ? _fmtDateTime(s['settledAt'])
+                          : null;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.symmetric(
@@ -1479,7 +1740,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                   CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '$sym$amt',
+                                  _fmtInr(splitAmtInr),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -1488,6 +1749,14 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                         : Colors.orange[800],
                                   ),
                                 ),
+                                if ((expense['currency']?.toString().toUpperCase() ?? 'INR') !=
+                                    _selectedDisplayCurrency.toUpperCase())
+                                  Text(
+                                    '$sym$amt',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey[500]),
+                                  ),
                                 Text(
                                   settled ? 'Settled' : 'Pending',
                                   style: TextStyle(
@@ -1497,6 +1766,20 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                         : Colors.orange[700],
                                   ),
                                 ),
+                                if (settled && settledBy != null)
+                                  Text(
+                                    'by ${settledBy.split('@').first}',
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.green[400]),
+                                  ),
+                                if (settled && settledAt != null)
+                                  Text(
+                                    settledAt,
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.grey[400]),
+                                  ),
                               ],
                             ),
                           ],
@@ -1601,6 +1884,11 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Group Report',
+            onPressed: _showReceiptDialog,
+          ),
+          IconButton(
               icon: const Icon(Icons.refresh), onPressed: _refresh),
         ],
       ),
@@ -1643,22 +1931,106 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             ),
           ),
 
-          // Filter chips
+          // Balance summary
+          _buildBalanceSummary(),
+
+          // Filter chips + search + date
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _filterChip('All', 'all'),
-                  const SizedBox(width: 8),
-                  _filterChip('Added by me', 'mine'),
-                  const SizedBox(width: 8),
-                  _filterChip('My Pending', 'unsettled'),
-                ],
-              ),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Column(
+              children: [
+                // Filters row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _filterChip('All', 'all'),
+                      const SizedBox(width: 8),
+                      _filterChip('Added by me', 'mine'),
+                      const SizedBox(width: 8),
+                      _filterChip('My Pending', 'unsettled'),
+                      const SizedBox(width: 8),
+                      // Date range button
+                      GestureDetector(
+                        onTap: _pickDateRange,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: (_dateFrom != null || _dateTo != null)
+                                ? const Color(0xFF2E7D32)
+                                : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: (_dateFrom != null || _dateTo != null)
+                                  ? const Color(0xFF2E7D32)
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.date_range_rounded,
+                                  size: 14,
+                                  color: (_dateFrom != null || _dateTo != null)
+                                      ? Colors.white
+                                      : Colors.grey[700]),
+                              const SizedBox(width: 4),
+                              Text(
+                                (_dateFrom != null || _dateTo != null)
+                                    ? '${_dateFrom != null ? "${_dateFrom!.day}/${_dateFrom!.month}" : "…"} – ${_dateTo != null ? "${_dateTo!.day}/${_dateTo!.month}" : "…"}'
+                                    : 'Date',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: (_dateFrom != null || _dateTo != null)
+                                      ? Colors.white
+                                      : Colors.grey[700],
+                                ),
+                              ),
+                              if (_dateFrom != null || _dateTo != null) ...[
+                                const SizedBox(width: 4),
+                                GestureDetector(
+                                  onTap: () => setState(
+                                      () { _dateFrom = null; _dateTo = null; }),
+                                  child: const Icon(Icons.close_rounded,
+                                      size: 12, color: Colors.white),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Search bar
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search by description or member…',
+                    hintStyle:
+                        TextStyle(fontSize: 13, color: Colors.grey[400]),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 18),
+                            onPressed: () =>
+                                setState(() => _searchQuery = ''),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none),
+                    isDense: true,
+                  ),
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                ),
+              ],
             ),
           ),
 
@@ -1701,6 +2073,10 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                       final desc = e['description'] ?? '-';
                       final amountInr =
                           (e['amountInr'] ?? e['amount'] ?? 0) as num;
+                      final nativeAmt = (e['amount'] ?? 0).toString();
+                      final nativeCur = (e['currency'] ?? 'INR').toString();
+                      final nativeSym = _currencySymbol(nativeCur);
+                      final expCategory = (e['category'] ?? 'other').toString();
                       final addedByEmail =
                           _resolveEmail(e['addedBy']);
                       final isMine =
@@ -1872,13 +2248,62 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                         ],
                                       ),
                                     ),
-                                    Text(
-                                      _fmtInr(amountInr),
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF2E7D32),
-                                      ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        // category badge
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          margin: const EdgeInsets.only(
+                                              bottom: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF2E7D32)
+                                                .withValues(alpha: 0.08),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                _categoryIcon(expCategory),
+                                                size: 11,
+                                                color: const Color(0xFF2E7D32),
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                _categoryLabel(expCategory),
+                                                style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: Color(0xFF2E7D32),
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        // converted amount
+                                        Text(
+                                          _fmtInr(amountInr),
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF2E7D32),
+                                          ),
+                                        ),
+                                        // native amount (only when different)
+                                        if (nativeCur.toUpperCase() !=
+                                            _selectedDisplayCurrency
+                                                .toUpperCase())
+                                          Text(
+                                            '$nativeSym$nativeAmt',
+                                            style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey[500]),
+                                          ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -2019,6 +2444,121 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                     fontWeight: FontWeight.w600)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceSummary() {
+    // Compute per-member unsettled totals from expense splits
+    final Map<String, double> pending = {};
+    for (final e in _expenses) {
+      for (final s in List<dynamic>.from(e['split'] ?? [])) {
+        if (s['settled'] == true) continue;
+        final email = _resolveEmail(s['user']);
+        if (!email.contains('@')) continue;
+        final amt =
+            ((s['amountInr'] ?? s['amount'] ?? 0) as num).toDouble();
+        pending[email] = (pending[email] ?? 0) + amt;
+      }
+    }
+    if (pending.isEmpty) return const SizedBox.shrink();
+
+    final sorted = pending.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_wallet_outlined,
+                    size: 14, color: Color(0xFF2E7D32)),
+                const SizedBox(width: 5),
+                const Text('Pending Balances',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E7D32))),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: sorted.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final email = sorted[i].key;
+                final amt = sorted[i].value;
+                final isMe =
+                    email.toLowerCase() == widget.userEmail.toLowerCase();
+                return Container(
+                  width: 150,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isMe
+                        ? Colors.orange[50]
+                        : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isMe
+                          ? Colors.orange[300]!
+                          : Colors.grey[200]!,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        email.split('@').first,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700]),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _fmtInr(amt),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isMe
+                                ? Colors.orange[800]
+                                : Colors.red[700]),
+                      ),
+                      if (widget.isCreator && !isMe)
+                        GestureDetector(
+                          onTap: () => _sendReminder(email),
+                          child: Row(
+                            children: [
+                              Icon(Icons.notifications_outlined,
+                                  size: 11, color: Colors.blue[600]),
+                              const SizedBox(width: 2),
+                              Text('Remind',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.blue[600])),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Divider(height: 1),
+        ],
       ),
     );
   }

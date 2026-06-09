@@ -15,6 +15,7 @@ const groupTransactionSchema = new mongoose.Schema({
     currency: { type: String, required: true, default: 'INR' },
     addedBy: { type: String, required: true }, // Changed from ObjectId to String to store email
     date: { type: Date, default: Date.now },
+    category: { type: String, default: 'other' },
     selectedMembers: [{ type: String }], // New: emails of members included in this expense
     split: [{
       user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

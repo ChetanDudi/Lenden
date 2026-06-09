@@ -325,6 +325,7 @@ module.exports = (io) => {
   router.post('/group-transactions/:groupId/add-member', auth, groupTransactionController.addMember);
   router.post('/group-transactions/:groupId/remove-member', auth, groupTransactionController.removeMember);
   router.post('/group-transactions/:groupId/settle-member-expenses', auth, groupTransactionController.settleMemberExpenses);
+  router.post('/group-transactions/:groupId/remind', auth, groupTransactionController.sendPaymentReminder);
   router.post('/group-transactions/:groupId/add-expense', auth, groupTransactionController.addExpense);
   router.put('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.editExpense);
   router.delete('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.deleteExpense);

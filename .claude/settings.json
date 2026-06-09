@@ -16,7 +16,8 @@
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
       "Bash(build\")",
       "Bash(awk 'NR>1')",
-      "Bash(dart analyze *)"
+      "Bash(dart analyze *)",
+      "Bash(flutter analyze *)"
     ]
   }
 }
