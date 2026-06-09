@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
-import '../Connections/friends_page.dart';
-import '../Digitise/offers_page.dart';
+import '../connections/friends_page.dart';
+import '../digitise/offers_page.dart';
 
 class UserNotificationsPage extends StatefulWidget {
   const UserNotificationsPage({Key? key}) : super(key: key);

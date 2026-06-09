@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'dart:async';
 import '../session.dart';
 import '../otp_input.dart';
-import '../Settings/custom_warning_widget.dart';
+import '../settings/custom_warning_widget.dart';
 import '../utils/api_client.dart';
 
 class AlternativeEmailPage extends StatefulWidget {

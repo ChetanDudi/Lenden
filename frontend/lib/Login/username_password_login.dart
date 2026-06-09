@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import '../api_config.dart';
 import '../utils/api_client.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';

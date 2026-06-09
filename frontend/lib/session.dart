@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'utils/http_interceptor.dart';
-import 'User/chats/chat_encryption_service.dart';
+import 'user/chats/chat_encryption_service.dart';
 
 class SessionProvider extends ChangeNotifier {
   final _storage = const FlutterSecureStorage();

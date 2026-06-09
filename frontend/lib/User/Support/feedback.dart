@@ -2,7 +2,6 @@ import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import '../../api_config.dart';
 import '../../utils/api_client.dart';
 
 class FeedbackPage extends StatefulWidget {

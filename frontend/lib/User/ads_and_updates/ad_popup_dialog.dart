@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../utils/api_client.dart';
-import '../Digitise/subscriptions_page.dart';
+import '../digitise/subscriptions_page.dart';
 
 class UserAdPopupDialog extends StatefulWidget {
   final Map<String, dynamic> ad;

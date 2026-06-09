@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../session.dart';
 import 'dart:convert';
-import 'admin_ratings_page_helpers.dart' hide TopWaveClipper, BottomWaveClipper;
 import '../../profile/profile_page.dart' hide TopWaveClipper, BottomWaveClipper;
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';

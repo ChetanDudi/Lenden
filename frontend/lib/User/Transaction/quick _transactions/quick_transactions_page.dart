@@ -12,8 +12,8 @@ import '../../../utils/api_client.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../widgets/subscription_prompt.dart';
 import '../../../widgets/stylish_dialog.dart';
-import '../../Digitise/subscriptions_page.dart';
-import '../../Digitise/gift_card_page.dart';
+import '../../digitise/subscriptions_page.dart';
+import '../../digitise/gift_card_page.dart';
 import '../analytics_page.dart';
 
 class QuickTransactionsPage extends StatefulWidget {

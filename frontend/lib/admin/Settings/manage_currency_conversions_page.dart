@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 

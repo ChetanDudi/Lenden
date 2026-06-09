@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
-import '../Password Management/change_password_page.dart';
-import '../Alternative Email/alternative_email_page.dart';
+import '../password_management/change_password_page.dart';
+import '../alternative_email/alternative_email_page.dart';
 import 'notification_settings_page.dart';
 import 'privacy_settings_page.dart';
 import 'account_settings_page.dart';

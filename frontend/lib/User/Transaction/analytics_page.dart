@@ -2,12 +2,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../Settings/privacy_settings_page.dart';
+import '../../settings/privacy_settings_page.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
-import 'Quick Transactions/quick_transactions_page.dart';
-import 'Secure Transactions/view_secure_transactions_page.dart';
+import 'quick _transactions/quick_transactions_page.dart';
+import 'secure_transactions/view_secure_transactions_page.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final List<dynamic>? transactions;

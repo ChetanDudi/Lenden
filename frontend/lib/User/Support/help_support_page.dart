@@ -7,7 +7,6 @@ import '../../session.dart';
 import 'contact_page.dart';
 import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'dart:math';
 
 class HelpSupportPage extends StatefulWidget {
   @override

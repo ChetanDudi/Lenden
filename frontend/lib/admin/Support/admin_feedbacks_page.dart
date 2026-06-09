@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter/cupertino.dart';
-import '../../session.dart';
 import 'dart:convert';
 import '../../profile/profile_page.dart' hide TopWaveClipper;
 import '../../utils/api_client.dart';

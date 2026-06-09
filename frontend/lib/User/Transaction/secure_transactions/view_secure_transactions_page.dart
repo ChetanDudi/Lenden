@@ -5,7 +5,6 @@ import '../../../session.dart';
 import 'dart:convert';
 import '../../../utils/api_client.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';

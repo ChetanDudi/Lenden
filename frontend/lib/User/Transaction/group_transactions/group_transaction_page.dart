@@ -7,8 +7,8 @@ import '../../../utils/api_client.dart';
 import '../../../utils/display_currency_helper.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../widgets/stylish_dialog.dart';
-import '../../Digitise/subscriptions_page.dart';
-import '../../Digitise/gift_card_page.dart';
+import '../../digitise/subscriptions_page.dart';
+import '../../digitise/gift_card_page.dart';
 import 'group_detail_page.dart';
 import 'create_group_page.dart';
 

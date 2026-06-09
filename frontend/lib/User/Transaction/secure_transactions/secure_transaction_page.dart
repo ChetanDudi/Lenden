@@ -14,9 +14,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'view_secure_transactions_page.dart';
-import '../../Digitise/gift_card_page.dart';
+import '../../digitise/gift_card_page.dart';
 import '../../../widgets/stylish_dialog.dart';
-import '../../Digitise/subscriptions_page.dart';
+import '../../digitise/subscriptions_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TopWaveClipper extends CustomClipper<Path> {

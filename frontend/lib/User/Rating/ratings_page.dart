@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
-import '../../api_config.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/subscription_prompt.dart';
 

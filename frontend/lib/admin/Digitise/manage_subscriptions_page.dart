@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
-import '../../api_config.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 
