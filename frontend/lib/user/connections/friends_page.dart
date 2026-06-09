@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
-import '../transaction/quick _transactions/quick_transactions_page.dart';
+import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../transaction/secure_transactions/secure_transaction_page.dart';
 import '../transaction/group_transactions/create_group_page.dart';
 import '../../widgets/stylish_dialog.dart';

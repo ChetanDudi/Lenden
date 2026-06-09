@@ -20,7 +20,7 @@ import '../activity/leaderboard_page.dart';
 import '../digitise/referral_page.dart';
 import '../../widgets/notification_icon.dart';
 import '../digitise/subscriptions_page.dart';
-import '../transaction/quick _transactions/quick_transactions_page.dart';
+import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../connections/friends_page.dart';
 import '../digitise/offers_page.dart';
 import '../connections/counterparties_page.dart';
