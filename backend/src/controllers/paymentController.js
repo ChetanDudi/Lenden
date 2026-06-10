@@ -1,6 +1,9 @@
 const crypto = require('crypto');
 const Subscription = require('../models/subscription');
 const SubscriptionPlan = require('../models/subscriptionPlan');
+const User = require('../models/user');
+const WalletTransaction = require('../models/walletTransaction');
+const QuickTransaction = require('../models/quickTransaction');
 
 const getRazorpay = () => {
   const Razorpay = require('razorpay');
@@ -138,6 +141,106 @@ exports.verifyPayment = async (req, res) => {
   } catch (error) {
     console.error('Error verifying payment:', error);
     res.status(500).json({ error: 'Failed to activate subscription', details: error.message });
+  }
+};
+
+// Create Razorpay order for P2P settlement — payer pays LenDen, we credit recipient's wallet on verify
+exports.createP2POrder = async (req, res) => {
+  try {
+    const { toEmail, amount, description, quickTransactionId } = req.body;
+    if (!toEmail || !amount || amount < 100) {
+      return res.status(400).json({ error: 'toEmail and amount (in paise, min 100) are required' });
+    }
+    const recipient = await User.findOne({ email: toEmail.toLowerCase().trim() });
+    if (!recipient) {
+      return res.status(404).json({ error: 'Recipient not found on LenDen' });
+    }
+    const razorpay = getRazorpay();
+    const order = await razorpay.orders.create({
+      amount,
+      currency: 'INR',
+      receipt: `p2p_${Date.now()}`,
+      notes: {
+        fromEmail: req.user.email,
+        toEmail: toEmail.toLowerCase().trim(),
+        type: 'p2p_payment',
+        quickTransactionId: quickTransactionId || '',
+        description: description || '',
+      },
+    });
+    res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Verify P2P payment — credits recipient's wallet and optionally clears the quick transaction
+exports.verifyP2PPayment = async (req, res) => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, quickTransactionId } = req.body;
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({ error: 'Missing payment verification fields' });
+    }
+
+    const expected = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex');
+    if (expected !== razorpaySignature) {
+      return res.status(400).json({ error: 'Payment verification failed: signature mismatch' });
+    }
+
+    const alreadyUsed = await WalletTransaction.findOne({ razorpayPaymentId });
+    if (alreadyUsed) {
+      return res.status(409).json({ error: 'Payment already applied' });
+    }
+
+    const razorpay = getRazorpay();
+    const payment = await razorpay.payments.fetch(razorpayPaymentId);
+    const notes = payment.notes || {};
+    const toEmail = notes.toEmail || req.body.toEmail;
+    const amountInRupees = payment.amount / 100;
+
+    const recipient = toEmail ? await User.findOne({ email: toEmail.toLowerCase().trim() }) : null;
+    if (recipient) {
+      await User.findByIdAndUpdate(recipient._id, { $inc: { walletBalance: amountInRupees } });
+      await WalletTransaction.create({
+        user: req.user._id,
+        type: 'debit',
+        amount: amountInRupees,
+        toEmail: recipient.email,
+        note: notes.description || 'P2P payment via Razorpay',
+        razorpayOrderId,
+        razorpayPaymentId,
+      });
+      await WalletTransaction.create({
+        user: recipient._id,
+        type: 'credit',
+        amount: amountInRupees,
+        fromEmail: req.user.email,
+        note: notes.description || 'P2P payment received via Razorpay',
+        razorpayOrderId,
+        razorpayPaymentId,
+      });
+    }
+
+    const qtId = quickTransactionId || notes.quickTransactionId;
+    if (qtId) {
+      const qt = await QuickTransaction.findById(qtId);
+      if (qt && qt.users.includes(req.user.email)) {
+        qt.cleared = true;
+        qt.settlementStatus = 'accepted';
+        qt.settlementRespondedBy = req.user.email;
+        qt.settlementRespondedAt = new Date();
+        qt.settledViaPayment = true;
+        qt.paymentMethod = 'razorpay';
+        await qt.save();
+      }
+    }
+
+    res.json({ message: 'Payment verified and settled', amount: amountInRupees });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 

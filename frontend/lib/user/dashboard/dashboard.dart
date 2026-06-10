@@ -1294,7 +1294,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               ),
                               IconButton(
                                 icon: const Icon(Icons.account_balance_wallet_rounded,
-                                    color: Color(0xFF023E8A), size: 26),
+                                    color: Color(0xFFFF8000), size: 26),
                                 tooltip: 'LenDen Wallet',
                                 onPressed: () {
                                   Navigator.push(

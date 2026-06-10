@@ -320,8 +320,8 @@ exports.getQuickTransactions = async (req, res) => {
     }
 
     const populatedTransactions = await Promise.all(quickTransactions.map(async (t) => {
-      const users = await User.find({ email: { $in: t.users } }).select('name email');
-      t.users = users.map(u => ({ name: u.name, email: u.email }));
+      const users = await User.find({ email: { $in: t.users } }).select('name email phone');
+      t.users = users.map(u => ({ name: u.name, email: u.email, phone: u.phone ?? null }));
       return t;
     }));
 

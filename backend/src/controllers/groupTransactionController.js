@@ -507,6 +507,7 @@ exports.addExpense = async (req, res) => {
       selectedMembers,
       useCoins,
       category,
+      addedBy: addedByInput,
     } = req.body;
 
     const group = await GroupTransaction.findById(groupId);
@@ -620,6 +621,12 @@ exports.addExpense = async (req, res) => {
     if (invalidMembers.length > 0) {
       return res.status(400).json({ error: `Invalid members selected: ${invalidMembers.join(', ')}` });
     }
+
+    // Resolve addedBy — must be an active group member (defaults to requesting user)
+    if (addedByInput && !activeMemberEmails.includes(addedByInput)) {
+      return res.status(400).json({ error: `addedBy member "${addedByInput}" is not an active group member` });
+    }
+    const effectiveAddedBy = addedByInput || userEmail;
     
     let splitArr = [];
     
@@ -688,21 +695,26 @@ exports.addExpense = async (req, res) => {
       description,
       amount,
       currency: normalizedCurrency,
-      addedBy: userEmail,
+      addedBy: effectiveAddedBy,
       date: date ? new Date(date) : new Date(),
       category: category || 'other',
       selectedMembers: selectedMembers,
       split: splitArr
     };
-    
+
     group.expenses.push(expenseData);
-    
+
     // Update balances - only for selected members
     splitArr.forEach(s => {
       const bal = group.balances.find(b => b.user.toString() === s.user.toString());
       if (bal) bal.balance += s.amount;
     });
-    const payerBal = group.balances.find(b => b.user.toString() === userId.toString());
+    // Credit the effective payer (may differ from requesting user)
+    const payerMember = populatedActiveMembers.find(
+      m => m.user && typeof m.user === 'object' && m.user.email === effectiveAddedBy
+    );
+    const payerUserId = payerMember ? (payerMember.user._id || payerMember.user) : userId;
+    const payerBal = group.balances.find(b => b.user.toString() === payerUserId.toString());
     if (payerBal) payerBal.balance -= amount;
     
     await group.save();
@@ -1405,93 +1417,6 @@ exports.editExpense = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 }; 
-
-exports.sendPaymentReminder = async (req, res) => {
-  try {
-    const { groupId } = req.params;
-    const { memberEmail } = req.body;
-
-    if (!memberEmail) return res.status(400).json({ error: 'memberEmail is required' });
-
-    const group = await GroupTransaction.findById(groupId)
-      .populate('members.user', 'email')
-      .populate('creator', 'email');
-    if (!group) return res.status(404).json({ error: 'Group not found' });
-
-    if (group.creator._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Only group creator can send reminders' });
-    }
-
-    // Collect pending amounts for this member across all expenses
-    const pendingExpenses = [];
-    for (const expense of group.expenses) {
-      const enriched = await require('../utils/currencyConverter').enrichExpenseWithInr(expense);
-      for (const splitItem of enriched.split || []) {
-        if (splitItem.settled) continue;
-        const member = group.members.find(m => m.user._id.toString() === splitItem.user.toString());
-        if (member && member.user.email === memberEmail) {
-          pendingExpenses.push({
-            description: expense.description,
-            amount: splitItem.amount,
-            amountInr: splitItem.amountInr,
-            currency: expense.currency,
-          });
-        }
-      }
-    }
-
-    if (pendingExpenses.length === 0) {
-      return res.status(400).json({ error: `${memberEmail} has no pending splits in this group` });
-    }
-
-    const totalInr = pendingExpenses.reduce((s, e) => s + (e.amountInr || e.amount || 0), 0);
-
-    // Send reminder email via nodemailer (reuse existing mailer)
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
-
-    const rows = pendingExpenses.map(e =>
-      `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee">${e.description}</td>` +
-      `<td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">${e.currency} ${e.amount.toFixed(2)}</td></tr>`
-    ).join('');
-
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">
-        <div style="background:#2E7D32;color:#fff;padding:20px;border-radius:8px 8px 0 0">
-          <h2 style="margin:0">Payment Reminder – ${group.title}</h2>
-          <p style="margin:4px 0 0;opacity:.85">from ${group.creator.email}</p>
-        </div>
-        <div style="padding:20px;background:#fafafa">
-          <p>Hi <b>${memberEmail}</b>,</p>
-          <p>You have <b>₹${totalInr.toFixed(2)}</b> in pending group expenses:</p>
-          <table style="width:100%;border-collapse:collapse;margin:12px 0">
-            <thead><tr style="background:#f0f4f0">
-              <th style="padding:8px 12px;text-align:left">Expense</th>
-              <th style="padding:8px 12px;text-align:right">Your Share</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <p>Please settle at your earliest convenience.</p>
-          <p style="color:#888;font-size:12px">– LenDen Group Tracker</p>
-        </div>
-      </div>`;
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: memberEmail,
-      subject: `Payment Reminder: ${group.title} – ₹${totalInr.toFixed(2)} pending`,
-      html,
-    });
-
-    res.json({ message: `Reminder sent to ${memberEmail}` });
-  } catch (err) {
-    console.error('sendPaymentReminder error:', err);
-    res.status(500).json({ error: err.message });
-  }
-};
 
 exports.settleMemberExpenses = async (req, res) => {
   try {

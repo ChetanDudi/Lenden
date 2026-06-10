@@ -470,6 +470,31 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
   }
 
+  // Minimum transactions to settle all debts given net balances.
+  List<Map<String, dynamic>> _computePairwiseDebts(Map<String, double> balances) {
+    final debtors = <String, double>{};
+    final creditors = <String, double>{};
+    for (final e in balances.entries) {
+      if (e.value > 0.01) debtors[e.key] = e.value;
+      if (e.value < -0.01) creditors[e.key] = -e.value;
+    }
+    final dKeys = debtors.keys.toList();
+    final cKeys = creditors.keys.toList();
+    final dAmts = dKeys.map((k) => debtors[k]!).toList();
+    final cAmts = cKeys.map((k) => creditors[k]!).toList();
+    final result = <Map<String, dynamic>>[];
+    int di = 0, ci = 0;
+    while (di < dKeys.length && ci < cKeys.length) {
+      final pay = dAmts[di] < cAmts[ci] ? dAmts[di] : cAmts[ci];
+      result.add({'from': dKeys[di], 'to': cKeys[ci], 'amount': pay});
+      dAmts[di] -= pay;
+      cAmts[ci] -= pay;
+      if (dAmts[di] < 0.01) di++;
+      if (cAmts[ci] < 0.01) ci++;
+    }
+    return result;
+  }
+
   // Compute net balance per member from expenses data.
   // Positive = this member owes others; Negative = others owe this member.
   Map<String, double> _computeBalances() {
@@ -908,6 +933,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 Builder(builder: (context) {
                   final balances = _computeBalances();
                   if (balances.isEmpty) return const SizedBox.shrink();
+                  // Notes-page pastel palette, rotated by card index
+                  const _owePastels = [
+                    Color(0xFFFFF4E6), // cream
+                    Color(0xFFE8F5E9), // light green
+                    Color(0xFFFCE4EC), // light pink
+                    Color(0xFFE3F2FD), // light blue
+                    Color(0xFFFFF9C4), // light yellow
+                    Color(0xFFF3E5F5), // light purple
+                  ];
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -916,8 +950,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         child: Row(children: [
                           Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(color: const Color(0xFF1565C0).withValues(alpha: 0.12), shape: BoxShape.circle),
-                            child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF1565C0), size: 18),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF8000).withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFFFF8000), size: 18),
                           ),
                           const SizedBox(width: 8),
                           const Text('Who Owes What', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -925,85 +962,216 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                       const SizedBox(height: 10),
                       Builder(builder: (ctx) {
-                        // Find the member who is owed the most (most negative) to use as pay target
-                        String? topCreditorEmail;
-                        double maxCredit = 0;
-                        for (final e in balances.entries) {
-                          if (e.value < maxCredit) { maxCredit = e.value; topCreditorEmail = e.key; }
-                        }
-                        return SizedBox(
-                          height: 140,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            children: balances.entries.map((entry) {
-                              final memberEmail = entry.key;
-                              final net = entry.value;
-                              final isMe = memberEmail.toLowerCase() == (_userEmail ?? '').toLowerCase();
-                              final isOwes = net > 0;
-                              final color = isOwes ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32);
-                              final shortName = memberEmail.split('@').first;
-                              return _tricolorBorderBox(
-                                margin: const EdgeInsets.only(right: 10),
-                                radius: 14,
-                                child: Container(
-                                  width: 140,
-                                  color: color.withValues(alpha: 0.06),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        isMe ? 'You' : shortName,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        isOwes ? 'owes' : 'is owed',
-                                        style: TextStyle(fontSize: 10, color: color),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '₹${net.abs().toStringAsFixed(2)}',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
-                                      ),
-                                      if (isMe && isOwes) ...[
-                                        const SizedBox(height: 6),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          height: 28,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF023E8A),
-                                              padding: EdgeInsets.zero,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                              elevation: 0,
-                                            ),
-                                            onPressed: () => LendenPaymentHelper.showPaymentSheet(
-                                              ctx,
-                                              counterpartyEmail: topCreditorEmail ?? '',
-                                              amount: net.abs(),
-                                              description: 'Group expense repayment',
-                                              counterpartyPhone: null,
-                                              onSuccess: () {
-                                                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                                                  content: Text('Payment sent!'),
-                                                  backgroundColor: Colors.green,
-                                                  behavior: SnackBarBehavior.floating,
-                                                ));
-                                              },
-                                            ),
-                                            child: const Text('Pay', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        final debts = _computePairwiseDebts(balances);
+                        final myEmail = (_userEmail ?? '').toLowerCase();
+                        final entries = balances.entries.toList();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ── Net balance cards ──────────────────────
+                            SizedBox(
+                              height: 148,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: entries.length,
+                                itemBuilder: (_, idx) {
+                                  final entry = entries[idx];
+                                  final memberEmail = entry.key;
+                                  final net = entry.value;
+                                  final isMe = memberEmail.toLowerCase() == myEmail;
+                                  final isOwes = net > 0;
+                                  final amtColor = isOwes ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32);
+                                  final shortName = memberEmail.split('@').first;
+                                  final bg = _owePastels[idx % _owePastels.length];
+                                  // Find who this person pays (first match in debts)
+                                  final myDebt = isMe && isOwes
+                                      ? debts.firstWhere(
+                                          (d) => (d['from'] as String).toLowerCase() == myEmail,
+                                          orElse: () => <String, dynamic>{},
+                                        )
+                                      : <String, dynamic>{};
+                                  final payTo = myDebt['to'] as String?;
+                                  final payAmt = myDebt['amount'] as double?;
+                                  return _tricolorBorderBox(
+                                    margin: const EdgeInsets.only(right: 10),
+                                    radius: 16,
+                                    child: Container(
+                                      width: 140,
+                                      color: bg,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            isMe ? 'You' : shortName,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            maxLines: 1, overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                      ],
-                                    ],
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            isOwes ? 'owes' : 'is owed',
+                                            style: TextStyle(fontSize: 11, color: amtColor, fontWeight: FontWeight.w500),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '₹${net.abs().toStringAsFixed(2)}',
+                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: amtColor),
+                                          ),
+                                          if (isMe && isOwes && payTo != null) ...[
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              '→ ${payTo.split('@').first}',
+                                              style: const TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontWeight: FontWeight.w600),
+                                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 6),
+                                            SizedBox(
+                                              width: double.infinity,
+                                              height: 26,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF00B4D8),
+                                                  padding: EdgeInsets.zero,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  elevation: 0,
+                                                ),
+                                                onPressed: () => LendenPaymentHelper.showPaymentSheet(
+                                                  ctx,
+                                                  counterpartyEmail: payTo,
+                                                  amount: payAmt ?? net.abs(),
+                                                  description: 'Group expense repayment',
+                                                  counterpartyPhone: null,
+                                                  onSuccess: () {
+                                                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                                                      content: Text('Payment sent!'),
+                                                      backgroundColor: Colors.green,
+                                                      behavior: SnackBarBehavior.floating,
+                                                    ));
+                                                  },
+                                                ),
+                                                child: const Text('Pay Now', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            // ── Settlement plan ────────────────────────
+                            if (debts.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(children: [
+                                  const Icon(Icons.swap_horiz_rounded, size: 15, color: Color(0xFF00B4D8)),
+                                  const SizedBox(width: 6),
+                                  const Text('How to Settle',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF00B4D8))),
+                                ]),
+                              ),
+                              const SizedBox(height: 8),
+                              ...debts.map((d) {
+                                final from = d['from'] as String;
+                                final to = d['to'] as String;
+                                final amt = d['amount'] as double;
+                                final fromMe = from.toLowerCase() == myEmail;
+                                final fromShort = fromMe ? 'You' : from.split('@').first;
+                                final toShort = to.split('@').first;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                                  child: _tricolorBorderBox(
+                                    radius: 12,
+                                    borderWidth: 1.5,
+                                    child: Container(
+                                      color: fromMe ? const Color(0xFFE3F2FD) : Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 14,
+                                            backgroundColor: fromMe
+                                                ? const Color(0xFF00B4D8)
+                                                : Colors.grey[300],
+                                            child: Text(
+                                              fromShort[0].toUpperCase(),
+                                              style: TextStyle(
+                                                color: fromMe ? Colors.white : Colors.grey[700],
+                                                fontSize: 12, fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: RichText(
+                                              text: TextSpan(
+                                                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                                children: [
+                                                  TextSpan(
+                                                    text: fromShort,
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      color: fromMe ? const Color(0xFF00B4D8) : Colors.black87,
+                                                    ),
+                                                  ),
+                                                  const TextSpan(text: ' pays '),
+                                                  TextSpan(
+                                                    text: toShort,
+                                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '₹${amt.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: fromMe ? const Color(0xFFD32F2F) : Colors.grey[700],
+                                            ),
+                                          ),
+                                          if (fromMe) ...[
+                                            const SizedBox(width: 8),
+                                            SizedBox(
+                                              height: 28,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF00B4D8),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  elevation: 0,
+                                                ),
+                                                onPressed: () => LendenPaymentHelper.showPaymentSheet(
+                                                  ctx,
+                                                  counterpartyEmail: to,
+                                                  amount: amt,
+                                                  description: 'Group expense repayment',
+                                                  counterpartyPhone: null,
+                                                  onSuccess: () {
+                                                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                                                      content: Text('Payment sent!'),
+                                                      backgroundColor: Colors.green,
+                                                      behavior: SnackBarBehavior.floating,
+                                                    ));
+                                                  },
+                                                ),
+                                                child: const Text('Pay', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
+                                );
+                              }),
+                            ],
+                          ],
                         );
                       }),
                       const SizedBox(height: 16),

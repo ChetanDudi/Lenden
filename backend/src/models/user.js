@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
   birthday: { type: Date },
   address: { type: String },
   phone: { type: String },
+  walletBalance: { type: Number, default: 0 },
   altEmail: { type: String },
   altEmailOTP: {
     code: { type: String },

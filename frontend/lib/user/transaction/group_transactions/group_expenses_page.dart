@@ -123,6 +123,7 @@ class _AddExpenseSheet extends StatefulWidget {
   final int skippedLeftCount;
   final Set<String> initialSelectedEmails;
   final Map<String, String> initialSplitAmounts;
+  final String currentUserEmail;
   final void Function(
     String desc,
     double amount,
@@ -131,6 +132,7 @@ class _AddExpenseSheet extends StatefulWidget {
     List<String> selectedEmails,
     List<Map<String, dynamic>> split,
     String category,
+    String addedBy,
   ) onSubmit;
 
   const _AddExpenseSheet({
@@ -140,6 +142,7 @@ class _AddExpenseSheet extends StatefulWidget {
     required this.skippedLeftCount,
     required this.initialSelectedEmails,
     required this.initialSplitAmounts,
+    required this.currentUserEmail,
     required this.onSubmit,
   });
 
@@ -155,6 +158,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   late String splitType;
   late Set<String> selectedEmails;
   late String category;
+  late String addedBy;
 
   @override
   void initState() {
@@ -170,6 +174,9 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
         'INR';
     splitType = 'equal';
     category = widget.expense?['category']?.toString() ?? 'other';
+    addedBy = widget.expense?['addedBy']?.toString().isNotEmpty == true
+        ? widget.expense!['addedBy'].toString()
+        : widget.currentUserEmail;
     selectedEmails = Set<String>.from(widget.initialSelectedEmails);
     splitCtrls = {
       for (final e in widget.allEmails)
@@ -307,7 +314,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
 
     Navigator.pop(context);
     widget.onSubmit(
-        desc, amount, effectiveCurrency, splitType, chosenEmails, split, category);
+        desc, amount, effectiveCurrency, splitType, chosenEmails, split, category, addedBy);
   }
 
   @override
@@ -580,6 +587,57 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                 ],
               ),
             ],
+            const SizedBox(height: 12),
+
+            // ── Added by picker ───────────────────────────────────
+            const Text('Added by (who paid)',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: allEmails.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (_, i) {
+                  final email = allEmails[i];
+                  final sel = addedBy == email;
+                  return GestureDetector(
+                    onTap: () => setState(() => addedBy = email),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: sel ? const Color(0xFF00B4D8) : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: sel ? const Color(0xFF00B4D8) : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (sel)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 4),
+                              child: Icon(Icons.check_circle_rounded, size: 13, color: Colors.white),
+                            ),
+                          Text(
+                            email == widget.currentUserEmail ? 'You' : email.split('@').first,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: sel ? Colors.white : Colors.grey[700],
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 12),
 
             Row(
@@ -1015,19 +1073,6 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     }
   }
 
-  Future<void> _sendReminder(String memberEmail) async {
-    final res = await ApiClient.post(
-      '/api/group-transactions/${widget.groupId}/remind',
-      body: {'memberEmail': memberEmail},
-    );
-    if (!mounted) return;
-    if (res.statusCode == 200) {
-      _showSnack('Reminder sent to $memberEmail', success: true);
-    } else {
-      _showError(jsonDecode(res.body)['error'] ?? 'Failed to send reminder');
-    }
-  }
-
   void _showReceiptDialog() {
     showDialog(
       context: context,
@@ -1365,7 +1410,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         skippedLeftCount: skippedLeftCount,
         initialSelectedEmails: selectedEmails,
         initialSplitAmounts: initialSplitAmounts,
-        onSubmit: (desc, amount, currency, splitType, selectedEmails, split, category) {
+        currentUserEmail: widget.userEmail,
+        onSubmit: (desc, amount, currency, splitType, selectedEmails, split, category, addedBy) {
           _doExpenseSubmit(
             expense: expense,
             desc: desc,
@@ -1375,6 +1421,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             selectedEmails: selectedEmails,
             split: split,
             category: category,
+            addedBy: addedBy,
           );
         },
       ),
@@ -1390,6 +1437,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     required List<String> selectedEmails,
     required List<Map<String, dynamic>> split,
     required String category,
+    required String addedBy,
   }) async {
     setState(() => _loading = true);
     if (expense == null) {
@@ -1403,6 +1451,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           'split': split,
           'selectedMembers': selectedEmails,
           'category': category,
+          'addedBy': addedBy,
         },
       );
       if (!mounted) return;
@@ -2535,21 +2584,6 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                 ? Colors.orange[800]
                                 : Colors.red[700]),
                       ),
-                      if (widget.isCreator && !isMe)
-                        GestureDetector(
-                          onTap: () => _sendReminder(email),
-                          child: Row(
-                            children: [
-                              Icon(Icons.notifications_outlined,
-                                  size: 11, color: Colors.blue[600]),
-                              const SizedBox(width: 2),
-                              Text('Remind',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.blue[600])),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
                 );

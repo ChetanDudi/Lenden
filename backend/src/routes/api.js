@@ -327,7 +327,6 @@ module.exports = (io) => {
   router.post('/group-transactions/:groupId/add-member', auth, groupTransactionController.addMember);
   router.post('/group-transactions/:groupId/remove-member', auth, groupTransactionController.removeMember);
   router.post('/group-transactions/:groupId/settle-member-expenses', auth, groupTransactionController.settleMemberExpenses);
-  router.post('/group-transactions/:groupId/remind', auth, groupTransactionController.sendPaymentReminder);
   router.post('/group-transactions/:groupId/add-expense', auth, groupTransactionController.addExpense);
   router.put('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.editExpense);
   router.delete('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.deleteExpense);
@@ -492,7 +491,17 @@ module.exports = (io) => {
   // Payment routes (Razorpay)
   router.post('/payment/create-order', auth, paymentController.createOrder);
   router.post('/payment/verify', auth, paymentController.verifyPayment);
+  router.post('/payment/create-p2p-order', auth, paymentController.createP2POrder);
+  router.post('/payment/verify-p2p', auth, paymentController.verifyP2PPayment);
   router.post('/payment/webhook', paymentController.razorpayWebhook); // no auth — Razorpay calls this
+
+  // LenDen Wallet routes
+  const walletController = require('../controllers/walletController');
+  router.get('/wallet/balance', auth, walletController.getBalance);
+  router.get('/wallet/history', auth, walletController.getHistory);
+  router.post('/wallet/create-order', auth, walletController.createTopUpOrder);
+  router.post('/wallet/verify', auth, walletController.verifyTopUp);
+  router.post('/wallet/pay', auth, walletController.pay);
 
   // Admin feature routes
   // Subscription Plans

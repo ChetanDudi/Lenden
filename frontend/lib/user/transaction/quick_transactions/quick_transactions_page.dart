@@ -1331,6 +1331,41 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         requestedBy != currentUserEmail;
   }
 
+  void _payNow(Map<String, dynamic> transaction) {
+    final id = (transaction['_id'] ?? '').toString();
+    final counterparty = _counterpartyForViewer(transaction);
+    final email = (counterparty?['email'] ?? '').toString();
+    final phone = counterparty?['phone']?.toString();
+    final amount = ((transaction['amount'] ?? 0) as num).toDouble();
+    LendenPaymentHelper.showPaymentSheet(
+      context,
+      counterpartyEmail: email,
+      amount: amount,
+      description: transaction['description']?.toString() ?? 'Quick transaction settlement',
+      counterpartyPhone: phone,
+      quickTransactionId: id,
+      onSuccess: () async {
+        final index = transactions.indexWhere((t) => t['_id'] == id);
+        if (index != -1) {
+          setState(() {
+            transactions[index]['cleared'] = true;
+            filteredTransactions = List.from(transactions);
+            _applyPinSort();
+          });
+        }
+        final res = await ApiClient.put('/api/quick-transactions/$id/clear', body: {});
+        if (!mounted) return;
+        if (res.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Payment successful! Transaction settled.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ));
+        }
+      },
+    );
+  }
+
   Future<void> _requestSettlement(Map<String, dynamic> transaction) async {
     final res = await ApiClient.post(
       '/api/quick-transactions/${transaction['_id']}/request-settlement',
@@ -2642,6 +2677,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               _respondSettlement(transaction, 'accept');
                             } else if (value == 'reject_settlement') {
                               _respondSettlement(transaction, 'reject');
+                            } else if (value == 'pay_now') {
+                              _payNow(transaction);
                             } else if (value == 'share') {
                               _showReceiptDialog(transaction);
                             } else if (value == 'pin') {
@@ -2659,6 +2696,15 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               const PopupMenuItem(
                                 value: 'request_settlement',
                                 child: Text('Request Settlement'),
+                              ),
+                            if (!isCleared && roleForViewer == 'borrower')
+                              const PopupMenuItem(
+                                value: 'pay_now',
+                                child: Row(children: [
+                                  Icon(Icons.payment_rounded, size: 16, color: Color(0xFF00B4D8)),
+                                  SizedBox(width: 8),
+                                  Text('Pay Now (Real Money)', style: TextStyle(color: Color(0xFF00B4D8), fontWeight: FontWeight.w600)),
+                                ]),
                               ),
                             if (_canRespondToSettlement(transaction))
                               const PopupMenuItem(
@@ -2796,38 +2842,31 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
-                    if (!isCleared && roleForViewer == 'receiver') ...[
+                    if (!isCleared && roleForViewer == 'borrower') ...[
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF023E8A),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: const LinearGradient(
+                            colors: [Colors.orange, Colors.white, Colors.green],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          icon: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 18),
-                          label: const Text('Pay Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          onPressed: () {
-                            final email = (counterparty?['email'] ?? '').toString();
-                            final phone = counterparty?['phone']?.toString();
-                            final amount = ((transaction['amount'] ?? 0) as num).toDouble();
-                            LendenPaymentHelper.showPaymentSheet(
-                              context,
-                              counterpartyEmail: email,
-                              amount: amount,
-                              description: transaction['description']?.toString() ?? 'Quick transaction payment',
-                              counterpartyPhone: phone,
-                              onSuccess: () {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                  content: Text('Payment successful!'),
-                                  backgroundColor: Colors.green,
-                                  behavior: SnackBarBehavior.floating,
-                                ));
-                              },
-                            );
-                          },
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00B4D8),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(Icons.payment_rounded, color: Colors.white, size: 18),
+                            label: const Text('Pay Now (Real Money)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            onPressed: () => _payNow(transaction),
+                          ),
                         ),
                       ),
                     ],
