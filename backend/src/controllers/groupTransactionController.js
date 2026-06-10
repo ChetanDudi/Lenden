@@ -919,6 +919,7 @@ exports.getUserGroups = async (req, res) => {
           totalExpenses: processedExpenses.length,
           totalAmountInr: Number(totalAmountInr.toFixed(2)),
           balances: obj.balances || [],
+          memberPayments: obj.memberPayments || [],
           color: obj.color,
           favourite: obj.favourite || [],
           messageCount: obj.messageCount || 0,
@@ -1519,6 +1520,120 @@ exports.settleMemberExpenses = async (req, res) => {
     }
   } catch (err) {
     console.error('Error settling member expenses:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Record a peer-to-peer payment between two group members.
+// Tracks only this specific payer→receiver pair so other debts are unaffected.
+exports.recordMemberPayment = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { toEmail, amount } = req.body;
+
+    if (!toEmail || !amount || parseFloat(amount) <= 0) {
+      return res.status(400).json({ error: 'toEmail and a positive amount are required' });
+    }
+
+    const group = await GroupTransaction.findById(groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const isMember = group.members.some(
+      m => m.user.toString() === req.user._id.toString() && !m.leftAt
+    );
+    const isCreator = group.creator.toString() === req.user._id.toString();
+    if (!isMember && !isCreator) {
+      return res.status(403).json({ error: 'You are not an active member of this group' });
+    }
+
+    group.memberPayments.push({
+      from: req.user.email.toLowerCase().trim(),
+      to: toEmail.toLowerCase().trim(),
+      amount: parseFloat(amount),
+      paidAt: new Date(),
+    });
+
+    await group.save();
+
+    const populatedGroup = await GroupTransaction.findById(group._id)
+      .populate('members.user', 'email')
+      .populate('creator', 'email');
+    const groupObj = populatedGroup.toObject();
+    const processedExpenses = await processExpenses(groupObj.expenses);
+    groupObj.members = groupObj.members.map(m => ({
+      _id: m.user._id,
+      email: m.user.email,
+      joinedAt: m.joinedAt,
+      leftAt: m.leftAt,
+    }));
+    groupObj.creator = { _id: groupObj.creator._id, email: groupObj.creator.email };
+    groupObj.expenses = processedExpenses;
+
+    res.json({ group: groupObj });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Allow the paying member to self-settle their own splits after making payment.
+// Called automatically from the frontend Pay Now / Pay success callback.
+exports.selfSettleExpenses = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const group = await GroupTransaction.findById(groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    // Must be an active member (creator included)
+    const isMember = group.members.some(
+      m => m.user.toString() === req.user._id.toString() && !m.leftAt
+    );
+    const isCreator = group.creator.toString() === req.user._id.toString();
+    if (!isMember && !isCreator) {
+      return res.status(403).json({ error: 'You are not an active member of this group' });
+    }
+
+    // Mark all of this user's unsettled splits across all expenses
+    let expensesUpdated = 0;
+    for (const expense of group.expenses) {
+      let modified = false;
+      for (const splitItem of expense.split) {
+        if (splitItem.user.toString() === req.user._id.toString() && !splitItem.settled) {
+          splitItem.settled = true;
+          splitItem.settledAt = new Date();
+          splitItem.settledBy = req.user.email;
+          modified = true;
+        }
+      }
+      if (modified) expensesUpdated++;
+    }
+
+    await group.save();
+
+    const populatedGroup = await GroupTransaction.findById(group._id)
+      .populate('members.user', 'email')
+      .populate('creator', 'email');
+    const groupObj = populatedGroup.toObject();
+    const processedExpenses = await processExpenses(groupObj.expenses);
+    groupObj.members = groupObj.members.map(m => ({
+      _id: m.user._id,
+      email: m.user.email,
+      joinedAt: m.joinedAt,
+      leftAt: m.leftAt,
+    }));
+    groupObj.creator = { _id: groupObj.creator._id, email: groupObj.creator.email };
+    groupObj.expenses = processedExpenses;
+
+    res.json({ group: groupObj, expensesUpdated });
+
+    try {
+      await logGroupActivityForAllMembers('expense_settled', group, {
+        memberEmail: req.user.email,
+        expensesUpdated,
+      }, null, { creatorId: req.user._id, creatorEmail: req.user.email });
+    } catch (e) {
+      console.error('Failed to log group activity:', e);
+    }
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };

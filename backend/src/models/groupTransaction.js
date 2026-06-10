@@ -39,6 +39,12 @@ const groupTransactionSchema = new mongoose.Schema({
     createdAt: { type: Date, default: null },
   },
   isActive: { type: Boolean, default: true },
+  memberPayments: [{
+    from: { type: String, required: true },   // payer email
+    to: { type: String, required: true },     // receiver email
+    amount: { type: Number, required: true },
+    paidAt: { type: Date, default: Date.now },
+  }],
   favourite: [{ type: String }], // Array of user emails
   messageCounts: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

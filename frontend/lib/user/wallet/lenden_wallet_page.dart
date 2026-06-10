@@ -7,6 +7,8 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../transaction/quick_transactions/quick_transactions_page.dart';
+import '../transaction/group_transactions/group_transaction_page.dart';
+import '../transaction/secure_transactions/view_secure_transactions_page.dart';
 
 // Razorpay only works on Android/iOS — not on Windows, Web, or macOS.
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -475,6 +477,100 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                   ),
                 ),
 
+                const SizedBox(height: 10),
+
+                // Group Transactions CTA — tricolor border
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      gradient: const LinearGradient(
+                        colors: [Colors.orange, Colors.white, Colors.green],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupTransactionPage())),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F9FF),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00B4D8).withValues(alpha: 0.14),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.group_rounded, color: Color(0xFF00B4D8), size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Text('Group Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF00B4D8))),
+                              Text('Settle shared group expenses', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                            ]),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: Color(0xFF00B4D8)),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Secure Transactions CTA — tricolor border
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      gradient: const LinearGradient(
+                        colors: [Colors.orange, Colors.white, Colors.green],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserTransactionsPage())),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FFF4),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.withValues(alpha: 0.14),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.verified_user_rounded, color: Colors.teal, size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Text('Secure Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal)),
+                              Text('Manage lend & borrow records', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                            ]),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: Colors.teal),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 16),
 
                 // Transaction history
@@ -508,13 +604,44 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                           itemBuilder: (_, i) {
                             final t = _transactions[i];
                             final type = (t['type'] ?? 'credit').toString();
-                            final isCredit = type == 'credit' || type == 'add' || type == 'receive';
+                            final isCredit = type == 'credit' || type == 'topup' || type == 'add' || type == 'receive';
                             final amount = ((t['amount'] ?? 0) as num).toDouble();
-                            final desc = (t['description'] ?? t['note'] ?? '').toString();
+                            final noteRaw = (t['note'] ?? t['description'] ?? '').toString();
+                            final note = noteRaw.toLowerCase();
+                            final fromEmail = (t['fromEmail'] ?? '').toString();
+                            final toEmail = (t['toEmail'] ?? '').toString();
+                            final hasRazorpay = t['razorpayPaymentId'] != null && t['razorpayPaymentId'].toString().isNotEmpty;
                             final date = (t['createdAt'] ?? '').toString();
                             final dateShort = date.length >= 10 ? date.substring(0, 10) : date;
 
+                            // Determine transaction category for badge
+                            String txLabel;
+                            IconData txIcon;
+                            Color txBadgeColor;
+                            if (type == 'topup') {
+                              txLabel = 'Wallet Top-up';
+                              txIcon = Icons.add_card_rounded;
+                              txBadgeColor = const Color(0xFF2E7D32);
+                            } else if (note.contains('group expense') || note.contains('group repayment')) {
+                              txLabel = 'Group Repayment';
+                              txIcon = Icons.group_rounded;
+                              txBadgeColor = const Color(0xFF1565C0);
+                            } else if (note.contains('secure transaction')) {
+                              txLabel = 'Secure Txn';
+                              txIcon = Icons.verified_user_rounded;
+                              txBadgeColor = const Color(0xFF6A1B9A);
+                            } else if (hasRazorpay) {
+                              txLabel = isCredit ? 'Razorpay Received' : 'Razorpay P2P';
+                              txIcon = Icons.payment_rounded;
+                              txBadgeColor = const Color(0xFF00B4D8);
+                            } else {
+                              txLabel = isCredit ? 'Wallet Received' : 'Wallet Transfer';
+                              txIcon = isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded;
+                              txBadgeColor = isCredit ? const Color(0xFF2E7D32) : const Color(0xFFFF8000);
+                            }
+
                             final txColor = isCredit ? const Color(0xFF2E7D32) : const Color(0xFFFF8000);
+                            final counterparty = isCredit ? fromEmail : toEmail;
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               padding: const EdgeInsets.all(2),
@@ -532,29 +659,60 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Row(children: [
+                                child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                                   Container(
                                     width: 44, height: 44,
                                     decoration: BoxDecoration(
-                                      color: txColor.withValues(alpha: 0.1),
+                                      color: txBadgeColor.withValues(alpha: 0.12),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: Icon(
-                                      isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                                      color: txColor,
-                                      size: 20,
-                                    ),
+                                    child: Icon(txIcon, color: txBadgeColor, size: 20),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        desc.isNotEmpty ? desc : (isCredit ? 'Money Added' : 'Money Sent'),
+                                        noteRaw.isNotEmpty ? noteRaw : txLabel,
                                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                                         maxLines: 1, overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 4),
+                                      Row(children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: txBadgeColor.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: txBadgeColor.withValues(alpha: 0.35), width: 0.8),
+                                          ),
+                                          child: Text(txLabel, style: TextStyle(fontSize: 10, color: txBadgeColor, fontWeight: FontWeight.w600)),
+                                        ),
+                                        if (hasRazorpay) ...[
+                                          const SizedBox(width: 6),
+                                          Icon(Icons.lock_rounded, size: 11, color: Colors.green[700]),
+                                          const SizedBox(width: 2),
+                                          Text('Secured', style: TextStyle(fontSize: 10, color: Colors.green[700], fontWeight: FontWeight.w500)),
+                                        ],
+                                      ]),
+                                      if (counterparty.isNotEmpty) ...[
+                                        const SizedBox(height: 3),
+                                        Row(children: [
+                                          Icon(
+                                            isCredit ? Icons.person_rounded : Icons.send_rounded,
+                                            size: 11, color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Expanded(
+                                            child: Text(
+                                              '${isCredit ? 'From' : 'To'}: $counterparty',
+                                              style: TextStyle(fontSize: 10.5, color: Colors.grey[500]),
+                                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ]),
+                                      ],
+                                      const SizedBox(height: 3),
                                       Row(children: [
                                         Icon(Icons.calendar_today_rounded, size: 11, color: Colors.grey[400]),
                                         const SizedBox(width: 4),
@@ -562,6 +720,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                       ]),
                                     ],
                                   )),
+                                  const SizedBox(width: 8),
                                   Text(
                                     '${isCredit ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txColor),
@@ -629,7 +788,7 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
   Future<void> _submit() async {
     final to = _emailCtrl.text.trim();
     final amt = double.tryParse(_amountCtrl.text.trim());
-    if (to.isEmpty) { setState(() => _error = 'Enter email or phone'); return; }
+    if (to.isEmpty) { setState(() => _error = 'Enter email'); return; }
     if (amt == null || amt <= 0) { setState(() => _error = 'Enter a valid amount'); return; }
     if (amt > widget.walletBalance) {
       setState(() => _error = 'Insufficient balance (₹${widget.walletBalance.toStringAsFixed(2)})');
@@ -713,9 +872,9 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
             TextField(
               controller: _emailCtrl,
               decoration: InputDecoration(
-                labelText: 'Email or Phone Number',
+                labelText: 'Email',
                 prefixIcon: const Icon(Icons.person_search_rounded),
-                hintText: 'user@example.com or +91XXXXXXXXXX',
+                hintText: 'user@example.com',
                 filled: true,
                 fillColor: const Color(0xFFF5F7FA),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -803,6 +962,7 @@ class LendenPaymentHelper {
     required String description,
     String? counterpartyPhone,
     String? quickTransactionId,
+    String? secureTransactionId,
     VoidCallback? onSuccess,
   }) async {
     final hasPhone = counterpartyPhone != null && counterpartyPhone.trim().isNotEmpty;
@@ -818,6 +978,7 @@ class LendenPaymentHelper {
         description: description,
         hasPhone: hasPhone,
         quickTransactionId: quickTransactionId,
+        secureTransactionId: secureTransactionId,
         onSuccess: onSuccess,
       ),
     );
@@ -832,6 +993,7 @@ class LendenPaymentHelper {
         builder: (_) => _RazorpayPayPage(
           options: Map<String, dynamic>.from(result['options'] as Map),
           quickTransactionId: quickTransactionId,
+          secureTransactionId: secureTransactionId,
           onSuccess: onSuccess,
         ),
       ),
@@ -846,6 +1008,7 @@ class _PaymentSheet extends StatefulWidget {
   final String description;
   final bool hasPhone;
   final String? quickTransactionId;
+  final String? secureTransactionId;
   final VoidCallback? onSuccess;
 
   const _PaymentSheet({
@@ -855,6 +1018,7 @@ class _PaymentSheet extends StatefulWidget {
     required this.description,
     required this.hasPhone,
     this.quickTransactionId,
+    this.secureTransactionId,
     this.onSuccess,
   });
 
@@ -902,6 +1066,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
         'description': widget.description,
       };
       if (widget.quickTransactionId != null) body['quickTransactionId'] = widget.quickTransactionId!;
+      if (widget.secureTransactionId != null) body['secureTransactionId'] = widget.secureTransactionId!;
       final orderRes = await ApiClient.post('/api/payment/create-p2p-order', body: body);
       if (!mounted) return;
       if (orderRes.statusCode != 200) {
@@ -1142,11 +1307,13 @@ class _PaymentSheetState extends State<_PaymentSheet> {
 class _RazorpayPayPage extends StatefulWidget {
   final Map<String, dynamic> options;
   final String? quickTransactionId;
+  final String? secureTransactionId;
   final VoidCallback? onSuccess;
 
   const _RazorpayPayPage({
     required this.options,
     this.quickTransactionId,
+    this.secureTransactionId,
     this.onSuccess,
   });
 
@@ -1201,6 +1368,9 @@ class _RazorpayPayPageState extends State<_RazorpayPayPage> {
       };
       if (widget.quickTransactionId != null) {
         verifyBody['quickTransactionId'] = widget.quickTransactionId!;
+      }
+      if (widget.secureTransactionId != null) {
+        verifyBody['secureTransactionId'] = widget.secureTransactionId!;
       }
       final verifyRes = await ApiClient.post('/api/payment/verify-p2p', body: verifyBody);
       if (!mounted) return;

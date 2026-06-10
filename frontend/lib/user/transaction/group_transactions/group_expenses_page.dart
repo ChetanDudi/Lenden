@@ -913,6 +913,7 @@ class GroupExpensesPage extends StatefulWidget {
   final String userEmail;
   final List<dynamic> initialExpenses;
   final List<dynamic> initialMembers;
+  final List<dynamic> initialMemberPayments;
   final bool openAddExpense;
 
   const GroupExpensesPage({
@@ -923,6 +924,7 @@ class GroupExpensesPage extends StatefulWidget {
     required this.userEmail,
     required this.initialExpenses,
     required this.initialMembers,
+    this.initialMemberPayments = const [],
     this.openAddExpense = false,
   });
 
@@ -933,6 +935,7 @@ class GroupExpensesPage extends StatefulWidget {
 class _GroupExpensesPageState extends State<GroupExpensesPage> {
   late List<dynamic> _expenses;
   late List<dynamic> _members;
+  late List<dynamic> _memberPayments;
   bool _loading = false;
   String _filter = 'all';
   String _searchQuery = '';
@@ -957,6 +960,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     super.initState();
     _expenses = List<dynamic>.from(widget.initialExpenses);
     _members = List<dynamic>.from(widget.initialMembers);
+    _memberPayments = List<dynamic>.from(widget.initialMemberPayments);
     _loadDisplayCurrencies();
     if (widget.openAddExpense) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _showAddEditSheet());
@@ -1061,10 +1065,9 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         );
         if (group.isNotEmpty && mounted) {
           setState(() {
-            _expenses =
-                List<dynamic>.from(group['expenses'] ?? []);
-            _members =
-                List<dynamic>.from(group['members'] ?? []);
+            _expenses = List<dynamic>.from(group['expenses'] ?? []);
+            _members = List<dynamic>.from(group['members'] ?? []);
+            _memberPayments = List<dynamic>.from(group['memberPayments'] ?? []);
           });
         }
       }
@@ -1867,6 +1870,13 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         }
       }
     }
+    // Subtract payments the current user has already made
+    for (final p in _memberPayments) {
+      if ((p['from'] as String? ?? '').toLowerCase() == widget.userEmail.toLowerCase()) {
+        myPendingInr = (myPendingInr - ((p['amount'] ?? 0) as num).toDouble())
+            .clamp(0.0, double.infinity);
+      }
+    }
 
     final groupCur = _groupCurrency;
 
@@ -2510,6 +2520,15 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         pending[email] = (pending[email] ?? 0) + amt;
       }
     }
+    // Subtract recorded peer-to-peer payments so settled debts disappear
+    for (final p in _memberPayments) {
+      final from = (p['from'] as String? ?? '').toLowerCase();
+      final amt = ((p['amount'] ?? 0) as num).toDouble();
+      if (pending.containsKey(from)) {
+        pending[from] = (pending[from]! - amt).clamp(0.0, double.infinity);
+      }
+    }
+    pending.removeWhere((_, v) => v < 0.01);
     if (pending.isEmpty) return const SizedBox.shrink();
 
     final sorted = pending.entries.toList()

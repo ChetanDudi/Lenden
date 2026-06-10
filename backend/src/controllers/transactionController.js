@@ -898,7 +898,7 @@ exports.getUserTransactions = async (req, res) => {
 // Clear transaction endpoint
 exports.clearTransaction = async (req, res) => {
   try {
-    const { transactionId, email } = req.body;
+    const { transactionId, email, bothSides } = req.body;
     if (!transactionId || !email) return res.status(400).json({ error: 'transactionId and email required' });
     const transaction = await Transaction.findOne({ transactionId });
     if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
@@ -919,6 +919,11 @@ exports.clearTransaction = async (req, res) => {
     } else {
       return res.status(403).json({ error: 'You are not a party to this transaction' });
     }
+    // When a real payment was made, clear both sides at once
+    if (bothSides && updated) {
+      transaction.userCleared = true;
+      transaction.counterpartyCleared = true;
+    }
     if (updated) {
       await transaction.save();
       // Notify the other party
@@ -931,7 +936,7 @@ exports.clearTransaction = async (req, res) => {
       // Log activity for transaction clearing - both parties get notified
       try {
         const creatorInfo = {
-          creatorId: req.user._id,
+          creatorId: req.user._id || req.user.id || email,
           creatorEmail: email
         };
         await logTransactionActivity(transaction.userEmail === email ? transaction.userEmail : transaction.counterpartyEmail, 'transaction_cleared', transaction, {

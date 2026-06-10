@@ -118,6 +118,36 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     }
   }
 
+  // Called after a successful payment — marks the current user's splits settled,
+  // then updates local group state so balances and expense badges reflect the change.
+  Future<void> _selfSettle(BuildContext snackCtx, {required String toEmail, required double amount}) async {
+    try {
+      final res = await ApiClient.post(
+        '/api/group-transactions/${widget.groupId}/record-payment',
+        body: {'toEmail': toEmail, 'amount': amount},
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        setState(() => _group = Map<String, dynamic>.from(data['group'] as Map));
+        ScaffoldMessenger.of(snackCtx).showSnackBar(const SnackBar(
+          content: Text('Payment sent and recorded!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ));
+      } else {
+        ScaffoldMessenger.of(snackCtx).showSnackBar(const SnackBar(
+          content: Text('Payment sent! Refresh to see updated balances.'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ));
+        _refresh();
+      }
+    } catch (_) {
+      if (mounted) _refresh();
+    }
+  }
+
   String _resolveEmail(dynamic userField) {
     final direct = _emailOf(userField);
     if (direct.contains('@')) return direct;
@@ -525,6 +555,16 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       }
     }
 
+    // Apply recorded peer-to-peer payments: each payment reduces the payer's
+    // outstanding debt and reduces what the receiver is still owed.
+    for (final p in List<dynamic>.from(_group['memberPayments'] ?? [])) {
+      final from = (p['from'] as String? ?? '').toLowerCase();
+      final to = (p['to'] as String? ?? '').toLowerCase();
+      final amt = ((p['amount'] ?? 0) as num).toDouble();
+      net[from] = (net[from] ?? 0) - amt;
+      net[to] = (net[to] ?? 0) + amt;
+    }
+
     // Remove zeroes
     net.removeWhere((_, v) => v.abs() < 0.01);
     return net;
@@ -825,6 +865,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 userEmail: _userEmail ?? '',
                                 initialExpenses: expenses,
                                 initialMembers: members,
+                                initialMemberPayments: List<dynamic>.from(_group['memberPayments'] ?? []),
                               ),
                             ),
                           );
@@ -846,6 +887,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 userEmail: _userEmail ?? '',
                                 initialExpenses: expenses,
                                 initialMembers: members,
+                                initialMemberPayments: List<dynamic>.from(_group['memberPayments'] ?? []),
                                 openAddExpense: true,
                               ),
                             ),
@@ -1036,20 +1078,18 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                                   elevation: 0,
                                                 ),
-                                                onPressed: () => LendenPaymentHelper.showPaymentSheet(
-                                                  ctx,
-                                                  counterpartyEmail: payTo,
-                                                  amount: payAmt ?? net.abs(),
-                                                  description: 'Group expense repayment',
-                                                  counterpartyPhone: null,
-                                                  onSuccess: () {
-                                                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                                                      content: Text('Payment sent!'),
-                                                      backgroundColor: Colors.green,
-                                                      behavior: SnackBarBehavior.floating,
-                                                    ));
-                                                  },
-                                                ),
+                                                onPressed: () {
+                                                  final toAddr = payTo;
+                                                  final toAmt = payAmt ?? net.abs();
+                                                  LendenPaymentHelper.showPaymentSheet(
+                                                    ctx,
+                                                    counterpartyEmail: toAddr,
+                                                    amount: toAmt,
+                                                    description: 'Group expense repayment',
+                                                    counterpartyPhone: null,
+                                                    onSuccess: () => _selfSettle(ctx, toEmail: toAddr, amount: toAmt),
+                                                  );
+                                                },
                                                 child: const Text('Pay Now', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                               ),
                                             ),
@@ -1152,13 +1192,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                   amount: amt,
                                                   description: 'Group expense repayment',
                                                   counterpartyPhone: null,
-                                                  onSuccess: () {
-                                                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                                                      content: Text('Payment sent!'),
-                                                      backgroundColor: Colors.green,
-                                                      behavior: SnackBarBehavior.floating,
-                                                    ));
-                                                  },
+                                                  onSuccess: () => _selfSettle(ctx, toEmail: to, amount: amt),
                                                 ),
                                                 child: const Text('Pay', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                                               ),
@@ -1202,6 +1236,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 userEmail: _userEmail ?? '',
                                 initialExpenses: expenses,
                                 initialMembers: members,
+                                initialMemberPayments: List<dynamic>.from(_group['memberPayments'] ?? []),
                               ),
                             ),
                           );

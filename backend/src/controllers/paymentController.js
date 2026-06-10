@@ -4,6 +4,7 @@ const SubscriptionPlan = require('../models/subscriptionPlan');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
 const QuickTransaction = require('../models/quickTransaction');
+const Transaction = require('../models/transaction');
 
 const getRazorpay = () => {
   const Razorpay = require('razorpay');
@@ -147,7 +148,7 @@ exports.verifyPayment = async (req, res) => {
 // Create Razorpay order for P2P settlement — payer pays LenDen, we credit recipient's wallet on verify
 exports.createP2POrder = async (req, res) => {
   try {
-    const { toEmail, amount, description, quickTransactionId } = req.body;
+    const { toEmail, amount, description, quickTransactionId, secureTransactionId } = req.body;
     if (!toEmail || !amount || amount < 100) {
       return res.status(400).json({ error: 'toEmail and amount (in paise, min 100) are required' });
     }
@@ -165,6 +166,7 @@ exports.createP2POrder = async (req, res) => {
         toEmail: toEmail.toLowerCase().trim(),
         type: 'p2p_payment',
         quickTransactionId: quickTransactionId || '',
+        secureTransactionId: secureTransactionId || '',
         description: description || '',
       },
     });
@@ -177,7 +179,7 @@ exports.createP2POrder = async (req, res) => {
 // Verify P2P payment — credits recipient's wallet and optionally clears the quick transaction
 exports.verifyP2PPayment = async (req, res) => {
   try {
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, quickTransactionId } = req.body;
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, quickTransactionId, secureTransactionId } = req.body;
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
       return res.status(400).json({ error: 'Missing payment verification fields' });
     }
@@ -235,6 +237,51 @@ exports.verifyP2PPayment = async (req, res) => {
         qt.settledViaPayment = true;
         qt.paymentMethod = 'razorpay';
         await qt.save();
+      }
+    }
+
+    // Auto-settle the secure transaction (lend/borrow record) if one is linked
+    const stId = secureTransactionId || notes.secureTransactionId;
+    if (stId) {
+      try {
+        const st = await Transaction.findOne({ transactionId: stId });
+        if (st) {
+          const payerEmail = req.user.email.toLowerCase().trim();
+          // Determine payer's role in this transaction
+          const payerIsUser = st.userEmail.toLowerCase() === payerEmail;
+          const payerIsCounterparty = st.counterpartyEmail.toLowerCase() === payerEmail;
+
+          if (payerIsUser || payerIsCounterparty) {
+            // Determine paidBy enum from role + position
+            let paidBy = 'borrower';
+            if (st.role === 'lender') {
+              paidBy = payerIsCounterparty ? 'borrower' : 'lender';
+            } else {
+              paidBy = payerIsUser ? 'borrower' : 'lender';
+            }
+
+            // Record the payment
+            st.partialPayments.push({
+              amount: amountInRupees,
+              paidBy,
+              paidAt: new Date(),
+              description: 'Payment via Razorpay',
+            });
+            st.isPartiallyPaid = true;
+
+            // Update remaining amount
+            const totalPaid = st.partialPayments.reduce((sum, p) => sum + p.amount, 0);
+            st.remainingAmount = Math.max(0, (st.amount || 0) - totalPaid);
+
+            // Payment received — both sides are now cleared
+            st.userCleared = true;
+            st.counterpartyCleared = true;
+
+            await st.save();
+          }
+        }
+      } catch (_) {
+        // Settlement failure is non-fatal — payment itself succeeded
       }
     }
 

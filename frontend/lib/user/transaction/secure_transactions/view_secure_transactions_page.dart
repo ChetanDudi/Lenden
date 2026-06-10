@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import 'dart:convert';
+import 'dart:math';
 import '../../../utils/api_client.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';
+import '../../wallet/lenden_wallet_page.dart';
 
 class UserTransactionsPage extends StatefulWidget {
   final String initialFilter;
@@ -695,6 +697,83 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                         ],
                       ),
                     ),
+                    if (!fullyCleared && !isLending) ...[
+                      const SizedBox(height: 6),
+                      Builder(builder: (context) {
+                        final double dueAmt = _calculateRemainingWithInterest(t);
+                        final bool hasInterest = t['interestType'] != null && t['interestRate'] != null;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.payments_outlined, size: 14,
+                                    color: hasInterest ? Colors.deepOrange : Colors.teal),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Amount due: ₹${dueAmt.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: hasInterest ? Colors.deepOrange : Colors.teal,
+                                  ),
+                                ),
+                                if (hasInterest) ...[
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '(${t['interestType']} ${t['interestRate']}% interest)',
+                                    style: const TextStyle(fontSize: 11, color: Colors.deepOrange),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Colors.white),
+                                label: Text(
+                                  'Pay Now  •  ₹${dueAmt.toStringAsFixed(2)}',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF00B4D8),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                onPressed: () async {
+                                  final double remaining = _calculateRemainingWithInterest(t);
+                                  if (remaining <= 0) return;
+                            // counterpartyEmail is already perspective-adjusted above (line 415):
+                            // if current user is the DB creator → their counterparty;
+                            // if current user is the DB counterparty → the creator (lender).
+                            final String lenderEmail = counterpartyEmail?.toString() ?? '';
+                            final String txId = t['transactionId']?.toString() ?? '';
+                            final String userEmail = Provider.of<SessionProvider>(context, listen: false).user?['email'] ?? '';
+                            await LendenPaymentHelper.showPaymentSheet(
+                              context,
+                              counterpartyEmail: lenderEmail,
+                              amount: remaining,
+                              description: 'Secure transaction repayment',
+                              secureTransactionId: txId,
+                              onSuccess: () {
+                                if (txId.isNotEmpty && userEmail.isNotEmpty) {
+                                  ApiClient.post('/api/transactions/clear',
+                                    body: {'transactionId': txId, 'email': userEmail, 'bothSides': true},
+                                  ).then((_) => fetchTransactions());
+                                } else {
+                                  fetchTransactions();
+                                }
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                          ],     // Column.children
+                        );     // return Column(...)
+                      }),      // Builder
+                    ],         // if spread
                   ],
                 ),
               ),
@@ -2024,6 +2103,36 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
 
   bool _isTotallyCleared(Map t) =>
       (t['userCleared'] == true && t['counterpartyCleared'] == true);
+
+  // Returns the amount still owed: remaining principal + accrued interest.
+  // Returns 0 if fully cleared.
+  double _calculateRemainingWithInterest(Map t) {
+    if (t['userCleared'] == true && t['counterpartyCleared'] == true) return 0.0;
+    final double original = (t['amount'] as num?)?.toDouble() ?? 0.0;
+    double paid = 0.0;
+    if (t['isPartiallyPaid'] == true && t['partialPayments'] is List) {
+      final pp = t['partialPayments'] as List;
+      paid = pp.fold<double>(0, (s, p) => s + ((p['amount'] as num?)?.toDouble() ?? 0.0));
+    }
+    double remaining = (original - paid).clamp(0.0, double.infinity);
+    if (remaining <= 0) return 0.0;
+    if (t['interestType'] != null && t['interestRate'] != null) {
+      final txDate = DateTime.tryParse((t['date'] ?? '').toString());
+      if (txDate != null) {
+        final days = DateTime.now().difference(txDate).inDays;
+        if (days > 0) {
+          final rate = (t['interestRate'] as num).toDouble();
+          if (t['interestType'] == 'simple') {
+            remaining = remaining + (remaining * rate * days / 365);
+          } else if (t['interestType'] == 'compound') {
+            final n = (t['compoundingFrequency'] as num?)?.toInt() ?? 1;
+            remaining = remaining * pow(1 + rate / 100, days / n);
+          }
+        }
+      }
+    }
+    return remaining;
+  }
 
   bool _hasPartialPayment(Map t) {
     final partialPayments = t['partialPayments'];

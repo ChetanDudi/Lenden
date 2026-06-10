@@ -183,27 +183,67 @@ class _SecureTransactionDetailPageState
 
   Future<void> _showPayNow() async {
     final t = _t;
-    final counterpartyEmail = t['counterpartyEmail']?.toString() ?? '';
+    // role='lender' means the DB creator is the lender → pay them (t['userEmail']).
+    // role='borrower' means the DB creator is the borrower → lender is the counterparty.
+    // Using t['counterpartyEmail'] blindly is wrong when the lender created the transaction,
+    // because then counterpartyEmail IS the current user (borrower).
+    final String payToEmail = (t['role']?.toString() == 'lender')
+        ? t['userEmail']?.toString() ?? ''
+        : t['counterpartyEmail']?.toString() ?? '';
+    final transactionId = t['transactionId']?.toString() ?? '';
     final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0;
-    final profile = await _fetchCounterpartyProfile(counterpartyEmail);
-    final phone = profile?['phone']?.toString();
+    if (remaining <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No outstanding balance to pay.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    }
     if (!mounted) return;
     await LendenPaymentHelper.showPaymentSheet(
       context,
-      counterpartyEmail: counterpartyEmail,
+      counterpartyEmail: payToEmail,
       amount: remaining,
       description: 'Secure transaction repayment',
-      counterpartyPhone: phone,
-      onSuccess: () {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Payment successful!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ));
-        }
-      },
+      secureTransactionId: transactionId,
+      onSuccess: () => _clearAfterPayment(remaining),
     );
+  }
+
+  // Marks payer's side cleared after payment. Razorpay path records the partial payment
+  // automatically in verifyP2PPayment; wallet path records it here via the clear endpoint.
+  Future<void> _clearAfterPayment(double amountPaid) async {
+    final email = Provider.of<SessionProvider>(context, listen: false).user?['email'];
+    if (email == null || !mounted) return;
+    // Payment made — clear both sides
+    try {
+      final res = await ApiClient.post('/api/transactions/clear',
+          body: {'transactionId': _t['transactionId'], 'email': email, 'bothSides': true});
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() {
+          _t['userCleared'] = true;
+          _t['counterpartyCleared'] = true;
+          _needsRefresh = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Payment sent and marked as cleared!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Payment sent! Refresh to see updated status.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 
   Future<void> _toggleFavourite() async {
