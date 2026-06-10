@@ -343,6 +343,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                         _buildFilters(),
                         _buildMetaBanner(),
                         _buildLegendBanner(),
+                        _buildMyPositionCard(rows),
                         _buildPodium(rows),
                         const SizedBox(height: 10),
                         _buildHintButtons(context),
@@ -353,6 +354,57 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMyPositionCard(List<dynamic> rows) {
+    final myId = Provider.of<SessionProvider>(context, listen: false).user?['_id']?.toString();
+    dynamic myRow;
+    if (myId != null && myId.isNotEmpty) {
+      for (final row in rows) {
+        if (row['userId']?.toString() == myId) { myRow = row; break; }
+      }
+    }
+    return _triBorderCard(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: myRow != null ? const Color(0xFFE6F7FF) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: myRow != null ? Border.all(color: const Color(0xFF00B4D8), width: 1.2) : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00B4D8).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.emoji_events_outlined, color: Color(0xFF00B4D8), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: myRow == null
+                  ? const Text('You are not ranked in this period.',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey))
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Your Position', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Rank #${myRow['rank']} · ${myRow['points']} pts',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF00B4D8)),
+                        ),
+                      ],
+                    ),
+            ),
+            if (myRow != null) _movementWidget(myRow),
+          ],
+        ),
       ),
     );
   }
@@ -571,53 +623,22 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildHintButtons(BuildContext context) {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            _showStylishMessage(
-              title: 'How Points Work',
-              message:
-                  'Each transaction gives 10 points. Equal points share the same rank.',
-              icon: Icons.stars_rounded,
-              color: const Color(0xFF00B4D8),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4CC9F0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          child: const Text('How to earn points',
-              style: TextStyle(color: Colors.white)),
+    return Center(
+      child: ElevatedButton(
+        onPressed: () {
+          _showStylishMessage(
+            title: 'How Points Work',
+            message: 'Each transaction gives 10 points. Equal points share the same rank.',
+            icon: Icons.stars_rounded,
+            color: const Color(0xFF00B4D8),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF4CC9F0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        TextButton(
-          onPressed: () {
-            final myId = Provider.of<SessionProvider>(context, listen: false)
-                .user?['_id']
-                ?.toString();
-            dynamic myRow;
-            if (myId != null && myId.isNotEmpty) {
-              for (final row in (_rowsByType[_activeType] ?? [])) {
-                if (row['userId']?.toString() == myId) {
-                  myRow = row;
-                  break;
-                }
-              }
-            }
-            final text = myRow == null
-                ? 'You are not in rank 10 or above for this filter.'
-                : 'Rank ${myRow['rank']}: ${myRow['points']} pts';
-            _showStylishMessage(
-              title: 'Your Points',
-              message: text,
-              icon: Icons.emoji_events_outlined,
-              color: const Color(0xFF00B4D8),
-            );
-          },
-          child: const Text('View my points'),
-        ),
-      ],
+        child: const Text('How to earn points', style: TextStyle(color: Colors.white)),
+      ),
     );
   }
 

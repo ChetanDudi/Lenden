@@ -56,7 +56,7 @@ exports.getUserCounterparties = async (req, res) => {
     const counterpartiesList = Object.entries(counterparties)
       .map(([k, v]) => ({ email: k, count: v }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+      .slice(0, 100);
 
     res.json({ counterparties: counterpartiesList });
   } catch (err) {

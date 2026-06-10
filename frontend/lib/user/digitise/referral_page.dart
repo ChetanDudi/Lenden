@@ -110,7 +110,8 @@ class _ReferralPageState extends State<ReferralPage> {
       if (!mounted) return;
       _showSnack('Invite opened! Ask your friend to sign up.', success: true);
     } else {
-      _showSnack('Could not open the app');
+      if (!mounted) return;
+      _showSnack('Could not open ${option['label'] ?? 'the app'}. Make sure it is installed.');
     }
   }
 

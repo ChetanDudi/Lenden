@@ -20,6 +20,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   List<Map<String, dynamic>> _counterparties = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  String _sortBy = 'count';
 
   @override
   void initState() {
@@ -210,20 +211,46 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   }
 
   List<Map<String, dynamic>> get _filteredCounterparties {
-    if (_searchQuery.trim().isEmpty) {
-      return _counterparties;
+    var list = _searchQuery.trim().isEmpty
+        ? List<Map<String, dynamic>>.from(_counterparties)
+        : _counterparties.where((cp) {
+            final q = _searchQuery.toLowerCase().trim();
+            return (cp['name'] ?? '').toString().toLowerCase().contains(q) ||
+                (cp['email'] ?? '').toString().toLowerCase().contains(q) ||
+                (cp['phone'] ?? '').toString().toLowerCase().contains(q);
+          }).toList();
+
+    switch (_sortBy) {
+      case 'name_asc':
+        list.sort((a, b) => (a['name'] ?? '').toString().toLowerCase()
+            .compareTo((b['name'] ?? '').toString().toLowerCase()));
+        break;
+      case 'count_asc':
+        list.sort((a, b) => ((a['count'] ?? 0) as num).compareTo((b['count'] ?? 0) as num));
+        break;
+      default:
+        list.sort((a, b) => ((b['count'] ?? 0) as num).compareTo((a['count'] ?? 0) as num));
     }
-    final query = _searchQuery.toLowerCase().trim();
-    return _counterparties.where((counterparty) {
-      final name = (counterparty['name'] ?? '').toString().toLowerCase();
-      final email = (counterparty['email'] ?? '').toString().toLowerCase();
-      final phone = (counterparty['phone'] ?? '').toString().toLowerCase();
-      final gender = (counterparty['gender'] ?? '').toString().toLowerCase();
-      return name.contains(query) ||
-          email.contains(query) ||
-          phone.contains(query) ||
-          gender.contains(query);
-    }).toList();
+    return list;
+  }
+
+  Widget _sortChip(String label, String value) {
+    final selected = _sortBy == value;
+    return GestureDetector(
+      onTap: () => setState(() => _sortBy = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF00B4D8) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? const Color(0xFF00B4D8) : Colors.grey.withValues(alpha: 0.35)),
+        ),
+        child: Text(label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : Colors.grey[700])),
+      ),
+    );
   }
 
   ImageProvider _buildAvatarProvider(Map<String, dynamic> counterparty) {
@@ -304,7 +331,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     final filtered = _filteredCounterparties;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: const Color(0xFFE0F7FA),
       body: Stack(
         children: [
           Positioned(
@@ -399,25 +426,30 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                   ),
                 ),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
                   child: Row(
                     children: [
-                      Text(
-                        '${filtered.length} shown',
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('${filtered.length} shown',
+                        style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 13)),
                       const Spacer(),
-                      Text(
-                        '${_counterparties.length} total',
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text('${_counterparties.length} total',
+                        style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sort_rounded, size: 15, color: Colors.grey[600]),
+                      const SizedBox(width: 6),
+                      Text('Sort:', style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      _sortChip('Most', 'count'),
+                      const SizedBox(width: 6),
+                      _sortChip('A-Z', 'name_asc'),
+                      const SizedBox(width: 6),
+                      _sortChip('Least', 'count_asc'),
                     ],
                   ),
                 ),
@@ -558,24 +590,43 @@ class _CounterpartyGridCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      image: DecorationImage(
-                        image: avatarProvider,
-                        fit: BoxFit.cover,
+              Stack(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: accentColor,
+                          image: DecorationImage(
+                            image: avatarProvider,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  if ((counterparty['count'] ?? 0) > 0)
+                    Positioned(
+                      top: 8, right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00B4D8).withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${counterparty['count']}×',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
@@ -601,8 +652,8 @@ class _CounterpartyGridCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: isDeactivated
-                              ? Colors.red.withOpacity(0.08)
-                              : Colors.orange.withOpacity(0.10),
+                              ? Colors.red.withValues(alpha: 0.08)
+                              : Colors.orange.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(

@@ -105,6 +105,7 @@ module.exports = (io) => {
     // User rating routes (for RatingsPage)
     router.get('/ratings/me', auth, ratingController.getMyRatings);
     router.post('/ratings', auth, ratingController.rateUser);
+    router.patch('/ratings/:ratingId', auth, ratingController.updateRating);
     router.get('/ratings/user-avg', ratingController.getUserAvgRating);
 
   // User routes

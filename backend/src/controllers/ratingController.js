@@ -17,11 +17,12 @@ exports.getUserAvgRating = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
-    // Recalculate avgRating from ratings collection
     const ratings = await Rating.find({ ratee: user._id });
+    const totalRatings = ratings.length;
     let avg = 0;
-    if (ratings.length > 0) {
-      avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    if (totalRatings > 0) {
+      avg = ratings.reduce((sum, r) => { distribution[r.rating] = (distribution[r.rating] || 0) + 1; return sum + r.rating; }, 0) / totalRatings;
     }
     user.avgRating = avg;
     await user.save();
@@ -29,7 +30,9 @@ exports.getUserAvgRating = async (req, res) => {
       username: user.username,
       name: user.name,
       email: user.email,
-      avgRating: user.avgRating || 0
+      avgRating: user.avgRating || 0,
+      totalRatings,
+      distribution,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -40,7 +43,7 @@ exports.getUserAvgRating = async (req, res) => {
 exports.rateUser = async (req, res) => {
   try {
     const raterId = req.user._id;
-    const { usernameOrEmail, rating } = req.body;
+    const { usernameOrEmail, rating, comment } = req.body;
     if (!usernameOrEmail || !rating) {
       return res.status(400).json({ error: 'Username/email and rating are required.' });
     }
@@ -62,7 +65,7 @@ exports.rateUser = async (req, res) => {
     if (ratingDoc) {
       return res.status(400).json({ error: 'You have already rated this user.' });
     }
-    ratingDoc = new Rating({ rater: raterId, ratee: ratee._id, rating });
+    ratingDoc = new Rating({ rater: raterId, ratee: ratee._id, rating, comment: comment?.toString().trim() || undefined });
     await ratingDoc.save();
     // Update avgRating for the ratee
     const ratings = await Rating.find({ ratee: ratee._id });
@@ -122,6 +125,7 @@ exports.getMyRatings = async (req, res) => {
         createdAt: r.createdAt
       })),
       ratingsGiven: given.map(r => ({
+        _id: r._id,
         ratee: r.ratee._id,
         rateeName: r.ratee.name || r.ratee.username,
         rating: r.rating,
@@ -129,6 +133,35 @@ exports.getMyRatings = async (req, res) => {
         createdAt: r.createdAt
       }))
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// PATCH /api/ratings/:ratingId - Edit your own given rating
+exports.updateRating = async (req, res) => {
+  try {
+    const { ratingId } = req.params;
+    const { rating, comment } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
+    }
+    const ratingDoc = await Rating.findOne({ _id: ratingId, rater: req.user._id });
+    if (!ratingDoc) {
+      return res.status(404).json({ error: 'Rating not found or not yours.' });
+    }
+    ratingDoc.rating = rating;
+    ratingDoc.comment = comment?.toString().trim() || undefined;
+    await ratingDoc.save();
+
+    // Recalculate ratee's average
+    const ratee = await User.findById(ratingDoc.ratee);
+    if (ratee) {
+      const all = await Rating.find({ ratee: ratee._id });
+      ratee.avgRating = all.reduce((s, r) => s + r.rating, 0) / all.length;
+      await ratee.save();
+    }
+    res.json({ message: 'Rating updated.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -25,6 +25,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   // Rate someone
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
+  final _commentController = TextEditingController();
   double _selectedRating = 5;
   String? _submitError;
   bool _submitting = false;
@@ -38,6 +39,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   String? _searchedUsername;
   String? _searchedEmail;
   int? _searchedTotalRatings;
+  Map<String, int>? _searchedDistribution;
   bool _searching = false;
 
   // Rating activities
@@ -56,6 +58,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     _tabController.dispose();
     _searchController.dispose();
     _usernameController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -89,9 +92,11 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     final res = await ApiClient.post('/api/ratings', body: {
       'usernameOrEmail': _usernameController.text.trim(),
       'rating': _selectedRating,
+      'comment': _commentController.text.trim(),
     });
     if (res.statusCode == 201) {
       setState(() { _showSuccess = true; _usernameController.clear(); _selectedRating = 5; });
+      _commentController.clear();
       fetchRatings();
     } else {
       setState(() => _submitError = json.decode(res.body)['error'] ?? 'Failed to submit rating.');
@@ -118,17 +123,22 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       return;
     }
 
-    setState(() { _searching = true; _searchError = null; _searchedAvgRating = null; });
+    setState(() { _searching = true; _searchError = null; _searchedAvgRating = null; _searchedDistribution = null; });
     try {
       final res = await ApiClient.get('/api/ratings/user-avg?usernameOrEmail=$input');
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
+        Map<String, int>? dist;
+        if (data['distribution'] != null) {
+          dist = (data['distribution'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+        }
         setState(() {
           _searchedAvgRating = (data['avgRating'] ?? 0).toDouble();
           _searchedName = data['name'] ?? '';
           _searchedUsername = data['username'] ?? '';
           _searchedEmail = data['email'] ?? '';
           _searchedTotalRatings = data['totalRatings'];
+          _searchedDistribution = dist;
         });
       } else {
         final err = json.decode(res.body);
@@ -138,6 +148,122 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       setState(() => _searchError = 'Error searching user.');
     }
     setState(() => _searching = false);
+  }
+
+  void _showEditRatingSheet(Map<String, dynamic> r) {
+    final ratingId = r['_id']?.toString() ?? '';
+    if (ratingId.isEmpty) return;
+    final commentCtrl = TextEditingController(text: r['comment'] ?? '');
+    double localRating = (r['rating'] ?? 5).toDouble();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(height: 16),
+                const Text('Edit Rating', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Rating for ${r['rateeName'] ?? 'User'}',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                const SizedBox(height: 20),
+                _interactiveStars(localRating, (val) => setSheet(() => localRating = val), size: 40),
+                const SizedBox(height: 6),
+                Text(
+                  localRating == 5 ? 'Excellent!' : localRating >= 4 ? 'Great!' :
+                  localRating >= 3 ? 'Good' : localRating >= 2 ? 'Fair' : 'Poor',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 15,
+                    color: localRating >= 4 ? Colors.green : localRating >= 3 ? Colors.orange : Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: commentCtrl,
+                  maxLines: 3,
+                  maxLength: 200,
+                  decoration: InputDecoration(
+                    labelText: 'Comment (optional)',
+                    alignLabelWithHint: true,
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FA),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                    ),
+                    counterStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00B4D8),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        setSheet(() {});
+                        final res = await ApiClient.patch('/api/ratings/$ratingId', body: {
+                          'rating': localRating,
+                          'comment': commentCtrl.text.trim(),
+                        });
+                        if (!ctx.mounted) return;
+                        Navigator.pop(ctx);
+                        if (res.statusCode == 200) {
+                          fetchRatings();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Rating updated!'), backgroundColor: Colors.green),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(json.decode(res.body)['error'] ?? 'Failed to update.'), backgroundColor: Colors.red),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Update', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).then((_) => commentCtrl.dispose());
   }
 
   // ─── UI helpers ─────────────────────────────────────────────────────────────
@@ -152,6 +278,42 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
           return Icon(Icons.star_half_rounded, color: Colors.amber, size: size);
         }
         return Icon(Icons.star_outline_rounded, color: Colors.amber.withValues(alpha: 0.4), size: size);
+      }),
+    );
+  }
+
+  Widget _distributionBars(Map<String, int> dist, int total) {
+    return Column(
+      children: List.generate(5, (i) {
+        final star = 5 - i;
+        final count = dist[star.toString()] ?? 0;
+        final pct = total > 0 ? count / total : 0.0;
+        final color = star >= 4 ? Colors.green : star == 3 ? Colors.orange : Colors.red;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2.5),
+          child: Row(children: [
+            Text('$star', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 2),
+            const Icon(Icons.star_rounded, color: Colors.amber, size: 11),
+            const SizedBox(width: 6),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: pct,
+                  backgroundColor: Colors.grey[200],
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  minHeight: 7,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 20,
+              child: Text('$count', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+            ),
+          ]),
+        );
       }),
     );
   }
@@ -196,6 +358,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         : (r['raterName'] ?? r['rater'] ?? 'User').toString();
     final prefix = isGiven ? 'To' : 'From';
     final starColor = rating >= 4 ? Colors.green : rating >= 3 ? Colors.orange : Colors.red;
+    final comment = r['comment']?.toString() ?? '';
 
     return _tricolorBorder(
       radius: 16,
@@ -225,9 +388,23 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   Text('$prefix: $name', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   _starRow(rating, size: 16),
+                  if (comment.isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Text('"$comment"',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12, fontStyle: FontStyle.italic),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
                 ],
               ),
             ),
+            if (isGiven && r['_id'] != null)
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF00B4D8)),
+                onPressed: () => _showEditRatingSheet(r),
+                tooltip: 'Edit',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                padding: EdgeInsets.zero,
+              ),
           ],
         ),
       ),
@@ -343,10 +520,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
                     indicator: BoxDecoration(color: const Color(0xFF00B4D8), borderRadius: BorderRadius.circular(12)),
                     indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.grey[600],
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -447,6 +623,28 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                       ),
                                                     ),
                                                   ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 20),
+                                              const Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Text('Comment (optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 13)),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              TextFormField(
+                                                controller: _commentController,
+                                                maxLines: 3,
+                                                maxLength: 200,
+                                                decoration: InputDecoration(
+                                                  hintText: 'Share your experience...',
+                                                  filled: true,
+                                                  fillColor: const Color(0xFFF5F7FA),
+                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                                  focusedBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.circular(14),
+                                                    borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                                                  ),
+                                                  counterStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
                                                 ),
                                               ),
                                               if (_submitError != null)
@@ -611,6 +809,14 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             if (_searchedTotalRatings != null)
                                               Text('Based on $_searchedTotalRatings rating${_searchedTotalRatings == 1 ? '' : 's'}',
                                                 style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                            if (_searchedDistribution != null && (_searchedTotalRatings ?? 0) > 0) ...[
+                                              const SizedBox(height: 16),
+                                              const Divider(height: 1),
+                                              const SizedBox(height: 14),
+                                              const Text('Rating Breakdown', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                                              const SizedBox(height: 10),
+                                              _distributionBars(_searchedDistribution!, _searchedTotalRatings!),
+                                            ],
                                           ]),
                                         ),
                                       ),
