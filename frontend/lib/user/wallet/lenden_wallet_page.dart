@@ -9,6 +9,7 @@ import '../../utils/api_client.dart';
 import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../transaction/group_transactions/group_transaction_page.dart';
 import '../transaction/secure_transactions/view_secure_transactions_page.dart';
+import '../digitise/subscriptions_page.dart';
 
 // Razorpay only works on Android/iOS — not on Windows, Web, or macOS.
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -565,6 +566,53 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                             ]),
                           ),
                           const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: Colors.teal),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Subscribe to Premium CTA — tricolor border
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      gradient: const LinearGradient(
+                        colors: [Colors.orange, Colors.white, Colors.green],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F0FF),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9C27B0).withValues(alpha: 0.14),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF9C27B0), size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Text('Go Premium', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF9C27B0))),
+                              Text('Subscribe using your wallet balance', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                            ]),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: Color(0xFF9C27B0)),
                         ]),
                       ),
                     ),

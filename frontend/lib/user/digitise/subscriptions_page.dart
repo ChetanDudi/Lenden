@@ -98,6 +98,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   bool _isLoadingBenefits = false;
   bool _isLoadingFaqs = false;
   bool _isProcessingPayment = false;
+  bool _isPayingViaWallet = false;
+  double _walletBalance = 0;
   String? _pendingPlanId;
 
   Razorpay? _razorpay;
@@ -130,9 +132,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Future<void> _fetchSubscriptionData() async {
-    await _fetchPlans();
-    await _fetchBenefits();
-    await _fetchFaqs();
+    await Future.wait([_fetchPlans(), _fetchBenefits(), _fetchFaqs(), _fetchWalletBalance()]);
+  }
+
+  Future<void> _fetchWalletBalance() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/balance');
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (mounted) setState(() => _walletBalance = (data['balance'] ?? 0).toDouble());
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadDisplayCurrencies() async {
@@ -423,6 +433,59 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('External wallet selected: ${response.walletName}')),
     );
+  }
+
+  Future<void> _payViaWallet() async {
+    if (_selectedPlan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a subscription plan.')),
+      );
+      return;
+    }
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (session.token == null || session.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to subscribe.')),
+      );
+      return;
+    }
+    final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
+    final actualPrice = plan.price * (1 - plan.discount / 100);
+    if (_walletBalance < actualPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Insufficient wallet balance. Need ₹${actualPrice.toStringAsFixed(2)}, have ₹${_walletBalance.toStringAsFixed(2)}.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    setState(() => _isPayingViaWallet = true);
+    try {
+      final res = await ApiClient.post('/api/wallet/pay-subscription', body: {'planId': plan.id});
+      if (!mounted) return;
+      setState(() => _isPayingViaWallet = false);
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        setState(() => _walletBalance = (data['balance'] ?? _walletBalance).toDouble());
+        await session.checkSubscriptionStatus();
+        await session.fetchSubscriptionHistory();
+        if (!mounted) return;
+        _showSuccessDialog();
+      } else {
+        final err = json.decode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err['error'] ?? 'Wallet payment failed'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPayingViaWallet = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _showSuccessDialog() {
@@ -1042,70 +1105,89 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
         const SizedBox(height: 30),
 
-        // Subscribe Button
-        Center(
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: Offset(0, 5),
-                ),
-              ],
+        // Subscribe Button — Razorpay
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.orange, Colors.white, Colors.green],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: ElevatedButton(
-              onPressed: _isProcessingPayment ? null : _startPayment,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                disabledBackgroundColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
               ),
-              child: _isProcessingPayment
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.black,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Text('Processing...',
-                            style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.payment, color: Colors.black),
-                        SizedBox(width: 10),
-                        Text(
-                          'Pay & Subscribe',
-                          style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _startPayment,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            ),
+            icon: _isProcessingPayment
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+                : const Icon(Icons.payment, color: Colors.black),
+            label: Text(
+              _isProcessingPayment ? 'Processing...' : 'Pay via Razorpay',
+              style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Divider OR
+        Row(children: [
+          const Expanded(child: Divider(thickness: 1.2)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('OR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+          ),
+          const Expanded(child: Divider(thickness: 1.2)),
+        ]),
+
+        const SizedBox(height: 14),
+
+        // Subscribe Button — LenDen Wallet
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF00B4D8), width: 2),
+          ),
+          child: ElevatedButton.icon(
+            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _payViaWallet,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF0F9FF),
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            ),
+            icon: _isPayingViaWallet
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF00B4D8)))
+                : const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8)),
+            label: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isPayingViaWallet ? 'Processing...' : 'Pay via LenDen Wallet',
+                  style: const TextStyle(fontSize: 17, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold),
+                ),
+                if (!_isPayingViaWallet)
+                  Text(
+                    'Balance: ₹${_walletBalance.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+              ],
             ),
           ),
         ),

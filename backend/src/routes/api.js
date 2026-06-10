@@ -504,6 +504,7 @@ module.exports = (io) => {
   router.post('/wallet/create-order', auth, walletController.createTopUpOrder);
   router.post('/wallet/verify', auth, walletController.verifyTopUp);
   router.post('/wallet/pay', auth, walletController.pay);
+  router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
 
   // Admin feature routes
   // Subscription Plans

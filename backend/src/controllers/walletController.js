@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
+const SubscriptionPlan = require('../models/subscriptionPlan');
+const Subscription = require('../models/subscription');
 
 const getRazorpay = () => {
   const Razorpay = require('razorpay');
@@ -156,6 +158,70 @@ exports.pay = async (req, res) => {
     });
 
     res.json({ message: 'Payment successful', balance: newBalance });
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  } finally {
+    session.endSession();
+  }
+};
+
+// Pay for a subscription plan using wallet balance
+exports.paySubscription = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const { planId } = req.body;
+    if (!planId) return res.status(400).json({ error: 'planId is required' });
+
+    const plan = await SubscriptionPlan.findById(planId);
+    if (!plan || !plan.isAvailable) return res.status(404).json({ error: 'Plan not found or unavailable' });
+
+    const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
+
+    let newBalance;
+    await session.withTransaction(async () => {
+      // Atomic check-and-debit — prevents overdraft even under concurrent requests
+      const user = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: actualPrice } },
+        { $inc: { walletBalance: -actualPrice } },
+        { new: true, session }
+      );
+      if (!user) throw Object.assign(new Error('Insufficient wallet balance'), { status: 400 });
+
+      await WalletTransaction.create([{
+        user: req.user._id,
+        type: 'debit',
+        amount: actualPrice,
+        note: `${plan.name} Subscription via LenDen Wallet`,
+      }], { session });
+
+      await Subscription.updateMany(
+        { user: req.user._id, status: 'active' },
+        { $set: { status: 'expired' } },
+        { session }
+      );
+
+      const subscribedDate = new Date();
+      const endDate = new Date(subscribedDate);
+      endDate.setDate(endDate.getDate() + plan.duration + (plan.free || 0));
+
+      await Subscription.create([{
+        user: req.user._id,
+        subscribed: true,
+        subscriptionPlan: plan.name,
+        duration: plan.duration,
+        price: plan.price,
+        discount: plan.discount || 0,
+        actualPrice,
+        free: plan.free || 0,
+        subscribedDate,
+        endDate,
+        status: 'active',
+      }], { session });
+
+      newBalance = user.walletBalance;
+    });
+
+    res.json({ message: 'Subscription activated via wallet', balance: newBalance });
   } catch (err) {
     res.status(err.status ?? 500).json({ error: err.message });
   } finally {
