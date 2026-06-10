@@ -62,30 +62,15 @@ class _ReferralPageState extends State<ReferralPage> {
         });
       } else {
         setState(() => _loading = false);
-        _showInfoDialog(
-          'Referral Info',
-          'Unable to load referral details.',
-          icon: Icons.error_outline,
-          color: Colors.redAccent,
-        );
       }
     } catch (_) {
       setState(() => _loading = false);
-      _showInfoDialog(
-        'Referral Info',
-        'Network error while loading referral details.',
-        icon: Icons.wifi_off,
-        color: Colors.redAccent,
-      );
     }
   }
 
   Future<void> _logShare(String channel) async {
     try {
-      await ApiClient.post(
-        '/api/referral/share',
-        body: {'channel': channel, 'message': _message},
-      );
+      await ApiClient.post('/api/referral/share', body: {'channel': channel, 'message': _message});
     } catch (_) {}
   }
 
@@ -112,383 +97,373 @@ class _ReferralPageState extends State<ReferralPage> {
       await Clipboard.setData(ClipboardData(text: rawCopy));
       await _logShare(key);
       if (!mounted) return;
-      _showInfoDialog(
-        'Copied',
-        'Invite content copied. Share it with your friends.',
-        icon: Icons.copy,
-        color: const Color(0xFF00B4D8),
-      );
+      _showSnack('Invite content copied!', success: true);
       return;
     }
 
     final uri = Uri.tryParse(resolvedUrl);
-    if (uri == null) {
-      if (!mounted) return;
-      _showInfoDialog(
-        'Share Failed',
-        'Invalid share URL for this option.',
-        icon: Icons.error_outline,
-        color: Colors.redAccent,
-      );
-      return;
-    }
+    if (uri == null) { _showSnack('Invalid share URL'); return; }
 
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (launched) {
       await _logShare(key);
       if (!mounted) return;
-      _showInfoDialog(
-        'Thanks for Referring',
-        'Invite opened successfully. Ask your friend to sign up and create their first transaction.',
-        icon: Icons.celebration_outlined,
-        color: const Color(0xFF00B4D8),
-      );
+      _showSnack('Invite opened! Ask your friend to sign up.', success: true);
     } else {
-      if (!mounted) return;
-      _showInfoDialog(
-        'Share Failed',
-        'Could not open the selected app on this device.',
-        icon: Icons.error_outline,
-        color: Colors.redAccent,
-      );
+      _showSnack('Could not open the app');
     }
+  }
+
+  void _showSnack(String msg, {bool success = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: success ? Colors.green : Colors.red,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(12),
+    ));
   }
 
   IconData _iconFor(String name) {
-    final key = name.toLowerCase().trim();
-    switch (key) {
-      case 'whatsapp':
-        return FontAwesomeIcons.whatsapp;
-      case 'telegram':
-        return FontAwesomeIcons.telegram;
-      case 'email':
-      case 'mail':
-        return Icons.email;
-      case 'sms':
-        return Icons.sms;
-      case 'copy':
-        return Icons.copy;
-      case 'facebook':
-        return FontAwesomeIcons.facebook;
-      case 'snapchat':
-        return FontAwesomeIcons.snapchat;
-      case 'instagram':
-        return FontAwesomeIcons.instagram;
-      case 'x':
-      case 'twitter':
-        return FontAwesomeIcons.twitter;
-      case 'linkedin':
-        return FontAwesomeIcons.linkedin;
-      case 'messenger':
-        return Icons.message;
-      default:
-        return Icons.share;
+    switch (name.toLowerCase().trim()) {
+      case 'whatsapp': return FontAwesomeIcons.whatsapp;
+      case 'telegram': return FontAwesomeIcons.telegram;
+      case 'email': case 'mail': return Icons.email_rounded;
+      case 'sms': return Icons.sms_rounded;
+      case 'copy': return Icons.copy_rounded;
+      case 'facebook': return FontAwesomeIcons.facebook;
+      case 'snapchat': return FontAwesomeIcons.snapchat;
+      case 'instagram': return FontAwesomeIcons.instagram;
+      case 'x': case 'twitter': return FontAwesomeIcons.twitter;
+      case 'linkedin': return FontAwesomeIcons.linkedin;
+      default: return Icons.share_rounded;
     }
   }
 
-  Color _buttonColorFor(String name) {
-    final key = name.toLowerCase().trim();
-    switch (key) {
-      case 'whatsapp':
-        return const Color(0xFF25D366);
-      case 'telegram':
-        return const Color(0xFF229ED9);
-      case 'email':
-      case 'mail':
-        return const Color(0xFFFF7043);
-      case 'sms':
-        return const Color(0xFF26A69A);
-      case 'copy':
-        return const Color(0xFF5C6BC0);
-      case 'facebook':
-      case 'messenger':
-        return const Color(0xFF1877F2);
-      case 'snapchat':
-        return const Color(0xFFFFFC00);
-      case 'instagram':
-        return const Color(0xFFE1306C);
-      case 'twitter':
-      case 'x':
-        return const Color(0xFF1DA1F2);
-      case 'linkedin':
-        return const Color(0xFF0A66C2);
-      default:
-        return const Color(0xFF607D8B);
+  Color _colorFor(String name) {
+    switch (name.toLowerCase().trim()) {
+      case 'whatsapp': return const Color(0xFF25D366);
+      case 'telegram': return const Color(0xFF229ED9);
+      case 'email': case 'mail': return const Color(0xFFFF7043);
+      case 'sms': return const Color(0xFF26A69A);
+      case 'copy': return const Color(0xFF5C6BC0);
+      case 'facebook': case 'messenger': return const Color(0xFF1877F2);
+      case 'snapchat': return const Color(0xFFFDD835);
+      case 'instagram': return const Color(0xFFE1306C);
+      case 'twitter': case 'x': return const Color(0xFF1DA1F2);
+      case 'linkedin': return const Color(0xFF0A66C2);
+      default: return const Color(0xFF607D8B);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FCFF),
+      backgroundColor: const Color(0xFFE0F7FA),
       body: Stack(
         children: [
+          // Header gradient
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: ReferralTopWaveClipper(),
-              child: Container(
-                height: 140,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+            top: 0, left: 0, right: 0,
+            child: Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
               ),
             ),
           ),
           SafeArea(
             child: Column(
               children: [
+                // App bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            'Refer & Earn',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(children: [
+                    IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                    const Expanded(child: Text('Refer & Earn', textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white))),
+                    IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _fetchReferralInfo),
+                  ]),
                 ),
+
                 Expanded(
                   child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    ? const Center(child: CircularProgressIndicator())
+                    : RefreshIndicator(
+                        onRefresh: _fetchReferralInfo,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                           children: [
-                _triCard(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        const Icon(Icons.share_rounded, size: 40, color: Color(0xFF00B4D8)),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Invite friends to LenDen',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 10),
-                        _infoLine('Referral code', _referralCode),
-                        const SizedBox(height: 8),
-                        _infoLine('Total shares', '$_totalShares'),
-                        const SizedBox(height: 8),
-                        _infoLine('Invited users', '$_invitedUsers'),
-                        const SizedBox(height: 8),
-                        _infoLine('Converted users', '$_convertedUsers'),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _triCard(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [Colors.orange, Colors.white, Colors.green],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF00B4D8).withOpacity(0.2),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/icon.png',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
-                                    Icons.account_balance_wallet,
-                                    color: Color(0xFF00B4D8),
-                                    size: 28,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text('Invite Link', style: TextStyle(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 6),
-                        SelectableText(_inviteLink, style: TextStyle(color: Colors.grey[700])),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            await Clipboard.setData(ClipboardData(text: _inviteLink));
-                            if (!mounted) return;
-                            _showInfoDialog(
-                              'Copied',
-                              'Invite link copied.',
-                              icon: Icons.copy,
-                              color: const Color(0xFF00B4D8),
-                            );
-                          },
-                          icon: const Icon(Icons.link),
-                          label: const Text('Copy Link'),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'Reward rule: inviter gets $_inviterRewardCoins coins, new user gets $_refereeRewardCoins coins after first creation.',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1B4332),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _triCard(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Share via', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                        const SizedBox(height: 10),
-                        if (_shareOptions.isEmpty)
-                          const Text('No share options configured.')
-                        else
-                          Wrap(
-                            spacing: 16,
-                            runSpacing: 14,
-                            children: _shareOptions
-                                .map(
-                                  (opt) => _shareCircleButton(
-                                    label: (opt['label'] ?? 'Share').toString(),
-                                    iconKey: (opt['icon'] ?? opt['key'] ?? '').toString(),
-                                    onTap: () => _shareVia(opt),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'After sharing, ask your friend to sign up with your code and create at least one quick, group, or user transaction.',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1B4332),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _triCard(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Recent Shares', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                        const SizedBox(height: 8),
-                        if (_recentShares.isEmpty)
-                          const Text('No shares yet.')
-                        else
-                          ..._recentShares.take(6).map((item) {
-                            final ch = (item['channel'] ?? 'other').toString();
-                            final at = (item['createdAt'] ?? '').toString();
-                            final stamp = at.length >= 10 ? at.substring(0, 10) : at;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(_iconFor(ch), size: 16, color: const Color(0xFF00B4D8)),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '${ch.toUpperCase()} share',
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                            // ── Reward coins hero ─────────────────────────
+                            _triCard(
+                              child: Container(
+                                padding: const EdgeInsets.all(22),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                child: Column(children: [
+                                  // Coins display
+                                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                    _coinBadge('You Get', _inviterRewardCoins, Colors.amber),
+                                    const SizedBox(width: 24),
+                                    Container(width: 1, height: 60, color: Colors.grey[200]),
+                                    const SizedBox(width: 24),
+                                    _coinBadge('Friend Gets', _refereeRewardCoins, const Color(0xFF00B4D8)),
+                                  ]),
+                                  const SizedBox(height: 18),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE0F7FA),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'Coins are awarded after your friend signs up and creates their first transaction',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 12, color: Color(0xFF006D77), fontWeight: FontWeight.w500),
                                     ),
                                   ),
-                                  Text(stamp, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
-                                ],
+                                ]),
                               ),
-                            );
-                          }),
-                      ],
-                    ),
-                  ),
-                ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // ── Stats row ─────────────────────────────────
+                            Row(children: [
+                              Expanded(child: _statCard('$_totalShares', 'Shares', Icons.share_rounded, const Color(0xFF00B4D8))),
+                              const SizedBox(width: 10),
+                              Expanded(child: _statCard('$_invitedUsers', 'Invited', Icons.person_add_rounded, Colors.orange)),
+                              const SizedBox(width: 10),
+                              Expanded(child: _statCard('$_convertedUsers', 'Joined', Icons.how_to_reg_rounded, const Color(0xFF48CAE4))),
+                            ]),
+                            const SizedBox(height: 14),
+
+                            // ── Referral code card ────────────────────────
+                            _triCard(
+                              child: Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(children: [
+                                      Icon(Icons.qr_code_2, color: Color(0xFF00B4D8), size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Your Referral Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    ]),
+                                    const SizedBox(height: 12),
+                                    GestureDetector(
+                                      onTap: () async {
+                                        await Clipboard.setData(ClipboardData(text: _referralCode));
+                                        _showSnack('Code copied!', success: true);
+                                      },
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF0F9FF),
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: const Color(0xFF00B4D8), width: 1.5, style: BorderStyle.solid),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Flexible(
+                                              child: FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                child: Text(
+                                                  _referralCode.isNotEmpty ? _referralCode : '—',
+                                                  style: const TextStyle(
+                                                    fontSize: 26, fontWeight: FontWeight.bold,
+                                                    letterSpacing: 4, color: Color(0xFF00B4D8),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(color: const Color(0xFF00B4D8).withValues(alpha: 0.1), shape: BoxShape.circle),
+                                              child: const Icon(Icons.copy_rounded, size: 18, color: Color(0xFF00B4D8)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text('Invite Link', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                                    const SizedBox(height: 6),
+                                    Row(children: [
+                                      Expanded(
+                                        child: Text(_inviteLink, style: TextStyle(fontSize: 12, color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          await Clipboard.setData(ClipboardData(text: _inviteLink));
+                                          _showSnack('Link copied!', success: true);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                            Icon(Icons.link, size: 14, color: Color(0xFF00B4D8)),
+                                            SizedBox(width: 4),
+                                            Text('Copy', style: TextStyle(fontSize: 12, color: Color(0xFF00B4D8), fontWeight: FontWeight.w600)),
+                                          ]),
+                                        ),
+                                      ),
+                                    ]),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // ── Share via ─────────────────────────────────
+                            _triCard(
+                              child: Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(children: [
+                                      Icon(Icons.share_rounded, color: Color(0xFF00B4D8), size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Share Via', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    ]),
+                                    const SizedBox(height: 14),
+                                    if (_shareOptions.isEmpty)
+                                      Text('No share options configured.', style: TextStyle(color: Colors.grey[500]))
+                                    else
+                                      Wrap(
+                                        spacing: 14, runSpacing: 14,
+                                        children: _shareOptions.map((opt) {
+                                          final iconKey = (opt['icon'] ?? opt['key'] ?? '').toString();
+                                          final label = (opt['label'] ?? 'Share').toString();
+                                          final bg = _colorFor(iconKey);
+                                          final icon = _iconFor(iconKey);
+                                          final isLight = iconKey.toLowerCase() == 'snapchat';
+                                          return GestureDetector(
+                                            onTap: () => _shareVia(opt),
+                                            child: SizedBox(
+                                              width: 68,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 48, height: 48,
+                                                    decoration: BoxDecoration(
+                                                      color: bg,
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [BoxShadow(color: bg.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))],
+                                                    ),
+                                                    child: Icon(icon, color: isLight ? Colors.black : Colors.white, size: 22),
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE0F7FA),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text(
+                                        'Ask your friend to sign up with your code and create at least one transaction.',
+                                        style: TextStyle(fontSize: 12, color: Color(0xFF006D77), fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // ── Recent shares ─────────────────────────────
+                            if (_recentShares.isNotEmpty)
+                              _triCard(
+                                child: Container(
+                                  padding: const EdgeInsets.all(18),
+                                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Row(children: [
+                                        Icon(Icons.history, color: Color(0xFF00B4D8), size: 20),
+                                        SizedBox(width: 8),
+                                        Text('Recent Shares', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                      ]),
+                                      const SizedBox(height: 12),
+                                      ..._recentShares.take(6).map((item) {
+                                        final ch = (item['channel'] ?? 'other').toString();
+                                        final at = (item['createdAt'] ?? '').toString();
+                                        final stamp = at.length >= 10 ? at.substring(0, 10) : at;
+                                        final color = _colorFor(ch);
+                                        return Container(
+                                          margin: const EdgeInsets.only(bottom: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.07),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: color.withValues(alpha: 0.2)),
+                                          ),
+                                          child: Row(children: [
+                                            Icon(_iconFor(ch), size: 16, color: color),
+                                            const SizedBox(width: 10),
+                                            Expanded(child: Text(
+                                              '${ch.substring(0, 1).toUpperCase()}${ch.substring(1)} Share',
+                                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: color),
+                                            )),
+                                            Text(stamp, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                          ]),
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            // ── How it works ──────────────────────────────
+                            const SizedBox(height: 14),
+                            _triCard(
+                              child: Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(children: [
+                                      Icon(Icons.info_outline, color: Color(0xFF00B4D8), size: 20),
+                                      SizedBox(width: 8),
+                                      Text('How it Works', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    ]),
+                                    const SizedBox(height: 14),
+                                    _step(1, 'Share your referral code or link with friends', Icons.share_rounded, const Color(0xFF00B4D8)),
+                                    _step(2, 'Friend signs up on LenDen using your code', Icons.person_add_rounded, Colors.orange),
+                                    _step(3, 'Friend creates their first transaction', Icons.receipt_long_rounded, const Color(0xFF48CAE4)),
+                                    _step(4, 'Both of you earn LenDen coins!', Icons.monetization_on_rounded, Colors.amber, isLast: true),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
+                      ),
                 ),
               ],
             ),
@@ -498,68 +473,72 @@ class _ReferralPageState extends State<ReferralPage> {
     );
   }
 
-  Widget _infoLine(String label, String value) {
-    return Row(
+  Widget _coinBadge(String label, int coins, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w700)),
-        Expanded(
-          child: Text(
-            value,
-            overflow: TextOverflow.ellipsis,
+        Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+          ),
+          child: Center(
+            child: Icon(Icons.monetization_on_rounded, color: color, size: 30),
           ),
         ),
+        const SizedBox(height: 8),
+        Text('+$coins', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text('coins', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
       ],
     );
   }
 
-  Widget _shareCircleButton({
-    required String label,
-    required String iconKey,
-    required VoidCallback onTap,
-  }) {
-    final bg = _buttonColorFor(iconKey);
-    final icon = _iconFor(iconKey);
-    final isSnapchat = iconKey.toLowerCase().trim() == 'snapchat';
+  Widget _statCard(String value, String label, IconData icon, Color color) {
+    return _triCard(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+        ]),
+      ),
+    );
+  }
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(28),
-      onTap: onTap,
-      child: SizedBox(
-        width: 78,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _step(int num, String text, IconData icon, Color color, {bool isLast = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
           children: [
             Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: bg,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: bg.withOpacity(0.28),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: isSnapchat ? Colors.black : Colors.white, size: 20),
+              width: 32, height: 32,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 16),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
+            if (!isLast)
+              Container(width: 2, height: 28, color: Colors.grey[200], margin: const EdgeInsets.symmetric(vertical: 2)),
           ],
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 24, top: 6),
+            child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -567,99 +546,15 @@ class _ReferralPageState extends State<ReferralPage> {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       child: child,
     );
   }
-
-  void _showInfoDialog(
-    String title,
-    String message, {
-    required IconData icon,
-    required Color color,
-  }) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 42, color: color),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(message, textAlign: TextAlign.center),
-                const SizedBox(height: 14),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: color,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ReferralTopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

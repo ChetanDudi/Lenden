@@ -1,0 +1,978 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../../session.dart';
+import '../../utils/api_client.dart';
+
+class LendenWalletPage extends StatefulWidget {
+  const LendenWalletPage({super.key});
+
+  @override
+  State<LendenWalletPage> createState() => _LendenWalletPageState();
+}
+
+class _LendenWalletPageState extends State<LendenWalletPage> {
+  bool _loading = true;
+  double _walletBalance = 0;
+  List<Map<String, dynamic>> _transactions = [];
+  Razorpay? _razorpay;
+  bool _processingPayment = false;
+  final TextEditingController _amountController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _fetchWalletData();
+  }
+
+  @override
+  void dispose() {
+    _razorpay?.clear();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchWalletData() async {
+    setState(() => _loading = true);
+    try {
+      final results = await Future.wait([
+        ApiClient.get('/api/wallet/balance'),
+        ApiClient.get('/api/wallet/history'),
+      ]);
+      final balRes = results[0];
+      final histRes = results[1];
+      if (balRes.statusCode == 200) {
+        final data = jsonDecode(balRes.body);
+        setState(() => _walletBalance = (data['balance'] ?? 0).toDouble());
+      }
+      if (histRes.statusCode == 200) {
+        final data = jsonDecode(histRes.body);
+        setState(() => _transactions = List<Map<String, dynamic>>.from(data['transactions'] ?? []));
+      }
+    } catch (_) {}
+    setState(() => _loading = false);
+  }
+
+  Future<void> _initiateAddMoney(double amount) async {
+    setState(() => _processingPayment = true);
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final orderRes = await ApiClient.post('/api/wallet/create-order', body: {
+        'amount': (amount * 100).toInt(),
+      });
+      if (!mounted) return;
+      if (orderRes.statusCode != 200) {
+        final err = jsonDecode(orderRes.body);
+        _showSnack(err['error'] ?? 'Failed to create order');
+        setState(() => _processingPayment = false);
+        return;
+      }
+      final orderData = jsonDecode(orderRes.body);
+      final user = session.user ?? {};
+      final options = {
+        'key': orderData['keyId'],
+        'amount': orderData['amount'],
+        'currency': 'INR',
+        'name': 'LenDen Wallet',
+        'description': 'Add money to wallet',
+        'order_id': orderData['orderId'],
+        'prefill': {
+          'email': user['email'] ?? '',
+          'contact': user['phone'] ?? '',
+          'name': user['name'] ?? '',
+        },
+        'theme': {'color': '#00B4D8'},
+      };
+      _razorpay!.open(options);
+    } catch (e) {
+      if (mounted) {
+        _showSnack('Error: $e');
+        setState(() => _processingPayment = false);
+      }
+    }
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    if (!mounted) return;
+    try {
+      final verifyRes = await ApiClient.post('/api/wallet/verify', body: {
+        'razorpayOrderId': response.orderId,
+        'razorpayPaymentId': response.paymentId,
+        'razorpaySignature': response.signature,
+      });
+      if (!mounted) return;
+      setState(() => _processingPayment = false);
+      if (verifyRes.statusCode == 200) {
+        final data = jsonDecode(verifyRes.body);
+        _amountController.clear();
+        _showSnack('₹${data['addedAmount'] ?? ''} added to wallet!', success: true);
+        _fetchWalletData();
+      } else {
+        _showSnack('Payment received but verification failed. Contact support.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _processingPayment = false);
+        _showSnack('Verification error: $e');
+      }
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    setState(() => _processingPayment = false);
+    _showSnack('Payment failed: ${response.message ?? 'Unknown'}');
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    setState(() => _processingPayment = false);
+  }
+
+  void _showSnack(String msg, {bool success = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: success ? Colors.green : Colors.red,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(12),
+    ));
+  }
+
+  void _showAddMoneySheet() {
+    _amountController.clear();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (context, setSheet) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: const Color(0xFF00B4D8).withValues(alpha: 0.12), shape: BoxShape.circle),
+                    child: const Icon(Icons.add_rounded, color: Color(0xFF00B4D8), size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('Add Money to Wallet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 6),
+                Text('Secured by Razorpay', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                const SizedBox(height: 18),
+                // Quick amount chips
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: [100, 250, 500, 1000, 2000, 5000].map((amt) =>
+                    GestureDetector(
+                      onTap: () => setSheet(() => _amountController.text = '$amt'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF00B4D8)),
+                          borderRadius: BorderRadius.circular(20),
+                          color: const Color(0xFFE3F8FC),
+                        ),
+                        child: Text('₹$amt', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF00B4D8), fontSize: 13)),
+                      ),
+                    ),
+                  ).toList(),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Enter Amount (₹)',
+                    prefixText: '₹ ',
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FA),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00B4D8),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    icon: _processingPayment
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.payment_rounded, color: Colors.white),
+                    label: Text(_processingPayment ? 'Processing...' : 'Pay & Add',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                    onPressed: _processingPayment ? null : () {
+                      final amount = double.tryParse(_amountController.text.trim());
+                      if (amount == null || amount < 1) {
+                        _showSnack('Enter a valid amount (min ₹1)');
+                        return;
+                      }
+                      Navigator.pop(ctx);
+                      _initiateAddMoney(amount);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.lock_outline, size: 13, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text('256-bit SSL secured payment', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                ]),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  void _showPayToUserSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PayToUserSheet(
+        walletBalance: _walletBalance,
+        onSuccess: (amount) {
+          _showSnack('₹${amount.toStringAsFixed(2)} sent successfully!', success: true);
+          _fetchWalletData();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F7FF),
+      body: Stack(
+        children: [
+          // Header gradient
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: Container(
+              height: 260,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF023E8A), Color(0xFF00B4D8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                // App bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text('LenDen Wallet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text('Store & send real money', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: _fetchWalletData,
+                    ),
+                  ]),
+                ),
+
+                // Balance card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(26),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(color: const Color(0xFF00B4D8).withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 10)),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.account_balance_wallet_rounded, color: Colors.grey[400], size: 18),
+                          const SizedBox(width: 6),
+                          Text('Available Balance', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                        ]),
+                        const SizedBox(height: 10),
+                        _loading
+                          ? const CircularProgressIndicator()
+                          : Text(
+                              '₹${_walletBalance.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                            ),
+                        const SizedBox(height: 22),
+                        Row(children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00B4D8),
+                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.add_rounded, color: Colors.white),
+                              label: const Text('Add Money', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              onPressed: _showAddMoneySheet,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              icon: const Icon(Icons.send_rounded, color: Color(0xFF00B4D8)),
+                              label: const Text('Pay User', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00B4D8))),
+                              onPressed: _showPayToUserSheet,
+                            ),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Info chips row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    _infoBadge(Icons.security_rounded, 'Secure Payments', const Color(0xFF2E7D32)),
+                    const SizedBox(width: 10),
+                    _infoBadge(Icons.flash_on_rounded, 'Instant Transfer', const Color(0xFF0077B6)),
+                  ]),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Transaction history
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(children: [
+                    const Text('Transaction History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    if (!_loading && _transactions.isNotEmpty)
+                      Text('${_transactions.length} records', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  ]),
+                ),
+                const SizedBox(height: 10),
+
+                Expanded(
+                  child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _transactions.isEmpty
+                      ? Center(
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.receipt_long_rounded, size: 64, color: Colors.grey[200]),
+                            const SizedBox(height: 8),
+                            Text('No transactions yet', style: TextStyle(color: Colors.grey[500])),
+                            const SizedBox(height: 4),
+                            Text('Add money to get started', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                          ]),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          itemCount: _transactions.length,
+                          itemBuilder: (_, i) {
+                            final t = _transactions[i];
+                            final type = (t['type'] ?? 'credit').toString();
+                            final isCredit = type == 'credit' || type == 'add' || type == 'receive';
+                            final amount = ((t['amount'] ?? 0) as num).toDouble();
+                            final desc = (t['description'] ?? t['note'] ?? '').toString();
+                            final date = (t['createdAt'] ?? '').toString();
+                            final dateShort = date.length >= 10 ? date.substring(0, 10) : date;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                              ),
+                              child: Row(children: [
+                                Container(
+                                  width: 44, height: 44,
+                                  decoration: BoxDecoration(
+                                    color: (isCredit ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                    color: isCredit ? Colors.green : Colors.red,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      desc.isNotEmpty ? desc : (isCredit ? 'Money Added' : 'Money Sent'),
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(children: [
+                                      Icon(Icons.calendar_today_rounded, size: 11, color: Colors.grey[400]),
+                                      const SizedBox(width: 4),
+                                      Text(dateShort, style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                                    ]),
+                                  ],
+                                )),
+                                Text(
+                                  '${isCredit ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15,
+                                    color: isCredit ? Colors.green[700] : Colors.red[700],
+                                  ),
+                                ),
+                              ]),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoBadge(IconData icon, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Flexible(child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color), maxLines: 1)),
+        ]),
+      ),
+    );
+  }
+}
+
+// Reusable static method to show a payment sheet from any transaction page.
+// Checks if counterparty phone exists; if not, shows a prompt.
+class _PayToUserSheet extends StatefulWidget {
+  final double walletBalance;
+  final void Function(double amount) onSuccess;
+
+  const _PayToUserSheet({required this.walletBalance, required this.onSuccess});
+
+  @override
+  State<_PayToUserSheet> createState() => _PayToUserSheetState();
+}
+
+class _PayToUserSheetState extends State<_PayToUserSheet> {
+  final _emailCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+  bool _sending = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _amountCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final to = _emailCtrl.text.trim();
+    final amt = double.tryParse(_amountCtrl.text.trim());
+    if (to.isEmpty) { setState(() => _error = 'Enter email or phone'); return; }
+    if (amt == null || amt <= 0) { setState(() => _error = 'Enter a valid amount'); return; }
+    if (amt > widget.walletBalance) {
+      setState(() => _error = 'Insufficient balance (₹${widget.walletBalance.toStringAsFixed(2)})');
+      return;
+    }
+    setState(() { _sending = true; _error = null; });
+    try {
+      final res = await ApiClient.post('/api/wallet/pay', body: {
+        'to': to, 'amount': amt, 'note': _noteCtrl.text.trim(),
+      });
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        Navigator.pop(context);
+        widget.onSuccess(amt);
+      } else {
+        final err = jsonDecode(res.body);
+        setState(() { _sending = false; _error = err['error'] ?? 'Payment failed'; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _sending = false; _error = 'Error: $e'; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 20),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: const Icon(Icons.send_rounded, color: Colors.green, size: 22),
+              ),
+              const SizedBox(width: 10),
+              const Text('Pay to User', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(children: [
+                const Icon(Icons.account_balance_wallet_rounded, color: Colors.green, size: 16),
+                const SizedBox(width: 6),
+                Text('Wallet Balance: ₹${widget.walletBalance.toStringAsFixed(2)}',
+                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 13)),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailCtrl,
+              decoration: InputDecoration(
+                labelText: 'Email or Phone Number',
+                prefixIcon: const Icon(Icons.person_search_rounded),
+                hintText: 'user@example.com or +91XXXXXXXXXX',
+                filled: true,
+                fillColor: const Color(0xFFF5F7FA),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                ),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _amountCtrl,
+              decoration: InputDecoration(
+                labelText: 'Amount (₹)',
+                prefixText: '₹ ',
+                filled: true,
+                fillColor: const Color(0xFFF5F7FA),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                ),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _noteCtrl,
+              decoration: InputDecoration(
+                labelText: 'Note (optional)',
+                prefixIcon: const Icon(Icons.note_alt_outlined),
+                filled: true,
+                fillColor: const Color(0xFFF5F7FA),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              ),
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                    const SizedBox(width: 8),
+                    Flexible(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                  ]),
+                ),
+              ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                icon: _sending
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send_rounded, color: Colors.white),
+                label: Text(_sending ? 'Sending...' : 'Send Money',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                onPressed: _sending ? null : _submit,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LendenPaymentHelper {
+  static Future<void> showPaymentSheet(
+    BuildContext context, {
+    required String counterpartyEmail,
+    required double amount,
+    required String description,
+    String? counterpartyPhone,
+    VoidCallback? onSuccess,
+  }) async {
+    final hasPhone = counterpartyPhone != null && counterpartyPhone.trim().isNotEmpty;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _PaymentSheet(
+        counterpartyEmail: counterpartyEmail,
+        counterpartyPhone: counterpartyPhone,
+        amount: amount,
+        description: description,
+        hasPhone: hasPhone,
+        onSuccess: onSuccess,
+      ),
+    );
+  }
+}
+
+class _PaymentSheet extends StatefulWidget {
+  final String counterpartyEmail;
+  final String? counterpartyPhone;
+  final double amount;
+  final String description;
+  final bool hasPhone;
+  final VoidCallback? onSuccess;
+
+  const _PaymentSheet({
+    required this.counterpartyEmail,
+    required this.counterpartyPhone,
+    required this.amount,
+    required this.description,
+    required this.hasPhone,
+    this.onSuccess,
+  });
+
+  @override
+  State<_PaymentSheet> createState() => _PaymentSheetState();
+}
+
+class _PaymentSheetState extends State<_PaymentSheet> {
+  bool _paying = false;
+  String? _error;
+  Razorpay? _razorpay;
+
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _onError);
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, (_) {});
+  }
+
+  @override
+  void dispose() {
+    _razorpay?.clear();
+    super.dispose();
+  }
+
+  Future<void> _payViaRazorpay() async {
+    setState(() { _paying = true; _error = null; });
+    try {
+      final session = Provider.of<SessionProvider>(context, listen: false);
+      final orderRes = await ApiClient.post('/api/payment/create-p2p-order', body: {
+        'toEmail': widget.counterpartyEmail,
+        'amount': (widget.amount * 100).toInt(),
+        'description': widget.description,
+      });
+      if (!mounted) return;
+      if (orderRes.statusCode != 200) {
+        final err = jsonDecode(orderRes.body);
+        setState(() { _paying = false; _error = err['error'] ?? 'Failed to create order'; });
+        return;
+      }
+      final data = jsonDecode(orderRes.body);
+      final user = session.user ?? {};
+      final options = {
+        'key': data['keyId'],
+        'amount': data['amount'],
+        'currency': 'INR',
+        'name': 'LenDen Pay',
+        'description': widget.description,
+        'order_id': data['orderId'],
+        'prefill': {
+          'email': user['email'] ?? '',
+          'contact': widget.counterpartyPhone ?? user['phone'] ?? '',
+          'name': user['name'] ?? '',
+        },
+        'theme': {'color': '#00B4D8'},
+      };
+      _razorpay!.open(options);
+    } catch (e) {
+      if (mounted) setState(() { _paying = false; _error = 'Error: $e'; });
+    }
+  }
+
+  Future<void> _payViaWallet() async {
+    setState(() { _paying = true; _error = null; });
+    try {
+      final res = await ApiClient.post('/api/wallet/pay', body: {
+        'to': widget.counterpartyEmail,
+        'amount': widget.amount,
+        'note': widget.description,
+      });
+      if (!mounted) return;
+      setState(() => _paying = false);
+      if (res.statusCode == 200) {
+        Navigator.pop(context);
+        widget.onSuccess?.call();
+      } else {
+        final err = jsonDecode(res.body);
+        setState(() => _error = err['error'] ?? 'Payment failed');
+      }
+    } catch (e) {
+      if (mounted) setState(() { _paying = false; _error = 'Error: $e'; });
+    }
+  }
+
+  void _onSuccess(PaymentSuccessResponse response) async {
+    if (!mounted) return;
+    try {
+      final verifyRes = await ApiClient.post('/api/payment/verify-p2p', body: {
+        'razorpayOrderId': response.orderId,
+        'razorpayPaymentId': response.paymentId,
+        'razorpaySignature': response.signature,
+      });
+      if (!mounted) return;
+      setState(() => _paying = false);
+      if (verifyRes.statusCode == 200) {
+        Navigator.pop(context);
+        widget.onSuccess?.call();
+      } else {
+        setState(() => _error = 'Payment done but verification failed. Contact support.');
+      }
+    } catch (e) {
+      if (mounted) setState(() { _paying = false; _error = 'Verification error: $e'; });
+    }
+  }
+
+  void _onError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    setState(() { _paying = false; _error = 'Payment failed: ${response.message ?? 'Unknown'}'; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 18),
+          // Header
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: const Color(0xFF00B4D8).withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: const Icon(Icons.payment_rounded, color: Color(0xFF00B4D8), size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Text('Pay Now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ]),
+          const SizedBox(height: 16),
+          // Amount & details
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F7FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF00B4D8).withValues(alpha: 0.2)),
+            ),
+            child: Column(children: [
+              Row(children: [
+                const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(child: Text(widget.counterpartyEmail, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                const Icon(Icons.currency_rupee, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                Text('₹${widget.amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
+              ]),
+              if (widget.description.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Row(children: [
+                  const Icon(Icons.note_outlined, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(widget.description, style: TextStyle(fontSize: 12, color: Colors.grey[600]))),
+                ]),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 20),
+
+          if (!widget.hasPhone)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.phone_disabled_rounded, color: Colors.orange, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text("Phone number not found", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text(
+                    "The other member's phone number is not on LenDen. Ask them to add it in their profile settings. You can still pay via LenDen Wallet.",
+                    style: TextStyle(color: Colors.orange[800], fontSize: 12),
+                  ),
+                ])),
+              ]),
+            )
+          else
+            // Razorpay button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF023E8A),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                icon: _paying
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.payment_rounded, color: Colors.white),
+                label: Text(_paying ? 'Processing...' : 'Pay via Razorpay',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                onPressed: _paying ? null : _payViaRazorpay,
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
+          // Wallet button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: _paying
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00B4D8)))
+                : const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8)),
+              label: Text(_paying ? 'Processing...' : 'Pay via LenDen Wallet',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF00B4D8))),
+              onPressed: _paying ? null : _payViaWallet,
+            ),
+          ),
+
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                ]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

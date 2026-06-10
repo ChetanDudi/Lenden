@@ -1,6 +1,10 @@
+const mongoose = require('mongoose');
 const User = require('../models/user');
 const FriendRequest = require('../models/friendRequest');
 const Notification = require('../models/notification');
+const Transaction = require('../models/transaction');
+const QuickTransaction = require('../models/quickTransaction');
+const GroupTransaction = require('../models/groupTransaction');
 const { logFriendActivity } = require('./userActivityController');
 
 const sanitizeQuery = (q) => (q || '').toString().trim();
@@ -223,21 +227,30 @@ exports.sendFriendRequest = async (req, res) => {
       return res.status(200).json({ message: 'Already friends' });
     }
 
-    const existing = await FriendRequest.findOne({
+    const existingPending = await FriendRequest.findOne({
       $or: [
         { from: user._id, to: target._id, status: 'pending' },
         { from: target._id, to: user._id, status: 'pending' },
       ],
     });
-    if (existing) {
+    if (existingPending) {
       return res.status(200).json({ message: 'Request already pending' });
     }
 
-    const request = await FriendRequest.create({
-      from: user._id,
-      to: target._id,
-      status: 'pending',
-    });
+    // Reuse a previously-cancelled or declined record to avoid the unique {from,to} index violation
+    let request = await FriendRequest.findOneAndUpdate(
+      { from: user._id, to: target._id, status: { $in: ['canceled', 'declined'] } },
+      { $set: { status: 'pending', updatedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!request) {
+      request = await FriendRequest.create({
+        from: user._id,
+        to: target._id,
+        status: 'pending',
+      });
+    }
 
     // Activity log
     await logFriendActivity(user._id, 'friend_request_sent', { to: target.email });
@@ -435,6 +448,192 @@ exports.unblockUser = async (req, res) => {
     await logFriendActivity(req.user._id, 'user_unblocked', { userId });
     await logFriendActivity(userId, 'user_unblocked', { by: req.user.email });
     res.status(200).json({ message: 'User unblocked' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getFriendSuggestions = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 30);
+
+    // ── Load my data ──────────────────────────────────────────────────────────
+    const me = await User.findById(req.user._id).select('friends blockedUsers email');
+    const myFriendIds = (me.friends || []).map((id) => id.toString());
+    const myBlockedIds = (me.blockedUsers || []).map((id) => id.toString());
+    const myEmail = (me.email || '').toLowerCase();
+
+    // Build exclude set: self + friends + blocked
+    const excludeIds = new Set([req.user._id.toString(), ...myFriendIds, ...myBlockedIds]);
+
+    // Exclude anyone with a pending or cancelled request involving me
+    const requests = await FriendRequest.find({
+      $or: [
+        { from: req.user._id, status: { $in: ['pending', 'canceled'] } },
+        { to: req.user._id, status: 'pending' },
+      ],
+    }).select('from to');
+    for (const r of requests) {
+      excludeIds.add(r.from.toString());
+      excludeIds.add(r.to.toString());
+    }
+
+    // score: candidateId (string) → numeric score
+    const scoreMap = {};
+    const addScore = (idStr, points) => {
+      const key = (idStr || '').toString();
+      if (key && !excludeIds.has(key)) {
+        scoreMap[key] = (scoreMap[key] || 0) + points;
+      }
+    };
+
+    // ── Signal 1: Friends of friends (+2 per mutual friend) ──────────────────
+    if (myFriendIds.length > 0) {
+      const friendsData = await User.find(
+        { _id: { $in: myFriendIds } },
+        { friends: 1 }
+      ).lean();
+      for (const f of friendsData) {
+        for (const cid of (f.friends || [])) {
+          addScore(cid.toString(), 2);
+        }
+      }
+    }
+
+    // ── Signal 2: Counterparties of friends (+1 per shared transaction) ───────
+    if (myFriendIds.length > 0) {
+      const friendUsers = await User.find(
+        { _id: { $in: myFriendIds } },
+        { email: 1 }
+      ).lean();
+      const friendEmails = friendUsers.map((f) => (f.email || '').toLowerCase()).filter(Boolean);
+      const friendEmailSet = new Set(friendEmails);
+
+      // Collect candidate emails from secure + quick transactions in parallel
+      const [secureTxns, quickTxns, groupTxns] = await Promise.all([
+        friendEmails.length > 0
+          ? Transaction.find(
+              { $or: [{ userEmail: { $in: friendEmails } }, { counterpartyEmail: { $in: friendEmails } }] },
+              { userEmail: 1, counterpartyEmail: 1 }
+            ).lean()
+          : [],
+        friendEmails.length > 0
+          ? QuickTransaction.find({ users: { $in: friendEmails } }, { users: 1 }).lean()
+          : [],
+        GroupTransaction.find(
+          { 'members.user': { $in: myFriendIds.map((id) => new mongoose.Types.ObjectId(id)) } },
+          { 'members.user': 1 }
+        ).lean(),
+      ]);
+
+      // Secure transaction counterparties → emails
+      const cpEmailSet = new Set();
+      for (const t of secureTxns) {
+        const cpEmail = friendEmailSet.has((t.userEmail || '').toLowerCase())
+          ? t.counterpartyEmail
+          : t.userEmail;
+        if (cpEmail) cpEmailSet.add(cpEmail.toLowerCase());
+      }
+
+      // Quick transaction counterparties → emails
+      for (const t of quickTxns) {
+        for (const email of (t.users || [])) {
+          const e = (email || '').toLowerCase();
+          if (e && e !== myEmail && !friendEmailSet.has(e)) cpEmailSet.add(e);
+        }
+      }
+
+      // Resolve counterparty emails → ObjectIds and score
+      if (cpEmailSet.size > 0) {
+        const cpUsers = await User.find({ email: { $in: [...cpEmailSet] } }, { _id: 1 }).lean();
+        for (const u of cpUsers) addScore(u._id.toString(), 1);
+      }
+
+      // Group transaction counterparties (already ObjectIds)
+      for (const g of groupTxns) {
+        for (const m of (g.members || [])) {
+          const mid = m.user?.toString();
+          if (mid) addScore(mid, 1);
+        }
+      }
+    }
+
+    // ── Signal 3: Leaderboard top 10 (+1 bonus for active users) ─────────────
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+    const [quickTop, secureTop, groupTop] = await Promise.all([
+      QuickTransaction.aggregate([
+        { $match: { createdAt: { $gte: monthAgo } } },
+        { $group: { _id: '$creatorEmail', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }, { $limit: 20 },
+      ]),
+      Transaction.aggregate([
+        { $match: { createdAt: { $gte: monthAgo } } },
+        { $group: { _id: '$userEmail', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }, { $limit: 20 },
+      ]),
+      GroupTransaction.aggregate([
+        { $match: { createdAt: { $gte: monthAgo } } },
+        { $group: { _id: '$creator', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }, { $limit: 20 },
+      ]),
+    ]);
+
+    // Resolve leaderboard emails to IDs and score top 10 unique users
+    const lbEmails = [
+      ...quickTop.map((r) => r._id),
+      ...secureTop.map((r) => r._id),
+    ].filter(Boolean);
+    const lbObjIds = groupTop.map((r) => r._id?.toString()).filter(Boolean);
+
+    const lbIdSet = new Set(lbObjIds);
+    if (lbEmails.length > 0) {
+      const lbUsers = await User.find({ email: { $in: lbEmails } }, { _id: 1 }).lean();
+      for (const u of lbUsers) lbIdSet.add(u._id.toString());
+    }
+
+    let lbBonus = 0;
+    for (const id of lbIdSet) {
+      if (lbBonus >= 10) break;
+      if (!excludeIds.has(id)) { addScore(id, 1); lbBonus++; }
+    }
+
+    // ── Finalize: rank by score, fetch user details ───────────────────────────
+    const candidateIds = Object.keys(scoreMap)
+      .sort((a, b) => scoreMap[b] - scoreMap[a])
+      .slice(0, limit);
+
+    if (candidateIds.length === 0) {
+      return res.status(200).json({ suggestions: [] });
+    }
+
+    const myFriendIdSet = new Set(myFriendIds);
+    const candidateUsers = await User.find(
+      { _id: { $in: candidateIds } },
+      { name: 1, username: 1, email: 1, friends: 1 }
+    ).lean();
+
+    const suggestions = candidateUsers
+      .map((u) => {
+        const uid = u._id.toString();
+        const mutualCount = (u.friends || []).filter((fid) => myFriendIdSet.has(fid.toString())).length;
+        return {
+          _id: u._id,
+          name: u.name || '',
+          username: u.username || '',
+          email: u.email || '',
+          mutualFriends: mutualCount,
+          reason: mutualCount > 0
+            ? `${mutualCount} mutual friend${mutualCount === 1 ? '' : 's'}`
+            : 'Active in transactions',
+          _score: scoreMap[uid] || 0,
+        };
+      })
+      .sort((a, b) => b._score - a._score)
+      .map(({ _score, ...rest }) => rest); // strip internal field
+
+    res.status(200).json({ suggestions });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

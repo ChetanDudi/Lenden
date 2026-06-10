@@ -145,6 +145,7 @@ module.exports = (io) => {
   // Friends routes
   router.get('/friends', auth, friendController.getFriends);
   router.get('/friends/search', auth, friendController.searchUsers);
+  router.get('/friends/suggestions', auth, friendController.getFriendSuggestions);
   router.get('/friends/mutual', auth, friendController.getMutualFriends);
   router.post('/friends/mutual-counts', auth, friendController.getMutualFriendCounts);
   router.get('/friends/requests', auth, friendController.getFriendRequests);

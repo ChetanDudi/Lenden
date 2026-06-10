@@ -27,6 +27,7 @@ import '../connections/counterparties_page.dart';
 import '../digitise/lenden_coins_page.dart';
 import '../ads_and_updates/updates_page.dart';
 import '../ads_and_updates/ad_popup_dialog.dart';
+import '../wallet/lenden_wallet_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
 
@@ -1290,6 +1291,19 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 },
                                 child: Icon(Icons.monetization_on,
                                     color: Colors.amber, size: 28),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.account_balance_wallet_rounded,
+                                    color: Color(0xFF023E8A), size: 26),
+                                tooltip: 'LenDen Wallet',
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LendenWalletPage(),
+                                    ),
+                                  );
+                                },
                               ),
                               Container(
                                 padding: const EdgeInsets.all(2),

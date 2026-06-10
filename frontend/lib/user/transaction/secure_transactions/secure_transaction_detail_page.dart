@@ -14,6 +14,7 @@ import '../../chats/chat_page.dart';
 import '../../../otp_input.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../wallet/lenden_wallet_page.dart';
 
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -178,6 +179,31 @@ class _SecureTransactionDetailPageState
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return null;
+  }
+
+  Future<void> _showPayNow() async {
+    final t = _t;
+    final counterpartyEmail = t['counterpartyEmail']?.toString() ?? '';
+    final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0;
+    final profile = await _fetchCounterpartyProfile(counterpartyEmail);
+    final phone = profile?['phone']?.toString();
+    if (!mounted) return;
+    await LendenPaymentHelper.showPaymentSheet(
+      context,
+      counterpartyEmail: counterpartyEmail,
+      amount: remaining,
+      description: 'Secure transaction repayment',
+      counterpartyPhone: phone,
+      onSuccess: () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Payment successful!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ));
+        }
+      },
+    );
   }
 
   Future<void> _toggleFavourite() async {
@@ -1331,6 +1357,12 @@ class _SecureTransactionDetailPageState
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
+                    if (isBorrower && !fullyCleared)
+                      _serviceChip(
+                          icon: Icons.account_balance_wallet_rounded,
+                          label: 'Pay Now',
+                          color: const Color(0xFF023E8A),
+                          onTap: _showPayNow),
                     if (isBorrower && !fullyCleared)
                       _serviceChip(
                           icon: Icons.payment,

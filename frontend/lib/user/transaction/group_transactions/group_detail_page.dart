@@ -6,6 +6,7 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
+import '../../wallet/lenden_wallet_page.dart';
 
 const _kCardColors = [
   Color(0xFFFFF4E6), Color(0xFFE8F5E9), Color(0xFFFCE4EC),
@@ -469,6 +470,41 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
   }
 
+  // Compute net balance per member from expenses data.
+  // Positive = this member owes others; Negative = others owe this member.
+  Map<String, double> _computeBalances() {
+    final expenses = List<dynamic>.from(_group['expenses'] ?? []);
+    final members = List<dynamic>.from(_group['members'] ?? []);
+    if (expenses.isEmpty) return {};
+
+    final Map<String, double> net = {};
+
+    // Seed all active members at 0
+    for (final m in members) {
+      final email = _resolveEmail(m['user'] ?? m).toLowerCase();
+      if (email.contains('@')) net[email] = 0;
+    }
+
+    for (final exp in expenses) {
+      final addedByEmail = _resolveEmail(exp['addedBy']).toLowerCase();
+      final splits = List<dynamic>.from(exp['split'] ?? []);
+      for (final s in splits) {
+        final splitEmail = _resolveEmail(s['user']).toLowerCase();
+        final amount = ((s['amount'] ?? 0) as num).toDouble();
+        final settled = s['settled'] == true;
+        if (settled) continue;
+        if (splitEmail == addedByEmail) continue; // payer doesn't owe themselves
+        // splitEmail owes addedByEmail `amount`
+        net[splitEmail] = (net[splitEmail] ?? 0) + amount;
+        net[addedByEmail] = (net[addedByEmail] ?? 0) - amount;
+      }
+    }
+
+    // Remove zeroes
+    net.removeWhere((_, v) => v.abs() < 0.01);
+    return net;
+  }
+
   // ─── Service bar items ───────────────────────────────────────────
   Widget _serviceChip({
     required IconData icon,
@@ -867,6 +903,113 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 ),
 
                 const SizedBox(height: 16),
+
+                // ── Who Owes What ────────────────────────────────────
+                Builder(builder: (context) {
+                  final balances = _computeBalances();
+                  if (balances.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: const Color(0xFF1565C0).withValues(alpha: 0.12), shape: BoxShape.circle),
+                            child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF1565C0), size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Who Owes What', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        ]),
+                      ),
+                      const SizedBox(height: 10),
+                      Builder(builder: (ctx) {
+                        // Find the member who is owed the most (most negative) to use as pay target
+                        String? topCreditorEmail;
+                        double maxCredit = 0;
+                        for (final e in balances.entries) {
+                          if (e.value < maxCredit) { maxCredit = e.value; topCreditorEmail = e.key; }
+                        }
+                        return SizedBox(
+                          height: 140,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            children: balances.entries.map((entry) {
+                              final memberEmail = entry.key;
+                              final net = entry.value;
+                              final isMe = memberEmail.toLowerCase() == (_userEmail ?? '').toLowerCase();
+                              final isOwes = net > 0;
+                              final color = isOwes ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32);
+                              final shortName = memberEmail.split('@').first;
+                              return _tricolorBorderBox(
+                                margin: const EdgeInsets.only(right: 10),
+                                radius: 14,
+                                child: Container(
+                                  width: 140,
+                                  color: color.withValues(alpha: 0.06),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        isMe ? 'You' : shortName,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        isOwes ? 'owes' : 'is owed',
+                                        style: TextStyle(fontSize: 10, color: color),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '₹${net.abs().toStringAsFixed(2)}',
+                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
+                                      ),
+                                      if (isMe && isOwes) ...[
+                                        const SizedBox(height: 6),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 28,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF023E8A),
+                                              padding: EdgeInsets.zero,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              elevation: 0,
+                                            ),
+                                            onPressed: () => LendenPaymentHelper.showPaymentSheet(
+                                              ctx,
+                                              counterpartyEmail: topCreditorEmail ?? '',
+                                              amount: net.abs(),
+                                              description: 'Group expense repayment',
+                                              counterpartyPhone: null,
+                                              onSuccess: () {
+                                                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                                                  content: Text('Payment sent!'),
+                                                  backgroundColor: Colors.green,
+                                                  behavior: SnackBarBehavior.floating,
+                                                ));
+                                              },
+                                            ),
+                                            child: const Text('Pay', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                }),
 
                 // ── Recent Expenses Preview ──────────────────────────
                 Padding(

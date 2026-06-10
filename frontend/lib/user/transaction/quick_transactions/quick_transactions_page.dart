@@ -15,6 +15,7 @@ import '../../../widgets/stylish_dialog.dart';
 import '../../digitise/subscriptions_page.dart';
 import '../../digitise/gift_card_page.dart';
 import '../analytics_page.dart';
+import '../../wallet/lenden_wallet_page.dart';
 
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
@@ -2795,6 +2796,41 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
+                    if (!isCleared && roleForViewer == 'receiver') ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF023E8A),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          icon: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 18),
+                          label: const Text('Pay Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          onPressed: () {
+                            final email = (counterparty?['email'] ?? '').toString();
+                            final phone = counterparty?['phone']?.toString();
+                            final amount = ((transaction['amount'] ?? 0) as num).toDouble();
+                            LendenPaymentHelper.showPaymentSheet(
+                              context,
+                              counterpartyEmail: email,
+                              amount: amount,
+                              description: transaction['description']?.toString() ?? 'Quick transaction payment',
+                              counterpartyPhone: phone,
+                              onSuccess: () {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                  content: Text('Payment successful!'),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                ));
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                     if (settlementStatus == 'pending') ...[
                       const SizedBox(height: 12),
                       Container(
