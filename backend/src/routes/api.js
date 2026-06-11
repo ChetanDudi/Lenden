@@ -506,6 +506,12 @@ module.exports = (io) => {
   router.post('/wallet/pay', auth, walletController.pay);
   router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
 
+  // Wallet Withdrawal routes (Razorpay Payouts)
+  const withdrawalController = require('../controllers/withdrawalController');
+  router.post('/wallet/withdraw', auth, withdrawalController.initiateWithdrawal);
+  router.get('/wallet/withdrawals', auth, withdrawalController.getWithdrawalHistory);
+  router.post('/wallet/payout-webhook', withdrawalController.handlePayoutWebhook); // no auth — Razorpay calls this
+
   // Admin feature routes
   // Subscription Plans
   router.post('/admin/subscription-plans', auth, isAdmin, adminFeatureController.createSubscriptionPlan);

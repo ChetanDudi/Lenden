@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const walletTransactionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['credit', 'debit', 'topup'], required: true },
+  type: { type: String, enum: ['credit', 'debit', 'topup', 'withdrawal'], required: true },
   amount: { type: Number, required: true },
   fromEmail: { type: String, default: null },
   toEmail: { type: String, default: null },

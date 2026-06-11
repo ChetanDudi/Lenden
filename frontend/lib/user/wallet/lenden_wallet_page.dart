@@ -14,6 +14,41 @@ import '../digitise/subscriptions_page.dart';
 // Razorpay only works on Android/iOS — not on Windows, Web, or macOS.
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
+// Test mode hint shown in all Razorpay payment sheets.
+Widget get _testModeHint => Container(
+  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+  decoration: BoxDecoration(
+    color: const Color(0xFFFFF8E1),
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(color: const Color(0xFFFFCC02), width: 1),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Row(children: [
+        Icon(Icons.science_rounded, size: 14, color: Color(0xFFF57F17)),
+        SizedBox(width: 6),
+        Text('Test Mode — use these credentials in Razorpay:',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
+      ]),
+      const SizedBox(height: 4),
+      _testRow(Icons.credit_card_rounded, 'Card', '4111 1111 1111 1111  |  Exp: 12/28  |  CVV: 123  |  OTP: 1234'),
+      const SizedBox(height: 2),
+      _testRow(Icons.phone_android_rounded, 'UPI', 'success@razorpay'),
+    ],
+  ),
+);
+
+Widget _testRow(IconData icon, String label, String value) => Row(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Icon(icon, size: 12, color: const Color(0xFF795548)),
+    const SizedBox(width: 5),
+    Text('$label: ', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
+    Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF795548)))),
+  ],
+);
+
 class LendenWalletPage extends StatefulWidget {
   const LendenWalletPage({super.key});
 
@@ -201,9 +236,11 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                   const SizedBox(width: 4),
                   Icon(Icons.lock_outline, size: 12, color: Colors.grey[400]),
                   const SizedBox(width: 4),
-                  Text('Secured by Razorpay', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  Text('Secured by Razorpay · Test Mode', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                 ]),
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
+                _testModeHint,
+                const SizedBox(height: 10),
                 // Quick amount chips — tricolor gradient border
                 Wrap(
                   spacing: 8, runSpacing: 8,
@@ -292,6 +329,24 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
         walletBalance: _walletBalance,
         onSuccess: (amount) {
           _showSnack('₹${amount.toStringAsFixed(2)} sent successfully!', success: true);
+          _fetchWalletData();
+        },
+      ),
+    );
+  }
+
+  void _showWithdrawSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _WithdrawSheet(
+        walletBalance: _walletBalance,
+        onSuccess: (amount, {bool isTestMode = false}) {
+          final msg = isTestMode
+              ? '[Test] ₹${amount.toStringAsFixed(2)} simulated — balance deducted'
+              : '₹${amount.toStringAsFixed(2)} withdrawal initiated!';
+          _showSnack(msg, success: true);
           _fetchWalletData();
         },
       ),
@@ -413,6 +468,20 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                               ),
                             ),
                           ]),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF1B5E20), width: 1.8),
+                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              icon: const Icon(Icons.account_balance_rounded, color: Color(0xFF1B5E20)),
+                              label: const Text('Withdraw to Bank / UPI', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
+                              onPressed: _showWithdrawSheet,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -652,7 +721,8 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                           itemBuilder: (_, i) {
                             final t = _transactions[i];
                             final type = (t['type'] ?? 'credit').toString();
-                            final isCredit = type == 'credit' || type == 'topup' || type == 'add' || type == 'receive';
+                            final isWithdrawal = type == 'withdrawal';
+                            final isCredit = !isWithdrawal && (type == 'credit' || type == 'topup' || type == 'add' || type == 'receive');
                             final amount = ((t['amount'] ?? 0) as num).toDouble();
                             final noteRaw = (t['note'] ?? t['description'] ?? '').toString();
                             final note = noteRaw.toLowerCase();
@@ -666,10 +736,18 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                             String txLabel;
                             IconData txIcon;
                             Color txBadgeColor;
-                            if (type == 'topup') {
+                            if (isWithdrawal) {
+                              txLabel = 'Withdrawal';
+                              txIcon = Icons.account_balance_rounded;
+                              txBadgeColor = const Color(0xFF1B5E20);
+                            } else if (type == 'topup') {
                               txLabel = 'Wallet Top-up';
                               txIcon = Icons.add_card_rounded;
                               txBadgeColor = const Color(0xFF2E7D32);
+                            } else if (note.contains('subscription')) {
+                              txLabel = 'Subscription';
+                              txIcon = Icons.workspace_premium_rounded;
+                              txBadgeColor = const Color(0xFF9C27B0);
                             } else if (note.contains('group expense') || note.contains('group repayment')) {
                               txLabel = 'Group Repayment';
                               txIcon = Icons.group_rounded;
@@ -688,7 +766,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                               txBadgeColor = isCredit ? const Color(0xFF2E7D32) : const Color(0xFFFF8000);
                             }
 
-                            final txColor = isCredit ? const Color(0xFF2E7D32) : const Color(0xFFFF8000);
+                            final txColor = isCredit ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
                             final counterparty = isCredit ? fromEmail : toEmail;
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
@@ -1002,6 +1080,308 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
   }
 }
 
+// ─────────────────────── Withdraw Sheet ───────────────────────
+
+class _WithdrawSheet extends StatefulWidget {
+  final double walletBalance;
+  final void Function(double amount, {bool isTestMode}) onSuccess;
+
+  const _WithdrawSheet({required this.walletBalance, required this.onSuccess});
+
+  @override
+  State<_WithdrawSheet> createState() => _WithdrawSheetState();
+}
+
+class _WithdrawSheetState extends State<_WithdrawSheet> {
+  String _mode = 'upi'; // 'upi' | 'bank_account'
+  final _amountCtrl = TextEditingController();
+  final _upiCtrl = TextEditingController();
+  final _holderCtrl = TextEditingController();
+  final _accountCtrl = TextEditingController();
+  final _ifscCtrl = TextEditingController();
+  final _bankCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _upiCtrl.dispose();
+    _holderCtrl.dispose();
+    _accountCtrl.dispose();
+    _ifscCtrl.dispose();
+    _bankCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final amt = double.tryParse(_amountCtrl.text.trim());
+    if (amt == null || amt < 10) {
+      setState(() => _error = 'Minimum withdrawal is ₹10');
+      return;
+    }
+    if (amt > widget.walletBalance) {
+      setState(() => _error = 'Insufficient balance (₹${widget.walletBalance.toStringAsFixed(2)})');
+      return;
+    }
+    if (_mode == 'upi' && _upiCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Enter your UPI ID');
+      return;
+    }
+    if (_mode == 'upi' && !_upiCtrl.text.trim().contains('@')) {
+      setState(() => _error = 'Invalid UPI ID (e.g. name@bank)');
+      return;
+    }
+    if (_mode == 'bank_account') {
+      if (_holderCtrl.text.trim().isEmpty) { setState(() => _error = 'Enter account holder name'); return; }
+      if (_accountCtrl.text.trim().isEmpty) { setState(() => _error = 'Enter account number'); return; }
+      if (_ifscCtrl.text.trim().isEmpty) { setState(() => _error = 'Enter IFSC code'); return; }
+    }
+
+    setState(() { _loading = true; _error = null; });
+    try {
+      final body = <String, dynamic>{ 'amount': amt, 'mode': _mode };
+      if (_mode == 'upi') {
+        body['upiId'] = _upiCtrl.text.trim();
+      } else {
+        body['accountHolderName'] = _holderCtrl.text.trim();
+        body['accountNumber'] = _accountCtrl.text.trim();
+        body['ifsc'] = _ifscCtrl.text.trim().toUpperCase();
+        if (_bankCtrl.text.trim().isNotEmpty) body['bankName'] = _bankCtrl.text.trim();
+      }
+      final res = await ApiClient.post('/api/wallet/withdraw', body: body);
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        Navigator.pop(context);
+        widget.onSuccess(amt, isTestMode: data['testMode'] == true);
+      } else {
+        final err = jsonDecode(res.body);
+        setState(() { _loading = false; _error = err['error'] ?? 'Withdrawal failed'; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = 'Error: $e'; });
+    }
+  }
+
+  InputDecoration _field(String label, {String? hint, Widget? prefix, Widget? prefixIcon}) => InputDecoration(
+    labelText: label,
+    hintText: hint,
+    prefixIcon: prefixIcon,
+    prefix: prefix,
+    filled: true,
+    fillColor: const Color(0xFFF5F7FA),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFF1B5E20), width: 1.5),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Center(child: Container(
+                width: 48, height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              )),
+              const SizedBox(height: 20),
+              // Title row
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1B5E20).withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.account_balance_rounded, color: Color(0xFF1B5E20), size: 22),
+                ),
+                const SizedBox(width: 10),
+                const Text('Withdraw Money', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
+              ]),
+              const SizedBox(height: 10),
+              // Balance pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B5E20).withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF2E7D32), size: 16),
+                  const SizedBox(width: 6),
+                  Text('Available: ₹${widget.walletBalance.toStringAsFixed(2)}',
+                    style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w600, fontSize: 13)),
+                ]),
+              ),
+              const SizedBox(height: 16),
+              // Mode toggle
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F7FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(children: [
+                  Expanded(child: GestureDetector(
+                    onTap: () => setState(() => _mode = 'upi'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _mode == 'upi' ? const Color(0xFF1B5E20) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.phone_android_rounded,
+                          size: 16, color: _mode == 'upi' ? Colors.white : const Color(0xFF1B5E20)),
+                        const SizedBox(width: 6),
+                        Text('UPI', style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _mode == 'upi' ? Colors.white : const Color(0xFF1B5E20),
+                        )),
+                      ]),
+                    ),
+                  )),
+                  Expanded(child: GestureDetector(
+                    onTap: () => setState(() => _mode = 'bank_account'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _mode == 'bank_account' ? const Color(0xFF1B5E20) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.account_balance_rounded,
+                          size: 16, color: _mode == 'bank_account' ? Colors.white : const Color(0xFF1B5E20)),
+                        const SizedBox(width: 6),
+                        Text('Bank Account', style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _mode == 'bank_account' ? Colors.white : const Color(0xFF1B5E20),
+                        )),
+                      ]),
+                    ),
+                  )),
+                ]),
+              ),
+              const SizedBox(height: 16),
+              // Amount field
+              TextField(
+                controller: _amountCtrl,
+                decoration: _field('Amount (₹)', hint: 'Minimum ₹10', prefixIcon: const Icon(Icons.currency_rupee_rounded)),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 12),
+              // Mode-specific fields
+              if (_mode == 'upi') ...[
+                TextField(
+                  controller: _upiCtrl,
+                  decoration: _field('UPI ID', hint: 'name@bank', prefixIcon: const Icon(Icons.alternate_email_rounded)),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ] else ...[
+                TextField(
+                  controller: _holderCtrl,
+                  decoration: _field('Account Holder Name', prefixIcon: const Icon(Icons.person_rounded)),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _accountCtrl,
+                  decoration: _field('Account Number', prefixIcon: const Icon(Icons.credit_card_rounded)),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _ifscCtrl,
+                  decoration: _field('IFSC Code', hint: 'HDFC0001234', prefixIcon: const Icon(Icons.code_rounded)),
+                  textCapitalization: TextCapitalization.characters,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _bankCtrl,
+                  decoration: _field('Bank Name (optional)', prefixIcon: const Icon(Icons.business_rounded)),
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ],
+              // Error box
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                      const SizedBox(width: 8),
+                      Flexible(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                    ]),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              // Test mode notice
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFFCC02), width: 1),
+                ),
+                child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Icon(Icons.science_rounded, color: Color(0xFFF57F17), size: 15),
+                  SizedBox(width: 8),
+                  Flexible(child: Text(
+                    'Test Mode — wallet balance will be deducted but no real money is transferred. In production with live Razorpay X keys, funds go to your bank/UPI.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF7B5800)),
+                  )),
+                ]),
+              ),
+              const SizedBox(height: 16),
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B5E20),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  icon: _loading
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.account_balance_rounded, color: Colors.white),
+                  label: Text(_loading ? 'Processing...' : 'Withdraw',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                  onPressed: _loading ? null : _submit,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+
 class LendenPaymentHelper {
   static Future<void> showPaymentSheet(
     BuildContext context, {
@@ -1287,6 +1667,10 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             }),
             const SizedBox(height: 14),
           ],
+
+          // Test mode hint
+          _testModeHint,
+          const SizedBox(height: 14),
 
           // Razorpay button
           SizedBox(

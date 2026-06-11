@@ -82,6 +82,41 @@ class SubscriptionsPage extends StatefulWidget {
 }
 
 class _SubscriptionsPageState extends State<SubscriptionsPage> {
+  Widget get _razorpayTestHint => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFF8E1),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: const Color(0xFFFFCC02), width: 1),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(children: [
+          Icon(Icons.science_rounded, size: 13, color: Color(0xFFF57F17)),
+          SizedBox(width: 6),
+          Text('Test Mode — use these in Razorpay checkout:',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
+        ]),
+        const SizedBox(height: 4),
+        Row(children: const [
+          Icon(Icons.credit_card_rounded, size: 12, color: Color(0xFF795548)),
+          SizedBox(width: 5),
+          Text('Card: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
+          Expanded(child: Text('4111 1111 1111 1111  |  12/28  |  CVV 123  |  OTP 1234',
+            style: TextStyle(fontSize: 11, color: Color(0xFF795548)))),
+        ]),
+        const SizedBox(height: 2),
+        Row(children: const [
+          Icon(Icons.phone_android_rounded, size: 12, color: Color(0xFF795548)),
+          SizedBox(width: 5),
+          Text('UPI: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
+          Text('success@razorpay', style: TextStyle(fontSize: 11, color: Color(0xFF795548))),
+        ]),
+      ],
+    ),
+  );
+
   String? _selectedPlan;
   String _searchQuery = '';
   String _filterOption = 'All'; // All, Active, Expired
@@ -680,7 +715,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
@@ -915,7 +950,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF00B4D8).withOpacity(0.3),
+                  color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: Offset(0, 5),
                 ),
@@ -1077,6 +1112,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         else
           ..._plans.asMap().entries.map((e) => _buildPlanCard(e.value, e.key)),
         const SizedBox(height: 20),
+        _razorpayTestHint,
+        const SizedBox(height: 12),
         // Razorpay button
         Container(
           width: double.infinity,
@@ -1157,7 +1194,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -1294,6 +1331,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
         const SizedBox(height: 30),
 
+        _razorpayTestHint,
+        const SizedBox(height: 12),
         // Subscribe Button — Razorpay
         Container(
           width: double.infinity,
@@ -1464,7 +1503,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
       ),
     );
@@ -1499,7 +1538,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? _getBenefitColor(index).withOpacity(0.5)
+                    ? _getBenefitColor(index).withValues(alpha: 0.5)
                     : _getBenefitColor(index),
                 borderRadius: BorderRadius.circular(18),
               ),
@@ -1680,7 +1719,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? _getBenefitColor(idx).withOpacity(0.5)
+                      ? _getBenefitColor(idx).withValues(alpha: 0.5)
                       : _getBenefitColor(idx),
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -1790,7 +1829,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: Offset(0, 5),
           ),
@@ -2020,7 +2059,7 @@ class EnhancedParachutePainter extends CustomPainter {
     double boxHeight = size.height * 0.18;
 
     // Box shadow
-    paint.color = Colors.black.withOpacity(0.2);
+    paint.color = Colors.black.withValues(alpha: 0.2);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(
@@ -2071,7 +2110,7 @@ class EnhancedParachutePainter extends CustomPainter {
     );
 
     // Ribbon shine effect
-    paint.color = Color(0xFFFFF59D).withOpacity(0.5);
+    paint.color = const Color(0xFFFFF59D).withValues(alpha: 0.5);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(centerX - boxWidth * 0.04, boxTopY - 8, boxWidth * 0.08,
