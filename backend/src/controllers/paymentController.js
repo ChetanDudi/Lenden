@@ -1,10 +1,23 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const Subscription = require('../models/subscription');
 const SubscriptionPlan = require('../models/subscriptionPlan');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
 const QuickTransaction = require('../models/quickTransaction');
 const Transaction = require('../models/transaction');
+
+// Returns the endDate for a new subscription, preserving any remaining days
+// if the user renews before their current subscription expires.
+async function calcEndDate(userId, plan, sessionArg) {
+  const opts = sessionArg ? { session: sessionArg } : {};
+  const currentActive = await Subscription.findOne({ user: userId, status: 'active' }, null, opts);
+  const now = new Date();
+  const startFrom = (currentActive && currentActive.endDate > now) ? currentActive.endDate : now;
+  const end = new Date(startFrom);
+  end.setDate(end.getDate() + plan.duration + (plan.free || 0));
+  return end;
+}
 
 const getRazorpay = () => {
   const Razorpay = require('razorpay');
@@ -77,71 +90,78 @@ exports.verifyPayment = async (req, res) => {
   if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !planId) {
     return res.status(400).json({ error: 'Missing required payment verification fields' });
   }
-
   if (!process.env.RAZORPAY_KEY_SECRET) {
     return res.status(500).json({ error: 'Payment verification not configured' });
   }
 
-  // Verify HMAC-SHA256 signature
-  const body = `${razorpayOrderId}|${razorpayPaymentId}`;
+  // Signature verification is pure crypto — safe outside the session
   const expectedSignature = crypto
     .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-    .update(body)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest('hex');
-
   if (expectedSignature !== razorpaySignature) {
     return res.status(400).json({ error: 'Payment verification failed: signature mismatch' });
   }
 
+  const plan = await SubscriptionPlan.findById(planId);
+  if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+  const session = await mongoose.startSession();
+  let created;
   try {
-    const plan = await SubscriptionPlan.findById(planId);
-    if (!plan) return res.status(404).json({ error: 'Plan not found' });
+    await session.withTransaction(async () => {
+      // Replay check inside the transaction — snapshot isolation prevents concurrent duplicates
+      const alreadyUsed = await Subscription.findOne({ razorpayPaymentId }).session(session);
+      if (alreadyUsed) throw Object.assign(new Error('Payment already applied'), { code: 'ALREADY_USED' });
 
-    // Prevent replay: reject if this payment ID was already used
-    const alreadyUsed = await Subscription.findOne({ razorpayPaymentId });
-    if (alreadyUsed) {
-      return res.status(409).json({ error: 'This payment has already been applied to a subscription' });
-    }
+      const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
+      const subscribedDate = new Date();
+      // Preserve remaining days if the user renews before their current sub expires
+      const endDate = await calcEndDate(userId, plan, session);
 
-    // Expire all current active subscriptions
-    await Subscription.updateMany({ user: userId, status: 'active' }, { $set: { status: 'expired' } });
+      // Create first — if this fails (e.g. concurrent duplicate), nothing is expired
+      [created] = await Subscription.create([{
+        user: userId,
+        subscribed: true,
+        subscriptionPlan: plan.name,
+        duration: plan.duration,
+        price: plan.price,
+        discount: plan.discount || 0,
+        actualPrice,
+        free: plan.free || 0,
+        subscribedDate,
+        endDate,
+        status: 'active',
+        razorpayOrderId,
+        razorpayPaymentId,
+        paymentMethod: 'razorpay',
+      }], { session });
 
-    const subscribedDate = new Date();
-    const endDate = new Date(subscribedDate);
-    endDate.setDate(endDate.getDate() + plan.duration + (plan.free || 0));
-
-    const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
-
-    const subscription = new Subscription({
-      user: userId,
-      subscribed: true,
-      subscriptionPlan: plan.name,
-      duration: plan.duration,
-      price: plan.price,
-      discount: plan.discount || 0,
-      actualPrice,
-      free: plan.free || 0,
-      subscribedDate,
-      endDate,
-      status: 'active',
-      razorpayOrderId,
-      razorpayPaymentId,
+      // Expire old active subscriptions only after new one is safely inserted
+      await Subscription.updateMany(
+        { user: userId, status: 'active', _id: { $ne: created._id } },
+        { $set: { status: 'expired' } },
+        { session }
+      );
     });
-    await subscription.save();
 
     res.json({
       message: 'Payment verified and subscription activated',
       subscription: {
-        subscriptionPlan: subscription.subscriptionPlan,
-        subscribedDate: subscription.subscribedDate,
-        endDate: subscription.endDate,
-        duration: subscription.duration,
-        free: subscription.free,
+        subscriptionPlan: created.subscriptionPlan,
+        subscribedDate: created.subscribedDate,
+        endDate: created.endDate,
+        duration: created.duration,
+        free: created.free,
+        paymentMethod: created.paymentMethod,
       },
     });
-  } catch (error) {
-    console.error('Error verifying payment:', error);
-    res.status(500).json({ error: 'Failed to activate subscription', details: error.message });
+  } catch (err) {
+    if (err.code === 'ALREADY_USED') return res.status(409).json({ error: err.message });
+    console.error('Error verifying payment:', err);
+    res.status(500).json({ error: 'Failed to activate subscription', details: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -327,16 +347,21 @@ exports.razorpayWebhook = async (req, res) => {
       const notes = payment.notes || {};
       const { planId, userId } = notes;
 
-      if (planId && userId && !(await Subscription.findOne({ razorpayPaymentId: paymentId }))) {
+      if (planId && userId) {
+        const session = await mongoose.startSession();
         try {
-          const plan = await SubscriptionPlan.findById(planId);
-          if (plan) {
-            await Subscription.updateMany({ user: userId, status: 'active' }, { $set: { status: 'expired' } });
-            const subscribedDate = new Date();
-            const endDate = new Date(subscribedDate);
-            endDate.setDate(endDate.getDate() + plan.duration + (plan.free || 0));
+          await session.withTransaction(async () => {
+            const alreadyUsed = await Subscription.findOne({ razorpayPaymentId: paymentId }).session(session);
+            if (alreadyUsed) return; // already applied, nothing to do
+
+            const plan = await SubscriptionPlan.findById(planId).session(session);
+            if (!plan) return;
+
             const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
-            await new Subscription({
+            const subscribedDate = new Date();
+            const endDate = await calcEndDate(userId, plan, session);
+
+            const [created] = await Subscription.create([{
               user: userId,
               subscribed: true,
               subscriptionPlan: plan.name,
@@ -350,10 +375,19 @@ exports.razorpayWebhook = async (req, res) => {
               status: 'active',
               razorpayOrderId: order_id,
               razorpayPaymentId: paymentId,
-            }).save();
-          }
+              paymentMethod: 'razorpay',
+            }], { session });
+
+            await Subscription.updateMany(
+              { user: userId, status: 'active', _id: { $ne: created._id } },
+              { $set: { status: 'expired' } },
+              { session }
+            );
+          });
         } catch (e) {
           console.error('[Webhook] Failed to activate subscription via webhook:', e);
+        } finally {
+          session.endSession();
         }
       }
     }

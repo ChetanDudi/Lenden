@@ -194,17 +194,15 @@ exports.paySubscription = async (req, res) => {
         note: `${plan.name} Subscription via LenDen Wallet`,
       }], { session });
 
-      await Subscription.updateMany(
-        { user: req.user._id, status: 'active' },
-        { $set: { status: 'expired' } },
-        { session }
-      );
-
-      const subscribedDate = new Date();
-      const endDate = new Date(subscribedDate);
+      // Preserve remaining days if renewing before current subscription ends
+      const currentActive = await Subscription.findOne({ user: req.user._id, status: 'active' }, null, { session });
+      const now = new Date();
+      const startFrom = (currentActive && currentActive.endDate > now) ? currentActive.endDate : now;
+      const endDate = new Date(startFrom);
       endDate.setDate(endDate.getDate() + plan.duration + (plan.free || 0));
 
-      await Subscription.create([{
+      // Create new subscription first — safe to expire old ones only after this succeeds
+      const [created] = await Subscription.create([{
         user: req.user._id,
         subscribed: true,
         subscriptionPlan: plan.name,
@@ -213,10 +211,17 @@ exports.paySubscription = async (req, res) => {
         discount: plan.discount || 0,
         actualPrice,
         free: plan.free || 0,
-        subscribedDate,
+        subscribedDate: now,
         endDate,
         status: 'active',
+        paymentMethod: 'wallet',
       }], { session });
+
+      await Subscription.updateMany(
+        { user: req.user._id, status: 'active', _id: { $ne: created._id } },
+        { $set: { status: 'expired' } },
+        { session }
+      );
 
       newBalance = user.walletBalance;
     });

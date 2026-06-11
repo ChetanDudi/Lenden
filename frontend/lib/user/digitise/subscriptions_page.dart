@@ -99,6 +99,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   bool _isLoadingFaqs = false;
   bool _isProcessingPayment = false;
   bool _isPayingViaWallet = false;
+  bool _showRenewalSection = false;
   double _walletBalance = 0;
   String? _pendingPlanId;
 
@@ -253,6 +254,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       final List<dynamic> data = json.decode(response.body);
       setState(() {
         _plans = data.map((item) => SubscriptionPlan.fromJson(item)).toList();
+        // Auto-select first available plan so user can pay immediately
+        if (_selectedPlan == null && _plans.isNotEmpty) {
+          _selectedPlan = _plans.first.name;
+        }
       });
     } else {
       // Handle error
@@ -754,6 +759,26 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             final endDate = DateTime.parse(sub['endDate']);
             final isActive =
                 sub['status'] == 'active' && endDate.isAfter(DateTime.now());
+            final paymentMethod = (sub['paymentMethod'] ?? 'razorpay').toString();
+            final actualPrice = ((sub['actualPrice'] ?? sub['price'] ?? 0) as num).toDouble();
+            final duration = ((sub['duration'] ?? 0) as num).toInt();
+
+            IconData pmIcon;
+            String pmLabel;
+            Color pmColor;
+            if (paymentMethod == 'wallet') {
+              pmIcon = Icons.account_balance_wallet_rounded;
+              pmLabel = 'LenDen Wallet';
+              pmColor = const Color(0xFF00B4D8);
+            } else if (paymentMethod == 'admin') {
+              pmIcon = Icons.admin_panel_settings_rounded;
+              pmLabel = 'Admin';
+              pmColor = Colors.deepPurple;
+            } else {
+              pmIcon = Icons.payment_rounded;
+              pmLabel = 'Razorpay';
+              pmColor = const Color(0xFF528FF5);
+            }
 
             return Container(
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -769,37 +794,72 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 ),
               ),
               child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isActive ? Color(0xFFE8F5E9) : Colors.grey[200],
+                  color: isActive ? const Color(0xFFE8F5E9) : Colors.grey[200],
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: ListTile(
-                  leading: Icon(
+                child: Row(children: [
+                  Icon(
                     isActive ? Icons.check_circle : Icons.history,
                     color: isActive ? Colors.green : Colors.grey,
-                    size: 30,
+                    size: 28,
                   ),
-                  title: Text(
-                    sub['subscriptionPlan'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(
+                        sub['subscriptionPlan'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isActive
+                            ? 'Active until: ${endDate.toLocal().toString().substring(0, 10)}'
+                            : 'Expired on: ${endDate.toLocal().toString().substring(0, 10)}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                      ),
+                      const SizedBox(height: 5),
+                      Row(children: [
+                        // Payment method badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: pmColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: pmColor.withValues(alpha: 0.4), width: 0.8),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(pmIcon, size: 10, color: pmColor),
+                            const SizedBox(width: 3),
+                            Text(pmLabel, style: TextStyle(fontSize: 10, color: pmColor, fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
+                        if (actualPrice > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '₹${actualPrice.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF8000)),
+                          ),
+                        ],
+                        if (duration > 0) ...[
+                          const SizedBox(width: 6),
+                          Text('$duration days', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                        ],
+                      ]),
+                    ]),
                   ),
-                  subtitle: Text(
-                    isActive
-                        ? 'Active until: ${endDate.toLocal().toString().substring(0, 10)}'
-                        : 'Expired on: ${endDate.toLocal().toString().substring(0, 10)}',
-                  ),
-                  trailing: Chip(
+                  const SizedBox(width: 8),
+                  Chip(
                     label: Text(
                       isActive ? 'ACTIVE' : 'EXPIRED',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     backgroundColor: isActive ? Colors.green : Colors.grey,
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                ),
+                ]),
               ),
             );
           }),
@@ -956,6 +1016,135 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   PremiumBenefit benefit = entry.value;
                   return _buildBenefitItem(idx, Icons.check, benefit.text, '');
                 }).toList(),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => setState(() => _showRenewalSection = !_showRenewalSection),
+            icon: Icon(
+              _showRenewalSection ? Icons.keyboard_arrow_up_rounded : Icons.refresh_rounded,
+              color: const Color(0xFF00B4D8),
+            ),
+            label: Text(
+              _showRenewalSection ? 'Hide Renewal Options' : 'Renew / Extend Subscription',
+              style: const TextStyle(color: Color(0xFF00B4D8), fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+        ),
+        if (_showRenewalSection) _buildRenewalSection(),
+      ],
+    );
+  }
+
+  Widget _buildRenewalSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: Colors.green, size: 18),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Any days remaining on your current plan will carry over to the new subscription.',
+                style: TextStyle(fontSize: 12, color: Colors.green),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        const Text('Select a Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        if (_isLoadingPlans)
+          const Center(child: CircularProgressIndicator())
+        else
+          ..._plans.asMap().entries.map((e) => _buildPlanCard(e.value, e.key)),
+        const SizedBox(height: 20),
+        // Razorpay button
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.orange, Colors.white, Colors.green],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _startPayment,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            ),
+            icon: _isProcessingPayment
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+                : const Icon(Icons.payment, color: Colors.black),
+            label: Text(
+              _isProcessingPayment ? 'Processing...' : 'Renew via Razorpay',
+              style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(children: [
+          const Expanded(child: Divider(thickness: 1.2)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('OR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+          ),
+          const Expanded(child: Divider(thickness: 1.2)),
+        ]),
+        const SizedBox(height: 14),
+        // Wallet button
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF00B4D8), width: 2),
+          ),
+          child: ElevatedButton.icon(
+            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _payViaWallet,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF0F9FF),
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            ),
+            icon: _isPayingViaWallet
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF00B4D8)))
+                : const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8)),
+            label: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isPayingViaWallet ? 'Processing...' : 'Renew via LenDen Wallet',
+                  style: const TextStyle(fontSize: 17, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold),
+                ),
+                if (!_isPayingViaWallet)
+                  Text('Balance: ₹${_walletBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               ],
             ),
           ),
@@ -1284,6 +1473,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Widget _buildPlanCard(SubscriptionPlan plan, int index) {
     final isSelected = _selectedPlan == plan.name;
     final discountedPrice = plan.price * (1 - plan.discount / 100);
+    // Mark the most popular plan: index 1 when 3+ plans, otherwise index 0
+    final isPopular = _plans.length >= 3 ? index == 1 : (_plans.length == 2 ? index == 1 : index == 0);
 
     return GestureDetector(
       onTap: () {
@@ -1414,13 +1605,33 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               ),
             ),
           ),
+          if (isPopular)
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00B4D8),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.star_rounded, color: Colors.white, size: 11),
+                  SizedBox(width: 3),
+                  Text('Most Popular', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                ]),
+              ),
+            ),
           if (plan.discount > 0)
             Positioned(
               top: 0,
               right: 0,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: const BoxDecoration(
                   color: Colors.red,
                   borderRadius: BorderRadius.only(
                     topRight: Radius.circular(20),
@@ -1429,11 +1640,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 ),
                 child: Text(
                   '${plan.discount}% OFF',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
             ),

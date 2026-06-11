@@ -46,16 +46,23 @@ exports.updateSubscription = async (req, res) => {
 exports.getSubscriptionStatus = async (req, res) => {
     try {
         const subscription = await Subscription.findOne({ user: req.user._id, status: 'active' }).sort({ subscribedDate: -1 });
+        const now = new Date();
 
-        if (subscription && subscription.subscribed && subscription.endDate >= new Date()) {
+        if (subscription && subscription.subscribed && subscription.endDate >= now) {
             res.status(200).json({
                 subscribed: true,
                 subscriptionPlan: subscription.subscriptionPlan,
                 subscribedDate: subscription.subscribedDate,
                 endDate: subscription.endDate,
-                free: subscription.free
+                free: subscription.free,
+                actualPrice: subscription.actualPrice,
+                paymentMethod: subscription.paymentMethod || 'razorpay',
             });
         } else {
+            // Auto-expire stale active records so the DB reflects reality
+            if (subscription && subscription.status === 'active') {
+                Subscription.findByIdAndUpdate(subscription._id, { $set: { status: 'expired' } }).catch(() => {});
+            }
             res.status(200).json({ subscribed: false });
         }
     } catch (error) {
