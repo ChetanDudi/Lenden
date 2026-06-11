@@ -401,6 +401,11 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                   ]),
                 ),
 
+                // ── Scrollable body ───────────────────────────────────
+                Expanded(child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(children: [
+
                 // Balance card — tricolor border
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -702,23 +707,29 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                 ),
                 const SizedBox(height: 10),
 
-                Expanded(
-                  child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _transactions.isEmpty
-                      ? Center(
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.receipt_long_rounded, size: 64, color: Colors.grey[200]),
-                            const SizedBox(height: 8),
-                            Text('No transactions yet', style: TextStyle(color: Colors.grey[500])),
-                            const SizedBox(height: 4),
-                            Text('Add money to get started', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
-                          ]),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                          itemCount: _transactions.length,
-                          itemBuilder: (_, i) {
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(child: CircularProgressIndicator(color: Color(0xFF00B4D8))),
+                  )
+                else if (_transactions.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.receipt_long_rounded, size: 64, color: Colors.grey[200]),
+                      const SizedBox(height: 8),
+                      Text('No transactions yet', style: TextStyle(color: Colors.grey[500])),
+                      const SizedBox(height: 4),
+                      Text('Add money to get started', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                    ]),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    itemCount: _transactions.length,
+                    itemBuilder: (_, i) {
                             final t = _transactions[i];
                             final type = (t['type'] ?? 'credit').toString();
                             final isWithdrawal = type == 'withdrawal';
@@ -855,8 +866,9 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                               ),
                             );
                           },
-                        ),
-                ),
+                    ),
+                const SizedBox(height: 24),
+              ]))), // closes inner Column + SingleChildScrollView + Expanded
               ],
             ),
           ),

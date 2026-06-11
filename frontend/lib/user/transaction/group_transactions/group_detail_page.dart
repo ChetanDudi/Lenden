@@ -745,6 +745,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   ),
                 ),
 
+                // ── Scrollable body ───────────────────────────────────
+                Expanded(child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
                 // Group header card
                 Padding(
                   padding:
@@ -1250,27 +1257,28 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   ),
                 ),
 
-                Expanded(
-                  child: expenses.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.receipt_long,
-                                  color: Colors.grey[300], size: 64),
-                              const SizedBox(height: 8),
-                              Text('No expenses yet',
-                                  style:
-                                      TextStyle(color: Colors.grey[500])),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16),
-                          itemCount: expenses.length > 5
-                              ? 5
-                              : expenses.length,
+                if (expenses.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.receipt_long,
+                              color: Colors.grey[300], size: 64),
+                          const SizedBox(height: 8),
+                          Text('No expenses yet',
+                              style: TextStyle(color: Colors.grey[500])),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: expenses.length > 5 ? 5 : expenses.length,
                           itemBuilder: (_, i) {
                             final e = expenses[i]
                                 as Map<String, dynamic>;
@@ -1365,8 +1373,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             ),
                           );
                           },
-                        ),
-                ),
+                    ),
+                const SizedBox(height: 24),
+              ]))), // closes inner Column + SingleChildScrollView + Expanded
               ],
             ),
           ),
