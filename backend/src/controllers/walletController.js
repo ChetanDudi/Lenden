@@ -24,11 +24,29 @@ exports.getBalance = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
   try {
-    const txns = await WalletTransaction.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-    res.json({ transactions: txns });
+    const [txns, user] = await Promise.all([
+      WalletTransaction.find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean(),
+      User.findById(req.user._id).select('walletBalance'),
+    ]);
+
+    // Compute running balance working backwards from current balance.
+    // txns is newest-first, so txns[0] is the most recent transaction.
+    // balanceAfter for txns[0] = current wallet balance.
+    let runningBalance = user?.walletBalance ?? 0;
+    const withBalance = txns.map(txn => {
+      const balanceAfter = runningBalance;
+      if (txn.type === 'credit' || txn.type === 'topup') {
+        runningBalance -= txn.amount;
+      } else { // debit, withdrawal
+        runningBalance += txn.amount;
+      }
+      return { ...txn, balanceAfter };
+    });
+
+    res.json({ transactions: withBalance });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

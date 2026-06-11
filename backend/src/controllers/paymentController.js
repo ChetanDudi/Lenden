@@ -196,91 +196,101 @@ exports.createP2POrder = async (req, res) => {
   }
 };
 
-// Verify P2P payment — credits recipient's wallet and optionally clears the quick transaction
+// Verify P2P payment — credits recipient's wallet and optionally clears the quick/secure transaction
 exports.verifyP2PPayment = async (req, res) => {
+  const { razorpayOrderId, razorpayPaymentId, razorpaySignature, quickTransactionId, secureTransactionId } = req.body;
+
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    return res.status(400).json({ error: 'Missing payment verification fields' });
+  }
+
+  // ── Step 1: verify Razorpay signature (before touching DB) ──────────────────
+  const expected = crypto
+    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest('hex');
+  if (expected !== razorpaySignature) {
+    return res.status(400).json({ error: 'Payment verification failed: invalid signature' });
+  }
+
+  // ── Step 2: replay check ─────────────────────────────────────────────────────
+  const alreadyUsed = await WalletTransaction.findOne({ razorpayPaymentId });
+  if (alreadyUsed) {
+    return res.status(409).json({ error: 'Payment already applied' });
+  }
+
+  // ── Step 3: fetch payment details from Razorpay ──────────────────────────────
+  const razorpay = getRazorpay();
+  const payment = await razorpay.payments.fetch(razorpayPaymentId);
+  const notes = payment.notes || {};
+  const toEmail = notes.toEmail || req.body.toEmail;
+  const amountInRupees = payment.amount / 100;
+
+  const recipient = toEmail ? await User.findOne({ email: toEmail.toLowerCase().trim() }) : null;
+
+  // ── Step 4: atomic DB writes inside a session ────────────────────────────────
+  const session = await mongoose.startSession();
   try {
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, quickTransactionId, secureTransactionId } = req.body;
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return res.status(400).json({ error: 'Missing payment verification fields' });
-    }
-
-    const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest('hex');
-    if (expected !== razorpaySignature) {
-      return res.status(400).json({ error: 'Payment verification failed: signature mismatch' });
-    }
-
-    const alreadyUsed = await WalletTransaction.findOne({ razorpayPaymentId });
-    if (alreadyUsed) {
-      return res.status(409).json({ error: 'Payment already applied' });
-    }
-
-    const razorpay = getRazorpay();
-    const payment = await razorpay.payments.fetch(razorpayPaymentId);
-    const notes = payment.notes || {};
-    const toEmail = notes.toEmail || req.body.toEmail;
-    const amountInRupees = payment.amount / 100;
-
-    const recipient = toEmail ? await User.findOne({ email: toEmail.toLowerCase().trim() }) : null;
-    if (recipient) {
-      await User.findByIdAndUpdate(recipient._id, { $inc: { walletBalance: amountInRupees } });
-      await WalletTransaction.create({
-        user: req.user._id,
-        type: 'debit',
-        amount: amountInRupees,
-        toEmail: recipient.email,
-        note: notes.description || 'P2P payment via Razorpay',
-        razorpayOrderId,
-        razorpayPaymentId,
-      });
-      await WalletTransaction.create({
-        user: recipient._id,
-        type: 'credit',
-        amount: amountInRupees,
-        fromEmail: req.user.email,
-        note: notes.description || 'P2P payment received via Razorpay',
-        razorpayOrderId,
-        razorpayPaymentId,
-      });
-    }
-
-    const qtId = quickTransactionId || notes.quickTransactionId;
-    if (qtId) {
-      const qt = await QuickTransaction.findById(qtId);
-      if (qt && qt.users.includes(req.user.email)) {
-        qt.cleared = true;
-        qt.settlementStatus = 'accepted';
-        qt.settlementRespondedBy = req.user.email;
-        qt.settlementRespondedAt = new Date();
-        qt.settledViaPayment = true;
-        qt.paymentMethod = 'razorpay';
-        await qt.save();
+    await session.withTransaction(async () => {
+      if (recipient) {
+        // Credit recipient's wallet
+        await User.findByIdAndUpdate(
+          recipient._id,
+          { $inc: { walletBalance: amountInRupees } },
+          { session }
+        );
+        // Payer debit record — carries razorpayPaymentId for replay prevention
+        await WalletTransaction.create([{
+          user: req.user._id,
+          type: 'debit',
+          amount: amountInRupees,
+          toEmail: recipient.email,
+          note: notes.description || 'P2P payment via Razorpay',
+          razorpayOrderId,
+          razorpayPaymentId,
+        }], { session });
+        // Recipient credit record — no razorpayPaymentId to avoid duplicate-key error
+        // (the unique sparse index on razorpayPaymentId allows only one doc per payment ID)
+        await WalletTransaction.create([{
+          user: recipient._id,
+          type: 'credit',
+          amount: amountInRupees,
+          fromEmail: req.user.email,
+          note: notes.description || 'P2P payment received via Razorpay',
+          razorpayOrderId,
+        }], { session });
       }
-    }
 
-    // Auto-settle the secure transaction (lend/borrow record) if one is linked
-    const stId = secureTransactionId || notes.secureTransactionId;
-    if (stId) {
-      try {
-        const st = await Transaction.findOne({ transactionId: stId });
+      // Clear quick transaction
+      const qtId = quickTransactionId || notes.quickTransactionId;
+      if (qtId) {
+        const qt = await QuickTransaction.findById(qtId).session(session);
+        if (qt && qt.users.map(u => u.toLowerCase()).includes((req.user.email || '').toLowerCase())) {
+          qt.cleared = true;
+          qt.settlementStatus = 'accepted';
+          qt.settlementRespondedBy = req.user.email;
+          qt.settlementRespondedAt = new Date();
+          qt.settledViaPayment = true;
+          qt.paymentMethod = 'razorpay';
+          await qt.save({ session });
+        }
+      }
+
+      // Clear secure transaction
+      const stId = secureTransactionId || notes.secureTransactionId;
+      if (stId) {
+        const st = await Transaction.findOne({ transactionId: stId }).session(session);
         if (st) {
-          const payerEmail = req.user.email.toLowerCase().trim();
-          // Determine payer's role in this transaction
+          const payerEmail = (req.user.email || '').toLowerCase().trim();
           const payerIsUser = st.userEmail.toLowerCase() === payerEmail;
           const payerIsCounterparty = st.counterpartyEmail.toLowerCase() === payerEmail;
-
           if (payerIsUser || payerIsCounterparty) {
-            // Determine paidBy enum from role + position
             let paidBy = 'borrower';
             if (st.role === 'lender') {
               paidBy = payerIsCounterparty ? 'borrower' : 'lender';
             } else {
               paidBy = payerIsUser ? 'borrower' : 'lender';
             }
-
-            // Record the payment
             st.partialPayments.push({
               amount: amountInRupees,
               paidBy,
@@ -288,26 +298,21 @@ exports.verifyP2PPayment = async (req, res) => {
               description: 'Payment via Razorpay',
             });
             st.isPartiallyPaid = true;
-
-            // Update remaining amount
             const totalPaid = st.partialPayments.reduce((sum, p) => sum + p.amount, 0);
             st.remainingAmount = Math.max(0, (st.amount || 0) - totalPaid);
-
-            // Payment received — both sides are now cleared
             st.userCleared = true;
             st.counterpartyCleared = true;
-
-            await st.save();
+            await st.save({ session });
           }
         }
-      } catch (_) {
-        // Settlement failure is non-fatal — payment itself succeeded
       }
-    }
+    });
 
     res.json({ message: 'Payment verified and settled', amount: amountInRupees });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 };
 

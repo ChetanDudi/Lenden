@@ -735,6 +735,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                             final isWithdrawal = type == 'withdrawal';
                             final isCredit = !isWithdrawal && (type == 'credit' || type == 'topup' || type == 'add' || type == 'receive');
                             final amount = ((t['amount'] ?? 0) as num).toDouble();
+                            final balanceAfter = t['balanceAfter'] != null ? (t['balanceAfter'] as num).toDouble() : null;
                             final noteRaw = (t['note'] ?? t['description'] ?? '').toString();
                             final note = noteRaw.toLowerCase();
                             final fromEmail = (t['fromEmail'] ?? '').toString();
@@ -858,10 +859,19 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                     ],
                                   )),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    '${isCredit ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txColor),
-                                  ),
+                                  Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
+                                    Text(
+                                      '${isCredit ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txColor),
+                                    ),
+                                    if (balanceAfter != null) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        'Bal: ₹${balanceAfter.toStringAsFixed(2)}',
+                                        style: TextStyle(fontSize: 10, color: Colors.grey[400], fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ]),
                                 ]),
                               ),
                             );
