@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../api_config.dart';
@@ -659,7 +659,7 @@ class _ActivityPageState extends State<ActivityPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -713,7 +713,7 @@ class _ActivityPageState extends State<ActivityPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -762,9 +762,9 @@ class _ActivityPageState extends State<ActivityPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -800,7 +800,7 @@ class _ActivityPageState extends State<ActivityPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -814,7 +814,7 @@ class _ActivityPageState extends State<ActivityPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -865,7 +865,7 @@ class _ActivityPageState extends State<ActivityPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -900,7 +900,7 @@ class _ActivityPageState extends State<ActivityPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -942,7 +942,7 @@ class _ActivityPageState extends State<ActivityPage> {
             Chip(
               label: Text('Search: "$searchQuery"'),
               onDeleted: _clearSearch,
-              backgroundColor: Colors.purple.withOpacity(0.2),
+              backgroundColor: Colors.purple.withValues(alpha: 0.2),
               deleteIcon: const Icon(Icons.clear, size: 18),
             ),
           if (_showBookmarkedOnly)
@@ -952,7 +952,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 setState(() => _showBookmarkedOnly = false);
                 fetchActivities(refresh: true);
               },
-              backgroundColor: Colors.orange.withOpacity(0.2),
+              backgroundColor: Colors.orange.withValues(alpha: 0.2),
             ),
           if (selectedType != null)
             Chip(
@@ -961,7 +961,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 setState(() => selectedType = null);
                 fetchActivities(refresh: true);
               },
-              backgroundColor: const Color(0xFF00B4D8).withOpacity(0.2),
+              backgroundColor: const Color(0xFF00B4D8).withValues(alpha: 0.2),
             ),
           if (startDate != null)
             Chip(
@@ -970,7 +970,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 setState(() => startDate = null);
                 fetchActivities(refresh: true);
               },
-              backgroundColor: Colors.orange.withOpacity(0.2),
+              backgroundColor: Colors.orange.withValues(alpha: 0.2),
             ),
           if (endDate != null)
             Chip(
@@ -979,7 +979,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 setState(() => endDate = null);
                 fetchActivities(refresh: true);
               },
-              backgroundColor: Colors.orange.withOpacity(0.2),
+              backgroundColor: Colors.orange.withValues(alpha: 0.2),
             ),
         ],
       ),
@@ -1065,8 +1065,8 @@ class _ActivityPageState extends State<ActivityPage> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isRating
-              ? Colors.amber.withOpacity(0.7)
-              : _getActivityColor(type).withOpacity(0.3),
+              ? Colors.amber.withValues(alpha: 0.7)
+              : _getActivityColor(type).withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -1080,13 +1080,13 @@ class _ActivityPageState extends State<ActivityPage> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isRating
-                    ? Colors.amber.withOpacity(0.15)
-                    : _getActivityColor(type).withOpacity(0.1),
+                    ? Colors.amber.withValues(alpha: 0.15)
+                    : _getActivityColor(type).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isRating
-                      ? Colors.amber.withOpacity(0.3)
-                      : _getActivityColor(type).withOpacity(0.2),
+                      ? Colors.amber.withValues(alpha: 0.3)
+                      : _getActivityColor(type).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -1120,10 +1120,10 @@ class _ActivityPageState extends State<ActivityPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.green.withOpacity(0.3),
+                              color: Colors.green.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -1141,7 +1141,7 @@ class _ActivityPageState extends State<ActivityPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
+                            color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -1274,7 +1274,7 @@ class _ActivityPageState extends State<ActivityPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   offset: const Offset(0, 10),
                   blurRadius: 20,
                 ),
@@ -1376,7 +1376,7 @@ class _ActivityPageState extends State<ActivityPage> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 offset: const Offset(0, 10),
                 blurRadius: 20,
               ),
@@ -1405,7 +1405,7 @@ class _ActivityPageState extends State<ActivityPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -1427,7 +1427,7 @@ class _ActivityPageState extends State<ActivityPage> {
                     Text(
                       'This action cannot be undone',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
                       ),
                     ),
@@ -1444,7 +1444,7 @@ class _ActivityPageState extends State<ActivityPage> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(50),
                       ),
                       child: const Icon(
@@ -1473,7 +1473,7 @@ class _ActivityPageState extends State<ActivityPage> {
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: _getActivityColor(activity['type'])
-                            .withOpacity(0.1),
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -1755,7 +1755,7 @@ class _ActivityPageState extends State<ActivityPage> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         offset: const Offset(0, 10),
                         blurRadius: 20,
                       ),
@@ -1790,7 +1790,7 @@ class _ActivityPageState extends State<ActivityPage> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -1807,7 +1807,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Icon(
@@ -1832,7 +1832,7 @@ class _ActivityPageState extends State<ActivityPage> {
                           Text(
                             'Customize your activity view',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 14,
                             ),
                           ),
@@ -1886,7 +1886,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFF00B4D8)
-                                                .withOpacity(0.1),
+                                                .withValues(alpha: 0.1),
                                             borderRadius:
                                                 BorderRadius.circular(8),
                                           ),
@@ -1947,7 +1947,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: Colors.grey.withOpacity(0.18)),
+                                    color: Colors.grey.withValues(alpha: 0.18)),
                               ),
                               child: Row(
                                 children: [
@@ -1989,7 +1989,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: Colors.grey.withOpacity(0.18)),
+                                    color: Colors.grey.withValues(alpha: 0.18)),
                               ),
                               child: Row(
                                 children: [
@@ -2029,10 +2029,10 @@ class _ActivityPageState extends State<ActivityPage> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.grey.withOpacity(0.05),
+                                color: Colors.grey.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: Colors.grey.withOpacity(0.2)),
+                                    color: Colors.grey.withValues(alpha: 0.2)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2042,7 +2042,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                       Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Colors.orange.withOpacity(0.1),
+                                          color: Colors.orange.withValues(alpha: 0.1),
                                           borderRadius:
                                               BorderRadius.circular(8),
                                         ),
@@ -2257,7 +2257,7 @@ class _ActivityPageState extends State<ActivityPage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        side: BorderSide(color: Colors.grey.withOpacity(0.5)),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2301,7 +2301,7 @@ class _ActivityPageState extends State<ActivityPage> {
           border: Border.all(
             color: selected
                 ? const Color(0xFF00B4D8)
-                : Colors.grey.withOpacity(0.20),
+                : Colors.grey.withValues(alpha: 0.20),
           ),
         ),
         child: Row(
@@ -2316,7 +2316,7 @@ class _ActivityPageState extends State<ActivityPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.10),
+                color: iconColor.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, size: 18, color: iconColor),

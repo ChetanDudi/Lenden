@@ -115,7 +115,7 @@ module.exports = (io) => {
   router.post('/users/login', userController.login);
   router.post('/users/check-username', userController.checkUsername);
   router.post('/users/check-email', userController.checkEmail);
-  router.get('/users/list', userController.listUsers); // Debug endpoint
+  router.get('/users/list', auth, isAdmin, userController.listUsers);
   router.post('/users/send-login-otp', userController.sendLoginOtp);
   router.post('/users/verify-login-otp', userController.verifyLoginOtp);
   router.post('/users/login-with-otp', userController.verifyLoginOtp);
@@ -247,7 +247,7 @@ module.exports = (io) => {
   router.post('/transactions/:transactionId/receipt', auth, transactionController.generateReceipt);
   router.put('/transactions/:transactionId/favourite', auth, transactionController.toggleFavourite);
 
-  router.get('/transactions/user', transactionController.getUserTransactions);
+  router.get('/transactions/user', auth, transactionController.getUserTransactions);
 
   // Partial payment routes
   router.post('/transactions/send-partial-payment-otp', transactionController.sendPartialPaymentOTP);
@@ -380,6 +380,7 @@ module.exports = (io) => {
   router.put('/users/account-information', auth, settingsController.updateAccountInformation);
 
   // Data Management
+  router.get('/users/export-data', auth, sessionTimeout, settingsController.exportUserData);
   router.delete('/users/delete-account', auth, sessionTimeout, settingsController.deleteAccount);
 
   // Admin routes

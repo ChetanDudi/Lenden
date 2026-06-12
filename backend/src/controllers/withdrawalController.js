@@ -30,6 +30,9 @@ exports.initiateWithdrawal = async (req, res) => {
     if (!accountHolderName?.trim() || !accountNumber?.trim() || !ifsc?.trim()) {
       return res.status(400).json({ error: 'accountHolderName, accountNumber, and ifsc are required for bank withdrawal' });
     }
+    if (!/^\d{8,18}$/.test(accountNumber.trim())) {
+      return res.status(400).json({ error: 'Invalid account number (must be 8–18 digits)' });
+    }
     if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(ifsc.trim())) {
       return res.status(400).json({ error: 'Invalid IFSC code format (e.g. HDFC0001234)' });
     }

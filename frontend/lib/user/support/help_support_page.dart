@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../api_config.dart';
@@ -208,7 +208,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                     style: TextStyle(fontWeight: FontWeight.bold))),
           ],
         ),
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha: 0.15),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: Duration(seconds: 2),
@@ -530,7 +530,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                           width: 46,
                           height: 46,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00B4D8).withOpacity(0.12),
+                            color: const Color(0xFF00B4D8).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(Icons.contact_support_rounded,

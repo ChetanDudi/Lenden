@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -522,7 +522,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     child: Container(
                       margin: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.96),
+                        color: Colors.white.withValues(alpha: 0.96),
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: TabBar(
@@ -610,7 +610,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -658,7 +658,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -826,7 +826,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.12),
+                color: accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(_iconForCategory(category), color: accent),

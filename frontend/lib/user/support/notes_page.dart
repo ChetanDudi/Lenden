@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import 'package:provider/provider.dart';
@@ -89,7 +89,7 @@ class _NotesPageState extends State<NotesPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -242,7 +242,7 @@ class _NotesPageState extends State<NotesPage> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(Icons.delete_outline, color: Colors.red, size: 24),
@@ -332,7 +332,7 @@ class _NotesPageState extends State<NotesPage> {
                   Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.sort, color: Colors.blue, size: 20),
@@ -372,7 +372,7 @@ class _NotesPageState extends State<NotesPage> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withOpacity(0.05) : Colors.transparent,
+          color: isSelected ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
           border: Border(
             left: BorderSide(
               color: isSelected ? Colors.blue : Colors.transparent,
@@ -456,7 +456,7 @@ class _NotesPageState extends State<NotesPage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -518,7 +518,7 @@ class _NotesPageState extends State<NotesPage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -598,7 +598,7 @@ class _NotesPageState extends State<NotesPage> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.08),
+                                          color: Colors.black.withValues(alpha: 0.08),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4),
                                         ),
@@ -633,7 +633,7 @@ class _NotesPageState extends State<NotesPage> {
                                                   icon: Container(
                                                     padding: EdgeInsets.all(4),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.black.withOpacity(0.05),
+                                                      color: Colors.black.withValues(alpha: 0.05),
                                                       borderRadius: BorderRadius.circular(8),
                                                     ),
                                                     child: Icon(Icons.more_vert, color: Colors.grey[700], size: 20),
@@ -650,7 +650,7 @@ class _NotesPageState extends State<NotesPage> {
                                                             Container(
                                                               padding: EdgeInsets.all(8),
                                                               decoration: BoxDecoration(
-                                                                color: Colors.blue.withOpacity(0.1),
+                                                                color: Colors.blue.withValues(alpha: 0.1),
                                                                 borderRadius: BorderRadius.circular(8),
                                                               ),
                                                               child: Icon(Icons.edit, size: 18, color: Colors.blue),
@@ -679,7 +679,7 @@ class _NotesPageState extends State<NotesPage> {
                                                             Container(
                                                               padding: EdgeInsets.all(8),
                                                               decoration: BoxDecoration(
-                                                                color: Colors.red.withOpacity(0.1),
+                                                                color: Colors.red.withValues(alpha: 0.1),
                                                                 borderRadius: BorderRadius.circular(8),
                                                               ),
                                                               child: Icon(Icons.delete, size: 18, color: Colors.red),
@@ -765,7 +765,7 @@ class _NotesPageState extends State<NotesPage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 12,
               offset: Offset(0, 4),
             ),

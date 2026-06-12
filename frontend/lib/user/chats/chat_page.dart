@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -1050,7 +1050,7 @@ class _ChatPageState extends State<ChatPage> {
               padding: const EdgeInsets.all(8),
               margin: const EdgeInsets.only(bottom: 4),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1137,7 +1137,7 @@ class _ChatPageState extends State<ChatPage> {
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 4,
                                   offset: Offset(0, 1))
                             ],
@@ -1179,7 +1179,7 @@ class _ChatPageState extends State<ChatPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

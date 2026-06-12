@@ -143,6 +143,9 @@ exports.pay = async (req, res) => {
     if (!to || !amount || amount <= 0) {
       return res.status(400).json({ error: 'to (email) and a positive amount are required' });
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return res.status(400).json({ error: 'Invalid recipient email address' });
+    }
 
     // Resolve recipient outside the transaction — read-only, no consistency risk
     const receiver = await User.findOne({ email: to.toLowerCase().trim() }).select('_id email');

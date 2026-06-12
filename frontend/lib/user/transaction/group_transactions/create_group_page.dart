@@ -1,4 +1,4 @@
-import 'package:elegant_notification/elegant_notification.dart';
+﻿import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -665,7 +665,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 gradient: _tricolorGradient,
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 6)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6)),
                 ],
               ),
               child: Container(
@@ -685,7 +685,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.deepPurple.withOpacity(0.25),
+                            color: Colors.deepPurple.withValues(alpha: 0.25),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -780,7 +780,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.grey.shade300, width: 2),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: const Center(child: Icon(Icons.edit, color: Colors.white, size: 18)),

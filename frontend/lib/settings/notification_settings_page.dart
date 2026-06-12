@@ -21,6 +21,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _transactionNotifications = true;
   bool _paymentReminders = true;
   bool _groupNotifications = true;
+  bool _chatNotifications = true;
   bool _emailNotifications = true;
   bool _pushNotifications = true;
   bool _smsNotifications = false;
@@ -44,7 +45,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.get('/api/users/notification-settings');
 
       if (response.statusCode == 200) {
@@ -54,6 +54,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               settings['transactionNotifications'] ?? true;
           _paymentReminders = settings['paymentReminders'] ?? true;
           _groupNotifications = settings['groupNotifications'] ?? true;
+          _chatNotifications = settings['chatNotifications'] ?? true;
           _emailNotifications = settings['emailNotifications'] ?? true;
           _pushNotifications = settings['pushNotifications'] ?? true;
           _smsNotifications = settings['smsNotifications'] ?? false;
@@ -85,13 +86,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.put(
         '/api/users/notification-settings',
         body: {
           'transactionNotifications': _transactionNotifications,
           'paymentReminders': _paymentReminders,
           'groupNotifications': _groupNotifications,
+          'chatNotifications': _chatNotifications,
           'emailNotifications': _emailNotifications,
           'pushNotifications': _pushNotifications,
           'smsNotifications': _smsNotifications,
@@ -104,8 +105,21 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       );
 
       if (response.statusCode == 200) {
-        final settings = json.decode(response.body);
-        session.updateNotificationSettings(settings);
+        Provider.of<SessionProvider>(context, listen: false)
+            .updateNotificationSettings({
+          'transactionNotifications': _transactionNotifications,
+          'paymentReminders': _paymentReminders,
+          'groupNotifications': _groupNotifications,
+          'chatNotifications': _chatNotifications,
+          'emailNotifications': _emailNotifications,
+          'pushNotifications': _pushNotifications,
+          'smsNotifications': _smsNotifications,
+          'reminderFrequency': _reminderFrequency,
+          'quietHoursStart': _quietHoursStart,
+          'quietHoursEnd': _quietHoursEnd,
+          'quietHoursEnabled': _quietHoursEnabled,
+          'displayNotificationCount': _displayNotificationCount,
+        });
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
               context, 'Notification settings saved successfully!');
@@ -204,7 +218,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 10,
                           offset: const Offset(0, 2),
@@ -267,6 +281,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Icons.group_outlined,
                         _groupNotifications,
                         (value) => setState(() => _groupNotifications = value),
+                      ),
+                      _buildSwitchTile(
+                        'Chat Notifications',
+                        'Get notified when you receive new messages',
+                        Icons.chat_bubble_outline,
+                        _chatNotifications,
+                        (value) => setState(() => _chatNotifications = value),
                       ),
                     ],
                   ),
@@ -369,9 +390,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,7 +429,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 10,
             offset: const Offset(0, 2),
@@ -537,7 +558,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF00B4D8).withOpacity(0.1),
+            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(

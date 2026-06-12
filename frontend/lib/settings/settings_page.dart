@@ -8,6 +8,9 @@ import 'privacy_settings_page.dart';
 import 'account_settings_page.dart';
 import '../user/support/help_support_page.dart';
 import '../utils/responsive.dart';
+import 'about_page.dart';
+import 'terms_of_service_page.dart';
+import 'privacy_policy_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -346,14 +349,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       _buildSettingsTile(
                         context,
-                        'About Lenden',
+                        'About LenDen',
                         Icons.info_outline,
                         Icons.arrow_forward_ios,
                         () {
-                          // TODO: Implement about page
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('About page coming soon!')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AboutPage(),
+                            ),
                           );
                         },
                       ),
@@ -363,11 +367,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         Icons.description_outlined,
                         Icons.arrow_forward_ios,
                         () {
-                          // TODO: Implement terms of service
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Terms of Service coming soon!')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TermsOfServicePage(),
+                            ),
                           );
                         },
                       ),
@@ -377,10 +381,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         Icons.security_outlined,
                         Icons.arrow_forward_ios,
                         () {
-                          // TODO: Implement privacy policy
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Privacy Policy coming soon!')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PrivacyPolicyPage(),
+                            ),
                           );
                         },
                       ),

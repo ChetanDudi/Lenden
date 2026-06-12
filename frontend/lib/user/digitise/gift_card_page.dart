@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -155,8 +155,8 @@ class _GiftCardPageState extends State<GiftCardPage>
                   ),
                   gradient: LinearGradient(
                     colors: [
-                      Colors.amber.withOpacity(0.1),
-                      Colors.green.withOpacity(0.1)
+                      Colors.amber.withValues(alpha: 0.1),
+                      Colors.green.withValues(alpha: 0.1)
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -192,7 +192,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.2),
+                          color: Colors.orange.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -278,7 +278,7 @@ class _GiftCardPageState extends State<GiftCardPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -301,7 +301,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                       Icon(
                         Icons.touch_app,
                         size: 48,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       )
                     else
                       const Icon(
@@ -327,7 +327,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -346,7 +346,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -363,7 +363,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                       name,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontStyle: FontStyle.italic,
                       ),
                       textAlign: TextAlign.center,

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -260,11 +260,11 @@ class _ManageGroupTransactionsPageState
               color: Colors.white,
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: const Color(0xFF00B4D8).withOpacity(0.18),
+                color: const Color(0xFF00B4D8).withValues(alpha: 0.18),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 24,
                   offset: const Offset(0, 14),
                 ),
@@ -432,8 +432,8 @@ class _ManageGroupTransactionsPageState
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: balanced
-                                ? Colors.green.withOpacity(0.08)
-                                : Colors.orange.withOpacity(0.08),
+                                ? Colors.green.withValues(alpha: 0.08)
+                                : Colors.orange.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
@@ -682,7 +682,7 @@ class _ManageGroupTransactionsPageState
                     width: 68,
                     height: 68,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(22),
                     ),
                     child: Icon(icon, color: color, size: 34),
@@ -1045,7 +1045,7 @@ class _ManageGroupTransactionsPageState
         ),
         boxShadow: [
           BoxShadow(
-            color: selectedColor.withOpacity(0.18),
+            color: selectedColor.withValues(alpha: 0.18),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -1166,7 +1166,7 @@ class _ManageGroupTransactionsPageState
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(18),
                                         border: Border.all(
-                                          color: pickedColor.withOpacity(0.35),
+                                          color: pickedColor.withValues(alpha: 0.35),
                                         ),
                                       ),
                                       child: Row(

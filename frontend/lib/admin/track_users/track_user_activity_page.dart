@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
@@ -343,7 +343,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: _getActivityColor(type).withOpacity(0.3),
+          color: _getActivityColor(type).withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -356,10 +356,10 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _getActivityColor(type).withOpacity(0.1),
+                color: _getActivityColor(type).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _getActivityColor(type).withOpacity(0.2),
+                  color: _getActivityColor(type).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -392,10 +392,10 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.green.withOpacity(0.3),
+                              color: Colors.green.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),

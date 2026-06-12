@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -691,7 +691,7 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.62),
+                  color: Colors.black.withValues(alpha: 0.62),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
@@ -733,7 +733,7 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.62),
+              color: Colors.black.withValues(alpha: 0.62),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text(
@@ -752,7 +752,7 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.62),
+              color: Colors.black.withValues(alpha: 0.62),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(

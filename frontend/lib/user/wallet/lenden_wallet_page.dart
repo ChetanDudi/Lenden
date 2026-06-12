@@ -402,8 +402,11 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                 ),
 
                 // ── Scrollable body ───────────────────────────────────
-                Expanded(child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+                Expanded(child: RefreshIndicator(
+                  onRefresh: _fetchWalletData,
+                  color: const Color(0xFF00B4D8),
+                  child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(children: [
 
                 // Balance card — tricolor border
@@ -878,7 +881,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                           },
                     ),
                 const SizedBox(height: 24),
-              ]))), // closes inner Column + SingleChildScrollView + Expanded
+              ]))))), // closes inner Column + SingleChildScrollView + RefreshIndicator + Expanded
               ],
             ),
           ),

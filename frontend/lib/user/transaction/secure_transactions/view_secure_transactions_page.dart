@@ -2126,7 +2126,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
             remaining = remaining + (remaining * rate * days / 365);
           } else if (t['interestType'] == 'compound') {
             final n = (t['compoundingFrequency'] as num?)?.toInt() ?? 1;
-            remaining = remaining * pow(1 + rate / 100, days / n);
+            remaining = remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
           }
         }
       }

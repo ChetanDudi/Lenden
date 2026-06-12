@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -655,7 +655,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               color: const Color(0xFFFAF9F6),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -700,7 +700,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                           icon: Container(
                             padding: EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(Icons.close,
@@ -737,7 +737,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -756,7 +756,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                               leading: CircleAvatar(
                                 backgroundColor:
                                     _getUserColor(memberId ?? member['email'])
-                                        .withOpacity(0.8),
+                                        .withValues(alpha: 0.8),
                                 child: Text(
                                   (member['email'] ?? 'U')[0].toUpperCase(),
                                   style: TextStyle(
@@ -784,7 +784,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                                       padding: EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.1),
+                                        color: Colors.red.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -800,7 +800,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                                       padding: EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.1),
+                                        color: Colors.green.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -1112,7 +1112,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -1122,7 +1122,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.no_accounts,
-                size: 60, color: Colors.red.withOpacity(0.8)),
+                size: 60, color: Colors.red.withValues(alpha: 0.8)),
             const SizedBox(height: 20),
             Text(
               'You are no longer a member of this group.',
@@ -1188,7 +1188,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               padding: const EdgeInsets.all(8),
               margin: const EdgeInsets.only(bottom: 4),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1277,7 +1277,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 4,
                                   offset: Offset(0, 1))
                             ],
@@ -1319,7 +1319,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

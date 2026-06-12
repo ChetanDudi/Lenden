@@ -8,7 +8,11 @@ module.exports = async function (req, res, next) {
   }
   const token = authHeader.split(' ')[1];
   try {
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('[Auth] JWT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Server misconfiguration' });
+    }
     const decoded = jwt.verify(token, jwtSecret);
     if (!decoded._id && decoded.userId) {
       decoded._id = decoded.userId;

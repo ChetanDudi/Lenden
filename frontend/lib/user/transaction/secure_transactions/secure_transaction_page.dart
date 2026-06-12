@@ -1,4 +1,4 @@
-//This file is to create Transactions.
+﻿//This file is to create Transactions.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -243,7 +243,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00B4D8).withOpacity(0.10),
+                    color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -315,7 +315,7 @@ class _TransactionPageState extends State<TransactionPage> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.10),
+              color: color.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -454,7 +454,7 @@ class _TransactionPageState extends State<TransactionPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF00B4D8).withOpacity(0.10),
+              color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: const Color(0xFF00B4D8), size: 20),
@@ -563,7 +563,7 @@ class _TransactionPageState extends State<TransactionPage> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -918,7 +918,7 @@ class _TransactionPageState extends State<TransactionPage> {
                           gradient: LinearGradient(
                             colors: [
                               accentColor,
-                              accentColor.withOpacity(0.72),
+                              accentColor.withValues(alpha: 0.72),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -984,7 +984,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: accentColor.withOpacity(0.45)),
+                      side: BorderSide(color: accentColor.withValues(alpha: 0.45)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -1049,7 +1049,7 @@ class _TransactionPageState extends State<TransactionPage> {
                           gradient: LinearGradient(
                             colors: [
                               accentColor,
-                              accentColor.withOpacity(0.72),
+                              accentColor.withValues(alpha: 0.72),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -1150,7 +1150,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.10),
+                    color: accentColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: accentColor),
@@ -1455,7 +1455,7 @@ class _TransactionPageState extends State<TransactionPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF00B4D8).withOpacity(0.08),
+                color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -1516,7 +1516,7 @@ class _TransactionPageState extends State<TransactionPage> {
                     border: Border.all(color: const Color(0xFFBFE8F2)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -1612,7 +1612,7 @@ class _TransactionPageState extends State<TransactionPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -1638,9 +1638,9 @@ class _TransactionPageState extends State<TransactionPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: accent.withOpacity(0.08),
+        color: accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withOpacity(0.20)),
+        border: Border.all(color: accent.withValues(alpha: 0.20)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1934,7 +1934,7 @@ class _TransactionPageState extends State<TransactionPage> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00B4D8).withOpacity(0.10),
+                            color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
@@ -2092,7 +2092,7 @@ class _TransactionPageState extends State<TransactionPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),

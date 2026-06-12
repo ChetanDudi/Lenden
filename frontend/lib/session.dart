@@ -114,7 +114,14 @@ class SessionProvider extends ChangeNotifier {
         _storage.read(key: 'user_data'),
       ]);
     } catch (_) {
-      try { await _storage.deleteAll(); } catch (_) {}
+      // On Windows, the .dat file may be locked by the dying previous process.
+      // Retry once after 500ms so the lock can be released, then give up.
+      try {
+        await _storage.deleteAll();
+      } catch (_) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        try { await _storage.deleteAll(); } catch (_) {}
+      }
       _user = null;
       _role = null;
       notifyListeners();

@@ -15,6 +15,7 @@ class PrivacySettingsPage extends StatefulWidget {
 class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _isExporting = false;
 
   // Privacy settings
   bool _profileVisibility = true;
@@ -43,7 +44,6 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.get('/api/users/privacy-settings');
 
       if (response.statusCode == 200) {
@@ -77,7 +77,6 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.put(
         '/api/users/privacy-settings',
         body: {
@@ -222,7 +221,6 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
   Future<void> _loadDevices() async {
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.get('/api/users/devices');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -271,6 +269,168 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
             context, 'Error: ${e.toString()}');
       }
     }
+  }
+
+  Future<void> _logoutAllDevices() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Logout All Devices',
+            style:
+                TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        content: const Text(
+            'This will log you out from all other devices. You will remain logged in on this device.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Logout All',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final response =
+          await ApiClient.post('/api/users/logout-all-devices', body: {});
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        CustomWarningWidget.showAnimatedSuccess(
+            context, 'Logged out from all other devices');
+        _loadDevices();
+      } else {
+        final err = json.decode(response.body);
+        CustomWarningWidget.showAnimatedError(
+            context, err['error'] ?? 'Failed to logout all devices');
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomWarningWidget.showAnimatedError(context, 'Error: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _requestDataExport() async {
+    setState(() => _isExporting = true);
+    try {
+      final response = await ApiClient.get('/api/users/export-data');
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final summary = data['summary'] as Map<String, dynamic>? ?? {};
+        _showExportSummaryDialog(summary, data['note'] as String? ?? '');
+      } else {
+        final err = json.decode(response.body);
+        CustomWarningWidget.showAnimatedError(
+            context, err['message'] ?? 'Failed to request data export');
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomWarningWidget.showAnimatedError(context, 'Error: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  void _showExportSummaryDialog(
+      Map<String, dynamic> summary, String note) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00B4D8).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.download_rounded,
+                  color: Color(0xFF00B4D8), size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Your Data Summary',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _summaryRow('Name', summary['name']?.toString() ?? '—'),
+            _summaryRow('Email', summary['email']?.toString() ?? '—'),
+            _summaryRow('Wallet Balance',
+                '₹${(summary['walletBalance'] ?? 0).toStringAsFixed(2)}'),
+            _summaryRow('Transactions',
+                '${summary['transactionCount'] ?? 0}'),
+            _summaryRow('Wallet Entries',
+                '${summary['walletTransactionCount'] ?? 0}'),
+            _summaryRow(
+                'Subscriptions', '${summary['subscriptionCount'] ?? 0}'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFFCC02)),
+              ),
+              child: Text(note,
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFF5D4037))),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00B4D8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('OK', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 13, color: Colors.grey)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadCurrentDeviceId() async {
@@ -336,7 +496,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 10,
                           offset: const Offset(0, 2),
@@ -480,6 +640,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                           ),
                         );
                       }).toList(),
+                      if (_devices.length > 1)
+                        _buildActionTile(
+                          'Logout All Other Devices',
+                          'Sign out from every device except this one',
+                          Icons.devices_other,
+                          _logoutAllDevices,
+                          isDestructive: true,
+                        ),
                     ],
                   ),
 
@@ -489,6 +657,12 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                   _buildSettingsSection(
                     'Account Management',
                     [
+                      _buildActionTile(
+                        'Export My Data',
+                        'Get a summary of your data stored on LenDen',
+                        Icons.download_outlined,
+                        _isExporting ? () {} : _requestDataExport,
+                      ),
                       _buildActionTile(
                         'Deactivate Account',
                         'Temporarily deactivate your account. You can recover it later.',
@@ -506,9 +680,9 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,7 +719,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 10,
             offset: const Offset(0, 2),

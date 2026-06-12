@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../api_config.dart';
 import 'package:provider/provider.dart';
@@ -112,7 +112,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -277,7 +277,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(Icons.delete_outline, color: Colors.red, size: 24),
@@ -392,7 +392,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.sort, color: Colors.blue, size: 20),
@@ -437,7 +437,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color:
-              isSelected ? Colors.blue.withOpacity(0.05) : Colors.transparent,
+              isSelected ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
           border: Border(
             left: BorderSide(
               color: isSelected ? Colors.blue : Colors.transparent,
@@ -523,7 +523,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -589,7 +589,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -685,7 +685,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.08),
+                                          color: Colors.black.withValues(alpha: 0.08),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4),
                                         ),
@@ -727,7 +727,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                     padding: EdgeInsets.all(4),
                                                     decoration: BoxDecoration(
                                                       color: Colors.black
-                                                          .withOpacity(0.05),
+                                                          .withValues(alpha: 0.05),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               8),
@@ -758,7 +758,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                                   BoxDecoration(
                                                                 color: Colors
                                                                     .blue
-                                                                    .withOpacity(
+                                                                    .withValues(alpha: 
                                                                         0.1),
                                                                 borderRadius:
                                                                     BorderRadius
@@ -810,7 +810,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                                   BoxDecoration(
                                                                 color: Colors
                                                                     .red
-                                                                    .withOpacity(
+                                                                    .withValues(alpha: 
                                                                         0.1),
                                                                 borderRadius:
                                                                     BorderRadius
@@ -915,7 +915,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 12,
               offset: Offset(0, 4),
             ),

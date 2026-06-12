@@ -477,8 +477,13 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                 ),
                 const SizedBox(height: 10),
                 Expanded(
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                  child: RefreshIndicator(
+                    onRefresh: () => _fetchCounterparties(forceRefresh: true),
+                    color: const Color(0xFF00B4D8),
+                    child: _isLoading
+                      ? const SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(height: 300, child: Center(child: CircularProgressIndicator())))
                       : filtered.isEmpty
                           ? Center(
                               child: Column(
@@ -534,6 +539,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                 );
                               },
                             ),
+                  ), // closes RefreshIndicator
                 ),
               ],
             ),

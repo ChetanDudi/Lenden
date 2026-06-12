@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 
@@ -148,7 +148,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5DA9FF).withOpacity(0.28),
+            color: const Color(0xFF5DA9FF).withValues(alpha: 0.28),
             blurRadius: 26,
             offset: const Offset(0, 14),
           ),
@@ -159,7 +159,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
+              color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
@@ -218,7 +218,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -230,7 +230,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.82),
+              color: Colors.white.withValues(alpha: 0.82),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: textColor),
@@ -274,7 +274,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -407,7 +407,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),
@@ -526,7 +526,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 18,
                   offset: const Offset(0, 10),
                 ),

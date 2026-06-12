@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../profile/profile_page.dart' hide TopWaveClipper, BottomWaveClipper;
 import '../../utils/api_client.dart';
@@ -50,7 +50,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
         border: Border.all(color: Color(0xFF00B4D8), width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.07),
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

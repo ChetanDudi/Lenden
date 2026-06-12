@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -339,7 +339,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withValues(alpha: 0.2),
             spreadRadius: 1,
             blurRadius: 3,
             offset: Offset(0, 2),

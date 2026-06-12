@@ -72,10 +72,10 @@ class CustomWarningWidget {
             decoration: BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: iconColor.withOpacity(0.3), width: 1),
+              border: Border.all(color: iconColor.withValues(alpha: 0.3), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -88,7 +88,7 @@ class CustomWarningWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.1),
+                      color: iconColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -114,7 +114,7 @@ class CustomWarningWidget {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: iconColor.withOpacity(0.1),
+                        color: iconColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Icon(
@@ -197,10 +197,10 @@ class CustomWarningWidget {
                     decoration: BoxDecoration(
                       color: backgroundColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: iconColor.withOpacity(0.3), width: 1),
+                      border: Border.all(color: iconColor.withValues(alpha: 0.3), width: 1),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -213,7 +213,7 @@ class CustomWarningWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: iconColor.withOpacity(0.1),
+                              color: iconColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -239,7 +239,7 @@ class CustomWarningWidget {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: iconColor.withOpacity(0.1),
+                                color: iconColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Icon(
@@ -292,10 +292,10 @@ class CustomWarningWidget {
             decoration: BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: iconColor.withOpacity(0.3), width: 1),
+              border: Border.all(color: iconColor.withValues(alpha: 0.3), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

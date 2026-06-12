@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -888,10 +888,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF00B4D8).withOpacity(0.1),
+                    color: Color(0xFF00B4D8).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border:
-                        Border.all(color: Color(0xFF00B4D8).withOpacity(0.3)),
+                        Border.all(color: Color(0xFF00B4D8).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -917,12 +917,12 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Color(0xFF00B4D8).withOpacity(0.2),
+                        color: Color(0xFF00B4D8).withValues(alpha: 0.2),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: Offset(0, 2),
                         ),
@@ -1181,7 +1181,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                           boxShadow: [
                                             BoxShadow(
                                               color: Color(0xFF00B4D8)
-                                                  .withOpacity(0.1),
+                                                  .withValues(alpha: 0.1),
                                               blurRadius: 8,
                                               offset: Offset(0, 2),
                                             ),
@@ -1214,7 +1214,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                 padding: EdgeInsets.all(8),
                                                 decoration: BoxDecoration(
                                                   color: Color(0xFF00B4D8)
-                                                      .withOpacity(0.1),
+                                                      .withValues(alpha: 0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
@@ -1274,13 +1274,13 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         ),
                                         border: Border.all(
                                           color: Color(0xFF00B4D8)
-                                              .withOpacity(0.3),
+                                              .withValues(alpha: 0.3),
                                           width: 2,
                                         ),
                                         boxShadow: [
                                           BoxShadow(
                                             color: Color(0xFF00B4D8)
-                                                .withOpacity(0.2),
+                                                .withValues(alpha: 0.2),
                                             blurRadius: 8,
                                             offset: Offset(0, 2),
                                           ),
@@ -1361,7 +1361,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withOpacity(0.5),
+                                        color: Colors.grey.withValues(alpha: 0.5),
                                         spreadRadius: 1,
                                         blurRadius: 3,
                                         offset: const Offset(0, 2),
@@ -1408,7 +1408,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 8,
                                   offset: Offset(0, 4),
                                 ),
@@ -1624,7 +1624,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                 BoxDecoration(
                                                               color: Color(
                                                                       0xFF00B4D8)
-                                                                  .withOpacity(
+                                                                  .withValues(alpha: 
                                                                       0.1),
                                                               borderRadius:
                                                                   BorderRadius
@@ -1891,11 +1891,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                         decoration:
                                                                             BoxDecoration(
                                                                           color:
-                                                                              Color(0xFF00B4D8).withOpacity(0.05),
+                                                                              Color(0xFF00B4D8).withValues(alpha: 0.05),
                                                                           borderRadius:
                                                                               BorderRadius.circular(6),
                                                                           border:
-                                                                              Border.all(color: Color(0xFF00B4D8).withOpacity(0.2)),
+                                                                              Border.all(color: Color(0xFF00B4D8).withValues(alpha: 0.2)),
                                                                         ),
                                                                         child:
                                                                             Column(

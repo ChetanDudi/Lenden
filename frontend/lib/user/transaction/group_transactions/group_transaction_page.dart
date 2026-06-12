@@ -1,4 +1,4 @@
-import 'package:elegant_notification/elegant_notification.dart';
+﻿import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -1147,14 +1147,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFFDC2626).withOpacity(0.3),
+            color: Color(0xFFDC2626).withValues(alpha: 0.3),
             blurRadius: 12,
             offset: Offset(0, 4),
             spreadRadius: 2,
           ),
         ],
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -1175,7 +1175,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -1200,7 +1200,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           fontWeight: FontWeight.bold,
                           shadows: [
                             Shadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               offset: Offset(0, 1),
                               blurRadius: 2,
                             ),
@@ -1216,7 +1216,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           fontWeight: FontWeight.w500,
                           shadows: [
                             Shadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               offset: Offset(0, 1),
                               blurRadius: 2,
                             ),
@@ -1233,7 +1233,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 Container(
                   padding: EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -1790,10 +1790,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1E3A8A).withOpacity(0.1),
+                    color: Color(0xFF1E3A8A).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border:
-                        Border.all(color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                        Border.all(color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -1816,10 +1816,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Color(0xFF059669).withOpacity(0.1),
+                      color: Color(0xFF059669).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border:
-                          Border.all(color: Color(0xFF059669).withOpacity(0.3)),
+                          Border.all(color: Color(0xFF059669).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -1854,22 +1854,22 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                     margin: EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
                       color: isMemberCreator
-                          ? Color(0xFF059669).withOpacity(0.1)
+                          ? Color(0xFF059669).withValues(alpha: 0.1)
                           : hasLeft
                               ? Colors.grey[100]
                               : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isMemberCreator
-                            ? Color(0xFF059669).withOpacity(0.3)
+                            ? Color(0xFF059669).withValues(alpha: 0.3)
                             : hasLeft
                                 ? Colors.grey[300]!
-                                : Color(0xFF1E3A8A).withOpacity(0.2),
+                                : Color(0xFF1E3A8A).withValues(alpha: 0.2),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: Offset(0, 2),
                         ),
@@ -2068,7 +2068,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF1E40AF).withOpacity(0.3),
+                        color: Color(0xFF1E40AF).withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: Offset(0, 4),
                       ),
@@ -2079,7 +2079,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                       Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(Icons.person_add,
@@ -2095,7 +2095,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                             fontWeight: FontWeight.bold,
                             shadows: [
                               Shadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withValues(alpha: 0.2),
                                 offset: Offset(0, 2),
                                 blurRadius: 4,
                               ),
@@ -2124,12 +2124,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                             end: Alignment.bottomRight,
                           ),
                           border: Border.all(
-                            color: Color(0xFF3B82F6).withOpacity(0.3),
+                            color: Color(0xFF3B82F6).withValues(alpha: 0.3),
                             width: 2,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Color(0xFF3B82F6).withOpacity(0.1),
+                              color: Color(0xFF3B82F6).withValues(alpha: 0.1),
                               blurRadius: 8,
                               offset: Offset(0, 2),
                             ),
@@ -2153,7 +2153,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                               margin: EdgeInsets.all(8),
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Color(0xFF3B82F6).withOpacity(0.1),
+                                color: Color(0xFF3B82F6).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
@@ -2205,7 +2205,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Color(0xFF1E40AF).withOpacity(0.3),
+                              color: Color(0xFF1E40AF).withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: Offset(0, 4),
                             ),
@@ -2240,7 +2240,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     Container(
                                       padding: EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(Icons.person_add,
@@ -2256,7 +2256,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                         shadows: [
                                           Shadow(
                                             color:
-                                                Colors.black.withOpacity(0.2),
+                                                Colors.black.withValues(alpha: 0.2),
                                             offset: Offset(0, 1),
                                             blurRadius: 2,
                                           ),
@@ -2699,7 +2699,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF10B981).withOpacity(0.3),
+                color: Color(0xFF10B981).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: Offset(0, 10),
               ),
@@ -2717,7 +2717,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: Offset(0, 5),
                     ),
@@ -2755,7 +2755,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Text(
                 'The expense has been removed from the group',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -2810,7 +2810,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF10B981).withOpacity(0.3),
+                color: Color(0xFF10B981).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: Offset(0, 10),
               ),
@@ -2828,7 +2828,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: Offset(0, 5),
                     ),
@@ -2866,7 +2866,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Text(
                 'The member has been successfully removed from the group',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -2921,7 +2921,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFFDC2626).withOpacity(0.3),
+                color: Color(0xFFDC2626).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: Offset(0, 10),
               ),
@@ -2939,7 +2939,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: Offset(0, 5),
                     ),
@@ -2977,7 +2977,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Text(
                 'All group data and expenses have been removed',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -3055,10 +3055,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFDC2626).withOpacity(0.1),
+                  color: Color(0xFFDC2626).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(50),
                   border: Border.all(
-                    color: Color(0xFFDC2626).withOpacity(0.3),
+                    color: Color(0xFFDC2626).withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -3186,10 +3186,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFDC2626).withOpacity(0.1),
+                  color: Color(0xFFDC2626).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(50),
                   border: Border.all(
-                    color: Color(0xFFDC2626).withOpacity(0.3),
+                    color: Color(0xFFDC2626).withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -3300,7 +3300,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF059669).withOpacity(0.3),
+                color: Color(0xFF059669).withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),
@@ -3311,7 +3311,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.check_circle, color: Colors.white, size: 28),
@@ -3326,7 +3326,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                     fontWeight: FontWeight.bold,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         offset: Offset(0, 2),
                         blurRadius: 4,
                       ),
@@ -3346,10 +3346,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFF059669).withOpacity(0.1),
+                  color: Color(0xFF059669).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(50),
                   border: Border.all(
-                    color: Color(0xFF059669).withOpacity(0.3),
+                    color: Color(0xFF059669).withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -3377,10 +3377,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Color(0xFF059669).withOpacity(0.1),
+                  color: Color(0xFF059669).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Color(0xFF059669).withOpacity(0.3),
+                    color: Color(0xFF059669).withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
@@ -3398,10 +3398,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Color(0xFF059669).withOpacity(0.05),
+                  color: Color(0xFF059669).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Color(0xFF059669).withOpacity(0.2),
+                    color: Color(0xFF059669).withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -3439,7 +3439,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                     borderRadius: BorderRadius.circular(16)),
                 padding: EdgeInsets.symmetric(vertical: 12),
                 elevation: 4,
-                shadowColor: Color(0xFF059669).withOpacity(0.3),
+                shadowColor: Color(0xFF059669).withValues(alpha: 0.3),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3503,9 +3503,9 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Color(0xFF059669).withOpacity(0.1),
+                  color: Color(0xFF059669).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Color(0xFF059669).withOpacity(0.3)),
+                  border: Border.all(color: Color(0xFF059669).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -3553,9 +3553,9 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Color(0xFF059669).withOpacity(0.1),
+                  color: Color(0xFF059669).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Color(0xFF059669).withOpacity(0.3)),
+                  border: Border.all(color: Color(0xFF059669).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -3617,7 +3617,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         borderRadius: BorderRadius.circular(12)),
                     padding: EdgeInsets.symmetric(vertical: 12),
                     elevation: 4,
-                    shadowColor: Color(0xFF059669).withOpacity(0.3),
+                    shadowColor: Color(0xFF059669).withValues(alpha: 0.3),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -3660,7 +3660,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF10B981).withOpacity(0.3),
+                color: Color(0xFF10B981).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: Offset(0, 10),
               ),
@@ -3678,7 +3678,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: Offset(0, 5),
                     ),
@@ -3716,7 +3716,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Text(
                 'All their expenses have been marked as settled and they have been removed from the group',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -3793,9 +3793,9 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Color(0xFFDC2626).withOpacity(0.1),
+                  color: Color(0xFFDC2626).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Color(0xFFDC2626).withOpacity(0.3)),
+                  border: Border.all(color: Color(0xFFDC2626).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -3879,7 +3879,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         borderRadius: BorderRadius.circular(12)),
                     padding: EdgeInsets.symmetric(vertical: 12),
                     elevation: 4,
-                    shadowColor: Color(0xFFDC2626).withOpacity(0.3),
+                    shadowColor: Color(0xFFDC2626).withValues(alpha: 0.3),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -3953,13 +3953,13 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: hasBalance
-                      ? Color(0xFFDC2626).withOpacity(0.1)
-                      : Color(0xFFF59E0B).withOpacity(0.1),
+                      ? Color(0xFFDC2626).withValues(alpha: 0.1)
+                      : Color(0xFFF59E0B).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                       color: hasBalance
-                          ? Color(0xFFDC2626).withOpacity(0.3)
-                          : Color(0xFFF59E0B).withOpacity(0.3)),
+                          ? Color(0xFFDC2626).withValues(alpha: 0.3)
+                          : Color(0xFFF59E0B).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -4081,12 +4081,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 decoration: BoxDecoration(
                   color: hasBalance
                       ? Color(0xFFFEF2F2)
-                      : Color(0xFFF59E0B).withOpacity(0.1),
+                      : Color(0xFFF59E0B).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                       color: hasBalance
                           ? Color(0xFFFECACA)
-                          : Color(0xFFF59E0B).withOpacity(0.3)),
+                          : Color(0xFFF59E0B).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -4153,7 +4153,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           borderRadius: BorderRadius.circular(12)),
                       padding: EdgeInsets.symmetric(vertical: 12),
                       elevation: 4,
-                      shadowColor: Color(0xFFF59E0B).withOpacity(0.3),
+                      shadowColor: Color(0xFFF59E0B).withValues(alpha: 0.3),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -4186,7 +4186,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           borderRadius: BorderRadius.circular(12)),
                       padding: EdgeInsets.symmetric(vertical: 12),
                       elevation: 4,
-                      shadowColor: Color(0xFFDC2626).withOpacity(0.3),
+                      shadowColor: Color(0xFFDC2626).withValues(alpha: 0.3),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -4258,9 +4258,9 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Color(0xFF1E3A8A).withOpacity(0.1),
+                  color: Color(0xFF1E3A8A).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                  border: Border.all(color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -4356,12 +4356,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 decoration: BoxDecoration(
                   color: hasBalance
                       ? Color(0xFFFEF2F2)
-                      : Color(0xFFDC2626).withOpacity(0.1),
+                      : Color(0xFFDC2626).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                       color: hasBalance
                           ? Color(0xFFFECACA)
-                          : Color(0xFFDC2626).withOpacity(0.3)),
+                          : Color(0xFFDC2626).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -4428,7 +4428,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           borderRadius: BorderRadius.circular(12)),
                       padding: EdgeInsets.symmetric(vertical: 12),
                       elevation: 4,
-                      shadowColor: Color(0xFFDC2626).withOpacity(0.3),
+                      shadowColor: Color(0xFFDC2626).withValues(alpha: 0.3),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -4462,7 +4462,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           borderRadius: BorderRadius.circular(12)),
                       padding: EdgeInsets.symmetric(vertical: 12),
                       elevation: 4,
-                      shadowColor: Color(0xFFDC2626).withOpacity(0.3),
+                      shadowColor: Color(0xFFDC2626).withValues(alpha: 0.3),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -4534,10 +4534,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1E3A8A).withOpacity(0.1),
+                    color: Color(0xFF1E3A8A).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border:
-                        Border.all(color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                        Border.all(color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -4596,12 +4596,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Color(0xFF1E3A8A).withOpacity(0.2),
+                          color: Color(0xFF1E3A8A).withValues(alpha: 0.2),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -4666,11 +4666,11 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                 margin: EdgeInsets.only(top: 8),
                                 padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF1E3A8A).withOpacity(0.05),
+                                  color: Color(0xFF1E3A8A).withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                       color:
-                                          Color(0xFF1E3A8A).withOpacity(0.2)),
+                                          Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -5696,7 +5696,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
         borderRadius: borderRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 18,
             offset: Offset(0, 10),
           ),
@@ -5728,7 +5728,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.deepPurple.withOpacity(0.25),
+                        color: Colors.deepPurple.withValues(alpha: 0.25),
                         blurRadius: 12,
                         offset: Offset(0, 6),
                       ),
@@ -5836,7 +5836,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                             Border.all(color: Colors.grey.shade300, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
+                            color: Colors.black.withValues(alpha: 0.12),
                             blurRadius: 10,
                             offset: Offset(0, 4),
                           ),
@@ -6278,12 +6278,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide(
-                            color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide(
-                            color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -6316,7 +6316,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -6355,7 +6355,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -6439,7 +6439,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                                    color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                               ),
                               child: Row(
                                 children: [
@@ -6682,9 +6682,9 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Color(0xFFDC2626).withOpacity(0.1),
+                  color: Color(0xFFDC2626).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFFDC2626).withOpacity(0.3)),
+                  border: Border.all(color: Color(0xFFDC2626).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -6861,10 +6861,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Color(0xFF00B4D8).withOpacity(0.1),
+                      color: Color(0xFF00B4D8).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border:
-                          Border.all(color: Color(0xFF00B4D8).withOpacity(0.3)),
+                          Border.all(color: Color(0xFF00B4D8).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -6909,10 +6909,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border:
-                          Border.all(color: Color(0xFF00B4D8).withOpacity(0.2)),
+                          Border.all(color: Color(0xFF00B4D8).withValues(alpha: 0.2)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: Offset(0, 2),
                         ),
@@ -7139,7 +7139,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           color: Color(0xFFE3F2FD),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                              color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
@@ -7159,10 +7159,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                     Container(
                       padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Color(0xFF1E3A8A).withOpacity(0.1),
+                        color: Color(0xFF1E3A8A).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -7186,10 +7186,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -7209,12 +7209,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -7232,10 +7232,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -7275,12 +7275,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -7298,10 +7298,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -7332,12 +7332,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -7356,10 +7356,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -7415,10 +7415,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                            color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
@@ -7469,12 +7469,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                                color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -7491,10 +7491,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         margin: EdgeInsets.only(top: 16),
                         padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Color(0xFF1E3A8A).withOpacity(0.05),
+                          color: Color(0xFF1E3A8A).withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: Color(0xFF1E3A8A).withOpacity(0.2)),
+                              color: Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -7532,7 +7532,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                    color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 mainAxisAlignment:
@@ -7566,7 +7566,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                                    color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 mainAxisAlignment:
@@ -7606,7 +7606,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                             color: Color(0xFF1E3A8A)
-                                                .withOpacity(0.2)),
+                                                .withValues(alpha: 0.2)),
                                       ),
                                       child: Row(
                                         children: [
@@ -7662,7 +7662,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                       BorderRadius.circular(8),
                                                   borderSide: BorderSide(
                                                       color: Color(0xFF1E3A8A)
-                                                          .withOpacity(0.3)),
+                                                          .withValues(alpha: 0.3)),
                                                 ),
                                                 enabledBorder:
                                                     OutlineInputBorder(
@@ -7670,7 +7670,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                       BorderRadius.circular(8),
                                                   borderSide: BorderSide(
                                                       color: Color(0xFF1E3A8A)
-                                                          .withOpacity(0.3)),
+                                                          .withValues(alpha: 0.3)),
                                                 ),
                                                 focusedBorder:
                                                     OutlineInputBorder(
@@ -8092,10 +8092,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1E3A8A).withOpacity(0.1),
+                    color: Color(0xFF1E3A8A).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border:
-                        Border.all(color: Color(0xFF1E3A8A).withOpacity(0.3)),
+                        Border.all(color: Color(0xFF1E3A8A).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -8175,7 +8175,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         margin: EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? Color(0xFF1E3A8A).withOpacity(0.1)
+                              ? Color(0xFF1E3A8A).withValues(alpha: 0.1)
                               : Colors.grey[50],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(

@@ -1,4 +1,4 @@
-import 'package:provider/provider.dart';
+﻿import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -209,11 +209,11 @@ class _FeedbackPageState extends State<FeedbackPage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-                color: Colors.blueAccent.withOpacity(0.3),
+                color: Colors.blueAccent.withValues(alpha: 0.3),
                 width: 2), // Add visible boundary
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.07),
+                color: Colors.black.withValues(alpha: 0.07),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -419,7 +419,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -525,7 +525,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
+                                      color: Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),

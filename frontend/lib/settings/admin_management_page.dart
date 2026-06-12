@@ -118,7 +118,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   spreadRadius: 5,
                   blurRadius: 15,
                   offset: const Offset(0, 3),
@@ -177,7 +177,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             spreadRadius: 1,
                             blurRadius: 5,
                           ),
@@ -212,7 +212,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 5,
                               ),
@@ -266,7 +266,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 spreadRadius: 1,
                                 blurRadius: 5,
                               ),
@@ -316,7 +316,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             spreadRadius: 1,
                             blurRadius: 5,
                           ),
@@ -357,7 +357,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             spreadRadius: 1,
                             blurRadius: 5,
                           ),
@@ -485,7 +485,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF00B4D8),
                             disabledBackgroundColor:
-                                Color(0xFF00B4D8).withOpacity(0.5),
+                                Color(0xFF00B4D8).withValues(alpha: 0.5),
                             padding: EdgeInsets.symmetric(
                                 horizontal: 30, vertical: 15),
                             shape: RoundedRectangleBorder(
@@ -566,7 +566,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
             boxShadow: [
               BoxShadow(
                 color: (isSuccess ? Color(0xFF00B4D8) : Colors.red)
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
@@ -696,7 +696,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         BorderRadius.vertical(top: Radius.circular(30)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: Offset(0, -5),
                       ),
@@ -754,13 +754,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                 BorderRadius.circular(16),
                                             border: Border.all(
                                               color: Color(0xFF00B4D8)
-                                                  .withOpacity(0.2),
+                                                  .withValues(alpha: 0.2),
                                               width: 1,
                                             ),
                                             boxShadow: [
                                               BoxShadow(
                                                 color: Colors.black
-                                                    .withOpacity(0.03),
+                                                    .withValues(alpha: 0.03),
                                                 blurRadius: 10,
                                                 spreadRadius: 0,
                                                 offset: Offset(0, 2),
@@ -883,7 +883,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                   child: Container(
                                                     decoration: BoxDecoration(
                                                       color: Colors.white
-                                                          .withOpacity(0.7),
+                                                          .withValues(alpha: 0.7),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               16),
@@ -1018,7 +1018,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 12,
                       spreadRadius: 2,
                     ),

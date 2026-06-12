@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../profile/profile_page.dart' hide TopWaveClipper;
 import '../../utils/api_client.dart';
@@ -50,7 +50,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
         border: Border.all(color: Color(0xFF00B4D8), width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.07),
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -176,7 +176,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                                       borderRadius: BorderRadius.circular(16),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.07),
+                                          color: Colors.black.withValues(alpha: 0.07),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),

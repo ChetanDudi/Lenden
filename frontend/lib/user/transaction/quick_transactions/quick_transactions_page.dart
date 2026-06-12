@@ -1,4 +1,4 @@
-import 'package:elegant_notification/elegant_notification.dart';
+﻿import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
@@ -1459,6 +1459,41 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     );
   }
 
+  Widget _buildClearedChip() {
+    final isSelected = filterBy == 'cleared';
+    return GestureDetector(
+      onTap: () {
+        setState(() => filterBy = isSelected ? 'all' : 'cleared');
+        fetchQuickTransactions();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.green : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected ? Colors.green : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_rounded,
+                size: 18,
+                color: isSelected ? Colors.white : Colors.grey.shade700),
+            const SizedBox(width: 6),
+            Text(
+              'Cleared',
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey.shade800,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSummaryCard({
     required String title,
     required String value,
@@ -1478,7 +1513,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: colors.first.withOpacity(0.25),
+            color: colors.first.withValues(alpha: 0.25),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -1521,9 +1556,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1822,11 +1857,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             children: [
                               _buildRoleChip('All', 'all', Icons.apps_rounded),
                               const SizedBox(width: 8),
-                              _buildRoleChip('You Lent', 'lent',
+                              _buildRoleChip('They Owe', 'lent',
                                   Icons.arrow_upward_rounded),
                               const SizedBox(width: 8),
-                              _buildRoleChip('You Borrowed', 'borrowed',
+                              _buildRoleChip('I Owe', 'borrowed',
                                   Icons.arrow_downward_rounded),
+                              const SizedBox(width: 8),
+                              _buildClearedChip(),
                               const SizedBox(width: 8),
                               GestureDetector(
                                 onTap: _toggleShowFavourites,
@@ -1878,8 +1915,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.white.withOpacity(0.0),
-                                  Colors.white.withOpacity(0.86),
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.86),
                                   Colors.white,
                                 ],
                                 begin: Alignment.centerLeft,
@@ -1919,7 +1956,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -2110,7 +2147,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -2169,7 +2206,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -2504,7 +2541,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 12,
                   offset: Offset(0, 4),
                 ),
@@ -2599,7 +2636,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -2998,7 +3035,7 @@ class _QuickTransactionFilterPageState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00B4D8).withOpacity(0.10),
+                    color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: const Color(0xFF00B4D8)),
@@ -3055,7 +3092,7 @@ class _QuickTransactionFilterPageState
           border: Border.all(
             color: selected
                 ? const Color(0xFF00B4D8)
-                : Colors.grey.withOpacity(0.25),
+                : Colors.grey.withValues(alpha: 0.25),
           ),
         ),
         child: Row(
@@ -3117,7 +3154,7 @@ class _QuickTransactionFilterPageState
                       width: 48,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.30),
+                        color: Colors.grey.withValues(alpha: 0.30),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -3134,7 +3171,7 @@ class _QuickTransactionFilterPageState
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00B4D8).withOpacity(0.10),
+                              color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Icon(
@@ -3184,11 +3221,11 @@ class _QuickTransactionFilterPageState
                                 border: Border.all(
                                   color: selected
                                       ? const Color(0xFF00B4D8)
-                                      : Colors.grey.withOpacity(0.18),
+                                      : Colors.grey.withValues(alpha: 0.18),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
+                                    color: Colors.black.withValues(alpha: 0.03),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -3412,10 +3449,10 @@ class _QuickTransactionFilterPageState
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border:
-                              Border.all(color: Colors.grey.withOpacity(0.25)),
+                              Border.all(color: Colors.grey.withValues(alpha: 0.25)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
+                              color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -3498,7 +3535,7 @@ class _QuickTransactionFilterPageState
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.grey.withOpacity(0.25)),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
                       ),
                       child: Row(
                         children: [
@@ -4328,7 +4365,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
         border: Border.all(color: Colors.grey[300]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 4,
             offset: Offset(0, 2),
           ),

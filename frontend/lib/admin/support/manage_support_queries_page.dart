@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../session.dart';
@@ -391,7 +391,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     style: TextStyle(fontWeight: FontWeight.bold))),
           ],
         ),
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha: 0.15),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: Duration(seconds: 2),
@@ -738,7 +738,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(query['status']).withOpacity(0.12),
+                    color: _getStatusColor(query['status']).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -789,7 +789,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.12),
+                    color: Colors.orange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
@@ -800,7 +800,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.12),
+                    color: Colors.blue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(

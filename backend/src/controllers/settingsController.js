@@ -2,6 +2,8 @@ const User = require('../models/user');
 const Admin = require('../models/admin');
 const Transaction = require('../models/transaction');
 const GroupTransaction = require('../models/groupTransaction');
+const WalletTransaction = require('../models/walletTransaction');
+const Subscription = require('../models/subscription');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendAlternativeEmailOTP: sendEmail } = require('../utils/alternativeEmailOtp');
@@ -23,6 +25,14 @@ const changePassword = async (req, res) => {
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
       return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Password strength: min 8 chars, at least one letter and one digit
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ message: 'New password must contain at least one letter and one number' });
     }
 
     // Check if new password is different from current
@@ -70,17 +80,36 @@ const sendAlternativeEmailOTP = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const now = new Date();
+    const existing = user.altEmailOTP;
+
+    // Enforce 60-second cooldown between sends
+    if (existing?.sentAt && (now - existing.sentAt) < 60 * 1000) {
+      const secondsLeft = Math.ceil((60 * 1000 - (now - existing.sentAt)) / 1000);
+      return res.status(429).json({ message: `Please wait ${secondsLeft} seconds before requesting another OTP` });
+    }
+
+    // Enforce max 3 sends per hour (rolling 1-hour window)
+    const hourAgo = new Date(now - 60 * 60 * 1000);
+    const windowStart = existing?.windowStart && existing.windowStart > hourAgo ? existing.windowStart : now;
+    const attemptCount = existing?.windowStart && existing.windowStart > hourAgo ? (existing.attemptCount || 0) : 0;
+    if (attemptCount >= 3) {
+      return res.status(429).json({ message: 'Too many OTP requests. Please try again in an hour.' });
+    }
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP with expiry (2 minutes)
     const otpExpiry = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
-    
-    // Store OTP in user document (you might want to create a separate collection for this)
+
     user.altEmailOTP = {
       code: otp,
       email: altEmail,
-      expiry: otpExpiry
+      expiry: otpExpiry,
+      sentAt: now,
+      attemptCount: attemptCount + 1,
+      windowStart,
     };
     await user.save();
 
@@ -334,29 +363,26 @@ const updatePrivacySettings = async (req, res) => {
       sessionTimeout,
     } = req.body;
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      {
-        privacySettings: {
-          profileVisibility,
-          transactionHistory,
-          contactSharing,
-          analyticsSharing,
-          marketingEmails,
-          dataCollection,
-          twoFactorAuth,
-          loginNotifications,
-          deviceManagement,
-        }
+    const updatePayload = {
+      privacySettings: {
+        profileVisibility,
+        transactionHistory,
+        contactSharing,
+        analyticsSharing,
+        marketingEmails,
+        dataCollection,
+        twoFactorAuth,
+        loginNotifications,
+        deviceManagement,
       },
-      { new: true }
-    );
-
-    if (typeof req.body.sessionTimeout === 'number') {
-      user.sessionTimeout = req.body.sessionTimeout;
+    };
+    if (typeof sessionTimeout === 'number') {
+      updatePayload.sessionTimeout = sessionTimeout;
     }
 
-    await user.save();
+    const user = await User.findByIdAndUpdate(userId, updatePayload, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
     res.json({ message: 'Privacy settings updated successfully' });
   } catch (error) {
     console.error('Error updating privacy settings:', error);
@@ -368,16 +394,10 @@ const updatePrivacySettings = async (req, res) => {
 const updateAccountInformation = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { name, phone, address, gender, birthday, rating } = req.body;
+    const { name, phone, address, gender, birthday } = req.body;
 
-    // Validate required fields
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ message: 'Name is required' });
-    }
-
-    // Validate rating if provided
-    if (rating !== undefined && (rating < 0 || rating > 5)) {
-      return res.status(400).json({ message: 'Rating must be between 0 and 5' });
     }
 
     const updateData = {
@@ -386,7 +406,6 @@ const updateAccountInformation = async (req, res) => {
       address: address?.trim() || '',
       gender: gender || '',
       birthday: birthday || null,
-      rating: rating !== undefined ? rating : undefined,
     };
 
     const user = await User.findByIdAndUpdate(
@@ -399,7 +418,7 @@ const updateAccountInformation = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ 
+    res.json({
       message: 'Account information updated successfully',
       user: {
         name: user.name,
@@ -407,7 +426,6 @@ const updateAccountInformation = async (req, res) => {
         address: user.address,
         gender: user.gender,
         birthday: user.birthday,
-        rating: user.rating,
         memberSince: user.memberSince,
       }
     });
@@ -514,6 +532,41 @@ const deleteAccount = async (req, res) => {
   }
 };
 
+
+const exportUserData = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId)
+      .select('-password -refreshTokens -altEmailOTP -devices')
+      .lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const [txCount, walletCount, subCount] = await Promise.all([
+      Transaction.countDocuments({
+        $or: [{ userEmail: user.email }, { counterpartyEmail: user.email }],
+      }),
+      WalletTransaction.countDocuments({ user: userId }),
+      Subscription.countDocuments({ user: userId }),
+    ]);
+
+    res.json({
+      exportedAt: new Date().toISOString(),
+      summary: {
+        name: user.name,
+        email: user.email,
+        memberSince: user.memberSince,
+        walletBalance: user.walletBalance ?? 0,
+        transactionCount: txCount,
+        walletTransactionCount: walletCount,
+        subscriptionCount: subCount,
+      },
+      note: 'For a full data export (including all records), please contact support via Help & Support. We will send a complete export to your registered email within 24 hours.',
+    });
+  } catch (error) {
+    console.error('Error exporting user data:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 const getAdminNotificationSettings = async (req, res) => {
   try {
@@ -648,6 +701,7 @@ const updateAdminNotificationSettings = async (req, res) => {
 };
 
 module.exports = {
+  exportUserData,
   changePassword,
   sendAlternativeEmailOTP,
   verifyAlternativeEmailOTP,

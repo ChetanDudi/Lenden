@@ -85,19 +85,27 @@ class _AppInitializerState extends State<AppInitializer>
     _dailyRewardDialogVisible = true;
     _pendingDailyRewardCoins = null;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await _showDailyLoginRewardDialog(coins);
-      if (!mounted) return;
-      setState(() {
-        _dailyRewardDialogVisible = false;
+    _showWhenNavigatorReady(coins);
+  }
+
+  void _showWhenNavigatorReady(int coins) {
+    if (!mounted) return;
+    if (appNavigatorKey.currentContext != null) {
+      _showDailyLoginRewardDialog(coins).then((_) {
+        if (!mounted) return;
+        setState(() => _dailyRewardDialogVisible = false);
       });
-    });
+    } else {
+      // Navigator not mounted yet — retry next frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showWhenNavigatorReady(coins));
+    }
   }
 
   Future<void> _showDailyLoginRewardDialog(int coins) {
+    final navContext = appNavigatorKey.currentContext;
+    if (navContext == null) return Future.value();
     return showDialog<void>(
-      context: context,
+      context: navContext,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Padding(
@@ -179,8 +187,8 @@ class _AppInitializerState extends State<AppInitializer>
       if (session.token != null && !session.isAdmin) {
         session.checkDailyLoginRewardOnAppOpen().then((reward) {
           if (!mounted || reward == null || reward['awarded'] != true) return;
-          final coins = (reward['coinsAwarded'] as num?)?.toInt() ?? 1;
-          _showDailyLoginRewardDialog(coins);
+          _pendingDailyRewardCoins = (reward['coinsAwarded'] as num?)?.toInt() ?? 1;
+          _showPendingDailyRewardIfNeeded();
         });
       }
     }
@@ -664,21 +672,20 @@ class _FeatureCard extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFF00B4D8), size: context.sp(28)),
-            SizedBox(height: context.sh(6)),
+            Icon(icon, color: const Color(0xFF00B4D8), size: context.sp(26)),
+            SizedBox(height: context.sh(4)),
             Text(title,
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: context.sp(14))),
-            SizedBox(height: context.sh(3)),
-            Flexible(
-              child: Text(
-                description,
-                style: TextStyle(color: Colors.grey, fontSize: context.sp(12)),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
+                    fontWeight: FontWeight.bold, fontSize: context.sp(13))),
+            SizedBox(height: context.sh(2)),
+            Text(
+              description,
+              style: TextStyle(color: Colors.grey, fontSize: context.sp(11)),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

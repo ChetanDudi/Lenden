@@ -280,8 +280,12 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
   Future<void> _fetchFriends() async {
     try {
-      final res = await ApiClient.get('/api/friends');
-      final reqRes = await ApiClient.get('/api/friends/requests');
+      final results = await Future.wait([
+        ApiClient.get('/api/friends'),
+        ApiClient.get('/api/friends/requests'),
+      ]);
+      final res = results[0];
+      final reqRes = results[1];
       if (res.statusCode == 200) {
         // Keep the request warm-up so the friends module data is available.
       }
@@ -887,8 +891,16 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           children: [
             // Main content
             SafeArea(
-              child: SingleChildScrollView(
+              child: RefreshIndicator(
+                onRefresh: () => Future.wait([
+                  fetchTransactions(),
+                  _fetchFriends(),
+                  _fetchUnreadUpdatesCount(),
+                ]),
+                color: const Color(0xFF00B4D8),
+                child: SingleChildScrollView(
                 controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.only(
                   top: 80,
                   bottom: 100,
@@ -1211,7 +1223,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   ],
                 ),
               ),
-            ),
+            ), // closes RefreshIndicator
+            ), // closes SafeArea
 
             // Top blue wave
             Positioned(

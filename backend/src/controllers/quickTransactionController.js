@@ -43,6 +43,16 @@ const resetSettlementState = (quickTransaction) => {
 exports.createQuickTransaction = async (req, res) => {
   try {
     const { amount, currency, date, time, description, counterpartyEmail, role } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
+      return res.status(400).json({ error: 'Valid counterpartyEmail is required' });
+    }
+
     const user = await User.findById(req.user._id).select('email blockedUsers');
     const userEmail = user.email;
 
@@ -121,6 +131,16 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
   const QUICK_TRANSACTION_DAILY_LIMIT = 3;
   try {
     const { amount, currency, date, time, description, counterpartyEmail, role } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!counterpartyEmail || !emailRegex.test(counterpartyEmail)) {
+      return res.status(400).json({ error: 'Valid counterpartyEmail is required' });
+    }
+
     const user = await User.findById(req.user._id).select(
       'email blockedUsers lenDenCoins freeQuickTransactionsRemaining'
     );

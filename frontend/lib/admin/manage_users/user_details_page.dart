@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
@@ -159,7 +159,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 1,
                         blurRadius: 10,
                         offset: const Offset(0, 2),
@@ -223,8 +223,8 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                   vertical: 8, horizontal: 12),
                               decoration: BoxDecoration(
                                 color: isActive
-                                    ? Colors.green.withOpacity(0.1)
-                                    : Colors.red.withOpacity(0.1),
+                                    ? Colors.green.withValues(alpha: 0.1)
+                                    : Colors.red.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: isActive ? Colors.green : Colors.red,
@@ -260,8 +260,8 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                   vertical: 8, horizontal: 12),
                               decoration: BoxDecoration(
                                 color: isVerified
-                                    ? Colors.blue.withOpacity(0.1)
-                                    : Colors.orange.withOpacity(0.1),
+                                    ? Colors.blue.withValues(alpha: 0.1)
+                                    : Colors.orange.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color:
@@ -398,7 +398,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 1,
                         blurRadius: 5,
                         offset: const Offset(0, 2),
@@ -750,7 +750,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -817,7 +817,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -864,7 +864,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -876,7 +876,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF00B4D8).withOpacity(0.1),
+              color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -966,7 +966,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
+              color: Colors.grey.withValues(alpha: 0.08),
               blurRadius: 6,
               offset: Offset(0, 2))
         ],
@@ -976,7 +976,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF00B4D8).withOpacity(0.1),
+              color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
@@ -163,7 +163,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: tint.withOpacity(0.15),
+            color: tint.withValues(alpha: 0.15),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -177,7 +177,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: tint.withOpacity(0.12),
+                  color: tint.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(icon, color: tint),
@@ -315,7 +315,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                 boxShadow: [
                                   BoxShadow(
                                     color: const Color(0xFF003049)
-                                        .withOpacity(0.08),
+                                        .withValues(alpha: 0.08),
                                     blurRadius: 22,
                                     offset: const Offset(0, 12),
                                   ),

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -177,7 +177,7 @@ class _ContactPageState extends State<ContactPage> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.white.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
             ),
@@ -197,7 +197,7 @@ class _ContactPageState extends State<ContactPage> {
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 24,
                                 offset: const Offset(0, 12),
                               ),
@@ -338,10 +338,10 @@ class _ContactCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: data.tint.withOpacity(0.16)),
+            border: Border.all(color: data.tint.withValues(alpha: 0.16)),
             boxShadow: [
               BoxShadow(
-                color: data.tint.withOpacity(0.12),
+                color: data.tint.withValues(alpha: 0.12),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -353,7 +353,7 @@ class _ContactCard extends StatelessWidget {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: data.tint.withOpacity(0.12),
+                  color: data.tint.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: data.faIcon != null

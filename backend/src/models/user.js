@@ -22,7 +22,10 @@ const userSchema = new mongoose.Schema({
   altEmailOTP: {
     code: { type: String },
     email: { type: String },
-    expiry: { type: Date }
+    expiry: { type: Date },
+    sentAt: { type: Date },
+    attemptCount: { type: Number, default: 0 },
+    windowStart: { type: Date },
   },
   memberSince: { type: Date, default: Date.now },
   avgRating: {

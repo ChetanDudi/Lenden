@@ -32,7 +32,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
-  double _editableRating = 0.0;
 
   @override
   void initState() {
@@ -75,8 +74,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               : null;
           _rating =
               (userData['avgRating'] ?? userData['rating'] ?? 0.0).toDouble();
-          _editableRating = _rating;
-
           // Set controller values
           _nameController.text = _name;
           _phoneController.text = _phone;
@@ -97,13 +94,27 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     }
   }
 
+  String? _validatePhone(String phone) {
+    if (phone.isEmpty) return null; // optional field
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 10 || !RegExp(r'^[6-9]').hasMatch(digits)) {
+      return 'Enter a valid 10-digit Indian mobile number';
+    }
+    return null;
+  }
+
   Future<void> _updateAccountInformation() async {
+    final phoneError = _validatePhone(_phoneController.text.trim());
+    if (phoneError != null) {
+      CustomWarningWidget.showAnimatedError(context, phoneError);
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.put(
         '/api/users/account-information',
         body: {
@@ -112,7 +123,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           'address': _addressController.text.trim(),
           'gender': _gender,
           'birthday': _birthday?.toIso8601String(),
-          'rating': _editableRating,
         },
       );
 
@@ -120,8 +130,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
               context, 'Account information updated successfully!');
-          // Update session data
-          await session.refreshUserProfile();
+          await Provider.of<SessionProvider>(context, listen: false)
+              .refreshUserProfile();
         }
       } else {
         final errorData = json.decode(response.body);
@@ -213,7 +223,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 10,
                           offset: const Offset(0, 2),
@@ -357,9 +367,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +406,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 10,
             offset: const Offset(0, 2),
@@ -420,37 +430,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           ...children,
         ],
       ),
-    );
-  }
-
-  Widget _buildReadOnlyTile(
-    String title,
-    String value,
-    IconData icon,
-  ) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
-      subtitle: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Colors.grey,
-        ),
-      ),
-      trailing: const Icon(
-        Icons.lock_outline,
-        color: Colors.grey,
-        size: 16,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
@@ -603,7 +582,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF00B4D8).withOpacity(0.1),
+            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(

@@ -125,7 +125,7 @@ class _SecureTransactionDetailPageState
             result = original + (original * rate * days / 365);
           } else if (transaction['interestType'] == 'compound') {
             final n = transaction['compoundingFrequency']?.toInt() ?? 1;
-            result = original * pow(1 + rate / 100, days / n);
+            result = original * pow(1 + (rate / 100) / n, n * (days / 365.0));
           }
         }
       }
@@ -163,7 +163,7 @@ class _SecureTransactionDetailPageState
             remaining = remaining + (remaining * rate * days / 365);
           } else if (transaction['interestType'] == 'compound') {
             final n = transaction['compoundingFrequency']?.toInt() ?? 1;
-            remaining = remaining * pow(1 + rate / 100, days / n);
+            remaining = remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
           }
         }
       }
@@ -742,7 +742,8 @@ class _SecureTransactionDetailPageState
     if (t['interestType'] == 'simple') {
       return remaining * rate / 100 / 365;
     } else if (t['interestType'] == 'compound') {
-      return remaining * (pow(1 + rate / 100, 1.0 / 365) - 1);
+      final n = (t['compoundingFrequency'] as num?)?.toInt() ?? 1;
+      return remaining * (pow(1 + (rate / 100) / n, n / 365.0) - 1);
     }
     return 0.0;
   }
@@ -999,7 +1000,7 @@ class _SecureTransactionDetailPageState
         return remaining + (remaining * rate * days / 36500);
       } else {
         final n = (t['compoundingFrequency'] as num?)?.toInt() ?? 1;
-        return remaining * pow(1 + rate / 100, days.toDouble() / n);
+        return remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
       }
     }
 
@@ -1965,17 +1966,14 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
   int borrowerOtpSecondsLeft = 0;
   bool lenderOtpExpired = false;
   bool borrowerOtpExpired = false;
+  Timer? _otpTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeEmails();
-    Timer.periodic(Duration(seconds: 1), (timer) {
-      if (mounted) {
-        _checkOtpExpiration();
-      } else {
-        timer.cancel();
-      }
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) _checkOtpExpiration();
     });
   }
 
@@ -2001,6 +1999,7 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
 
   @override
   void dispose() {
+    _otpTimer?.cancel();
     _amountController.dispose();
     _descriptionController.dispose();
     _lenderOtpController.dispose();
@@ -2045,8 +2044,7 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
           } else if (transaction['interestType'] == 'compound') {
             final n =
                 transaction['compoundingFrequency']?.toInt() ?? 1;
-            final periods = days / n;
-            remaining = remaining * pow(1 + rate / 100, periods);
+            remaining = remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
           }
         }
       }
