@@ -59,7 +59,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   void initState() {
     super.initState();
     // Fire-and-forget ping to wake Render before user finishes filling the form
-    ApiClient.get('/', timeout: const Duration(seconds: 90)).catchError((_) {});
+    ApiClient.get('/', timeout: const Duration(seconds: 90)).then<void>((_) {}, onError: (_) {});
   }
 
   @override

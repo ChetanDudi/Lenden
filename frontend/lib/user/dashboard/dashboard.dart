@@ -748,7 +748,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
           Navigator.pushReplacementNamed(context, '/');
         }

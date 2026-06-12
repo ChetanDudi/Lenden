@@ -35,7 +35,7 @@ exports.getUserAvgRating = async (req, res) => {
       distribution,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -94,7 +94,7 @@ exports.rateUser = async (req, res) => {
 
     res.status(201).json({ message: 'Rating submitted.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -134,7 +134,7 @@ exports.getMyRatings = async (req, res) => {
       }))
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -163,6 +163,6 @@ exports.updateRating = async (req, res) => {
     }
     res.json({ message: 'Rating updated.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

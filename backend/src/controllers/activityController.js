@@ -4,6 +4,8 @@ const GroupTransaction = require('../models/groupTransaction');
 const Note = require('../models/note');
 const User = require('../models/user');
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Helper function to create activity log
 const createActivityLog = async (userId, type, title, description, metadata = {}, relatedDocs = {}) => {
   try {
@@ -75,7 +77,7 @@ exports.getUserActivities = async (req, res) => {
 
     // Add search functionality
     if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
+      const searchRegex = new RegExp(escapeRegex(search.trim()), 'i');
       query.$or = [
         { title: searchRegex },
         { description: searchRegex },
@@ -98,7 +100,6 @@ exports.getUserActivities = async (req, res) => {
         'user_unblocked',
       ];
       if (query.type && !Array.isArray(query.type)) {
-        // Keep only if type is in friendActivityTypes
         if (!friendActivityTypes.includes(query.type)) {
           return res.json({
             activities: [],
@@ -110,8 +111,10 @@ exports.getUserActivities = async (req, res) => {
       }
     }
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    // Calculate pagination with safe-parsed integers
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100);
+    const skip = (safePage - 1) * safeLimit;
 
     // Get activities with populated references
     const activities = await Activity.find(query)
@@ -120,7 +123,7 @@ exports.getUserActivities = async (req, res) => {
       .populate('relatedNote', 'title content')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(safeLimit);
 
     // Get total count for pagination
     const total = await Activity.countDocuments(query);
@@ -128,11 +131,11 @@ exports.getUserActivities = async (req, res) => {
     res.json({
       activities,
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        currentPage: safePage,
+        totalPages: Math.ceil(total / safeLimit),
         totalItems: total,
         hasNext: skip + activities.length < total,
-        hasPrev: parseInt(page) > 1
+        hasPrev: safePage > 1
       }
     });
   } catch (error) {

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart';
-import '../../session.dart';
 import '../../utils/api_client.dart';
 
 class AdminFeaturesPage extends StatefulWidget {
@@ -2145,8 +2143,6 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
   void _saveSubscription() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
       final response = await ApiClient.put(
         '/api/admin/subscriptions/${widget.subscription['_id']}',
         body: {

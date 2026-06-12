@@ -11,7 +11,8 @@ exports.getUserProfile = async (req, res) => {
     }
     res.json(userObj);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -35,7 +36,8 @@ exports.getAdminProfile = async (req, res) => {
     }
     res.json(adminObj);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -71,8 +73,8 @@ exports.getUserProfileByEmail = async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Case-insensitive search for email
-    const user = await User.findOne({ email: { $regex: new RegExp('^' + email + '$', 'i') } }).select('-password');
+    const safeEmail = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const user = await User.findOne({ email: { $regex: new RegExp('^' + safeEmail + '$', 'i') } }).select('-password');
 
     if (!user) {
       console.error(`User not found for email: ${email}`);
@@ -113,6 +115,6 @@ exports.getUserProfileByEmail = async (req, res) => {
     res.json(userObj);
   } catch (err) {
     console.error('Error in getUserProfileByEmail:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

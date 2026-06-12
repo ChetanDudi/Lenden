@@ -734,7 +734,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name.isNotEmpty ? name : username, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1),
+                  Text(name.isNotEmpty ? name : username, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (username.isNotEmpty && username != name)
                     Text('@$username', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                   Text(email, style: TextStyle(fontSize: 12, color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -1029,6 +1029,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     ? const Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
                         onRefresh: _fetchFriends,
+                        color: const Color(0xFF00B4D8),
                         child: TabBarView(
                           controller: _tabController,
                           children: [

@@ -1791,8 +1791,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         children: [
           // Main content
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 90, bottom: 110),
+            child: RefreshIndicator(
+              onRefresh: fetchQuickTransactions,
+              color: const Color(0xFF00B4D8),
+              child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(top: 90, bottom: MediaQuery.of(context).padding.bottom + 110),
               child: Column(
                 children: [
                   Consumer<SessionProvider>(
@@ -1985,6 +1989,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                     fetchQuickTransactions,
                                   );
                                 },
+                                onSubmitted: (_) =>
+                                    FocusScope.of(context).unfocus(),
                                 decoration: InputDecoration(
                                   hintText:
                                       'Search by description, amount, or user...',
@@ -2459,7 +2465,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                 ),
                 ],
               ),
-            ),
+            ), // closes SingleChildScrollView
+            ), // closes RefreshIndicator
           ),
 
           // Blue wave at top - reduced to half size

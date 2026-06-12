@@ -60,6 +60,42 @@ const contactConfigSchema = new mongoose.Schema(
         enabled: true,
       }),
     },
+    phone: {
+      type: contactChannelSchema,
+      default: () => ({
+        label: 'Phone',
+        value: '+91-XXXXXXXXXX',
+        url: '',
+        enabled: false,
+      }),
+    },
+    twitter: {
+      type: contactChannelSchema,
+      default: () => ({
+        label: 'Twitter / X',
+        value: '@LenDenApp',
+        url: '',
+        enabled: false,
+      }),
+    },
+    linkedin: {
+      type: contactChannelSchema,
+      default: () => ({
+        label: 'LinkedIn',
+        value: 'LenDen App',
+        url: '',
+        enabled: false,
+      }),
+    },
+    youtube: {
+      type: contactChannelSchema,
+      default: () => ({
+        label: 'YouTube',
+        value: 'LenDen',
+        url: '',
+        enabled: false,
+      }),
+    },
   },
   { timestamps: true }
 );

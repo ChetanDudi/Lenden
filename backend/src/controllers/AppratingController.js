@@ -21,7 +21,7 @@ exports.submitRating = async (req, res) => {
     }
     res.json({ message: 'Rating submitted successfully.' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -32,7 +32,7 @@ exports.getMyRating = async (req, res) => {
     const ratingObj = await AppRating.findOne({ user: userId });
     res.json({ rating: ratingObj ? ratingObj.rating : null });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -47,7 +47,7 @@ exports.getAppRatings = async (req, res) => {
     const avg = total / ratings.length;
     res.json({ average: Number(avg.toFixed(2)), count: ratings.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -82,6 +82,6 @@ exports.getAllRatings = async (req, res) => {
     });
     res.json({ ratings: ratingsWithUser });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

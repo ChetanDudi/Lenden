@@ -53,8 +53,10 @@ const groupTransactionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 groupTransactionSchema.index({ title: 1 });
-groupTransactionSchema.index({ creator: 1 });
+groupTransactionSchema.index({ creator: 1, createdAt: -1 });
 groupTransactionSchema.index({ 'members.user': 1 });
+groupTransactionSchema.index({ isActive: 1, 'members.user': 1 });
+groupTransactionSchema.index({ favourite: 1 });
 
 groupTransactionSchema.methods.canRemoveMember = function(userId) {
   const bal = this.balances.find(b => b.user.toString() === userId.toString());

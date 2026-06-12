@@ -2095,9 +2095,14 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
 
           // Expense list
           Expanded(
-            child: filtered.isEmpty
-                ? Center(
-                    child: Column(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              color: const Color(0xFF00B4D8),
+              child: filtered.isEmpty
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Center(
+                        child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.receipt_long_outlined,
@@ -2120,7 +2125,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                         ),
                       ],
                     ),
-                  )
+                  ),
+                )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: filtered.length,
@@ -2458,6 +2464,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                       );
                     },
                   ),
+            ),
           ),
         ],
       ),

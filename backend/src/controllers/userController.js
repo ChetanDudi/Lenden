@@ -66,9 +66,8 @@ function getLogoutActorFromAccessToken(req) {
     const token = authHeader.slice(7).trim();
     if (!token) return null;
 
-    const jwtSecret =
-      process.env.JWT_SECRET || 'fallback-secret-key-for-development';
-    const decoded = jwt.verify(token, jwtSecret);
+    if (!process.env.JWT_SECRET) return null;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (decoded?.role !== 'user') return null;
 
@@ -381,7 +380,7 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error('❌ Login error:', err.message);
     console.error('❌ Full error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -396,7 +395,7 @@ exports.checkUsername = async (req, res) => {
     }
     return res.status(200).json({ unique: true });
   } catch (err) {
-    res.status(500).json({ unique: false, error: err.message });
+    res.status(500).json({ unique: false });
   }
 };
 
@@ -411,7 +410,7 @@ exports.checkEmail = async (req, res) => {
     }
     return res.status(200).json({ unique: true });
   } catch (err) {
-    res.status(500).json({ unique: false, error: err.message });
+    res.status(500).json({ unique: false });
   }
 };
 
@@ -421,7 +420,7 @@ exports.listUsers = async (req, res) => {
     const users = await User.find({}).select('username email name');
     res.json({ users });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -656,22 +655,11 @@ exports.recoverAccount = async (req, res) => {
       return res.status(400).json({ error: 'Account is already active.' });
     }
     user.deactivatedAccount = false;
+    user.isActive = true;
     await user.save();
     res.json({ message: 'Account recovered successfully. You can now log in.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.getUserById = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('name email chatEncryptionPublicKey');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -811,14 +799,26 @@ exports.logout = async (req, res) => {
 // Logout from all devices
 exports.logoutAllDevices = async (req, res) => {
   try {
-    const { userId, userType } = req.body;
-    
-    if (!userId || !userType) {
-      return res.status(400).json({ error: 'User ID and user type are required' });
+    const userId = req.user._id || req.user.userId;
+    const userType = req.user.role;
+    const { currentDeviceId } = req.body || {};
+
+    // Revoke all refresh tokens
+    await TokenService.revokeAllUserTokens(userId, userType);
+
+    // Force all existing access tokens to be invalid immediately
+    const user = await User.findById(userId);
+    if (user) {
+      user.forceLogoutAfter = new Date();
+      // Keep only the current device in the devices array
+      if (currentDeviceId) {
+        user.devices = (user.devices || []).filter(d => d.deviceId === currentDeviceId);
+      } else {
+        user.devices = [];
+      }
+      await user.save();
     }
 
-    await TokenService.revokeAllUserTokens(userId, userType);
-    
     res.json({ message: 'Logged out from all devices successfully' });
   } catch (error) {
     console.error('❌ Logout all devices error:', error);
@@ -829,11 +829,8 @@ exports.logoutAllDevices = async (req, res) => {
 // Get active sessions for a user
 exports.getActiveSessions = async (req, res) => {
   try {
-    const { userId, userType } = req.query;
-    
-    if (!userId || !userType) {
-      return res.status(400).json({ error: 'User ID and user type are required' });
-    }
+    const userId = req.user._id || req.user.userId;
+    const userType = req.user.role;
 
     const activeTokens = await TokenService.getUserActiveTokens(userId, userType);
     
@@ -867,7 +864,7 @@ exports.getFreebieCounts = async (req, res) => {
       lenDenCoins: user.lenDenCoins,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -891,6 +888,6 @@ exports.applyDailyLoginRewardOnAppOpen = async (req, res) => {
       lastDailyLoginRewardAt: user.lastDailyLoginRewardAt,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

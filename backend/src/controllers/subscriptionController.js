@@ -38,7 +38,7 @@ exports.updateSubscription = async (req, res) => {
 
         res.status(200).json({ message: 'Subscription updated successfully', subscription });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating subscription', error: error.message });
+        res.status(500).json({ message: 'Error updating subscription' });
     }
 };
 
@@ -67,7 +67,7 @@ exports.getSubscriptionStatus = async (req, res) => {
         }
     } catch (error) {
         console.error('Error fetching subscription status:', error);
-        res.status(500).json({ message: 'Error fetching subscription status', error: error.message });
+        res.status(500).json({ message: 'Error fetching subscription status' });
     }
 };
 
@@ -77,7 +77,7 @@ exports.getSubscriptionHistory = async (req, res) => {
         const subscriptions = await Subscription.find({ user: req.user._id }).sort({ subscribedDate: -1 });
         res.status(200).json(subscriptions);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching subscription history', error: error.message });
+        res.status(500).json({ message: 'Error fetching subscription history' });
     }
 };
 
@@ -87,7 +87,7 @@ exports.getSubscriptionPlans = async (req, res) => {
         const plans = await SubscriptionPlan.find({ isAvailable: true });
         res.status(200).json(plans);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching subscription plans', error: error.message });
+        res.status(500).json({ message: 'Error fetching subscription plans' });
     }
 };
 
@@ -97,7 +97,7 @@ exports.getPremiumBenefits = async (req, res) => {
         const benefits = await PremiumBenefit.find();
         res.status(200).json(benefits);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching premium benefits', error: error.message });
+        res.status(500).json({ message: 'Error fetching premium benefits' });
     }
 };
 
@@ -107,6 +107,6 @@ exports.getFaqs = async (req, res) => {
         const faqs = await Faq.find();
         res.status(200).json(faqs);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching FAQs', error: error.message });
+        res.status(500).json({ message: 'Error fetching FAQs' });
     }
 };

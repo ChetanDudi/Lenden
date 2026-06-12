@@ -25,12 +25,12 @@ module.exports = async function (req, res, next) {
     }
     if (decoded.role !== 'admin' && decoded._id) {
       const user = await User.findById(decoded._id).select(
-        'isActive suspendedUntil suspensionReason forceLogoutAfter'
+        'isActive deactivatedAccount suspendedUntil suspensionReason forceLogoutAfter'
       );
       if (!user) {
         return res.status(401).json({ error: 'User not found' });
       }
-      if (user.isActive === false) {
+      if (user.isActive === false || user.deactivatedAccount === true) {
         return res.status(403).json({ error: 'Your account is inactive' });
       }
       if (user.suspendedUntil && user.suspendedUntil > new Date()) {

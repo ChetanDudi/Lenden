@@ -327,7 +327,7 @@ exports.generateReceipt = async (req, res) => {
     doc.end();
 
   } catch (err) {
-    res.status(500).json({ error: 'Failed to generate receipt', details: err.message });
+    res.status(500).json({ error: 'Failed to generate receipt' });
   }
 };
 
@@ -520,7 +520,7 @@ exports.createTransactionWithCoins = async (req, res) => {
       console.error('Failed to send transaction receipt:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create transaction', details: err.message });
+    res.status(500).json({ error: 'Failed to create transaction' });
   }
 };
 
@@ -693,7 +693,7 @@ exports.createTransaction = async (req, res) => {
       console.error('Failed to send transaction receipt:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create transaction', details: err.message });
+    res.status(500).json({ error: 'Failed to create transaction' });
   }
 };
 
@@ -891,15 +891,16 @@ exports.getUserTransactions = async (req, res) => {
 
     res.json({ lending, borrowing, totalTransactions: lending.length + borrowing.length });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch transactions', details: err.message });
+    res.status(500).json({ error: 'Failed to fetch transactions' });
   }
 };
 
 // Clear transaction endpoint
 exports.clearTransaction = async (req, res) => {
   try {
-    const { transactionId, email, bothSides } = req.body;
-    if (!transactionId || !email) return res.status(400).json({ error: 'transactionId and email required' });
+    const { transactionId, bothSides } = req.body;
+    const email = req.user.email;
+    if (!transactionId) return res.status(400).json({ error: 'transactionId required' });
     const transaction = await Transaction.findOne({ transactionId });
     if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
     let updated = false;
@@ -926,19 +927,13 @@ exports.clearTransaction = async (req, res) => {
     }
     if (updated) {
       await transaction.save();
-      // Notify the other party
       try {
         sendTransactionClearedNotification(otherPartyEmail, transaction, email);
       } catch (e) {
         console.error('Failed to send cleared notification:', e);
       }
-      
-      // Log activity for transaction clearing - both parties get notified
       try {
-        const creatorInfo = {
-          creatorId: req.user._id || req.user.id || email,
-          creatorEmail: email
-        };
+        const creatorInfo = { creatorId: req.user._id, creatorEmail: email };
         await logTransactionActivity(transaction.userEmail === email ? transaction.userEmail : transaction.counterpartyEmail, 'transaction_cleared', transaction, {
           clearedBy: email,
           otherParty: otherPartyEmail
@@ -953,16 +948,18 @@ exports.clearTransaction = async (req, res) => {
     }
     res.json({ success: true, userCleared: transaction.userCleared, counterpartyCleared: transaction.counterpartyCleared, fullyCleared: transaction.userCleared && transaction.counterpartyCleared });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to clear transaction', details: err.message });
+    console.error('clearTransaction error:', err);
+    res.status(500).json({ error: 'Failed to clear transaction' });
   }
 };
 
 // Delete transaction endpoint
 exports.deleteTransaction = async (req, res) => {
   try {
-    const { transactionId, email } = req.body;
-    if (!transactionId || !email) {
-      return res.status(400).json({ error: 'transactionId and email required' });
+    const { transactionId } = req.body;
+    const email = req.user.email;
+    if (!transactionId) {
+      return res.status(400).json({ error: 'transactionId required' });
     }
 
     const transaction = await Transaction.findOne({ transactionId });
@@ -970,12 +967,10 @@ exports.deleteTransaction = async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    // Check if the user is a party to this transaction
     if (transaction.userEmail !== email && transaction.counterpartyEmail !== email) {
       return res.status(403).json({ error: 'You are not a party to this transaction' });
     }
 
-    // Check if both parties have cleared the transaction
     if (!transaction.userCleared || !transaction.counterpartyCleared) {
       return res.status(400).json({
         error: 'Cannot delete transaction. Both parties must clear the transaction first.',
@@ -984,15 +979,12 @@ exports.deleteTransaction = async (req, res) => {
       });
     }
 
-    // Delete the transaction
     await Transaction.deleteOne({ transactionId });
 
-    res.json({
-      success: true,
-      message: 'Transaction deleted successfully'
-    });
+    res.json({ success: true, message: 'Transaction deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete transaction', details: err.message });
+    console.error('deleteTransaction error:', err);
+    res.status(500).json({ error: 'Failed to delete transaction' });
   }
 };
 
@@ -1014,7 +1006,7 @@ exports.sendPartialPaymentOTP = async (req, res) => {
     await lendingborrowingotp.resendOtp(email);
     res.json({ message: 'OTP sent successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send OTP', details: err.message });
+    res.status(500).json({ error: 'Failed to send OTP' });
   }
 };
 
@@ -1033,7 +1025,7 @@ exports.verifyPartialPaymentOTP = async (req, res) => {
       res.status(400).json({ verified: false, error: 'Invalid or expired OTP' });
     }
   } catch (err) {
-    res.status(500).json({ error: 'Failed to verify OTP', details: err.message });
+    res.status(500).json({ error: 'Failed to verify OTP' });
   }
 };
 
@@ -1196,7 +1188,7 @@ exports.processPartialPayment = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: 'Failed to process partial payment', details: err.message });
+    res.status(500).json({ error: 'Failed to process partial payment' });
   }
 };
 
@@ -1213,9 +1205,15 @@ exports.getTransactionDetails = async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
+    const email = req.user.email;
+    if (transaction.userEmail !== email && transaction.counterpartyEmail !== email) {
+      return res.status(403).json({ error: 'You are not a party to this transaction' });
+    }
+
     res.json({ transaction });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch transaction details', details: err.message });
+    console.error('getTransactionDetails error:', err);
+    res.status(500).json({ error: 'Failed to fetch transaction details' });
   }
 };
 
@@ -1258,6 +1256,6 @@ exports.toggleFavourite = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: 'Failed to toggle favourite status', details: err.message });
+    res.status(500).json({ error: 'Failed to toggle favourite status' });
   }
 };

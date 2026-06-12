@@ -36,8 +36,8 @@ class ChatEncryptionService {
       await _storage.write(key: _publicKeyStorageKey(userId), value: publicKey);
     }
 
-    final resolvedPrivateKey = privateKey!;
-    final resolvedPublicKey = publicKey!;
+    final resolvedPrivateKey = privateKey;
+    final resolvedPublicKey = publicKey;
 
     await _registerPublicKey(resolvedPublicKey);
 
@@ -122,7 +122,7 @@ class ChatEncryptionService {
   }) async {
     if (rawChat is! Map) return rawChat;
 
-    final chat = Map<String, dynamic>.from(rawChat as Map);
+    final chat = Map<String, dynamic>.from(rawChat);
     final encryptedPayloads = chat['encryptedPayloads'];
     final senderPublicKey = chat['senderPublicKey'];
 

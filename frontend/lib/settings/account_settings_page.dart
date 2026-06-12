@@ -53,7 +53,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.get('/api/users/me');
 
       if (response.statusCode == 200) {

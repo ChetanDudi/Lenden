@@ -79,7 +79,7 @@ async function getAnalyticsUser(email) {
 
 exports.getUserAnalytics = async (req, res) => {
   try {
-    const { email } = req.query;
+    const email = req.user.email;
     const analyticsUser = await getAnalyticsUser(email);
 
     if (analyticsUser.error) {
@@ -185,13 +185,14 @@ exports.getUserAnalytics = async (req, res) => {
       availableInsights: buildMetricCatalog('secure'),
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: "Server error" });
   }
 };
 
 exports.getGroupAnalytics = async (req, res) => {
   try {
-    const { email } = req.query;
+    const email = req.user.email;
     const analyticsUser = await getAnalyticsUser(email);
 
     if (analyticsUser.error) {
@@ -277,13 +278,14 @@ exports.getGroupAnalytics = async (req, res) => {
       availableInsights: buildMetricCatalog('group'),
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: "Server error" });
   }
 };
 
 exports.getQuickAnalytics = async (req, res) => {
   try {
-    const { email } = req.query;
+    const email = req.user.email;
     const analyticsUser = await getAnalyticsUser(email);
 
     if (analyticsUser.error) {
@@ -353,6 +355,7 @@ exports.getQuickAnalytics = async (req, res) => {
       availableInsights: buildMetricCatalog('quick'),
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: "Server error" });
   }
 };

@@ -78,7 +78,7 @@ exports.createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
-    res.status(500).json({ error: 'Failed to create payment order', details: error.message });
+    res.status(500).json({ error: 'Failed to create payment order' });
   }
 };
 
@@ -157,9 +157,9 @@ exports.verifyPayment = async (req, res) => {
       },
     });
   } catch (err) {
-    if (err.code === 'ALREADY_USED') return res.status(409).json({ error: err.message });
+    if (err.code === 'ALREADY_USED') return res.status(409).json({ error: 'Gift card already used' });
     console.error('Error verifying payment:', err);
-    res.status(500).json({ error: 'Failed to activate subscription', details: err.message });
+    res.status(500).json({ error: 'Failed to activate subscription' });
   } finally {
     session.endSession();
   }
@@ -192,7 +192,7 @@ exports.createP2POrder = async (req, res) => {
     });
     res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -310,7 +310,7 @@ exports.verifyP2PPayment = async (req, res) => {
 
     res.json({ message: 'Payment verified and settled', amount: amountInRupees });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   } finally {
     session.endSession();
   }

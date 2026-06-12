@@ -47,7 +47,6 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.get('/api/users/me');
 
       if (response.statusCode == 200) {
@@ -83,7 +82,6 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.post(
         '/api/users/alternative-email/send-otp',
         body: {'altEmail': _emailController.text.trim()},
@@ -256,7 +254,6 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
     });
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.delete('/api/users/alternative-email');
 
       if (response.statusCode == 200) {

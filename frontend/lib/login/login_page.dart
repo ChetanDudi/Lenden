@@ -54,7 +54,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
     super.initState();
     _initDeviceId();
     // Fire-and-forget ping to wake Render before user clicks login
-    ApiClient.get('/', timeout: const Duration(seconds: 90)).catchError((_) {});
+    ApiClient.get('/', timeout: const Duration(seconds: 90)).then<void>((_) {}, onError: (_) {});
   }
 
   Future<void> _initDeviceId() async {

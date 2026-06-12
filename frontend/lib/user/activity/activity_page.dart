@@ -1,9 +1,7 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../api_config.dart';
 import '../../utils/api_client.dart';
-import '../../session.dart';
 import 'package:intl/intl.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 
@@ -97,8 +95,6 @@ class _ActivityPageState extends State<ActivityPage> {
     }
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
       final baseUrl = ApiConfig.baseUrl;
 
       // Build query parameters
@@ -174,8 +170,6 @@ class _ActivityPageState extends State<ActivityPage> {
     setState(() => loadingStats = true);
 
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
       final baseUrl = ApiConfig.baseUrl;
 
       final queryParams = <String, String>{};
@@ -1046,7 +1040,6 @@ class _ActivityPageState extends State<ActivityPage> {
   Widget _buildActivityCard(Map<String, dynamic> activity) {
     final type = activity['type'] as String;
     final title = activity['title'] as String;
-    final description = activity['description'] as String;
     final createdAt = activity['createdAt'] as String;
     final amount = activity['amount'];
     final currency = activity['currency'];
@@ -1531,10 +1524,6 @@ class _ActivityPageState extends State<ActivityPage> {
                           Navigator.of(context).pop();
 
                           try {
-                            final session = Provider.of<SessionProvider>(
-                                context,
-                                listen: false);
-                            final token = session.token;
                             final baseUrl = ApiConfig.baseUrl;
 
                             final uri = Uri.parse(

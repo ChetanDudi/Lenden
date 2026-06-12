@@ -129,7 +129,7 @@ exports.getAdminCurrencyConversions = async (_req, res) => {
       matrix,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -197,7 +197,7 @@ exports.upsertAdminCurrencyConversion = async (req, res) => {
       directRates: rows,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -234,7 +234,7 @@ exports.addSupportedCurrency = async (req, res) => {
       supportedCurrencies: currencyDefinitions.map((item) => item.code),
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -246,7 +246,7 @@ exports.getSupportedCurrencies = async (_req, res) => {
       supportedCurrencies: currencyDefinitions.map((item) => item.code),
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -271,6 +271,6 @@ exports.getPublicCurrencyMatrix = async (_req, res) => {
       generatedAt: new Date(),
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

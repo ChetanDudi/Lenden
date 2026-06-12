@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 
@@ -17,6 +17,9 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   String _filter = 'all';
   List<Map<String, dynamic>> _updates = [];
 
+  static const _sky = Color(0xFF00B4D8);
+  static const _deepBlue = Color(0xFF0077B6);
+
   List<Map<String, dynamic>> get _filteredUpdates {
     final query = _searchController.text.trim().toLowerCase();
     return _updates.where((update) {
@@ -24,6 +27,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       if (_filter == 'critical' && update['importance'] != 'critical') return false;
       if (_filter == 'feature' && update['category'] != 'feature') return false;
       if (_filter == 'security' && update['category'] != 'security') return false;
+      if (_filter == 'bug_fix' && update['category'] != 'bug_fix') return false;
 
       if (query.isEmpty) return true;
       final haystack = [
@@ -39,6 +43,9 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
 
   int get _unreadCount =>
       _updates.where((update) => update['isRead'] != true).length;
+
+  int get _criticalCount =>
+      _updates.where((u) => u['importance'] == 'critical').length;
 
   @override
   void initState() {
@@ -120,29 +127,41 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: const Color(0xFFF0F6FC),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'App Updates',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
+        actions: [
+          if (_unreadCount > 0)
+            TextButton.icon(
+              onPressed: _markAllRead,
+              icon: const Icon(Icons.done_all, color: Colors.white, size: 18),
+              label: const Text(
+                'Mark all read',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+        ],
       ),
       body: Stack(
         children: [
+          // Wave header
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: _WaveClipper(),
               child: Container(
-                height: 150,
+                height: 230,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [Color(0xFF0077B6), Color(0xFF00B4D8), Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -152,21 +171,13 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
           ),
           SafeArea(
             child: RefreshIndicator(
+              color: _sky,
               onRefresh: _loadUpdates,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 30, 20, 24),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 children: [
                   _buildHeroCard(),
-                  const SizedBox(height: 18),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: _unreadCount == 0 ? null : _markAllRead,
-                      icon: const Icon(Icons.done_all),
-                      label: const Text('Mark All Read'),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 14),
                   _buildSearchCard(),
                   const SizedBox(height: 12),
                   _buildFilterRow(),
@@ -175,7 +186,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                     const Padding(
                       padding: EdgeInsets.only(top: 40),
                       child: Center(
-                        child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+                        child: CircularProgressIndicator(color: _sky),
                       ),
                     )
                   else if (_error != null)
@@ -201,33 +212,88 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            color: _sky.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'What\'s New',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0077B6), _sky],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.system_update_rounded, color: Colors.white, size: 26),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What\'s New',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      'Features, fixes & security notices',
+                      style: TextStyle(color: Colors.black54, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Unread updates: $_unreadCount',
-            style: const TextStyle(
-              color: Color(0xFF0077B6),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Stay updated with features, bug fixes, security notices, and important announcements from the admin team.',
-            style: TextStyle(height: 1.45, color: Colors.black54),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _statBox(_updates.length.toString(), 'Total', _sky),
+              const SizedBox(width: 10),
+              _statBox(_unreadCount.toString(), 'Unread',
+                  _unreadCount > 0 ? Colors.redAccent : Colors.green),
+              const SizedBox(width: 10),
+              _statBox(_criticalCount.toString(), 'Critical',
+                  _criticalCount > 0 ? Colors.orange : Colors.green),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _statBox(String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.20)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -238,7 +304,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -246,58 +312,103 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Search updates, tags, or version',
+          hintText: 'Search updates, tags, or version…',
           filled: true,
           fillColor: Colors.white,
-          prefixIcon: const Icon(Icons.search),
+          prefixIcon: const Icon(Icons.search, color: _sky),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => _searchController.clear(),
+                )
+              : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
           ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
   }
 
   Widget _buildFilterRow() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        _buildFilterChip('all', 'All'),
-        _buildFilterChip('unread', 'Unread'),
-        _buildFilterChip('critical', 'Critical'),
-        _buildFilterChip('feature', 'Features'),
-        _buildFilterChip('security', 'Security'),
-      ],
+    return SizedBox(
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _buildFilterChip('all', 'All', Icons.list_rounded),
+          _buildFilterChip('unread', 'Unread', Icons.mark_email_unread_rounded),
+          _buildFilterChip('critical', 'Critical', Icons.warning_amber_rounded),
+          _buildFilterChip('feature', 'Features', Icons.star_rounded),
+          _buildFilterChip('security', 'Security', Icons.security_rounded),
+          _buildFilterChip('bug_fix', 'Bug Fixes', Icons.bug_report_rounded),
+        ],
+      ),
     );
   }
 
-  Widget _buildFilterChip(String value, String label) {
+  Widget _buildFilterChip(String value, String label, IconData icon) {
     final selected = _filter == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() => _filter = value),
-      selectedColor: const Color(0xFFEAF5FF),
-      labelStyle: TextStyle(
-        color: selected ? const Color(0xFF0077B6) : Colors.black87,
-        fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        child: FilterChip(
+          avatar: Icon(
+            icon,
+            size: 16,
+            color: selected ? Colors.white : _sky,
+          ),
+          label: Text(label),
+          selected: selected,
+          onSelected: (_) => setState(() => _filter = value),
+          selectedColor: _sky,
+          backgroundColor: Colors.white,
+          labelStyle: TextStyle(
+            color: selected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          side: BorderSide(
+            color: selected ? _sky : _sky.withValues(alpha: 0.25),
+          ),
+          showCheckmark: false,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+        ),
       ),
     );
   }
 
   Widget _buildStateCard(String message, Color color) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      child: Column(
+        children: [
+          Icon(
+            color == Colors.redAccent ? Icons.error_outline : Icons.inbox_rounded,
+            color: color,
+            size: 40,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: color, fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
@@ -305,10 +416,18 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   Widget _buildUpdateCard(Map<String, dynamic> update) {
     final pinned = update['pinned'] == true;
     final isRead = update['isRead'] == true;
+    final importance = (update['importance'] ?? 'normal').toString();
+    final category = (update['category'] ?? 'general').toString();
     final tags = ((update['tags'] as List?) ?? const [])
         .map((tag) => tag.toString())
         .where((tag) => tag.trim().isNotEmpty)
         .toList();
+
+    final importanceColor = importance == 'critical'
+        ? Colors.redAccent
+        : importance == 'important'
+            ? Colors.orange
+            : _deepBlue;
 
     return GestureDetector(
       onTap: () => _markRead(update),
@@ -318,88 +437,125 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
+            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isRead ? Colors.white : const Color(0xFFF0FAFF),
             borderRadius: BorderRadius.circular(22),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 2, right: 10),
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: importanceColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _categoryIcon(category),
+                      color: importanceColor,
+                      size: 18,
+                    ),
+                  ),
                   Expanded(
                     child: Text(
                       (update['title'] ?? '').toString(),
-                      style: const TextStyle(
-                        fontSize: 17,
+                      style: TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
+                        color: isRead ? Colors.black87 : const Color(0xFF0B1F33),
                       ),
                     ),
                   ),
-                  if (pinned) _pill('Pinned', const Color(0xFF0E5A8A)),
+                  if (pinned) ...[
+                    const SizedBox(width: 6),
+                    _pill('Pinned', const Color(0xFF0E5A8A)),
+                  ],
                   if (!isRead) ...[
-                    const SizedBox(width: 8),
-                    _pill('Unread', Colors.redAccent),
+                    const SizedBox(width: 6),
+                    _pill('New', _sky),
                   ],
                 ],
               ),
               const SizedBox(height: 8),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  _infoTag((update['category'] ?? 'general').toString()),
-                  _infoTag((update['importance'] ?? 'normal').toString()),
+                  _infoTag(_categoryLabel(category), _sky),
+                  _infoTag(importance, importanceColor),
                   if ((update['versionTag'] ?? '').toString().trim().isNotEmpty)
-                    _infoTag('v${update['versionTag']}'),
+                    _infoTag('v${update['versionTag']}', _deepBlue),
                 ],
               ),
               if ((update['summary'] ?? '').toString().trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(
                   (update['summary'] ?? '').toString(),
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
+                  style: const TextStyle(
+                    color: Color(0xFF0077B6),
                     fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 (update['body'] ?? '').toString(),
-                style: const TextStyle(height: 1.45, color: Colors.black87),
+                style: const TextStyle(height: 1.5, color: Colors.black87, fontSize: 14),
               ),
               if (tags.isNotEmpty) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 6,
+                  runSpacing: 6,
                   children: tags.map((tag) => _tagChip('#$tag')).toList(),
                 ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Row(
                 children: [
+                  Icon(Icons.calendar_today_rounded, size: 13, color: Colors.grey.shade400),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       _formatDate(update['publishedAt']),
                       style: TextStyle(
                         color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
                       ),
                     ),
                   ),
                   if (!isRead)
-                    TextButton(
-                      onPressed: () => _markRead(update),
-                      child: const Text('Mark Read'),
+                    GestureDetector(
+                      onTap: () => _markRead(update),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _sky.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _sky.withValues(alpha: 0.30)),
+                        ),
+                        child: const Text(
+                          'Mark read',
+                          style: TextStyle(
+                            color: _sky,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -410,32 +566,66 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     );
   }
 
+  IconData _categoryIcon(String category) {
+    switch (category) {
+      case 'feature':
+        return Icons.star_rounded;
+      case 'security':
+        return Icons.security_rounded;
+      case 'bug_fix':
+        return Icons.bug_report_rounded;
+      case 'maintenance':
+        return Icons.build_rounded;
+      default:
+        return Icons.campaign_rounded;
+    }
+  }
+
+  String _categoryLabel(String category) {
+    switch (category) {
+      case 'bug_fix':
+        return 'Bug Fix';
+      case 'feature':
+        return 'Feature';
+      case 'security':
+        return 'Security';
+      case 'maintenance':
+        return 'Maintenance';
+      case 'general':
+        return 'General';
+      default:
+        return category[0].toUpperCase() + category.substring(1);
+    }
+  }
+
   Widget _pill(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontWeight: FontWeight.w700),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11),
       ),
     );
   }
 
-  Widget _infoTag(String text) {
+  Widget _infoTag(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5FF),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Color(0xFF0077B6),
+        style: TextStyle(
+          color: color,
           fontWeight: FontWeight.w700,
+          fontSize: 12,
         ),
       ),
     );
@@ -443,14 +633,19 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
 
   Widget _tagChip(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F7FA),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFEAF5FF),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _sky.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          color: _deepBlue,
+        ),
       ),
     );
   }
@@ -459,45 +654,29 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
     if (date == null) return 'Unknown date';
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
+class _WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
+    final path = Path()
+      ..lineTo(0, size.height - 45)
+      ..quadraticBezierTo(
+        size.width / 2,
+        size.height + 35,
+        size.width,
+        size.height - 45,
+      )
+      ..lineTo(size.width, 0)
+      ..close();
     return path;
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  bool shouldReclip(_WaveClipper oldClipper) => false;
 }

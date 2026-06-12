@@ -5,6 +5,8 @@ const Subscription = require('../models/subscription');
 const User = require('../models/user');
 const Admin = require('../models/admin');
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const normalizePermissions = (permissions = {}) => ({
     canManageUsers: permissions.canManageUsers !== false,
     canManageTransactions: permissions.canManageTransactions !== false,
@@ -52,7 +54,7 @@ exports.createSubscriptionPlan = async (req, res) => {
         await newPlan.save();
         res.status(201).json({ message: 'Subscription plan created successfully', plan: newPlan });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating subscription plan', error: error.message });
+        res.status(500).json({ message: 'Error creating subscription plan' });
     }
 };
 
@@ -63,7 +65,7 @@ exports.getSubscriptionPlans = async (req, res) => {
         const plans = await SubscriptionPlan.find();
         res.status(200).json(plans);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching subscription plans', error: error.message });
+        res.status(500).json({ message: 'Error fetching subscription plans' });
     }
 };
 
@@ -79,7 +81,7 @@ exports.updateSubscriptionPlan = async (req, res) => {
         }
         res.status(200).json({ message: 'Subscription plan updated successfully', plan: updatedPlan });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating subscription plan', error: error.message });
+        res.status(500).json({ message: 'Error updating subscription plan' });
     }
 };
 
@@ -94,7 +96,7 @@ exports.deleteSubscriptionPlan = async (req, res) => {
         }
         res.status(200).json({ message: 'Subscription plan deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting subscription plan', error: error.message });
+        res.status(500).json({ message: 'Error deleting subscription plan' });
     }
 };
 
@@ -108,7 +110,7 @@ exports.createPremiumBenefit = async (req, res) => {
         await newBenefit.save();
         res.status(201).json({ message: 'Premium benefit created successfully', benefit: newBenefit });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating premium benefit', error: error.message });
+        res.status(500).json({ message: 'Error creating premium benefit' });
     }
 };
 
@@ -119,7 +121,7 @@ exports.getPremiumBenefits = async (req, res) => {
         const benefits = await PremiumBenefit.find();
         res.status(200).json(benefits);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching premium benefits', error: error.message });
+        res.status(500).json({ message: 'Error fetching premium benefits' });
     }
 };
 
@@ -135,7 +137,7 @@ exports.updatePremiumBenefit = async (req, res) => {
         }
         res.status(200).json({ message: 'Premium benefit updated successfully', benefit: updatedBenefit });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating premium benefit', error: error.message });
+        res.status(500).json({ message: 'Error updating premium benefit' });
     }
 };
 
@@ -150,7 +152,7 @@ exports.deletePremiumBenefit = async (req, res) => {
         }
         res.status(200).json({ message: 'Premium benefit deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting premium benefit', error: error.message });
+        res.status(500).json({ message: 'Error deleting premium benefit' });
     }
 };
 
@@ -164,7 +166,7 @@ exports.createFaq = async (req, res) => {
         await newFaq.save();
         res.status(201).json({ message: 'FAQ created successfully', faq: newFaq });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating FAQ', error: error.message });
+        res.status(500).json({ message: 'Error creating FAQ' });
     }
 };
 
@@ -175,7 +177,7 @@ exports.getFaqs = async (req, res) => {
         const faqs = await Faq.find();
         res.status(200).json(faqs);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching FAQs', error: error.message });
+        res.status(500).json({ message: 'Error fetching FAQs' });
     }
 };
 
@@ -191,7 +193,7 @@ exports.updateFaq = async (req, res) => {
         }
         res.status(200).json({ message: 'FAQ updated successfully', faq: updatedFaq });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating FAQ', error: error.message });
+        res.status(500).json({ message: 'Error updating FAQ' });
     }
 };
 
@@ -206,7 +208,7 @@ exports.deleteFaq = async (req, res) => {
         }
         res.status(200).json({ message: 'FAQ deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting FAQ', error: error.message });
+        res.status(500).json({ message: 'Error deleting FAQ' });
     }
 };
 
@@ -219,10 +221,11 @@ exports.getAllSubscriptions = async (req, res) => {
         let subscriptions;
 
         if (search) {
+            const safeSearch = escapeRegex(search.toString().trim());
             const users = await User.find({
                 $or: [
-                    { name: { $regex: search, $options: 'i' } },
-                    { email: { $regex: search, $options: 'i' } },
+                    { name: { $regex: safeSearch, $options: 'i' } },
+                    { email: { $regex: safeSearch, $options: 'i' } },
                 ],
             });
 
@@ -243,7 +246,7 @@ exports.getAllSubscriptions = async (req, res) => {
 
         res.status(200).json(subscriptions);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching subscriptions', error: error.message });
+        res.status(500).json({ message: 'Error fetching subscriptions' });
     }
 };
 
@@ -259,7 +262,7 @@ exports.updateUserSubscription = async (req, res) => {
         }
         res.status(200).json({ message: 'Subscription updated successfully', subscription: updatedSubscription });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating subscription', error: error.message });
+        res.status(500).json({ message: 'Error updating subscription' });
     }
 };
 
@@ -274,6 +277,6 @@ exports.deactivateUserSubscription = async (req, res) => {
         }
         res.status(200).json({ message: 'Subscription deactivated successfully', subscription: updatedSubscription });
     } catch (error) {
-        res.status(500).json({ message: 'Error deactivating subscription', error: error.message });
+        res.status(500).json({ message: 'Error deactivating subscription' });
     }
 };

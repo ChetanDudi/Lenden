@@ -53,11 +53,12 @@ exports.getReferralInfo = async (req, res) => {
     const inviteLink = buildInviteLink(config.inviteBaseUrl, referralCode);
     const message = `Join me on LenDen! Track lending, borrowing, groups, and quick transactions in one app.\nUse my invite code: ${referralCode}\n${inviteLink}`;
 
+    const sharesLimit = Math.min(parseInt(req.query.sharesLimit, 10) || 10, 50);
     const [totalShares, recentShares, invitedUsers, convertedUsers] = await Promise.all([
       ReferralShare.countDocuments({ user: user._id }),
       ReferralShare.find({ user: user._id })
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(sharesLimit)
         .select('channel createdAt'),
       User.countDocuments({ referredByUser: user._id }),
       User.countDocuments({
@@ -85,7 +86,7 @@ exports.getReferralInfo = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -112,7 +113,7 @@ exports.logReferralShare = async (req, res) => {
 
     res.json({ success: true, message: 'Referral share logged.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -126,7 +127,7 @@ exports.getReferralConfigForAdmin = async (_req, res) => {
       shareOptions: mapAdminShareOptions(config.shareOptions),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -192,6 +193,6 @@ exports.updateReferralConfigForAdmin = async (req, res) => {
       shareOptions: mapAdminShareOptions(config.shareOptions),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

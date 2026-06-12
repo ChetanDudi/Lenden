@@ -354,7 +354,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           child: ColorPicker(
             pickerColor: picked,
             onColorChanged: (c) => picked = c,
-            showLabel: false,
+            labelTypes: const [],
             pickerAreaHeightPercent: 0.7,
           ),
         ),
@@ -377,7 +377,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   String? _colorHex() {
     if (_selectedColor == null) return null;
-    return '#${_selectedColor!.value.toRadixString(16).substring(2).toUpperCase()}';
+    return '#${_selectedColor!.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
   Future<void> _createGroupWithCoins() async {

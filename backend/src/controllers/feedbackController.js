@@ -20,7 +20,7 @@ exports.submitFeedback = async (req, res) => {
     }
     res.json({ success: true, message: 'Feedback submitted successfully.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -29,7 +29,7 @@ exports.getUserFeedbacks = async (req, res) => {
     const feedbacks = await Feedback.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json({ feedbacks });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -63,7 +63,7 @@ exports.getAllFeedbacks = async (req, res) => {
     });
     res.json({ feedbacks: feedbacksWithUser });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

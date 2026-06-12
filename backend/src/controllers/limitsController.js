@@ -68,7 +68,7 @@ exports.getDailyLimits = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -89,7 +89,7 @@ exports.getTransactionMessageLimit = async (req, res) => {
       remaining: Math.max(0, 3 - used),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -110,7 +110,7 @@ exports.getGroupMessageLimit = async (req, res) => {
       remaining: Math.max(0, 3 - used),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -142,6 +142,6 @@ exports.getGroupExpenseLimit = async (req, res) => {
       remaining: Math.max(0, 3 - used),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

@@ -4,6 +4,8 @@ const User = require('../models/user');
 const Admin = require('../models/admin');
 const { logAdminAudit } = require('../utils/adminAuditLogger');
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const ADMIN_PERMISSION_DEFAULTS = {
   canManageUsers: true,
   canManageTransactions: true,
@@ -115,7 +117,7 @@ module.exports = (io) => {
       res.status(201).json({ message: 'Support query created successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: createSupportQuery - Error', error);
-      res.status(500).json({ error: 'Failed to create support query', details: error.message });
+      res.status(500).json({ error: 'Failed to create support query' });
     }
   };
 
@@ -128,7 +130,7 @@ module.exports = (io) => {
       res.status(200).json({ queries });
     } catch (error) {
       console.error('Backend: getUserSupportQueries - Error', error);
-      res.status(500).json({ error: 'Failed to fetch user support queries', details: error.message });
+      res.status(500).json({ error: 'Failed to fetch user support queries' });
     }
   };
 
@@ -173,7 +175,7 @@ module.exports = (io) => {
       res.status(200).json({ message: 'Support query updated successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: updateSupportQuery - Error', error);
-      res.status(500).json({ error: 'Failed to update support query', details: error.message });
+      res.status(500).json({ error: 'Failed to update support query' });
     }
   };
 
@@ -190,9 +192,10 @@ module.exports = (io) => {
       let query = {};
 
       if (searchTerm) {
+        const safeSearch = escapeRegex(searchTerm.toString().trim());
         query.$or = [
-          { topic: { $regex: searchTerm, $options: 'i' } },
-          { description: { $regex: searchTerm, $options: 'i' } },
+          { topic: { $regex: safeSearch, $options: 'i' } },
+          { description: { $regex: safeSearch, $options: 'i' } },
         ];
       }
 
@@ -247,7 +250,7 @@ module.exports = (io) => {
       });
     } catch (error) {
       console.error('Backend: getAllSupportQueries - Error', error);
-      res.status(500).json({ error: 'Failed to fetch all support queries', details: error.message });
+      res.status(500).json({ error: 'Failed to fetch all support queries' });
     }
   };
 
@@ -312,7 +315,7 @@ module.exports = (io) => {
       res.status(200).json({ message: 'Reply added successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: replyToSupportQuery - Error', error);
-      res.status(500).json({ error: 'Failed to add reply', details: error.message });
+      res.status(500).json({ error: 'Failed to add reply' });
     }
   };
 
@@ -380,7 +383,7 @@ module.exports = (io) => {
 
       res.status(200).json({ message: 'Reply updated successfully', query: populatedQuery });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to update reply', details: error.message });
+      res.status(500).json({ error: 'Failed to update reply' });
     }
   };
 
@@ -435,7 +438,7 @@ module.exports = (io) => {
 
       res.status(200).json({ message: 'Reply deleted successfully', query: populatedQuery });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to delete reply', details: error.message });
+      res.status(500).json({ error: 'Failed to delete reply' });
     }
   };
 
@@ -500,7 +503,7 @@ module.exports = (io) => {
 
       res.status(200).json({ message: 'Query status updated successfully', query: populatedQuery });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to update query status', details: error.message });
+      res.status(500).json({ error: 'Failed to update query status' });
     }
   };
 
@@ -566,7 +569,7 @@ module.exports = (io) => {
       res.status(200).json({ message: 'Support workflow updated successfully', query: populatedQuery });
     } catch (error) {
       console.error('Backend: updateQueryWorkflow - Error', error);
-      res.status(500).json({ error: 'Failed to update support workflow', details: error.message });
+      res.status(500).json({ error: 'Failed to update support workflow' });
     }
   };
 
@@ -626,7 +629,7 @@ module.exports = (io) => {
       return res.status(200).send(csv);
     } catch (error) {
       console.error('Backend: exportSupportQueries - Error', error);
-      res.status(500).json({ error: 'Failed to export support queries', details: error.message });
+      res.status(500).json({ error: 'Failed to export support queries' });
     }
   };
 
@@ -656,7 +659,7 @@ module.exports = (io) => {
       res.status(200).json({ message: 'Support query deleted successfully' });
     } catch (error) {
       console.error('Backend: deleteSupportQuery - Error', error);
-      res.status(500).json({ error: 'Failed to delete support query', details: error.message });
+      res.status(500).json({ error: 'Failed to delete support query' });
     }
   };
 

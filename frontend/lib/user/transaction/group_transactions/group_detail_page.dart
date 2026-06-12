@@ -746,8 +746,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 ),
 
                 // ── Scrollable body ───────────────────────────────────
-                Expanded(child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+                Expanded(child: RefreshIndicator(
+                  onRefresh: _refresh,
+                  color: const Color(0xFF00B4D8),
+                  child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1375,7 +1378,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           },
                     ),
                 const SizedBox(height: 24),
-              ]))), // closes inner Column + SingleChildScrollView + Expanded
+              ]))))  // closes Column.children + Column + SCView + RefreshIndicator + Expanded
               ],
             ),
           ),

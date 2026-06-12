@@ -560,11 +560,13 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                           child: Icon(Icons.person_outline, color: Colors.teal, size: 16),
                         ),
                         SizedBox(width: 8),
-                        Text('Counterparty: $counterpartyEmail',
-                            style:
-                                TextStyle(fontSize: 15, color: Colors.black87),
-                            softWrap: false,
-                            overflow: TextOverflow.fade),
+                        Expanded(
+                          child: Text('Counterparty: $counterpartyEmail',
+                              style:
+                                  TextStyle(fontSize: 15, color: Colors.black87),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ),
                       ],
                     ),
                     SizedBox(height: 6),
@@ -618,7 +620,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _remainingTimeLabel(expectedReturnDate!),
+                                  _remainingTimeLabel(expectedReturnDate),
                                   style: TextStyle(
                                     color: isOverdue
                                         ? Colors.red.shade700
@@ -1295,7 +1297,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black87,
-              background: Colors.white,
             ),
             dialogTheme: DialogTheme(
               backgroundColor: Colors.white,
@@ -2457,8 +2458,12 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     ),
                     SizedBox(height: 8),
                     Expanded(
-                      child: ListView(
-                        children: [
+                      child: RefreshIndicator(
+                        onRefresh: fetchTransactions,
+                        color: const Color(0xFF00B4D8),
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
                           ..._buildFilteredTransactionCards(
                               limit: showAllTransactions ? null : 3),
                           if (!showAllTransactions && totalCount > 3)
@@ -2505,6 +2510,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               ),
                             ),
                         ],
+                        ),
                       ),
                     ),
                   ],

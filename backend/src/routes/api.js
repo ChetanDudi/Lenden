@@ -127,8 +127,8 @@ module.exports = (io) => {
   // Token management routes
   router.post('/users/refresh-token', userController.refreshToken);
   router.post('/users/logout', userController.logout);
-  router.post('/users/logout-all-devices', userController.logoutAllDevices);
-  router.get('/users/active-sessions', userController.getActiveSessions);
+  router.post('/users/logout-all-devices', auth, userController.logoutAllDevices);
+  router.get('/users/active-sessions', auth, userController.getActiveSessions);
   
   // All authenticated user routes should use sessionTimeout after auth
   router.get('/users/me', auth, sessionTimeout, profileController.getUserProfile);
@@ -138,10 +138,9 @@ module.exports = (io) => {
   router.put('/users/me/chat-public-key', auth, sessionTimeout, userController.updateChatEncryptionPublicKey);
   // Serve user profile image
   router.get('/users/:id/profile-image', profileController.getUserProfileImage);
-  router.get('/users/profile-by-email', profileController.getUserProfileByEmail);
+  router.get('/users/profile-by-email', auth, profileController.getUserProfileByEmail);
   router.get('/users/devices', auth, sessionTimeout, userController.listDevices);
   router.post('/users/logout-device', auth, sessionTimeout, userController.logoutDevice);
-  router.get('/users/:id', auth, userController.getUserById);
 
   // Friends routes
   router.get('/friends', auth, friendController.getFriends);
@@ -173,6 +172,7 @@ module.exports = (io) => {
 
   // Support routes (User)
   router.get('/contact-info', contactConfigController.getPublicContactConfig);
+  router.post('/contact-message', contactConfigController.submitContactMessage);
   router.post('/support/queries', auth, supportController.createSupportQuery);
   router.get('/support/queries/me', auth, supportController.getUserSupportQueries);
   router.put('/support/queries/:queryId', auth, supportController.updateSupportQuery);
@@ -180,55 +180,6 @@ module.exports = (io) => {
 
   // Admin routes (only register, login is now unified)
   router.post('/admins/register', adminController.register);
-  // Test endpoint to create a simple admin (for testing only)
-  router.post('/admins/create-test', async (req, res) => {
-    try {
-      const Admin = require('../models/admin');
-      const bcrypt = require('bcryptjs');
-      
-      // Check if test admin already exists
-      const existingAdmin = await Admin.findOne({ email: 'admin@test.com' });
-      if (existingAdmin) {
-        return res.json({
-          success: true,
-          message: 'Test admin already exists',
-          admin: {
-            email: 'admin@test.com',
-            username: 'admin',
-            password: 'Admin123!'
-          }
-        });
-      }
-      
-      // Create test admin
-      const hashedPassword = await bcrypt.hash('Admin123!', 10);
-      const admin = new Admin({
-        name: 'Test Admin',
-        username: 'admin',
-        email: 'admin@test.com',
-        password: hashedPassword,
-        gender: 'Other'
-      });
-      
-      await admin.save();
-      
-      res.json({
-        success: true,
-        message: 'Test admin created successfully',
-        admin: {
-          email: 'admin@test.com',
-          username: 'admin',
-          password: 'Admin123!'
-        }
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create test admin',
-        error: error.message
-      });
-    }
-  });
   router.get('/admins/me', auth, profileController.getAdminProfile);
   router.put('/admins/me', auth, upload.single('profileImage'), editProfileController.updateAdminProfile);
   // Serve admin profile image
@@ -237,31 +188,31 @@ module.exports = (io) => {
   // Transaction routes
   router.post('/transactions/create', auth, handleUsage('userTransaction'), upload.array('files'), transactionController.createTransaction);
   router.post('/transactions/with-coins', auth, upload.array('files'), transactionController.createTransactionWithCoins);
-  router.post('/transactions/check-email', transactionController.checkEmailExists);
-  router.post('/transactions/send-counterparty-otp', transactionController.sendCounterpartyOTP);
-  router.post('/transactions/verify-counterparty-otp', transactionController.verifyCounterpartyOTP);
-  router.post('/transactions/send-user-otp', transactionController.sendUserOTP);
-  router.post('/transactions/verify-user-otp', transactionController.verifyUserOTP);
-  router.post('/transactions/clear', transactionController.clearTransaction);
-  router.delete('/transactions/delete', transactionController.deleteTransaction);
+  router.post('/transactions/check-email', auth, transactionController.checkEmailExists);
+  router.post('/transactions/send-counterparty-otp', auth, transactionController.sendCounterpartyOTP);
+  router.post('/transactions/verify-counterparty-otp', auth, transactionController.verifyCounterpartyOTP);
+  router.post('/transactions/send-user-otp', auth, transactionController.sendUserOTP);
+  router.post('/transactions/verify-user-otp', auth, transactionController.verifyUserOTP);
+  router.post('/transactions/clear', auth, transactionController.clearTransaction);
+  router.delete('/transactions/delete', auth, transactionController.deleteTransaction);
   router.post('/transactions/:transactionId/receipt', auth, transactionController.generateReceipt);
   router.put('/transactions/:transactionId/favourite', auth, transactionController.toggleFavourite);
 
   router.get('/transactions/user', auth, transactionController.getUserTransactions);
 
   // Partial payment routes
-  router.post('/transactions/send-partial-payment-otp', transactionController.sendPartialPaymentOTP);
-  router.post('/transactions/verify-partial-payment-otp', transactionController.verifyPartialPaymentOTP);
-  router.post('/transactions/partial-payment', transactionController.processPartialPayment);
-  router.get('/transactions/:transactionId', transactionController.getTransactionDetails);
+  router.post('/transactions/send-partial-payment-otp', auth, transactionController.sendPartialPaymentOTP);
+  router.post('/transactions/verify-partial-payment-otp', auth, transactionController.verifyPartialPaymentOTP);
+  router.post('/transactions/partial-payment', auth, transactionController.processPartialPayment);
+  router.get('/transactions/:transactionId', auth, transactionController.getTransactionDetails);
 
 
   // Analytics routes
-  router.get('/analytics/user', analyticController.getUserAnalytics);
-  router.get('/analytics/secure', analyticController.getUserAnalytics);
-  router.get('/analytics/quick', analyticController.getQuickAnalytics);
-  router.get('/analytics/group', analyticController.getGroupAnalytics);
-  router.get('/analytics/groups', analyticController.getGroupAnalytics);
+  router.get('/analytics/user', auth, analyticController.getUserAnalytics);
+  router.get('/analytics/secure', auth, analyticController.getUserAnalytics);
+  router.get('/analytics/quick', auth, analyticController.getQuickAnalytics);
+  router.get('/analytics/group', auth, analyticController.getGroupAnalytics);
+  router.get('/analytics/groups', auth, analyticController.getGroupAnalytics);
   router.get('/currency-conversions/supported', auth, currencyConversionController.getSupportedCurrencies);
   router.get('/currency-conversions/matrix', auth, currencyConversionController.getPublicCurrencyMatrix);
   // Counterparty routes
@@ -383,6 +334,9 @@ module.exports = (io) => {
   router.get('/users/export-data', auth, sessionTimeout, settingsController.exportUserData);
   router.delete('/users/delete-account', auth, sessionTimeout, settingsController.deleteAccount);
 
+  // Wildcard user lookup — must be AFTER all specific /users/... routes to prevent shadowing
+  router.get('/users/:id', auth, userController.getUserById);
+
   // Admin routes
   // User Management
   router.get('/admin/dashboard-summary', auth, isAdmin, adminController.getDashboardSummary);
@@ -457,6 +411,8 @@ module.exports = (io) => {
   router.patch('/admin/support/queries/:queryId/workflow', auth, isAdmin, supportController.updateQueryWorkflow);
   router.get('/admin/contact-info', auth, isAdmin, contactConfigController.getAdminContactConfig);
   router.put('/admin/contact-info', auth, isAdmin, contactConfigController.updateAdminContactConfig);
+  router.get('/admin/contact-messages', auth, isAdmin, contactConfigController.getAdminMessages);
+  router.patch('/admin/contact-messages/:id/status', auth, isAdmin, contactConfigController.updateMessageStatus);
 
   // Feedback routes
   router.post('/feedback', auth, feedbackController.submitFeedback);

@@ -18,7 +18,7 @@ exports.getBalance = async (req, res) => {
     const user = await User.findById(req.user._id).select('walletBalance');
     res.json({ balance: user?.walletBalance ?? 0 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -48,7 +48,7 @@ exports.getHistory = async (req, res) => {
 
     res.json({ transactions: withBalance });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -68,7 +68,7 @@ exports.createTopUpOrder = async (req, res) => {
     });
     res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -124,7 +124,7 @@ exports.verifyTopUp = async (req, res) => {
     if (err.code === 11000) {
       return res.status(409).json({ error: 'Payment already applied to wallet' });
     }
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   } finally {
     session.endSession();
   }
@@ -180,7 +180,7 @@ exports.pay = async (req, res) => {
 
     res.json({ message: 'Payment successful', balance: newBalance });
   } catch (err) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {
     session.endSession();
   }
@@ -249,7 +249,7 @@ exports.paySubscription = async (req, res) => {
 
     res.json({ message: 'Subscription activated via wallet', balance: newBalance });
   } catch (err) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {
     session.endSession();
   }

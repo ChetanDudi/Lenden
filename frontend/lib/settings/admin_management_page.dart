@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:math';
-import '../session.dart';
 import '../utils/api_client.dart';
 
 class AdminManagementPage extends StatefulWidget {
@@ -415,10 +413,6 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                     });
 
                                     formKey.currentState?.save();
-                                    final session =
-                                        Provider.of<SessionProvider>(context,
-                                            listen: false);
-
                                     try {
                                       final response = await ApiClient.post(
                                         '/api/admin/admins',

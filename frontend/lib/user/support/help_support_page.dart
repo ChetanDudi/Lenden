@@ -343,9 +343,6 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   Future<void> _deleteQuery(String queryId) async {
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    // token may be needed for socket headers; ApiClient will handle auth for HTTP calls
-
     // Show confirmation dialog
     bool confirmDelete = await showDialog(
           context: context,

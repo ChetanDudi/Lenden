@@ -7,6 +7,8 @@ const Admin = require('../models/admin');
 const { createActivityLog } = require('./activityController');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const MAX_COINS_PER_OFFER = 10000;
 const MAX_ACTIVE_OFFERS = 50;
 const MAX_DAILY_CLAIMS_PER_USER = 20;
@@ -380,9 +382,10 @@ exports.getAdminOffers = async (req, res) => {
     if (includeInactive !== 'true') query.isActive = true;
     if (status) query.status = status;
     if (search.toString().trim()) {
+      const safeSearch = escapeRegex(search.toString().trim());
       query.$or = [
-        { name: { $regex: search.toString().trim(), $options: 'i' } },
-        { description: { $regex: search.toString().trim(), $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
@@ -438,7 +441,7 @@ exports.getAdminOffers = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -554,7 +557,7 @@ exports.deleteOffer = async (req, res) => {
     await offer.deleteOne();
     return res.json({ message: 'Offer deleted successfully' });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -580,11 +583,12 @@ exports.getAvailableOffers = async (req, res) => {
     };
 
     if (q.toString().trim()) {
+      const safeQ = escapeRegex(q.toString().trim());
       query.$and = [
         {
           $or: [
-            { name: { $regex: q.toString().trim(), $options: 'i' } },
-            { description: { $regex: q.toString().trim(), $options: 'i' } },
+            { name: { $regex: safeQ, $options: 'i' } },
+            { description: { $regex: safeQ, $options: 'i' } },
           ],
         },
       ];
@@ -651,7 +655,7 @@ exports.getAvailableOffers = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -855,7 +859,7 @@ exports.getMyOfferClaims = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -882,7 +886,7 @@ exports.searchUsersForOffers = async (req, res) => {
       .limit(parsedLimit);
     return res.json({ users });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -942,7 +946,7 @@ exports.getOfferAnalytics = async (req, res) => {
       })),
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1011,7 +1015,7 @@ exports.getOfferClaimsAudit = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 

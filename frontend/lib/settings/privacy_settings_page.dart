@@ -302,8 +302,10 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     if (confirmed != true) return;
 
     try {
-      final response =
-          await ApiClient.post('/api/users/logout-all-devices', body: {});
+      final response = await ApiClient.post(
+        '/api/users/logout-all-devices',
+        body: {'currentDeviceId': _currentDeviceId ?? ''},
+      );
       if (!mounted) return;
       if (response.statusCode == 200) {
         CustomWarningWidget.showAnimatedSuccess(
@@ -324,16 +326,25 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   Future<void> _requestDataExport() async {
     setState(() => _isExporting = true);
     try {
-      final response = await ApiClient.get('/api/users/export-data');
+      final response = await ApiClient.get(
+        '/api/users/export-data',
+        timeout: const Duration(seconds: 30),
+      );
       if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final summary = data['summary'] as Map<String, dynamic>? ?? {};
         _showExportSummaryDialog(summary, data['note'] as String? ?? '');
+      } else if (response.statusCode == 408) {
+        CustomWarningWidget.showAnimatedError(
+            context, 'Server is waking up, please try again in a moment.');
+      } else if (response.statusCode == 440) {
+        CustomWarningWidget.showAnimatedError(
+            context, 'Session expired. Please log in again.');
       } else {
         final err = json.decode(response.body);
         CustomWarningWidget.showAnimatedError(
-            context, err['message'] ?? 'Failed to request data export');
+            context, err['message'] ?? err['error'] ?? 'Failed to export data');
       }
     } catch (e) {
       if (mounted) {

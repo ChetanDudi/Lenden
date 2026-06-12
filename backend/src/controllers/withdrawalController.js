@@ -214,7 +214,7 @@ exports.getWithdrawalHistory = async (req, res) => {
 
     res.json({ withdrawals: safe });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

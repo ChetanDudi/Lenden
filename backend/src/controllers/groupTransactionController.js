@@ -225,7 +225,7 @@ exports.createGroupWithCoins = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -340,7 +340,7 @@ exports.createGroup = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -415,7 +415,7 @@ exports.addMember = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -489,7 +489,7 @@ exports.removeMember = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -759,7 +759,7 @@ exports.addExpense = async (req, res) => {
     }
   } catch (err) {
     console.error('Error in addExpense:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -785,7 +785,7 @@ exports.requestLeave = async (req, res) => {
     await group.save();
     res.json({ group });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -803,7 +803,7 @@ exports.settleBalance = async (req, res) => {
     await group.save();
     res.json({ message: 'OTP sent to your email' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -823,7 +823,7 @@ exports.otpVerifySettle = async (req, res) => {
     await group.save();
     res.json({ group });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 }; 
 
@@ -971,7 +971,7 @@ exports.getUserGroups = async (req, res) => {
       createdGroupsCount,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 }; 
 
@@ -1031,7 +1031,7 @@ exports.toggleGroupFavourite = async (req, res) => {
 
     res.json({ group: groupObj });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1066,7 +1066,7 @@ exports.updateGroupColor = async (req, res) => {
     
     res.json({ group: groupObj });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1082,7 +1082,7 @@ exports.deleteGroup = async (req, res) => {
     await GroupTransaction.findByIdAndDelete(groupId);
     res.json({ message: 'Group deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1156,7 +1156,7 @@ exports.leaveGroup = async (req, res) => {
       console.error('Failed to send member left email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 }; 
 
@@ -1217,7 +1217,7 @@ exports.deleteExpense = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 }; 
 
@@ -1415,7 +1415,7 @@ exports.editExpense = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 }; 
 
@@ -1520,7 +1520,7 @@ exports.settleMemberExpenses = async (req, res) => {
     }
   } catch (err) {
     console.error('Error settling member expenses:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1571,7 +1571,7 @@ exports.recordMemberPayment = async (req, res) => {
 
     res.json({ group: groupObj });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1634,7 +1634,7 @@ exports.selfSettleExpenses = async (req, res) => {
       console.error('Failed to log group activity:', e);
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -1753,7 +1753,7 @@ exports.settleExpenseSplits = async (req, res) => {
     }
   } catch (err) {
     console.error('Error settling expense splits:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 }; 
 
@@ -1825,7 +1825,7 @@ exports.sendLeaveRequest = async (req, res) => {
     }
   } catch (err) {
     console.error('Error sending leave request:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -2153,6 +2153,6 @@ exports.generateGroupReceipt = async (req, res) => {
 
   } catch (err) {
     console.error('Error generating group receipt:', err);
-    res.status(500).json({ error: 'Failed to generate group receipt', details: err.message });
+    res.status(500).json({ error: 'Failed to generate group receipt' });
   }
 };

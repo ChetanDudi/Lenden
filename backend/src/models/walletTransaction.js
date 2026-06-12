@@ -14,6 +14,8 @@ const walletTransactionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+walletTransactionSchema.index({ user: 1, createdAt: -1 });
+
 // Sparse unique index — only indexes documents that have razorpayPaymentId set
 // (i.e. Razorpay payments). Wallet-to-wallet records omit the field entirely and
 // are therefore excluded, preventing the duplicate-null error.

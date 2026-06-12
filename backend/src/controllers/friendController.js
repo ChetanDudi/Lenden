@@ -29,12 +29,16 @@ exports.searchUsers = async (req, res) => {
     ];
 
     const regex = new RegExp(q, 'i');
+    const requestedLimit = parseInt(req.query.limit, 10);
+    const limit = (!isNaN(requestedLimit) && requestedLimit > 0)
+      ? Math.min(requestedLimit, 50) : 20;
+
     const users = await User.find({
       _id: { $nin: excludeIds },
       $or: [{ email: regex }, { username: regex }, { name: regex }],
     })
       .select('name username email blockedUsers')
-      .limit(20);
+      .limit(limit);
 
     // Filter out users who have blocked the current user
     const filtered = users.filter(
@@ -48,7 +52,7 @@ exports.searchUsers = async (req, res) => {
       .status(200)
       .json({ users: filtered.map(({ _id, name, username, email }) => ({ _id, name, username, email })) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -91,7 +95,7 @@ exports.getFriends = async (req, res) => {
 
     res.status(200).json({ friends, blockedUsers });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -108,7 +112,7 @@ exports.getFriendRequests = async (req, res) => {
 
     res.status(200).json({ incoming, outgoing });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -145,7 +149,7 @@ exports.getMutualFriends = async (req, res) => {
 
     res.status(200).json({ mutualFriends });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -188,7 +192,7 @@ exports.getMutualFriendCounts = async (req, res) => {
 
     res.status(200).json({ counts });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 exports.sendFriendRequest = async (req, res) => {
@@ -274,7 +278,7 @@ exports.sendFriendRequest = async (req, res) => {
     if (error.code === 11000) {
       return res.status(200).json({ message: 'Request already pending' });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -327,7 +331,7 @@ exports.acceptFriendRequest = async (req, res) => {
 
     res.status(200).json({ message: 'Request accepted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -350,7 +354,7 @@ exports.declineFriendRequest = async (req, res) => {
     }
     res.status(200).json({ message: 'Request declined' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -373,7 +377,7 @@ exports.cancelFriendRequest = async (req, res) => {
     }
     res.status(200).json({ message: 'Request canceled' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -397,7 +401,7 @@ exports.removeFriend = async (req, res) => {
     await logFriendActivity(friend._id, 'friend_removed', { with: user.email });
     res.status(200).json({ message: 'Friend removed' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -430,7 +434,7 @@ exports.blockUser = async (req, res) => {
     await logFriendActivity(userId, 'user_blocked', { by: req.user.email });
     res.status(200).json({ message: 'User blocked' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -449,7 +453,7 @@ exports.unblockUser = async (req, res) => {
     await logFriendActivity(userId, 'user_unblocked', { by: req.user.email });
     res.status(200).json({ message: 'User unblocked' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -635,6 +639,6 @@ exports.getFriendSuggestions = async (req, res) => {
 
     res.status(200).json({ suggestions });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

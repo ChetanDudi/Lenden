@@ -60,7 +60,7 @@ exports.getUserCounterparties = async (req, res) => {
 
     res.json({ counterparties: counterpartiesList });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -109,7 +109,7 @@ exports.getCounterpartyStats = async (req, res) => {
       total: userTxCount + quickTxCount + groupCount,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -172,6 +172,6 @@ exports.getCounterpartyStatsBatch = async (req, res) => {
 
     res.json({ counts: response });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

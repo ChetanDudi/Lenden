@@ -1183,7 +1183,7 @@ class _ManageGroupTransactionsPageState
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Text(
-                                              '#${pickedColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                                              '#${pickedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -1217,7 +1217,7 @@ class _ManageGroupTransactionsPageState
                                   _updateGroup(group['_id'], {
                                     'title': title.text.trim(),
                                     'color':
-                                        '#${pickedColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                                        '#${pickedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                                     'isActive': isActive,
                                   });
                                 },

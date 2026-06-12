@@ -755,7 +755,7 @@ class _PrivateProfileDialog extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Column(
               children: [
-                CircleAvatar(radius: 36, backgroundImage: avatarProvider),
+                CircleAvatar(radius: 36, backgroundImage: avatarProvider, onBackgroundImageError: (_, __) {}),
                 const SizedBox(height: 12),
                 Text(
                   name,
@@ -844,7 +844,7 @@ class _StylishProfileDialog extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Column(
               children: [
-                CircleAvatar(radius: 36, backgroundImage: avatarProvider),
+                CircleAvatar(radius: 36, backgroundImage: avatarProvider, onBackgroundImageError: (_, __) {}),
                 const SizedBox(height: 12),
                 Text(
                   name,

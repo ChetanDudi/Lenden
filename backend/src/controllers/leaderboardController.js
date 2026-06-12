@@ -309,7 +309,7 @@ exports.getDailyLeaderboard = async (req, res) => {
       users: enrichedRows,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -339,6 +339,6 @@ exports.getMyMonthlyRewardSummary = async (req, res) => {
 
     res.json({ rewards: summary });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };

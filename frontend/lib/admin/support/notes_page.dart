@@ -1,8 +1,5 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:convert';
-import '../../api_config.dart';
-import 'package:provider/provider.dart';
-import '../../session.dart';
 import '../../utils/api_client.dart';
 
 class AdminNotesPage extends StatefulWidget {
@@ -228,12 +225,9 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
     if (result != null &&
         result['title']!.isNotEmpty &&
         result['content']!.isNotEmpty) {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
       if (isEdit) {
-        final url = '${ApiConfig.baseUrl}/api/notes/${note!['_id']}';
         final res = await ApiClient.put(
-          '/api/notes/${note!['_id']}',
+          '/api/notes/${note['_id']}',
           body: {'title': result['title'], 'content': result['content']},
         );
         if (res.statusCode == 200) {
@@ -251,7 +245,6 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
           });
         }
       } else {
-        final url = '${ApiConfig.baseUrl}/api/notes';
         final res = await ApiClient.post(
           '/api/notes',
           body: {'title': result['title'], 'content': result['content']},
@@ -323,9 +316,6 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
     );
 
     if (confirmed == true) {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
-      final url = '${ApiConfig.baseUrl}/api/notes/$id';
       final res = await ApiClient.delete('/api/notes/$id');
       if (res.statusCode == 200) {
         setState(() {

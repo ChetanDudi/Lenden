@@ -1,6 +1,4 @@
-﻿import 'package:provider/provider.dart';
-import '../../session.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 
@@ -62,8 +60,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
       _isLoading = true;
     });
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
       final response = await ApiClient.post(
         '/api/rating',
         body: {

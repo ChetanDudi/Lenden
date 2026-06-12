@@ -813,7 +813,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
           'memberEmails':
               memberEmails, // Backend expects emails for group creation
           'color': selectedGroupColor != null
-              ? '#${selectedGroupColor!.value.toRadixString(16).substring(2).toUpperCase()}'
+              ? '#${selectedGroupColor!.toARGB32().toRadixString(16).substring(2).toUpperCase()}'
               : null,
         },
       );
@@ -1059,7 +1059,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
           'memberEmails':
               memberEmails, // Backend expects emails for group creation
           'color': selectedGroupColor != null
-              ? '#${selectedGroupColor!.value.toRadixString(16).substring(2).toUpperCase()}'
+              ? '#${selectedGroupColor!.toARGB32().toRadixString(16).substring(2).toUpperCase()}'
               : null,
         },
       );
@@ -1732,7 +1732,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
         '/api/group-transactions/${group!['_id']}/color',
         body: {
           'color':
-              '#${newColor.value.toRadixString(16).substring(2).toUpperCase()}'
+              '#${newColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'
         },
       );
       final data = json.decode(res.body);
@@ -5804,7 +5804,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                               onColorChanged: (color) {
                                 picked = color;
                               },
-                              showLabel: false,
+                              labelTypes: const [],
                               pickerAreaHeightPercent: 0.7,
                             ),
                           ),

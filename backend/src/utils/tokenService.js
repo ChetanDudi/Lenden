@@ -7,8 +7,10 @@ const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
 
 class TokenService {
   static generateAccessToken(payload) {
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
-    return jwt.sign(payload, jwtSecret, { expiresIn: ACCESS_TOKEN_EXPIRY });
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
   }
 
   static generateRefreshToken() {

@@ -800,7 +800,6 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     final category = _categoryForNotification(notification);
     final accent = _accentForCategory(category);
     final isRead = _isNotificationRead(notification, unreadUserId);
-    final session = Provider.of<SessionProvider>(context, listen: false);
     final canEditThis = _canCurrentAdminManageNotification(notification);
 
     return Container(

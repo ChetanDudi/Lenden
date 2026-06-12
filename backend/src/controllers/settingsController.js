@@ -45,8 +45,9 @@ const changePassword = async (req, res) => {
     const saltRounds = 10;
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Update password
+    // Update password and invalidate all outstanding access tokens immediately
     user.password = hashedNewPassword;
+    user.forceLogoutAfter = new Date();
     await user.save();
 
     res.json({ message: 'Password changed successfully' });
@@ -510,9 +511,15 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    // Passed all checks, mark user as deactivated
+    // Passed all checks, mark user as deactivated and revoke all tokens immediately
     user.deactivatedAccount = true;
+    user.isActive = false;
+    user.forceLogoutAfter = new Date();
+    user.devices = [];
     await user.save();
+
+    const TokenService = require('../utils/tokenService');
+    await TokenService.revokeAllUserTokens(user._id, 'user');
 
     // Send account deactivated email
     try {

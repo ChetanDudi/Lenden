@@ -1,5 +1,7 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
+
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const GroupTransaction = require('../models/groupTransaction');
 const Transaction = require('../models/transaction');
 const QuickTransaction = require('../models/quickTransaction');
@@ -1016,11 +1018,12 @@ const getAllAdmins = async (req, res) => {
     let query = {};
 
     if (search) {
+      const safeSearch = escapeRegex(search.trim());
       query = {
         $or: [
-          { email: { $regex: search, $options: 'i' } },
-          { username: { $regex: search, $options: 'i' } },
-          { name: { $regex: search, $options: 'i' } }
+          { email: { $regex: safeSearch, $options: 'i' } },
+          { username: { $regex: safeSearch, $options: 'i' } },
+          { name: { $regex: safeSearch, $options: 'i' } }
         ]
       };
     }
@@ -1170,7 +1173,7 @@ const addAdmin = async (req, res) => {
     console.error('Error adding admin:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to add admin'
+      message: 'Failed to add admin'
     });
   }
 };
@@ -1901,11 +1904,12 @@ const getAdminAuditLogs = async (req, res) => {
     }
 
     if (search.trim()) {
+      const safeSearch = escapeRegex(search.trim());
       filter.$or = [
-        { adminEmail: { $regex: search.trim(), $options: 'i' } },
-        { action: { $regex: search.trim(), $options: 'i' } },
-        { summary: { $regex: search.trim(), $options: 'i' } },
-        { targetType: { $regex: search.trim(), $options: 'i' } },
+        { adminEmail: { $regex: safeSearch, $options: 'i' } },
+        { action: { $regex: safeSearch, $options: 'i' } },
+        { summary: { $regex: safeSearch, $options: 'i' } },
+        { targetType: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
@@ -2206,7 +2210,7 @@ const addMemberToGroup = async (req, res) => {
     res.json({ group: groupObj });
   } catch (error) {
     console.error('Error adding member to group:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -2252,7 +2256,7 @@ const removeMemberFromGroup = async (req, res) => {
     res.json({ group: groupObj });
   } catch (error) {
     console.error('Error removing member from group:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -2349,7 +2353,7 @@ const addExpenseToGroup = async (req, res) => {
     res.json({ group: groupObj });
   } catch (error) {
     console.error('Error adding expense to group:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -2461,7 +2465,7 @@ const updateExpenseInGroup = async (req, res) => {
     res.json({ group: groupObj });
   } catch (error) {
     console.error('Error updating expense in group:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -2514,7 +2518,7 @@ const deleteExpenseFromGroup = async (req, res) => {
     res.json({ group: groupObj });
   } catch (error) {
     console.error('Error deleting expense from group:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -2583,7 +2587,7 @@ const settleExpenseSplitsInGroup = async (req, res) => {
     });
   } catch (error) {
     console.error('Error settling expense splits in group:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

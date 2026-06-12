@@ -237,7 +237,7 @@ exports.createNotification = async (req, res) => {
       notification,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -298,7 +298,7 @@ exports.getNotifications = async (req, res) => {
         const notifications = await query;
         res.json(notifications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
@@ -326,7 +326,7 @@ exports.getSentNotifications = async (req, res) => {
     const notifications = await query;
     res.json(notifications);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -345,7 +345,7 @@ exports.getNotificationById = async (req, res) => {
 
     res.status(200).json(notification);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -369,7 +369,7 @@ exports.deleteNotification = async (req, res) => {
 
     res.status(200).json({ message: 'Notification deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -450,7 +450,7 @@ exports.updateNotification = async (req, res) => {
 
     res.status(200).json({ message: 'Notification updated successfully', notification });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -464,7 +464,7 @@ exports.getUnreadNotificationCount = async (req, res) => {
     });
     res.json({ count });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -477,7 +477,7 @@ exports.markNotificationsAsRead = async (req, res) => {
     );
     res.status(200).json({ message: 'Notifications marked as read' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -508,6 +508,6 @@ exports.getAudiencePreview = async (req, res) => {
       recipientType,
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: 'Server error' });
   }
 };

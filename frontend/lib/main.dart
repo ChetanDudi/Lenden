@@ -22,6 +22,7 @@ import 'user/connections/counterparties_page.dart';
 import 'widgets/notification_icon.dart';
 import 'utils/auth_navigation.dart';
 import 'utils/responsive.dart';
+import 'settings/about_page.dart';
 
 void main() {
   runApp(
@@ -319,7 +320,10 @@ class HomePage extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text('About'),
-              onTap: () {},
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutPage()),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.contact_mail),

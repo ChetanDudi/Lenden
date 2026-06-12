@@ -121,8 +121,6 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       _error = null;
     });
 
-    final session = Provider.of<SessionProvider>(context, listen: false);
-
     try {
       final path = '/api/admin/support/queries' +
           '?searchTerm=${Uri.encodeComponent(searchTerm ?? _searchTerm)}'

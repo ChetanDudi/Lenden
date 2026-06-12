@@ -195,11 +195,9 @@ class _NotesPageState extends State<NotesPage> {
       },
     );
     if (result != null && result['title']!.isNotEmpty && result['content']!.isNotEmpty) {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final token = session.token;
       if (isEdit) {
         final res = await ApiClient.put(
-          '/api/notes/${note!['_id']}',
+          '/api/notes/${note['_id']}',
           body: {'title': result['title'], 'content': result['content']},
         );
         if (res.statusCode == 200) {
@@ -278,7 +276,6 @@ class _NotesPageState extends State<NotesPage> {
     );
 
     if (confirmed == true) {
-      final session = Provider.of<SessionProvider>(context, listen: false);
       final res = await ApiClient.delete('/api/notes/$id');
       if (res.statusCode == 200) {
         setState(() {

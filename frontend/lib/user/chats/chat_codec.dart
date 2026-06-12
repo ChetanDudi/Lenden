@@ -22,7 +22,7 @@ class ChatCodec {
   static dynamic decodeChat(dynamic rawChat) {
     if (rawChat is! Map) return rawChat;
 
-    final chat = Map<String, dynamic>.from(rawChat as Map);
+    final chat = Map<String, dynamic>.from(rawChat);
     final message = chat['message'];
     if (message != null) {
       chat['message'] = decodeMessage(message);

@@ -1,5 +1,6 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
@@ -12,9 +13,21 @@ class ContactPage extends StatefulWidget {
 }
 
 class _ContactPageState extends State<ContactPage> {
+  static const _sky = Color(0xFF00B4D8);
+  static const _deepBlue = Color(0xFF0077B6);
+  static const _bg = Color(0xFFF8F6FA);
+
   bool _loading = true;
-  String? _error;
+  String? _fetchError;
   Map<String, dynamic> _config = _fallbackConfig();
+
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _subjectCtrl = TextEditingController();
+  final _messageCtrl = TextEditingController();
+  bool _submitting = false;
+  bool _submitted = false;
 
   @override
   void initState() {
@@ -22,20 +35,23 @@ class _ContactPageState extends State<ContactPage> {
     _loadContactInfo();
   }
 
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _subjectCtrl.dispose();
+    _messageCtrl.dispose();
+    super.dispose();
+  }
+
   static Map<String, dynamic> _fallbackConfig() => {
         'heroTitle': 'Contact Us',
         'heroDescription':
-            'We would love to hear from you! Reach out to us through any of the following ways:',
+            'We would love to hear from you! Reach out through any of the following channels.',
         'email': {
           'label': 'Email',
           'value': 'chetandudi791@gmail.com',
           'url': 'mailto:chetandudi791@gmail.com',
-          'enabled': true,
-        },
-        'facebook': {
-          'label': 'Facebook',
-          'value': 'Lenden App',
-          'url': '',
           'enabled': true,
         },
         'whatsapp': {
@@ -47,6 +63,12 @@ class _ContactPageState extends State<ContactPage> {
         'instagram': {
           'label': 'Instagram',
           'value': '_Chetan_Dudi',
+          'url': '',
+          'enabled': true,
+        },
+        'facebook': {
+          'label': 'Facebook',
+          'value': 'Lenden App',
           'url': '',
           'enabled': true,
         },
@@ -63,13 +85,13 @@ class _ContactPageState extends State<ContactPage> {
         });
       } else {
         setState(() {
-          _error = 'Failed to load contact details.';
+          _fetchError = 'Failed to load contact details.';
           _loading = false;
         });
       }
     } catch (_) {
       setState(() {
-        _error = 'Network error while loading contact details.';
+        _fetchError = 'Network error.';
         _loading = false;
       });
     }
@@ -79,234 +101,615 @@ class _ContactPageState extends State<ContactPage> {
     final rawUrl = (channel['url'] ?? '').toString().trim();
     final value = (channel['value'] ?? '').toString().trim();
     final target = rawUrl.isNotEmpty ? rawUrl : '$fallback$value';
-    if (target.trim().isEmpty) return;
-
+    if (target.isEmpty) return;
     final uri = Uri.tryParse(target);
     if (uri == null) {
-      _showMessage('Invalid contact link.');
+      _snack('Invalid contact link.');
       return;
     }
-
-    final launched =
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) {
-      _showMessage('Could not open this contact option.');
-    }
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) _snack('Could not open this contact option.');
   }
 
-  void _showMessage(String message) {
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    _snack('Copied to clipboard');
+  }
+
+  void _snack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
-  List<_ContactCardData> _buildChannels() {
-    final entries = <_ContactCardData>[
-      _ContactCardData(
-        channel: Map<String, dynamic>.from(_config['email'] ?? {}),
-        icon: Icons.email_outlined,
-        tint: const Color(0xFF0096C7),
+  Future<void> _submitMessage() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _submitting = true);
+    try {
+      final response = await ApiClient.post(
+        '/api/contact-message',
+        body: {
+          'name': _nameCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
+          'subject': _subjectCtrl.text.trim().isEmpty
+              ? 'General Inquiry'
+              : _subjectCtrl.text.trim(),
+          'message': _messageCtrl.text.trim(),
+        },
+      );
+      if (response.statusCode == 201) {
+        _nameCtrl.clear();
+        _emailCtrl.clear();
+        _subjectCtrl.clear();
+        _messageCtrl.clear();
+        setState(() {
+          _submitted = true;
+          _submitting = false;
+        });
+      } else {
+        final body = jsonDecode(response.body);
+        _snack(body['error'] ?? 'Failed to send. Please try again.');
+        setState(() => _submitting = false);
+      }
+    } catch (_) {
+      _snack('Network error. Please check your connection.');
+      setState(() => _submitting = false);
+    }
+  }
+
+  List<_ChannelEntry> _buildChannels() {
+    final defs = [
+      _ChannelEntry(
+        key: 'email',
+        icon: Icons.email_rounded,
+        tint: _sky,
         fallbackPrefix: 'mailto:',
       ),
-      _ContactCardData(
-        channel: Map<String, dynamic>.from(_config['facebook'] ?? {}),
-        icon: Icons.facebook_rounded,
-        tint: const Color(0xFF1877F2),
-        fallbackPrefix: 'https://facebook.com/',
-      ),
-      _ContactCardData(
-        channel: Map<String, dynamic>.from(_config['whatsapp'] ?? {}),
+      _ChannelEntry(
+        key: 'whatsapp',
         faIcon: FontAwesomeIcons.whatsapp,
         tint: const Color(0xFF25D366),
         fallbackPrefix: 'https://wa.me/',
       ),
-      _ContactCardData(
-        channel: Map<String, dynamic>.from(_config['instagram'] ?? {}),
+      _ChannelEntry(
+        key: 'phone',
+        icon: Icons.phone_rounded,
+        tint: const Color(0xFF34A853),
+        fallbackPrefix: 'tel:',
+      ),
+      _ChannelEntry(
+        key: 'instagram',
         faIcon: FontAwesomeIcons.instagram,
         tint: const Color(0xFFE1306C),
         fallbackPrefix: 'https://instagram.com/',
       ),
+      _ChannelEntry(
+        key: 'facebook',
+        icon: Icons.facebook_rounded,
+        tint: const Color(0xFF1877F2),
+        fallbackPrefix: 'https://facebook.com/',
+      ),
+      _ChannelEntry(
+        key: 'twitter',
+        faIcon: FontAwesomeIcons.xTwitter,
+        tint: const Color(0xFF000000),
+        fallbackPrefix: 'https://twitter.com/',
+      ),
+      _ChannelEntry(
+        key: 'linkedin',
+        faIcon: FontAwesomeIcons.linkedin,
+        tint: const Color(0xFF0A66C2),
+        fallbackPrefix: 'https://linkedin.com/company/',
+      ),
+      _ChannelEntry(
+        key: 'youtube',
+        faIcon: FontAwesomeIcons.youtube,
+        tint: const Color(0xFFFF0000),
+        fallbackPrefix: 'https://youtube.com/',
+      ),
     ];
 
-    return entries
-        .where((item) =>
-            item.channel['enabled'] != false &&
-            (item.channel['label'] ?? '').toString().trim().isNotEmpty)
-        .toList();
+    return defs.where((e) {
+      final ch = _config[e.key];
+      if (ch == null) return false;
+      final enabled = ch['enabled'];
+      if (enabled == false) return false;
+      return (ch['label'] ?? '').toString().trim().isNotEmpty;
+    }).map((e) {
+      e.channel = Map<String, dynamic>.from(_config[e.key] ?? {});
+      return e;
+    }).toList();
   }
+
+  static const _faqItems = [
+    _FaqItem(
+      q: 'How do I request a refund for a transaction?',
+      a: 'Go to your transaction history, tap the transaction, and select "Report Issue". Our support team reviews it within 24–48 hours.',
+    ),
+    _FaqItem(
+      q: 'Is my financial data safe on LenDen?',
+      a: 'Yes. All data is encrypted in transit and at rest. We follow industry-standard security practices to keep your account and transactions secure.',
+    ),
+    _FaqItem(
+      q: 'How long does a payment take to process?',
+      a: 'Most payments are instant. In some cases it may take up to 24 hours depending on your bank\'s processing time.',
+    ),
+    _FaqItem(
+      q: 'How do I close or delete my LenDen account?',
+      a: 'Go to Settings → Privacy & Security → Account Management. You can deactivate or permanently delete your account there.',
+    ),
+    _FaqItem(
+      q: 'What should I do if I suspect unauthorized activity?',
+      a: 'Immediately contact us via email or WhatsApp with details. You can also lock your account from Settings. We treat all fraud reports with top priority.',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final channels = _buildChannels();
-
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF5F7FB),
+      backgroundColor: _bg,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Contact', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Contact Us',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
+          // Wave header
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
-              height: 260,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF003049), Color(0xFF00B4D8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            child: ClipPath(
+              clipper: _WaveClipper(),
+              child: Container(
+                height: 230,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0077B6), Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
           ),
-          Positioned(
-            top: 140,
-            right: -30,
+          _loading
+              ? const Center(child: CircularProgressIndicator(color: _sky))
+              : SafeArea(child: _buildBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    final channels = _buildChannels();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Hero card ──────────────────────────────────────────
+          _tricolorBorder(
+            radius: 26,
             child: Container(
-              width: 120,
-              height: 120,
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
               ),
-            ),
-          ),
-          SafeArea(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(22),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 24,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF00B4D8),
-                                      Color(0xFF90E0EF),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                padding: const EdgeInsets.all(18),
-                                child: Image.asset(
-                                  'assets/icon.png',
-                                  width: 72,
-                                  height: 72,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
-                                    Icons.support_agent_rounded,
-                                    size: 60,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              Text(
-                                (_config['heroTitle'] ?? 'Contact Us')
-                                    .toString(),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0B1F33),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                (_config['heroDescription'] ?? '').toString(),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  height: 1.5,
-                                  color: Colors.blueGrey.shade600,
-                                ),
-                              ),
-                              if (_error != null) ...[
-                                const SizedBox(height: 12),
-                                Text(
-                                  _error!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Color(0xFFB3261E),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _sky,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    padding: const EdgeInsets.all(14),
+                    child: Image.asset(
+                      'assets/icon.png',
+                      width: 54,
+                      height: 54,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.support_agent_rounded,
+                        size: 44,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    (_config['heroTitle'] ?? 'Contact Us').toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0B1F33),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    (_config['heroDescription'] ?? '').toString(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.6,
+                      color: Colors.blueGrey.shade600,
+                    ),
+                  ),
+                  if (_fetchError != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(
+                        _fetchError!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 20),
-                        ...channels.map((item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: _ContactCard(
-                                data: item,
-                                onTap: () => _openChannel(
-                                  item.channel,
-                                  item.fallbackPrefix,
-                                ),
-                              ),
-                            )),
-                        const SizedBox(height: 10),
-                        ElevatedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_rounded),
-                          label: const Text('Back'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF003049),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(22),
-                            ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _sky.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: _sky.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time_rounded,
+                            size: 15, color: _deepBlue),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Typically responds within 24 hours',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _deepBlue,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 26),
+
+          // ── Contact channels ───────────────────────────────────
+          _sectionLabel('Reach Out'),
+          const SizedBox(height: 12),
+          ...channels.map(
+            (ch) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _tricolorBorder(
+                radius: 22,
+                child: _ChannelCard(
+                  entry: ch,
+                  onTap: () => _openChannel(ch.channel, ch.fallbackPrefix),
+                  onCopy: (ch.key == 'email' || ch.key == 'phone')
+                      ? () => _copyToClipboard(
+                          (ch.channel['value'] ?? '').toString())
+                      : null,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 26),
+
+          // ── Send a message form ────────────────────────────────
+          _sectionLabel('Send a Message'),
+          const SizedBox(height: 12),
+          _tricolorBorder(
+            radius: 24,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: _submitted ? _buildSuccess() : _buildForm(),
+            ),
+          ),
+
+          const SizedBox(height: 26),
+
+          // ── FAQ section ────────────────────────────────────────
+          _sectionLabel('Frequently Asked'),
+          const SizedBox(height: 12),
+          _tricolorBorder(
+            radius: 24,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                children: _faqItems.asMap().entries.map((e) {
+                  return _FaqTileWidget(
+                    item: e.value,
+                    isLast: e.key == _faqItems.length - 1,
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _sectionLabel(String label) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_deepBlue, _sky],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0B1F33),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuccess() {
+    return Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: const Color(0xFF138808).withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF138808),
+            size: 40,
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Message Sent!',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0B1F33),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Thanks for reaching out. We\'ll get back to you within 24 hours.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.blueGrey.shade600,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: () => setState(() => _submitted = false),
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: const Text('Send another message'),
+          style: TextButton.styleFrom(foregroundColor: _sky),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _field(
+            controller: _nameCtrl,
+            label: 'Your Name',
+            icon: Icons.person_outline_rounded,
+            validator: (v) =>
+                (v?.trim().isEmpty ?? true) ? 'Please enter your name' : null,
+          ),
+          const SizedBox(height: 12),
+          _field(
+            controller: _emailCtrl,
+            label: 'Email Address',
+            icon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) {
+              if (v?.trim().isEmpty ?? true) return 'Please enter your email';
+              if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+').hasMatch(v!.trim())) {
+                return 'Enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          _field(
+            controller: _subjectCtrl,
+            label: 'Subject (optional)',
+            icon: Icons.subject_rounded,
+          ),
+          const SizedBox(height: 12),
+          _field(
+            controller: _messageCtrl,
+            label: 'Message',
+            icon: Icons.message_outlined,
+            maxLines: 4,
+            validator: (v) {
+              if (v?.trim().isEmpty ?? true) return 'Please enter your message';
+              if ((v?.trim().length ?? 0) < 10) {
+                return 'Message is too short (min. 10 characters)';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _submitting ? null : _submitMessage,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.send_rounded, size: 18),
+              label: Text(
+                _submitting ? 'Sending…' : 'Send Message',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _sky,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: _sky.withValues(alpha: 0.55),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      validator: validator,
+      style: const TextStyle(fontSize: 14, color: Color(0xFF0B1F33)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
+        prefixIcon: Icon(icon, size: 20, color: _sky),
+        filled: true,
+        fillColor: _bg,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.blueGrey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.blueGrey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _sky, width: 1.8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.red.shade300),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.red.shade400, width: 1.8),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: maxLines > 1 ? 14 : 0,
+        ),
+      ),
+    );
+  }
+
+  Widget _tricolorBorder({required Widget child, double radius = 24}) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius - 2),
+        child: child,
+      ),
+    );
+  }
 }
 
-class _ContactCardData {
-  final Map<String, dynamic> channel;
+// ── Channel Entry ─────────────────────────────────────────────────────────────
+
+class _ChannelEntry {
+  final String key;
   final IconData? icon;
   final IconData? faIcon;
   final Color tint;
   final String fallbackPrefix;
+  Map<String, dynamic> channel = {};
 
-  _ContactCardData({
-    required this.channel,
+  _ChannelEntry({
+    required this.key,
     this.icon,
     this.faIcon,
     required this.tint,
@@ -314,53 +717,46 @@ class _ContactCardData {
   });
 }
 
-class _ContactCard extends StatelessWidget {
-  final _ContactCardData data;
+class _ChannelCard extends StatelessWidget {
+  final _ChannelEntry entry;
   final VoidCallback onTap;
+  final VoidCallback? onCopy;
 
-  const _ContactCard({
-    required this.data,
+  const _ChannelCard({
+    required this.entry,
     required this.onTap,
+    this.onCopy,
   });
 
   @override
   Widget build(BuildContext context) {
-    final label = (data.channel['label'] ?? '').toString();
-    final value = (data.channel['value'] ?? '').toString();
+    final label = (entry.channel['label'] ?? '').toString();
+    final value = (entry.channel['value'] ?? '').toString();
 
     return Material(
-      color: Colors.transparent,
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Ink(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: data.tint.withValues(alpha: 0.16)),
-            boxShadow: [
-              BoxShadow(
-                color: data.tint.withValues(alpha: 0.12),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
-                  color: data.tint.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
+                  color: entry.tint.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                child: data.faIcon != null
-                    ? FaIcon(data.faIcon, color: data.tint)
-                    : Icon(data.icon, color: data.tint),
+                child: entry.faIcon != null
+                    ? Center(
+                        child: FaIcon(entry.faIcon,
+                            color: entry.tint, size: 22))
+                    : Icon(entry.icon, color: entry.tint, size: 24),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,26 +764,180 @@ class _ContactCard extends StatelessWidget {
                     Text(
                       label,
                       style: const TextStyle(
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
+                        color: Color(0xFF0B1F33),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       value,
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blueGrey.shade700,
+                        fontSize: 13,
+                        color: Colors.blueGrey.shade600,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.open_in_new_rounded, color: data.tint),
+              if (onCopy != null)
+                IconButton(
+                  icon: Icon(Icons.copy_rounded,
+                      size: 18, color: Colors.blueGrey.shade400),
+                  onPressed: onCopy,
+                  constraints:
+                      const BoxConstraints(maxWidth: 36, maxHeight: 36),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Copy',
+                ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 13,
+                color: entry.tint.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── FAQ ───────────────────────────────────────────────────────────────────────
+
+class _WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path()
+      ..lineTo(0, size.height - 45)
+      ..quadraticBezierTo(
+        size.width / 2,
+        size.height + 35,
+        size.width,
+        size.height - 45,
+      )
+      ..lineTo(size.width, 0)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_WaveClipper oldClipper) => false;
+}
+
+class _FaqItem {
+  final String q;
+  final String a;
+
+  const _FaqItem({required this.q, required this.a});
+}
+
+class _FaqTileWidget extends StatefulWidget {
+  final _FaqItem item;
+  final bool isLast;
+
+  const _FaqTileWidget({required this.item, this.isLast = false});
+
+  @override
+  State<_FaqTileWidget> createState() => _FaqTileWidgetState();
+}
+
+class _FaqTileWidgetState extends State<_FaqTileWidget>
+    with SingleTickerProviderStateMixin {
+  static const _sky = Color(0xFF00B4D8);
+  static const _deepBlue = Color(0xFF0077B6);
+
+  bool _expanded = false;
+  late final AnimationController _ctrl;
+  late final Animation<double> _expand;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 200));
+    _expand = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    _expanded ? _ctrl.forward() : _ctrl.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: _toggle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: _sky.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: AnimatedRotation(
+                    turns: _expanded ? 0.125 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 16,
+                      color: _sky,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.item.q,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _expanded ? _deepBlue : const Color(0xFF0B1F33),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizeTransition(
+          sizeFactor: _expand,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(58, 0, 18, 14),
+            child: Text(
+              widget.item.a,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.blueGrey.shade600,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ),
+        if (!widget.isLast)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.blueGrey.shade100,
+            indent: 18,
+            endIndent: 18,
+          ),
+      ],
     );
   }
 }

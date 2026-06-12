@@ -899,15 +899,33 @@ class _ChatPageState extends State<ChatPage> {
       );
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (_showEmojiPicker) {
+    if (_isLoading && !_encryptionReady) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF00B4D8),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(height: 16),
+              const Text(
+                'Initializing encrypted chat...',
+                style: TextStyle(color: Colors.white, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return PopScope(
+      canPop: !_showEmojiPicker,
+      onPopInvokedWithResult: (bool didPop, _) {
+        if (!didPop && _showEmojiPicker) {
           setState(() {
             _showEmojiPicker = false;
           });
-          return false;
         }
-        return true;
       },
       child: Scaffold(
         appBar: PreferredSize(

@@ -881,7 +881,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                           },
                     ),
                 const SizedBox(height: 24),
-              ]))))), // closes inner Column + SingleChildScrollView + RefreshIndicator + Expanded
+              ]))))  // closes Column.children + Column + SCView + RefreshIndicator + Expanded
               ],
             ),
           ),

@@ -68,7 +68,7 @@ exports.createGiftCard = async (req, res) => {
 
         res.status(201).json({ message: 'Gift card created successfully', giftCard: newGiftCard });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating gift card', error: error.message });
+        res.status(500).json({ message: 'Error creating gift card' });
     }
 };
 
@@ -80,7 +80,7 @@ exports.getGiftCards = async (req, res) => {
         const giftCards = await GiftCard.find().populate('createdBy', 'name');
         res.status(200).json(giftCards);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching gift cards', error: error.message });
+        res.status(500).json({ message: 'Error fetching gift cards' });
     }
 };
 
@@ -109,7 +109,7 @@ exports.updateGiftCard = async (req, res) => {
 
         res.status(200).json({ message: 'Gift card updated successfully', giftCard: updatedGiftCard });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating gift card', error: error.message });
+        res.status(500).json({ message: 'Error updating gift card' });
     }
 };
 
@@ -134,6 +134,6 @@ exports.deleteGiftCard = async (req, res) => {
 
         res.status(200).json({ message: 'Gift card deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting gift card', error: error.message });
+        res.status(500).json({ message: 'Error deleting gift card' });
     }
 };

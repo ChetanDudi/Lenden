@@ -2724,7 +2724,6 @@ class _TransactionPageState extends State<TransactionPage> {
                         onPrimary: Colors.white,
                         surface: Colors.white,
                         onSurface: Colors.black87,
-                        background: Colors.white,
                       ),
                       dialogTheme: DialogTheme(
                         backgroundColor: Colors.white,
@@ -2789,7 +2788,6 @@ class _TransactionPageState extends State<TransactionPage> {
                         onPrimary: Colors.white,
                         surface: Colors.white,
                         onSurface: Colors.black87,
-                        background: Colors.white,
                       ),
                       dialogTheme: DialogTheme(
                         backgroundColor: Colors.white,

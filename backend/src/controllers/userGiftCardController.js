@@ -67,7 +67,7 @@ exports.getUnscractchedGiftCards = async (req, res) => {
 
     res.status(200).json({ cards });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -81,7 +81,7 @@ exports.getScratcedGiftCards = async (req, res) => {
 
     res.status(200).json({ cards });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -141,7 +141,7 @@ exports.scratchGiftCard = async (req, res) => {
       card: populatedCard,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -158,6 +158,6 @@ exports.getGiftCardCounts = async (req, res) => {
       total: unscratched + scratched,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Server error' });
   }
 };
