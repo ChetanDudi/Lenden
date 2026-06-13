@@ -566,11 +566,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     fetchQuickTransactions();
   }
 
-  void _applyDateFilter(String value) {
-    setState(() => _dateFilter = value);
-    fetchQuickTransactions();
-  }
-
   void _applyCounterpartyFilter(String value) {
     setState(() => _selectedCounterparty = value);
     fetchQuickTransactions();
@@ -1250,24 +1245,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     );
   }
 
-  double _displayAmountForTransaction(Map<String, dynamic> transaction) {
-    final amount = (transaction['amount'] as num?)?.toDouble() ??
-        double.tryParse('${transaction['amount']}') ??
-        0.0;
-    final sourceCurrency = (transaction['currency'] ?? 'INR').toString();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
-          sourceCurrency,
-          targetCurrency,
-        ) ??
-        (sourceCurrency.toUpperCase() == targetCurrency);
-    return canConvert
-        ? (_displayCurrencyData?.convert(
-                amount, sourceCurrency, targetCurrency) ??
-            amount)
-        : amount;
-  }
-
   Map<String, List<Map<String, dynamic>>> _groupDisplayedTransactions(
       List<Map<String, dynamic>> items) {
     final grouped = <String, List<Map<String, dynamic>>>{};
@@ -1582,11 +1559,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     final visibleTransactions =
         filteredTransactions.isEmpty ? transactions : filteredTransactions;
     final total = visibleTransactions.length;
-    final cleared =
-        visibleTransactions.where((t) => t['cleared'] == true).length;
-    final pending = total - cleared;
-    final favorites =
-        visibleTransactions.where(_isQuickTransactionFavourited).length;
     final lent =
         visibleTransactions.where((t) => _roleForViewer(t) == 'lender').length;
     final totalValue = visibleTransactions.fold<double>(
@@ -1708,25 +1680,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     });
   }
 
-  Widget _buildFilterOption(String label, String value, IconData icon) {
-    final isSelected = filterBy == value;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Color(0xFF00B4D8) : Colors.grey),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Color(0xFF00B4D8) : Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF00B4D8)) : null,
-      onTap: () {
-        applyFilter(value);
-        Navigator.pop(context);
-      },
-    );
-  }
-
   Widget _buildSortOption(String label, String value) {
     final isSelected = sortBy == value;
     return ListTile(
@@ -1742,25 +1695,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         setState(() => sortBy = value);
         Navigator.pop(context);
         fetchQuickTransactions();
-      },
-    );
-  }
-
-  Widget _buildDateFilterOption(String label, String value, IconData icon) {
-    final isSelected = _dateFilter == value;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Color(0xFF00B4D8) : Colors.grey),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Color(0xFF00B4D8) : Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF00B4D8)) : null,
-      onTap: () {
-        _applyDateFilter(value);
-        Navigator.pop(context);
       },
     );
   }

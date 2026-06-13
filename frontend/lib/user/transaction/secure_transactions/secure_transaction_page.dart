@@ -2686,26 +2686,6 @@ class _TransactionPageState extends State<TransactionPage> {
     );
   }
 
-  Widget _buildCurrencyDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _currency,
-      items: _currencies
-          .map((c) => DropdownMenuItem(
-                value: c['code'],
-                child: Text('${c['symbol']} ${c['code']}'),
-              ))
-          .toList(),
-      onChanged: _bothUsersVerified
-          ? null
-          : (val) => setState(() => _currency = val ?? 'INR'),
-      decoration: InputDecoration(
-        labelText: 'Currency',
-        prefixIcon: Icon(Icons.currency_exchange, color: Color(0xFF00B4D8)),
-        border: InputBorder.none,
-      ),
-    );
-  }
-
   Widget _buildDatePickerField() {
     return InkWell(
       onTap: _bothUsersVerified
@@ -3415,7 +3395,6 @@ class _TransactionPageState extends State<TransactionPage> {
                                           onPrimary: Colors.white,
                                           surface: Colors.white,
                                           onSurface: Colors.black87,
-                                          background: Colors.white,
                                         ),
                                         dialogTheme: DialogTheme(
                                           backgroundColor: Colors.white,
