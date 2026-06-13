@@ -396,18 +396,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Widget _buildTransactionCard(Map t, bool isLending) {
-    List<Map<String, dynamic>> attachments = [];
-    if (t['files'] != null && t['files'] is List && t['files'].isNotEmpty) {
-      attachments = List<Map<String, dynamic>>.from(t['files']);
-    } else if (t['photos'] != null &&
-        t['photos'] is List &&
-        t['photos'].isNotEmpty) {
-      // For backward compatibility, treat photos as images
-      attachments = t['photos']
-          .map<Map<String, dynamic>>(
-              (p) => {'type': 'image/jpeg', 'data': p, 'name': 'Photo'})
-          .toList();
-    }
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
     final userEmail = t['userEmail'];
@@ -434,8 +422,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     String dateStr =
         t['date'] != null ? t['date'].toString().substring(0, 10) : '';
     String timeStr = t['time'] != null ? t['time'].toString() : '';
-    String counterparty =
-        isLending ? t['counterpartyEmail'] : t['counterpartyEmail'];
     Color borderColor = fullyCleared
         ? Colors.green
         : hasPartialPayment
@@ -788,225 +774,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     );  // closes GestureDetector
   }
 
-  Widget _buildFilterChips() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ChoiceChip(
-            label: Text('All'),
-            selected: filter == 'All',
-            onSelected: (_) { setState(() => filter = 'All'); fetchTransactions(); },
-            selectedColor: Color(0xFF00B4D8).withValues(alpha: 0.2),
-          ),
-          SizedBox(width: 8),
-          ChoiceChip(
-            label: Text('Lending'),
-            selected: filter == 'Lending',
-            onSelected: (_) { setState(() => filter = 'Lending'); fetchTransactions(); },
-            selectedColor: Colors.green.withValues(alpha: 0.2),
-            labelStyle: TextStyle(color: Colors.green[800]),
-          ),
-          SizedBox(width: 8),
-          ChoiceChip(
-            label: Text('Borrowing'),
-            selected: filter == 'Borrowing',
-            onSelected: (_) { setState(() => filter = 'Borrowing'); fetchTransactions(); },
-            selectedColor: Colors.orange.withValues(alpha: 0.2),
-            labelStyle: TextStyle(color: Colors.orange[800]),
-          ),
-          SizedBox(width: 8),
-          ChoiceChip(
-            label: Text('Favourites'),
-            selected: showFavouritesOnly,
-            onSelected: (selected) {
-                setState(() => showFavouritesOnly = selected);
-                fetchTransactions();
-            },
-            selectedColor: Colors.red.withValues(alpha: 0.2),
-            labelStyle: TextStyle(color: Colors.red[800]),
-          ),
-          if (_hasActiveFilters()) ...[
-            SizedBox(width: 8),
-            ActionChip(
-              label: const Text('Reset'),
-              avatar: const Icon(Icons.refresh_rounded, size: 18),
-              onPressed: _resetFilters,
-              backgroundColor: const Color(0xFF00B4D8).withValues(alpha: 0.10),
-              labelStyle: const TextStyle(
-                color: Color(0xFF0077B6),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  Widget _buildClearanceFilterChips() {
-    return Column(
-      children: [
-        Container(
-          margin: EdgeInsets.symmetric(vertical: 8),
-          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.teal.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Tooltip(
-                      message: 'Show all transactions',
-                      child: ChoiceChip(
-                        label: Text('All'),
-                        selected: clearanceFilter == 'All',
-                        onSelected: (_) {
-                          setState(() => clearanceFilter = 'All');
-                          fetchTransactions();
-                        },
-                        selectedColor: Color(0xFF00B4D8).withValues(alpha: 0.2),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Tooltip(
-                      message: 'Both parties have cleared',
-                      child: ChoiceChip(
-                        label: Text('Totally Cleared'),
-                        selected: clearanceFilter == 'Totally Cleared',
-                        onSelected: (_) {
-                          setState(() => clearanceFilter = 'Totally Cleared');
-                          fetchTransactions();
-                        },
-                        selectedColor: Colors.green.withValues(alpha: 0.2),
-                        labelStyle: TextStyle(color: Colors.green[800]),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Tooltip(
-                      message: 'Neither party has cleared',
-                      child: ChoiceChip(
-                        label: Text('Totally Uncleared'),
-                        selected: clearanceFilter == 'Totally Uncleared',
-                        onSelected: (_) {
-                          setState(() => clearanceFilter = 'Totally Uncleared');
-                          fetchTransactions();
-                        },
-                        selectedColor: Colors.orange.withValues(alpha: 0.2),
-                        labelStyle: TextStyle(color: Colors.orange[800]),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Tooltip(
-                      message: 'Only one party has cleared',
-                      child: ChoiceChip(
-                        label: Text('Partially Cleared'),
-                        selected: clearanceFilter == 'Partially Cleared',
-                        onSelected: (_) {
-                          setState(() => clearanceFilter = 'Partially Cleared');
-                          fetchTransactions();
-                        },
-                        selectedColor: Colors.blue.withValues(alpha: 0.2),
-                        labelStyle: TextStyle(color: Colors.blue[800]),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (clearanceFilter == 'Partially Cleared')
-                Padding(
-                  padding: const EdgeInsets.only(top: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ToggleButtons(
-                        isSelected: [
-                          partialClearedType == 'my',
-                          partialClearedType == 'other'
-                        ],
-                        onPressed: (idx) {
-                          setState(() => partialClearedType = idx == 0 ? 'my' : 'other');
-                          fetchTransactions();
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        selectedColor: Colors.white,
-                        fillColor: Colors.teal,
-                        color: Colors.teal,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(children: [
-                              Icon(Icons.person, size: 18),
-                              SizedBox(width: 6),
-                              Text('My Side')
-                            ]),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(children: [
-                              Icon(Icons.people, size: 18),
-                              SizedBox(width: 6),
-                              Text('Other Party Side')
-                            ]),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        // Interest type filter chips
-        Container(
-          margin: EdgeInsets.only(top: 8),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ChoiceChip(
-                  label: Text('All'),
-                  selected: interestTypeFilter == 'All',
-                  onSelected: (_) { setState(() => interestTypeFilter = 'All'); fetchTransactions(); },
-                  selectedColor: Color(0xFF00B4D8).withValues(alpha: 0.2),
-                ),
-                SizedBox(width: 8),
-                ChoiceChip(
-                  label: Text('Simple Interest'),
-                  selected: interestTypeFilter == 'simple',
-                  onSelected: (_) { setState(() => interestTypeFilter = 'simple'); fetchTransactions(); },
-                  selectedColor: Colors.green.withValues(alpha: 0.2),
-                  labelStyle: TextStyle(color: Colors.green[800]),
-                ),
-                SizedBox(width: 8),
-                ChoiceChip(
-                  label: Text('Compound Interest'),
-                  selected: interestTypeFilter == 'compound',
-                  onSelected: (_) { setState(() => interestTypeFilter = 'compound'); fetchTransactions(); },
-                  selectedColor: Colors.blue.withValues(alpha: 0.2),
-                  labelStyle: TextStyle(color: Colors.blue[800]),
-                ),
-                SizedBox(width: 8),
-                ChoiceChip(
-                  label: Text('With Interest'),
-                  selected: interestTypeFilter == 'with_interest',
-                  onSelected: (_) { setState(() => interestTypeFilter = 'with_interest'); fetchTransactions(); },
-                  selectedColor: Colors.purple.withValues(alpha: 0.2),
-                  labelStyle: TextStyle(color: Colors.purple[800]),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   int _activeFilterCount() {
     int count = 0;
@@ -1193,93 +961,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     );
   }
 
-  Widget _buildAdvancedFilters() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _startDate ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) setState(() => _startDate = picked);
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Start Date',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  child: Text(_startDate == null
-                      ? 'Any'
-                      : DateFormat('yyyy-MM-dd').format(_startDate!)),
-                ),
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _endDate ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) setState(() => _endDate = picked);
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'End Date',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  child: Text(_endDate == null
-                      ? 'Any'
-                      : DateFormat('yyyy-MM-dd').format(_endDate!)),
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Min Amount',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (val) =>
-                    setState(() => _minAmount = double.tryParse(val)),
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Max Amount',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (val) =>
-                    setState(() => _maxAmount = double.tryParse(val)),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
   Future<DateTime?> _showStyledDatePicker({
     required DateTime initialDate,
@@ -2097,13 +1778,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     fetchTransactions();
   }
 
-  String? _viewerEmail() {
-    final user = Provider.of<SessionProvider>(context, listen: false).user;
-    return user?['email'];
-  }
 
-  bool _isTotallyCleared(Map t) =>
-      (t['userCleared'] == true && t['counterpartyCleared'] == true);
 
   // Returns the amount still owed: remaining principal + accrued interest.
   // Returns 0 if fully cleared.
@@ -2141,35 +1816,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         (partialPayments is List && partialPayments.isNotEmpty);
   }
 
-  bool _isTotallyUncleared(Map t) => (t['userCleared'] != true &&
-      t['counterpartyCleared'] != true &&
-      !_hasPartialPayment(t));
 
-  bool _isPartiallyClearedMySide(Map t) {
-    final email = _viewerEmail();
-    if (t['userEmail'] == email) {
-      return t['userCleared'] == true && t['counterpartyCleared'] != true;
-    } else if (t['counterpartyEmail'] == email) {
-      return t['counterpartyCleared'] == true && t['userCleared'] != true;
-    }
-    return false;
-  }
 
-  bool _isPartiallyClearedOtherSide(Map t) {
-    final email = _viewerEmail();
-    if (t['userEmail'] == email) {
-      return t['counterpartyCleared'] == true && t['userCleared'] != true;
-    } else if (t['counterpartyEmail'] == email) {
-      return t['userCleared'] == true && t['counterpartyCleared'] != true;
-    }
-    return false;
-  }
 
-  bool _isPartiallyCleared(Map t) {
-    final userCleared = t['userCleared'] == true;
-    final counterpartyCleared = t['counterpartyCleared'] == true;
-    return userCleared != counterpartyCleared || _hasPartialPayment(t);
-  }
 
   String _remainingTimeLabel(DateTime expectedReturnDate) {
     final difference = expectedReturnDate.difference(_now);
