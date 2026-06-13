@@ -462,6 +462,9 @@ module.exports = (io) => {
   router.post('/wallet/verify', auth, walletController.verifyTopUp);
   router.post('/wallet/pay', auth, walletController.pay);
   router.post('/wallet/qr-pay', auth, walletController.qrPay);
+  router.post('/wallet/create-qr-order', auth, walletController.createQrOrder);
+  router.post('/wallet/verify-qr-payment', auth, walletController.verifyQrPayment);
+  router.post('/wallet/pay-upi-qr', auth, walletController.payUpiQr);
   router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
 
   // Wallet Withdrawal routes (Razorpay Payouts)
