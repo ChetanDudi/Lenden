@@ -28,6 +28,7 @@ import '../digitise/lenden_coins_page.dart';
 import '../ads_and_updates/updates_page.dart';
 import '../ads_and_updates/ad_popup_dialog.dart';
 import '../wallet/lenden_wallet_page.dart';
+import '../scanner/qr_scanner_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
 
@@ -887,6 +888,87 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
         backgroundColor: const Color(0xFFF8F6FA),
+        floatingActionButton: Container(
+          width: context.sh(64),
+          height: context.sh(64),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: const [
+              BoxShadow(color: Colors.black38, blurRadius: 10, offset: Offset(0, 4)),
+            ],
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF6B00), Color(0xFFFFAB00)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: _openQrScanner,
+              splashColor: Colors.white24,
+              child: Center(
+                child: Icon(Icons.qr_code_scanner,
+                    color: Colors.white, size: context.sh(28)),
+              ),
+            ),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 6,
+          color: Colors.transparent,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          child: SizedBox(
+            height: context.sh(78),
+            child: Stack(
+              children: [
+                // S-curve wave background (vertical mirror of TopWaveClipper)
+                Positioned.fill(
+                  child: ClipPath(
+                    clipper: _BottomNavWaveClipper(),
+                    child: Container(color: const Color(0xFF009999)),
+                  ),
+                ),
+                // Icons sit in the solid area at the bottom of the wave
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 6,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _navBarItem(Icons.settings_rounded, 'Settings', () {
+                        Navigator.pushNamed(context, '/settings');
+                      }),
+                      _navBarItem(Icons.monetization_on_rounded, 'Coins', () {
+                        final session = Provider.of<SessionProvider>(context,
+                            listen: false);
+                        _openLenDenCoinsPage(session.lenDenCoins ?? 0);
+                      }, accent: const Color(0xFFFF9F45)),
+                      SizedBox(width: context.sh(48)),
+                      _navBarItem(Icons.account_balance_wallet_rounded,
+                          'Wallet', () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const LendenWalletPage()));
+                      }, accent: const Color(0xFFFF9F45)),
+                      _navBarItem(Icons.logout_rounded, 'Logout',
+                          () => _confirmLogout(context)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         body: Stack(
           children: [
             // Main content
@@ -1278,9 +1360,12 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               ),
                             ],
                           ),
-                          Row(
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Row(
                             children: [
                               NotificationIcon(),
+                              const SizedBox(width: 4),
                               IconButton(
                                 icon: const Icon(Icons.emoji_events,
                                     color: Color(0xFF005F73), size: 26),
@@ -1294,30 +1379,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                   );
                                 },
                               ),
-                              GestureDetector(
-                                onTap: () {
-                                  final session = Provider.of<SessionProvider>(
-                                      context,
-                                      listen: false);
-                                  _openLenDenCoinsPage(
-                                      session.lenDenCoins ?? 0);
-                                },
-                                child: Icon(Icons.monetization_on,
-                                    color: Colors.amber, size: 28),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.account_balance_wallet_rounded,
-                                    color: Color(0xFFFF8000), size: 26),
-                                tooltip: 'LenDen Wallet',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const LendenWalletPage(),
-                                    ),
-                                  );
-                                },
-                              ),
+                              const SizedBox(width: 4),
                               Container(
                                 padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
@@ -1365,13 +1427,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.logout,
-                                    color: Colors.black, size: 28),
-                                tooltip: 'Logout',
-                                onPressed: () => _confirmLogout(context),
-                              ),
                             ],
+                          ),
                           ),
                         ],
                       ),
@@ -1671,190 +1728,261 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     );
   }
 
+  void _openQrScanner() {
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const QrScannerPage()));
+  }
+
+  Widget _navBarItem(IconData icon, String label, VoidCallback onTap,
+      {Color? accent}) {
+    final Color base = accent ?? const Color(0xFF00B4D8);
+    final Color dark = Color.lerp(base, const Color(0xFF001A2E), 0.4)!;
+    return Tooltip(
+      message: label,
+      // Outer tricolor ring — identical to profile pic border
+      child: Container(
+        width: 36,
+        height: 36,
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Colors.orange, Colors.white, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: Ink(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [dark, base],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: InkWell(
+              onTap: onTap,
+              splashColor: Colors.white30,
+              child: Center(child: Icon(icon, size: 16, color: Colors.white)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmLogout(BuildContext context) async {
     bool isLoggingOut = false;
 
     final confirmed = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => StatefulBuilder(
-              builder: (context, setState) => Dialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Wave header + floating icon badge
+                Stack(
+                  alignment: Alignment.bottomCenter,
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        height: context.sh(75),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                          ),
-                        ),
-                        child: ClipPath(
-                          clipper: LogoutWaveClipper(),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFF00B4D8), Color(0xFF0096CC)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                      child: ClipPath(
+                        clipper: LogoutWaveClipper(),
+                        child: Container(
+                          height: context.sh(80),
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF0077B6), Color(0xFF00B4D8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
                           ),
                         ),
                       ),
-                      Container(
-                        padding: EdgeInsets.all(context.sw(22)),
-                        child: Column(
-                          children: [
-                            if (isLoggingOut) ...[
-                              const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF00B4D8),
-                                ),
-                              ),
-                              SizedBox(height: context.sh(16)),
-                              Text(
-                                'Logging out...',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: context.sp(16),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ] else ...[
-                              Text(
-                                'Are you sure?',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: context.sp(22),
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              SizedBox(height: context.sh(14)),
-                              Text(
-                                'Do you want to logout?',
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: context.sp(15),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 32),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      margin: EdgeInsets.only(right: 8),
-                                      child: ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(false),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.grey[100],
-                                          foregroundColor: Colors.grey[700],
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            side: BorderSide(
-                                                color: Colors.grey[300]!),
-                                          ),
-                                          padding: EdgeInsets.symmetric(
-                                              vertical: 16),
-                                          elevation: 0,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.close, size: 20),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'NO',
-                                              style: TextStyle(
-                                                fontSize: context.sp(15),
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Container(
-                                      margin: EdgeInsets.only(left: 8),
-                                      child: ElevatedButton(
-                                        onPressed: () async {
-                                          setState(() {
-                                            isLoggingOut = true;
-                                          });
-
-                                          await Provider.of<SessionProvider>(
-                                                  context,
-                                                  listen: false)
-                                              .logout();
-
-                                          Navigator.of(context).pop(true);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF00B4D8),
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          padding: EdgeInsets.symmetric(
-                                              vertical: 16),
-                                          elevation: 2,
-                                          shadowColor: Color(0xFF00B4D8)
-                                              .withValues(alpha: 0.3),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.logout, size: 20),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'YES',
-                                              style: TextStyle(
-                                                fontSize: context.sp(15),
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                    ),
+                    // Floating logout icon — sits at wave/content boundary
+                    Positioned(
+                      bottom: -28,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFE53935), Color(0xFFFF7043)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withValues(alpha: 0.35),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
                           ],
                         ),
+                        child: const Icon(Icons.logout_rounded,
+                            color: Colors.white, size: 26),
                       ),
+                    ),
+                  ],
+                ),
+                // Content area
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                      context.sw(24), context.sh(42), context.sw(24), context.sh(24)),
+                  child: Column(
+                    children: [
+                      if (isLoggingOut) ...[
+                        const CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Color(0xFF00B4D8)),
+                        ),
+                        SizedBox(height: context.sh(16)),
+                        Text('Logging out...',
+                            style: TextStyle(
+                              fontSize: context.sp(16),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            )),
+                      ] else ...[
+                        Text('Are you sure?',
+                            style: TextStyle(
+                              fontSize: context.sp(22),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            )),
+                        SizedBox(height: context.sh(8)),
+                        Text(
+                          'You will be logged out of\nyour account.',
+                          style: TextStyle(
+                            fontSize: context.sp(14),
+                            color: Colors.grey[500],
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: context.sh(28)),
+                        Row(
+                          children: [
+                            // Cancel button
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF00B4D8),
+                                  side: const BorderSide(
+                                      color: Color(0xFF00B4D8), width: 1.5),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14)),
+                                  padding: EdgeInsets.symmetric(
+                                      vertical: context.sh(14)),
+                                ),
+                                child: Text('Cancel',
+                                    style: TextStyle(
+                                        fontSize: context.sp(14),
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                            SizedBox(width: context.sw(12)),
+                            // Logout button — red gradient
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFE53935),
+                                      Color(0xFFFF7043)
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.red.withValues(alpha: 0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    setState(() => isLoggingOut = true);
+                                    await Provider.of<SessionProvider>(context,
+                                            listen: false)
+                                        .logout();
+                                    Navigator.of(context).pop(true);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: context.sh(14)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.logout_rounded, size: 18),
+                                      const SizedBox(width: 6),
+                                      Text('Logout',
+                                          style: TextStyle(
+                                              fontSize: context.sp(14),
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-            ));
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
 
     if (confirmed == true && context.mounted) {
       Navigator.pushReplacementNamed(context, '/login');
@@ -1878,6 +2006,26 @@ class TopWaveClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Vertical mirror of TopWaveClipper — wave edge at top, solid teal below
+class _BottomNavWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, size.height);
+    path.lineTo(0, size.height * 0.3);
+    path.quadraticBezierTo(
+        size.width * 0.25, 0, size.width * 0.5, size.height * 0.3);
+    path.quadraticBezierTo(
+        size.width * 0.75, size.height * 0.6, size.width, size.height * 0.3);
+    path.lineTo(size.width, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_BottomNavWaveClipper oldClipper) => false;
 }
 
 class LogoutWaveClipper extends CustomClipper<Path> {

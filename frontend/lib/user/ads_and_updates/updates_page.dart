@@ -150,7 +150,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       ),
       body: Stack(
         children: [
-          // Wave header
+          // Top wave — same clipper & colour as user dashboard
           Positioned(
             top: 0,
             left: 0,
@@ -158,14 +158,8 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
             child: ClipPath(
               clipper: _WaveClipper(),
               child: Container(
-                height: 230,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF0077B6), Color(0xFF00B4D8), Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+                height: (MediaQuery.of(context).padding.top + kToolbarHeight) * 1.5,
+                color: const Color(0xFF00B4D8),
               ),
             ),
           ),
@@ -174,7 +168,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
               color: _sky,
               onRefresh: _loadUpdates,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 4, 16, 24),
                 children: [
                   _buildHeroCard(),
                   const SizedBox(height: 14),
@@ -664,16 +658,14 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
 class _WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    final path = Path()
-      ..lineTo(0, size.height - 45)
-      ..quadraticBezierTo(
-        size.width / 2,
-        size.height + 35,
-        size.width,
-        size.height - 45,
-      )
-      ..lineTo(size.width, 0)
-      ..close();
+    final path = Path();
+    path.lineTo(0, size.height * 0.7);
+    path.quadraticBezierTo(
+        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
+    path.quadraticBezierTo(
+        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
+    path.lineTo(size.width, 0);
+    path.close();
     return path;
   }
 

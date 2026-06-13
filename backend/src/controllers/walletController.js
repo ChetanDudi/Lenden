@@ -186,6 +186,45 @@ exports.pay = async (req, res) => {
   }
 };
 
+// QR-based wallet payment — same ACID logic as pay() but accepts toUserId instead of email
+exports.qrPay = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const { toUserId, amount, note } = req.body;
+    if (!toUserId) return res.status(400).json({ error: 'toUserId is required.' });
+    if (!amount || Number(amount) <= 0) return res.status(400).json({ error: 'A positive amount is required.' });
+
+    const parsedAmount = Number(amount);
+    const receiver = await User.findById(toUserId).select('_id email');
+    if (!receiver) return res.status(404).json({ error: 'Recipient not found on LenDen.' });
+
+    let newBalance;
+    await session.withTransaction(async () => {
+      const sender = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: parsedAmount } },
+        { $inc: { walletBalance: -parsedAmount } },
+        { new: true, session }
+      );
+      if (!sender) throw Object.assign(new Error('Insufficient wallet balance'), { status: 400, userMessage: 'Insufficient wallet balance.' });
+      if (sender._id.equals(receiver._id)) throw Object.assign(new Error('Cannot pay yourself'), { status: 400, userMessage: 'Cannot pay yourself.' });
+
+      await User.findByIdAndUpdate(receiver._id, { $inc: { walletBalance: parsedAmount } }, { session });
+      await WalletTransaction.create([
+        { user: sender._id, type: 'debit',  amount: parsedAmount, toEmail: receiver.email, note: note || 'QR Payment' },
+        { user: receiver._id, type: 'credit', amount: parsedAmount, fromEmail: sender.email, note: note || 'QR Payment' },
+      ], { session });
+
+      newBalance = sender.walletBalance;
+    });
+
+    res.json({ message: 'QR payment successful', balance: newBalance });
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
+  } finally {
+    session.endSession();
+  }
+};
+
 // Pay for a subscription plan using wallet balance
 exports.paySubscription = async (req, res) => {
   const session = await mongoose.startSession();

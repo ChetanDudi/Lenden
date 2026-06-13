@@ -483,7 +483,7 @@ class HomePage extends StatelessWidget {
                     SizedBox(height: context.sh(20)),
                     // Feature cards (auto-scroll, horizontally swipeable)
                     SizedBox(
-                      height: context.sh(160),
+                      height: context.sh(200),
                       child: _FeatureCardCarousel(),
                     ),
                     SizedBox(height: context.sh(28)),
@@ -537,97 +537,115 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: context.sh(28)),
-                    Container(
-                      padding: const EdgeInsets.all(2.5),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          final session = Provider.of<SessionProvider>(context,
-                              listen: false);
-                          if (session.token != null && session.user != null) {
-                            if (session.isAdmin) {
-                              Navigator.pushNamed(context, '/admin/dashboard');
-                            } else {
-                              Navigator.pushNamed(context, '/user/dashboard');
-                            }
-                          } else {
-                            Navigator.pushNamed(context, '/login');
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00B4D8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(21.5),
-                          ),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                          padding: EdgeInsets.symmetric(
-                              vertical: context.sh(14),
-                              horizontal: context.sw(28)),
-                        ),
-                        icon: const Icon(Icons.arrow_forward, color: Colors.white),
-                        label: Text('Get Started',
-                            style: TextStyle(
-                                fontSize: context.sp(17),
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.1)),
-                      ),
-                    ),
-                    SizedBox(height: context.sh(16)),
                     Consumer<SessionProvider>(
                       builder: (context, session, _) {
-                        if (session.token == null || session.user == null) {
-                          return Container(
-                            padding: const EdgeInsets.all(2.5),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24),
-                              gradient: const LinearGradient(
-                                colors: [Colors.orange, Colors.white, Colors.green],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                        final notLoggedIn =
+                            session.token == null || session.user == null;
+
+                        final getStartedBtn = Container(
+                          padding: const EdgeInsets.all(2.5),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.orange, Colors.white, Colors.green],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            child: TextButton.icon(
-                              onPressed: () =>
-                                  Navigator.pushNamed(context, '/register'),
-                              style: TextButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(21.5)),
-                                padding: EdgeInsets.symmetric(
-                                    vertical: context.sh(12),
-                                    horizontal: context.sw(28)),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final s = Provider.of<SessionProvider>(context,
+                                  listen: false);
+                              if (s.token != null && s.user != null) {
+                                if (s.isAdmin) {
+                                  Navigator.pushNamed(context, '/admin/dashboard');
+                                } else {
+                                  Navigator.pushNamed(context, '/user/dashboard');
+                                }
+                              } else {
+                                Navigator.pushNamed(context, '/login');
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00B4D8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(21.5),
                               ),
-                              icon: const Icon(Icons.arrow_forward,
-                                  color: Color(0xFF00B4D8)),
-                              label: Text('Register',
-                                  style: TextStyle(
-                                      fontSize: context.sp(17),
-                                      color: const Color(0xFF00B4D8),
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.1)),
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: context.sh(14),
+                                  horizontal: context.sw(28)),
                             ),
-                          );
-                        }
-                        return const SizedBox.shrink();
+                            icon: const Icon(Icons.arrow_forward,
+                                color: Colors.white),
+                            label: Text('Get Started',
+                                style: TextStyle(
+                                    fontSize: context.sp(17),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.1)),
+                          ),
+                        );
+
+                        final registerBtn = Container(
+                          padding: const EdgeInsets.all(2.5),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            gradient: const LinearGradient(
+                              colors: [Colors.orange, Colors.white, Colors.green],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: TextButton.icon(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/register'),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(21.5)),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: context.sh(12),
+                                  horizontal: context.sw(28)),
+                            ),
+                            icon: const Icon(Icons.arrow_forward,
+                                color: Color(0xFF00B4D8)),
+                            label: Text('Register',
+                                style: TextStyle(
+                                    fontSize: context.sp(17),
+                                    color: const Color(0xFF00B4D8),
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.1)),
+                          ),
+                        );
+
+                        return Column(
+                          children: [
+                            // When not logged in: Get Started at top, Register below.
+                            // When logged in: invisible placeholder keeps spacing,
+                            // Get Started appears at Register's position.
+                            Visibility(
+                              visible: notLoggedIn,
+                              maintainSize: true,
+                              maintainAnimation: true,
+                              maintainState: true,
+                              child: getStartedBtn,
+                            ),
+                            SizedBox(height: context.sh(16)),
+                            notLoggedIn ? registerBtn : getStartedBtn,
+                            SizedBox(height: context.sh(28)),
+                          ],
+                        );
                       },
                     ),
-                    SizedBox(height: context.sh(28)),
                   ],
                 ),
               ),
@@ -688,7 +706,7 @@ class _FeatureCard extends StatelessWidget {
             Text(
               description,
               style: TextStyle(color: Colors.grey, fontSize: context.sp(11)),
-              maxLines: 3,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
