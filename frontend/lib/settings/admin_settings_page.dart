@@ -289,7 +289,6 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.history,
                   Icons.arrow_forward_ios,
                   () {
-                    // TODO: Implement access logs
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Access Logs coming soon!')),
                     );
@@ -312,7 +311,6 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.backup_outlined,
                   Icons.arrow_forward_ios,
                   () {
-                    // TODO: Implement backup and restore
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('Backup & Restore coming soon!')),
@@ -326,7 +324,6 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.file_download_outlined,
                   Icons.arrow_forward_ios,
                   () {
-                    // TODO: Implement data export
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Data Export coming soon!')),
                     );
@@ -339,7 +336,6 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.build_outlined,
                   Icons.arrow_forward_ios,
                   () {
-                    // TODO: Implement system maintenance
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('System Maintenance coming soon!')),
