@@ -974,8 +974,6 @@ class _UpiPaymentDialog extends StatefulWidget {
 
 class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
   static const _sky = Color(0xFF00B4D8);
-  static const _green = Color(0xFF2ECC71);
-
   final _amountCtrl = TextEditingController();
   bool _loadingWallet = false;
   bool _loadingRazorpay = false;

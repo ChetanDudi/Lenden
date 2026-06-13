@@ -1,8 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
-import 'package:provider/provider.dart';
-import '../../session.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({Key? key}) : super(key: key);
@@ -57,7 +55,6 @@ class _NotesPageState extends State<NotesPage> {
 
   Future<void> fetchNotes() async {
     setState(() { loading = true; error = null; });
-    final session = Provider.of<SessionProvider>(context, listen: false);
     final res = await ApiClient.get('/api/notes');
     if (res.statusCode == 200) {
       final fetchedNotes = List<Map<String, dynamic>>.from(json.decode(res.body)['notes']);

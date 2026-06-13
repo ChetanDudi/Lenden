@@ -31,10 +31,6 @@ class _GiftCardPageState extends State<GiftCardPage>
     [Color(0xFF8B5CF6), Color(0xFFD946EF)], // Purple to Fuchsia
   ];
 
-  Color _getCardColor(int index) {
-    return cardGradients[index % cardGradients.length][0];
-  }
-
   LinearGradient _getCardGradient(int index) {
     final colors = cardGradients[index % cardGradients.length];
     return LinearGradient(

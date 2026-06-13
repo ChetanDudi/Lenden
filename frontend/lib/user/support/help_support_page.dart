@@ -413,11 +413,6 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
 
   String _formatDateTime(String dateTimeString) {
     final dateTime = DateTime.parse(dateTimeString);

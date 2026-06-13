@@ -22,7 +22,6 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _otpController = TextEditingController();
-  bool _newsOptOut = false;
   String? _errorMessage;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;

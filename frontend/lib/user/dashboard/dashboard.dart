@@ -42,7 +42,6 @@ class UserDashboardPage extends StatefulWidget {
 class _UserDashboardPageState extends State<UserDashboardPage>
     with TickerProviderStateMixin {
   List<Map<String, dynamic>> transactions = [];
-  int _pendingFriendRequests = 0;
   bool _friendToastShown = false;
   bool loading = true;
   int _imageRefreshKey = 0;
@@ -293,9 +292,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       if (reqRes.statusCode == 200) {
         final data = jsonDecode(reqRes.body);
         final pending = (data['incoming'] as List? ?? []).length;
-        setState(() {
-          _pendingFriendRequests = pending;
-        });
         if (pending > 0 && !_friendToastShown && mounted) {
           _friendToastShown = true;
           ElegantNotification.info(
@@ -346,7 +342,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   }
 
   Future<void> _checkAndShowRatingDialog() async {
-    final session = Provider.of<SessionProvider>(context, listen: false);
     try {
       final res = await ApiClient.get('/api/rating/my');
       if (res.statusCode == 200) {
@@ -744,9 +739,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    final userId = session.user?['_id'];
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {

@@ -27,8 +27,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   String selectedGroupFilter =
       'All Groups'; // 'All Groups', 'Joined Groups', 'Left Groups'
   bool _showFavouritesOnly = false;
-  String? _favouritingGroupId;
-  String? _chattingGroupId;
   int createdGroupsCount = 0; // Track groups created by user
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
@@ -531,18 +529,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         List<String>.from(expense['selectedMembers'] ?? []);
     // Note: In this view, we don't have access to group data, so we'll keep the original members
     // The backend will handle filtering out inactive members
-
-    Map<String, double> editCustomSplitAmounts = {};
-
-    // Initialize custom split amounts from existing split data
-    if (expense['split'] != null) {
-      for (var splitItem in expense['split']) {
-        // Find the member by user ID in the group data
-        // Since we don't have direct access to group data here, we'll initialize with equal split
-        // We'll need to find the member email from the group data
-        // For now, we'll use a placeholder approach
-      }
-    }
 
     showDialog(
       context: context,
@@ -1485,8 +1471,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                           final members =
                                               group['members'] ?? [];
                                           final creator = group['creator'];
-                                          final isCreator = creator?['email'] ==
-                                              currentUserEmail;
                                           final isFavourite =
                                               (group['favourite'] as List? ??
                                                       [])

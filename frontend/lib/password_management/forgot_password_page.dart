@@ -97,31 +97,6 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
     });
   }
 
-  void _verifyOtp() async {
-    setState(() {
-      _isVerifyingOtp = true;
-      _errorMessage = null;
-    });
-    final res = await _post('/api/users/verify-reset-otp', {
-      'email': _emailController.text,
-      'otp': _otpController.text,
-    });
-    if (res['status'] == 200) {
-      setState(() {
-        _otpVerified = true;
-        _errorMessage = null;
-      });
-      FocusScope.of(context).requestFocus(_newPasswordFocusNode);
-    } else {
-      setState(() {
-        _errorMessage = res['data']['error'] ?? 'OTP verification failed.';
-      });
-    }
-    setState(() {
-      _isVerifyingOtp = false;
-    });
-  }
-
   void _resendOtp() {
     _sendOtp();
     _otpController.clear();
@@ -237,11 +212,6 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
         };
       }
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showSuccessDialog(String title, String message) {

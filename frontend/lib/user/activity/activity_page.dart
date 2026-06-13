@@ -853,40 +853,6 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildInsightCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.black, size: 20),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontSize: 10,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildActivityTypeRow(String type, int count) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -1007,25 +973,6 @@ class _ActivityPageState extends State<ActivityPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActivitiesList() {
-    return RefreshIndicator(
-      onRefresh: () async {
-        await fetchActivities(refresh: true);
-        await fetchStats();
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: activities.length + (hasNextPage ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == activities.length) {
-            return _buildLoadMoreButton();
-          }
-          return _buildActivityListItem(activities[index]);
-        },
       ),
     );
   }

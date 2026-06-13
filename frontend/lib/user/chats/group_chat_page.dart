@@ -6,7 +6,6 @@ import '../../api_config.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
-import 'dart:math';
 import '../../widgets/subscription_prompt.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
@@ -42,7 +41,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
   dynamic _editingMessage;
   late IO.Socket socket;
   Map<String, Color> _userColors = {};
-  final Random _random = Random();
   bool _isActiveMember = true;
   String? _currentUserPublicKey;
   final Map<String, String> _memberPublicKeys = {};
