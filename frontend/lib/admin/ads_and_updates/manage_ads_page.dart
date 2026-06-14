@@ -5,6 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class ManageAdsPage extends StatefulWidget {
   const ManageAdsPage({super.key});
@@ -1311,30 +1312,4 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     final minute = date.minute.toString().padLeft(2, '0');
     return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$minute $meridiem';
   }
-}
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

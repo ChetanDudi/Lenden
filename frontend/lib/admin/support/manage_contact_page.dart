@@ -157,17 +157,20 @@ class _ManageContactPageState extends State<ManageContactPage> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        gradient: const LinearGradient(
+          colors: [Colors.orange, Colors.white, Colors.green],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: tint.withValues(alpha: 0.15),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,6 +236,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -249,12 +253,10 @@ class _ManageContactPageState extends State<ManageContactPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 170,
+                height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF003049), Color(0xFF00B4D8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -305,19 +307,14 @@ class _ManageContactPageState extends State<ManageContactPage> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE6F7FB),
-                                  ],
-                                ),
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(28),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF003049)
-                                        .withValues(alpha: 0.08),
-                                    blurRadius: 22,
-                                    offset: const Offset(0, 12),
+                                    color: const Color(0xFF00B4D8)
+                                        .withValues(alpha: 0.12),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 8),
                                   ),
                                 ],
                               ),
@@ -328,7 +325,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF003049),
+                                      color: const Color(0xFF00B4D8),
                                       borderRadius: BorderRadius.circular(99),
                                     ),
                                     child: const Text(

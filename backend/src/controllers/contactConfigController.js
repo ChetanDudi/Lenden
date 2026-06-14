@@ -1,5 +1,8 @@
 const ContactConfig = require('../models/contactConfig');
 const ContactMessage = require('../models/contactMessage');
+const { CONTACT_CATEGORIES } = require('../models/contactMessage');
+const Notification = require('../models/notification');
+const { sendEmail } = require('../utils/sendEmailApi');
 
 const ensureContactConfig = async () =>
   ContactConfig.findOneAndUpdate(
@@ -83,9 +86,13 @@ exports.updateAdminContactConfig = async (req, res) => {
   }
 };
 
+exports.getContactCategories = (_req, res) => {
+  res.json({ categories: CONTACT_CATEGORIES });
+};
+
 exports.submitContactMessage = async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body || {};
+    const { name, email, subject, message, category } = req.body || {};
 
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required.' });
     if (!email || !email.trim()) return res.status(400).json({ error: 'Email is required.' });
@@ -95,11 +102,14 @@ exports.submitContactMessage = async (req, res) => {
     if (!emailRegex.test(email.trim())) return res.status(400).json({ error: 'Invalid email address.' });
     if (message.trim().length < 10) return res.status(400).json({ error: 'Message is too short.' });
 
+    const validCategory = category && CONTACT_CATEGORIES.includes(category) ? category : 'General Inquiry';
+
     const doc = await ContactMessage.create({
       name: name.trim().slice(0, 100),
       email: email.trim().toLowerCase(),
       subject: subject ? subject.trim().slice(0, 200) : 'General Inquiry',
       message: message.trim().slice(0, 2000),
+      category: validCategory,
       userId: req.user?._id || req.user?.userId || null,
       userEmail: req.user?.email || null,
       ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
@@ -112,11 +122,37 @@ exports.submitContactMessage = async (req, res) => {
   }
 };
 
+exports.getUserMessages = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.userId;
+    const userEmail = req.user?.email;
+
+    const orConditions = [];
+    if (userId) orConditions.push({ userId: userId });
+    if (userEmail) {
+      orConditions.push({ userEmail: userEmail });
+      orConditions.push({ email: userEmail });
+    }
+
+    if (orConditions.length === 0) return res.json({ messages: [] });
+
+    const messages = await ContactMessage.find({ $or: orConditions })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    res.json({ messages });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 exports.getAdminMessages = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status, category, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (status) filter.status = status;
+    if (category && CONTACT_CATEGORIES.includes(category)) filter.category = category;
 
     const skip = (Number(page) - 1) * Number(limit);
     const [messages, total] = await Promise.all([
@@ -148,5 +184,75 @@ exports.updateMessageStatus = async (req, res) => {
     res.json({ success: true, message: doc });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.replyToMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { replyText } = req.body || {};
+
+    if (!replyText || !replyText.trim()) {
+      return res.status(400).json({ error: 'Reply text is required.' });
+    }
+
+    const doc = await ContactMessage.findById(id);
+    if (!doc) return res.status(404).json({ error: 'Message not found.' });
+
+    if (doc.status === 'replied' || doc.replyNote) {
+      return res.status(409).json({ error: 'A reply has already been sent for this message.' });
+    }
+
+    await sendEmail({
+      to: doc.email,
+      subject: `Re: ${doc.subject || 'Your Inquiry'} - Lenden Support`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:linear-gradient(135deg,#00B4D8,#48CAE4);padding:24px;border-radius:12px 12px 0 0;">
+            <h2 style="color:white;margin:0;">Lenden Support</h2>
+          </div>
+          <div style="padding:24px;background:#fff;border-radius:0 0 12px 12px;border:1px solid #e0e0e0;">
+            <p style="color:#555;margin:0 0 16px;">Hi ${doc.name},</p>
+            <p style="color:#333;margin:0 0 20px;">Thank you for reaching out. Here is our response:</p>
+            <div style="background:#f0f9fc;border-left:4px solid #00B4D8;padding:16px;border-radius:4px;margin:0 0 24px;">
+              <p style="color:#333;margin:0;line-height:1.6;">${replyText.trim().replace(/\n/g, '<br>')}</p>
+            </div>
+            <p style="color:#999;font-size:12px;margin:0 0 4px;"><strong>Your original message:</strong></p>
+            <p style="color:#aaa;font-size:12px;font-style:italic;margin:0 0 24px;">"${doc.message}"</p>
+            <p style="color:#555;margin:0;">Best regards,<br><strong>Lenden Support Team</strong></p>
+          </div>
+        </div>
+      `,
+    });
+
+    const updated = await ContactMessage.findByIdAndUpdate(
+      id,
+      { status: 'replied', replyNote: replyText.trim(), repliedAt: new Date() },
+      { new: true }
+    );
+
+    // Send in-app notification if the message was from a logged-in user
+    if (doc.userId) {
+      await Notification.create({
+        sender: req.user._id,
+        senderModel: 'Admin',
+        recipientType: 'specific-users',
+        recipients: [doc.userId],
+        recipientModel: 'User',
+        title: 'Reply to your inquiry',
+        message: `Your message "${doc.subject || 'General Inquiry'}" has been replied to. Open Contact Us to read the response.`,
+        category: 'system',
+        deliveryStatus: 'sent',
+        sentAt: new Date(),
+      });
+    }
+
+    res.json({ success: true, message: updated });
+  } catch (err) {
+    console.error('❌ replyToMessage error:', err);
+    if (err.message && err.message.includes('SendGrid')) {
+      return res.status(502).json({ error: `Email delivery failed: ${err.message}` });
+    }
+    res.status(500).json({ error: 'Failed to send reply.' });
   }
 };

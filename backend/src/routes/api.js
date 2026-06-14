@@ -172,7 +172,9 @@ module.exports = (io) => {
 
   // Support routes (User)
   router.get('/contact-info', contactConfigController.getPublicContactConfig);
+  router.get('/contact-categories', contactConfigController.getContactCategories);
   router.post('/contact-message', contactConfigController.submitContactMessage);
+  router.get('/contact-messages/mine', auth, contactConfigController.getUserMessages);
   router.post('/support/queries', auth, supportController.createSupportQuery);
   router.get('/support/queries/me', auth, supportController.getUserSupportQueries);
   router.put('/support/queries/:queryId', auth, supportController.updateSupportQuery);
@@ -393,6 +395,7 @@ module.exports = (io) => {
   router.get('/admin/currency-conversions', auth, isAdmin, currencyConversionController.getAdminCurrencyConversions);
   router.put('/admin/currency-conversions', auth, isAdmin, currencyConversionController.upsertAdminCurrencyConversion);
   router.post('/admin/currency-conversions/currencies', auth, isAdmin, currencyConversionController.addSupportedCurrency);
+  router.post('/admin/currency-conversions/sync-live-rates', auth, isAdmin, currencyConversionController.syncLiveRates);
 
   // Notification Settings
   router.get('/admin/notification-settings', auth, isAdmin, settingsController.getAdminNotificationSettings);
@@ -413,6 +416,7 @@ module.exports = (io) => {
   router.put('/admin/contact-info', auth, isAdmin, contactConfigController.updateAdminContactConfig);
   router.get('/admin/contact-messages', auth, isAdmin, contactConfigController.getAdminMessages);
   router.patch('/admin/contact-messages/:id/status', auth, isAdmin, contactConfigController.updateMessageStatus);
+  router.post('/admin/contact-messages/:id/reply', auth, isAdmin, contactConfigController.replyToMessage);
 
   // Feedback routes
   router.post('/feedback', auth, feedbackController.submitFeedback);

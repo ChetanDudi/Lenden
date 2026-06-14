@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class AdminContentAnalyticsPage extends StatefulWidget {
   const AdminContentAnalyticsPage({super.key});
@@ -70,7 +71,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _TopWaveClipper(),
+              clipper: TopWaveClipper(),
               child: Container(
                 height: 165,
                 decoration: const BoxDecoration(
@@ -457,30 +458,4 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
       ),
     );
   }
-}
-
-class _TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

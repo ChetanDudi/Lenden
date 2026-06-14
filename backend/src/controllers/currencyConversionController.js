@@ -9,6 +9,83 @@ const {
 const normalizeCurrency = (currency) =>
   (currency || '').toString().trim().toUpperCase();
 
+// ECB-supported currencies via Frankfurter API (free, no key)
+const FRANKFURTER_SUPPORTED = new Set([
+  'AUD','BGN','BRL','CAD','CHF','CNY','CZK','DKK','EUR','GBP',
+  'HKD','HUF','IDR','ILS','INR','ISK','JPY','KRW','MXN','MYR',
+  'NOK','NZD','PHP','PLN','RON','SEK','SGD','THB','TRY','USD','ZAR',
+]);
+
+// In-memory throttle: avoid hammering ECB on every single request
+let _lastAutoSyncMs = 0;
+const AUTO_SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+// Shared ECB fetch + DB save logic (used by syncLiveRates route and cron)
+async function _runEcbSync(updatedBy = null) {
+  const currencyDefinitions = await getSupportedCurrencyDefinitions();
+  const supportedCurrencies = currencyDefinitions.map((item) => item.code);
+
+  if (supportedCurrencies.length < 2) return { saved: 0, rateDate: null };
+
+  const base =
+    supportedCurrencies.find((c) => c === 'USD') ||
+    supportedCurrencies.find((c) => c === 'EUR') ||
+    supportedCurrencies.find((c) => FRANKFURTER_SUPPORTED.has(c));
+
+  if (!base) return { saved: 0, rateDate: null };
+
+  const targets = supportedCurrencies.filter(
+    (c) => c !== base && FRANKFURTER_SUPPORTED.has(c)
+  );
+  if (targets.length === 0) return { saved: 0, rateDate: null };
+
+  const url = `https://api.frankfurter.app/latest?from=${base}&to=${targets.join(',')}`;
+  const fetchRes = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!fetchRes.ok) {
+    const text = await fetchRes.text().catch(() => '');
+    throw new Error(`ECB API ${fetchRes.status}: ${text}`);
+  }
+
+  const data = await fetchRes.json();
+  const ops = [];
+  let saved = 0;
+
+  for (const [quoteCurrency, rawRate] of Object.entries(data.rates || {})) {
+    if (!supportedCurrencies.includes(quoteCurrency)) continue;
+    const directRate = Number(Number(rawRate).toFixed(8));
+    const inverseRate = Number((1 / rawRate).toFixed(8));
+
+    ops.push(
+      CurrencyConversionRate.findOneAndUpdate(
+        { baseCurrency: base, quoteCurrency },
+        { baseCurrency: base, quoteCurrency, rate: directRate, ...(updatedBy && { updatedBy }), isAutoDerived: false },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ),
+      CurrencyConversionRate.findOneAndUpdate(
+        { baseCurrency: quoteCurrency, quoteCurrency: base },
+        { baseCurrency: quoteCurrency, quoteCurrency: base, rate: inverseRate, ...(updatedBy && { updatedBy }), isAutoDerived: true },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+    );
+    saved++;
+  }
+
+  await Promise.all(ops);
+  _lastAutoSyncMs = Date.now();
+  return { saved, rateDate: data.date, base, supportedCurrencies };
+}
+
+// Called by cron and exported for app.js
+async function autoSyncCurrencyRates() {
+  try {
+    if (Date.now() - _lastAutoSyncMs < AUTO_SYNC_INTERVAL_MS) return; // In-memory gate
+    await _runEcbSync(null);
+  } catch (err) {
+    console.error('❌ Currency auto-sync failed:', err.message);
+  }
+}
+exports.autoSyncCurrencyRates = autoSyncCurrencyRates;
+
 const buildGraph = (rows) => {
   const graph = new Map();
   const seenPairs = new Set();
@@ -238,6 +315,36 @@ exports.addSupportedCurrency = async (req, res) => {
   }
 };
 
+exports.syncLiveRates = async (req, res) => {
+  try {
+    const { saved, rateDate, base, supportedCurrencies } = await _runEcbSync(req.user._id);
+
+    if (saved === 0) {
+      return res.status(422).json({ error: 'None of your currencies are supported by the live rate source (Frankfurter/ECB).' });
+    }
+
+    const rows = await CurrencyConversionRate.find({
+      baseCurrency: { $in: supportedCurrencies },
+      quoteCurrency: { $in: supportedCurrencies },
+    }).sort({ updatedAt: -1 }).populate('updatedBy', 'name email').lean();
+
+    res.json({
+      message: `Synced ${saved} pair${saved !== 1 ? 's' : ''} using live ECB rates (base: ${base}, date: ${rateDate}).`,
+      rateDate,
+      savedPairs: saved,
+      supportedCurrencies,
+      matrix: buildMatrix(rows, supportedCurrencies),
+      directRates: rows,
+    });
+  } catch (err) {
+    console.error('❌ syncLiveRates error:', err);
+    if (err.name === 'TimeoutError') {
+      return res.status(504).json({ error: 'Live rate API timed out. Please try again.' });
+    }
+    res.status(500).json({ error: 'Failed to sync live rates.' });
+  }
+};
+
 exports.getSupportedCurrencies = async (_req, res) => {
   try {
     const currencyDefinitions = await getSupportedCurrencyDefinitions();
@@ -251,6 +358,9 @@ exports.getSupportedCurrencies = async (_req, res) => {
 };
 
 exports.getPublicCurrencyMatrix = async (_req, res) => {
+  // Fire-and-forget: silently refresh ECB rates in background if stale (> 1 hour)
+  autoSyncCurrencyRates();
+
   try {
     const currencyDefinitions = await getSupportedCurrencyDefinitions();
     const supportedCurrencies = currencyDefinitions.map((item) => item.code);

@@ -10,6 +10,7 @@ import 'dart:io';
 import 'user_details_page.dart';
 import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class UserManagementPage extends StatefulWidget {
   final String initialStatusFilter;
@@ -184,6 +185,127 @@ class _UserManagementPageState extends State<UserManagementPage> {
           ? Map<String, dynamic>.from(_currentAdmin!['permissions'])['canManageUsers'] !=
               false
           : true);
+
+  Future<void> _bulkForceLogout() async {
+    if (_selectedUserIds.isEmpty) return;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: _buildTriBorder(
+            radius: 28,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.logout_rounded, color: Colors.red),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Force Logout Selected',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Invalidate all sessions for ${_selectedUserIds.length} selected user${_selectedUserIds.length > 1 ? 's' : ''}.',
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Force Logout All'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final response = await ApiClient.post(
+        '/api/admin/users/bulk-force-logout',
+        body: {'userIds': _selectedUserIds.toList()},
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        setState(() => _selectedUserIds.clear());
+        if (!mounted) return;
+        _showStyledBanner(
+          title: 'Force Logout Done',
+          message: (data['message'] ?? 'Selected users have been logged out').toString(),
+          icon: Icons.logout_rounded,
+          accentColor: Colors.red,
+        );
+      } else {
+        throw Exception((data['message'] ?? 'Bulk force logout failed').toString());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showStyledBanner(
+        title: 'Force Logout Failed',
+        message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error_outline,
+        accentColor: Colors.red,
+      );
+    }
+  }
 
   Future<void> _bulkUpdateStatus(bool isActive) async {
     if (_selectedUserIds.isEmpty) return;
@@ -765,9 +887,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
     try {
       final response = await ApiClient.patch('/api/admin/users/$userId/status',
           body: {'isActive': !currentStatus});
+      final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        // Update local data
         setState(() {
           final userIndex = _users.indexWhere((user) => user['_id'] == userId);
           if (userIndex != -1) {
@@ -775,26 +897,144 @@ class _UserManagementPageState extends State<UserManagementPage> {
           }
         });
         _loadUsers();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'User ${!currentStatus ? 'activated' : 'deactivated'} successfully'),
-            backgroundColor: Colors.green,
-          ),
+        if (!mounted) return;
+        _showStyledBanner(
+          title: !currentStatus ? 'User Activated' : 'User Deactivated',
+          message: (data['message'] ?? 'User status updated successfully').toString(),
+          icon: !currentStatus ? Icons.check_circle_rounded : Icons.block_rounded,
+          accentColor: !currentStatus ? Colors.green : Colors.deepOrange,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update user status'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        throw Exception((data['message'] ?? 'Failed to update user status').toString());
       }
     } catch (e) {
+      if (!mounted) return;
       _showStyledBanner(
         title: 'Status Update Failed',
-        message: 'Error: ${e.toString()}',
+        message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error_outline,
+        accentColor: Colors.red,
+      );
+    }
+  }
+
+  Future<void> _forceLogoutUser(String userId, String userName) async {
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: _buildTriBorder(
+            radius: 28,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.logout_rounded, color: Colors.red),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Force Logout User',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'This will immediately invalidate all active sessions for this user.',
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _buildInfoPill(Icons.person_outline, userName),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Force Logout'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final response = await ApiClient.post(
+        '/api/admin/users/$userId/force-logout',
+        body: const {},
+      );
+      final data = json.decode(response.body);
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        _showStyledBanner(
+          title: 'User Logged Out',
+          message: (data['message'] ?? 'All sessions invalidated for $userName').toString(),
+          icon: Icons.logout_rounded,
+          accentColor: Colors.red,
+        );
+      } else {
+        throw Exception((data['message'] ?? 'Failed to force logout').toString());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showStyledBanner(
+        title: 'Force Logout Failed',
+        message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
       );
@@ -802,58 +1042,126 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _deleteUser(String userId, String userName) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete User'),
-        content: Text(
-            'Are you sure you want to delete user "$userName"? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: _buildTriBorder(
+            radius: 28,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Delete User',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'This action is permanent and cannot be undone.',
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _buildInfoPill(Icons.person_outline, userName),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          icon: const Icon(Icons.delete_forever_rounded),
+                          label: const Text('Delete'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+        ),
       ),
     );
 
-    if (confirmed == true) {
-      try {
-        final response = await ApiClient.delete('/api/admin/users/$userId');
+    if (confirmed != true) return;
 
-        if (response.statusCode == 200) {
-          setState(() {
-            _users.removeWhere((user) => user['_id'] == userId);
-          });
-          _loadUsers();
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('User deleted successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to delete user'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+    try {
+      final response = await ApiClient.delete('/api/admin/users/$userId');
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        setState(() {
+          _users.removeWhere((user) => user['_id'] == userId);
+        });
+        _loadUsers();
+        if (!mounted) return;
+        _showStyledBanner(
+          title: 'User Deleted',
+          message: (data['message'] ?? 'User "$userName" has been permanently deleted').toString(),
+          icon: Icons.delete_forever_rounded,
+          accentColor: Colors.red,
         );
+      } else {
+        throw Exception((data['message'] ?? 'Failed to delete user').toString());
       }
+    } catch (e) {
+      if (!mounted) return;
+      _showStyledBanner(
+        title: 'Delete Failed',
+        message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error_outline,
+        accentColor: Colors.red,
+      );
     }
   }
 
@@ -1164,6 +1472,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           onPressed: _exportUsers,
                           child: const Text('Export CSV'),
                         ),
+                        TextButton(
+                          onPressed: _bulkForceLogout,
+                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                          child: const Text('Force Logout'),
+                        ),
                         IconButton(
                           onPressed: () => setState(() => _selectedUserIds.clear()),
                           icon: const Icon(Icons.clear),
@@ -1417,6 +1730,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 case 'review_pending':
                   _reviewPendingUser(user);
                   break;
+                case 'force_logout':
+                  _forceLogoutUser(user['_id'], user['name'] ?? 'User');
+                  break;
                 case 'delete':
                   _deleteUser(user['_id'], user['name']);
                   break;
@@ -1447,9 +1763,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 value: 'toggle',
                 child: Row(
                   children: [
-                    Icon(isActive ? Icons.block : Icons.check_circle, size: 16),
+                    Icon(isActive ? Icons.block : Icons.check_circle,
+                        size: 16,
+                        color: isActive ? Colors.deepOrange : Colors.green),
                     const SizedBox(width: 8),
-                    Text(isActive ? 'Deactivate' : 'Activate'),
+                    Text(
+                      isActive ? 'Deactivate' : 'Activate',
+                      style: TextStyle(
+                        color: isActive ? Colors.deepOrange : Colors.green,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1466,10 +1790,21 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                 ),
               const PopupMenuItem(
+                value: 'force_logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded, size: 16, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Force Logout',
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete, size: 16, color: Colors.red),
+                    Icon(Icons.delete_forever_rounded, size: 16, color: Colors.red),
                     SizedBox(width: 8),
                     Text('Delete User', style: TextStyle(color: Colors.red)),
                   ],
@@ -1575,30 +1910,4 @@ class _UserManagementPageState extends State<UserManagementPage> {
       );
     }
   }
-}
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

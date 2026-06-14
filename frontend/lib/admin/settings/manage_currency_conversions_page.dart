@@ -21,6 +21,7 @@ class _ManageCurrencyConversionsPageState
   bool _loading = true;
   bool _saving = false;
   bool _addingCurrency = false;
+  bool _syncingLive = false;
   String? _error;
   String _baseCurrency = 'INR';
   String _quoteCurrency = 'USD';
@@ -42,6 +43,27 @@ class _ManageCurrencyConversionsPageState
     _symbolController.dispose();
     _labelController.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncLiveRates() async {
+    setState(() => _syncingLive = true);
+    try {
+      final res = await ApiClient.post('/api/admin/currency-conversions/sync-live-rates', body: {});
+      final data = res.body.isNotEmpty ? jsonDecode(res.body) as Map<String, dynamic> : {};
+      if (res.statusCode == 200) {
+        setState(() {
+          _supportedCurrencies = List<String>.from(data['supportedCurrencies'] ?? _supportedCurrencies);
+          _matrix = List<Map<String, dynamic>>.from(data['matrix'] ?? _matrix);
+        });
+        _showMessage('${data['message'] ?? 'Live rates synced!'} (ECB rates, date: ${data['rateDate'] ?? 'today'})');
+      } else {
+        _showMessage(data['error']?.toString() ?? 'Failed to sync live rates.', isError: true);
+      }
+    } catch (e) {
+      _showMessage('Error: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _syncingLive = false);
+    }
   }
 
   Future<void> _loadRates() async {
@@ -328,6 +350,35 @@ class _ManageCurrencyConversionsPageState
                                             _prettyTimestamp(_lastUpdatedAt),
                                           ),
                                         ],
+                                      ),
+                                      const SizedBox(height: 14),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _syncingLive ? null : _syncLiveRates,
+                                          icon: _syncingLive
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                                                  ),
+                                                )
+                                              : const Icon(Icons.cloud_sync_rounded, size: 18),
+                                          label: Text(
+                                            _syncingLive ? 'Fetching live rates...' : 'Sync Live Rates (ECB)',
+                                            style: const TextStyle(fontWeight: FontWeight.w700),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF175676),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 13),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(14),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),

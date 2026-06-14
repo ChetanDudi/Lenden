@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import '../../utils/api_client.dart';
 import '../../utils/http_interceptor.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class ManageTransactionsPage extends StatefulWidget {
   const ManageTransactionsPage({super.key});
@@ -1757,28 +1758,3 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   }
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

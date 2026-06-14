@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class AdminNotesPage extends StatefulWidget {
   const AdminNotesPage({Key? key}) : super(key: key);
@@ -54,7 +55,8 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
       searchQuery = query;
       filteredNotes = notes
           .where((note) =>
-              (note['title'] ?? '').toLowerCase().contains(query.toLowerCase()))
+              (note['title'] ?? '').toLowerCase().contains(query.toLowerCase()) ||
+              (note['content'] ?? '').toLowerCase().contains(query.toLowerCase()))
           .toList();
       sortNotes();
     });
@@ -465,7 +467,25 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: TopWaveClipper(),
+              child: Container(
+                height: 140,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
         child: Column(
           children: [
             // Header
@@ -494,7 +514,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                       ),
                     ),
                   ),
-                  SizedBox(width: 48), // Balance the back button
+                  SizedBox(width: 48),
                 ],
               ),
             ),
@@ -868,20 +888,15 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                               ],
                                             ),
                                             const SizedBox(height: 12),
-                                            SingleChildScrollView(
-                                              scrollDirection: Axis.vertical,
-                                              child: SingleChildScrollView(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                child: Text(
-                                                  note['content'] ?? '',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.grey[700],
-                                                    height: 1.4,
-                                                  ),
-                                                ),
+                                            Text(
+                                              note['content'] ?? '',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[700],
+                                                height: 1.4,
                                               ),
+                                              maxLines: 4,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
@@ -895,6 +910,8 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
           ],
         ),
       ),
+      ],
+    ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,

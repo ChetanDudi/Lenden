@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../session.dart';
 import '../../utils/api_client.dart';
 
 class ContactPage extends StatefulWidget {
@@ -15,7 +18,7 @@ class ContactPage extends StatefulWidget {
 class _ContactPageState extends State<ContactPage> {
   static const _sky = Color(0xFF00B4D8);
   static const _deepBlue = Color(0xFF0077B6);
-  static const _bg = Color(0xFFF8F6FA);
+  static const _bg = Color(0xFFFAF9F6);
 
   bool _loading = true;
   String? _fetchError;
@@ -28,11 +31,49 @@ class _ContactPageState extends State<ContactPage> {
   final _messageCtrl = TextEditingController();
   bool _submitting = false;
   bool _submitted = false;
+  bool _nameLocked = false;
+  bool _emailLocked = false;
+  List<Map<String, dynamic>> _myMessages = [];
+  bool _loadingMessages = false;
+
+  static const List<String> _categories = [
+    'Account & Profile',
+    'Payments & Transactions',
+    'Groups & Expenses',
+    'Lending & Borrowing',
+    'Security & Privacy',
+    'Technical Issue',
+    'Feature Request',
+    'Billing & Subscriptions',
+    'General Inquiry',
+    'Other',
+  ];
+  String _selectedCategory = 'General Inquiry';
+  String _categoryFilter = 'All';
 
   @override
   void initState() {
     super.initState();
     _loadContactInfo();
+    _loadMyMessages();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prefillFromSession());
+  }
+
+  void _prefillFromSession() {
+    final user = Provider.of<SessionProvider>(context, listen: false).user;
+    if (user == null) return;
+    final name = (user['name'] as String? ?? '').trim();
+    final email = (user['email'] as String? ?? '').trim();
+    setState(() {
+      if (name.isNotEmpty) {
+        _nameCtrl.text = name;
+        _nameLocked = true;
+      }
+      if (email.isNotEmpty) {
+        _emailCtrl.text = email;
+        _emailLocked = true;
+      }
+    });
   }
 
   @override
@@ -97,6 +138,35 @@ class _ContactPageState extends State<ContactPage> {
     }
   }
 
+  Future<void> _loadMyMessages() async {
+    setState(() => _loadingMessages = true);
+    try {
+      final response = await ApiClient.get('/api/contact-messages/mine');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        setState(() {
+          _myMessages = List<Map<String, dynamic>>.from(data['messages'] ?? []);
+        });
+      }
+    } catch (_) {
+      // Silently fail — not critical
+    } finally {
+      if (mounted) setState(() => _loadingMessages = false);
+    }
+  }
+
+  List<Map<String, dynamic>> get _visibleMessages => _categoryFilter == 'All'
+      ? _myMessages
+      : _myMessages
+          .where((m) => (m['category'] as String?) == _categoryFilter)
+          .toList();
+
+  String _formatMsgTime(String iso) {
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return iso;
+    return DateFormat('MMM dd, yyyy • h:mm a').format(dt.toLocal());
+  }
+
   Future<void> _openChannel(Map<String, dynamic> channel, String fallback) async {
     final rawUrl = (channel['url'] ?? '').toString().trim();
     final value = (channel['value'] ?? '').toString().trim();
@@ -140,17 +210,18 @@ class _ContactPageState extends State<ContactPage> {
               ? 'General Inquiry'
               : _subjectCtrl.text.trim(),
           'message': _messageCtrl.text.trim(),
+          'category': _selectedCategory,
         },
       );
       if (response.statusCode == 201) {
-        _nameCtrl.clear();
-        _emailCtrl.clear();
         _subjectCtrl.clear();
         _messageCtrl.clear();
         setState(() {
           _submitted = true;
           _submitting = false;
+          _selectedCategory = 'General Inquiry';
         });
+        _loadMyMessages();
       } else {
         final body = jsonDecode(response.body);
         _snack(body['error'] ?? 'Failed to send. Please try again.');
@@ -443,6 +514,97 @@ class _ContactPageState extends State<ContactPage> {
 
           const SizedBox(height: 26),
 
+          // ── My Messages ────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(child: _sectionLabel('My Messages')),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, size: 18, color: _sky),
+                onPressed: _loadMyMessages,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Refresh',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Category filter chips for My Messages
+          Builder(builder: (_) {
+            final usedCats = <String>['All',
+              ..._categories.where(
+                (c) => _myMessages.any((m) => (m['category'] as String?) == c),
+              )];
+            return SizedBox(
+              height: 32,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: usedCats.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final cat = usedCats[i];
+                  final active = _categoryFilter == cat;
+                  return GestureDetector(
+                    onTap: () => setState(() => _categoryFilter = cat),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? _deepBlue
+                            : _deepBlue.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: active
+                              ? _deepBlue
+                              : _deepBlue.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        cat,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: active ? Colors.white : _deepBlue,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+          const SizedBox(height: 12),
+          if (_loadingMessages)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator(color: _sky)),
+            )
+          else if (_visibleMessages.isEmpty)
+            _tricolorBorder(
+              radius: 20,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Center(
+                  child: Text(
+                    _myMessages.isEmpty
+                        ? 'No messages yet. Send us one below!'
+                        : 'No messages in this category.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._visibleMessages.map(_buildMyMessageCard),
+
+          const SizedBox(height: 26),
+
           // ── FAQ section ────────────────────────────────────────
           _sectionLabel('Frequently Asked'),
           const SizedBox(height: 12),
@@ -464,6 +626,150 @@ class _ContactPageState extends State<ContactPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMyMessageCard(Map<String, dynamic> msg) {
+    final status = (msg['status'] as String?) ?? 'new';
+    final subject = (msg['subject'] as String?) ?? 'General Inquiry';
+    final message = (msg['message'] as String?) ?? '';
+    final replyNote = (msg['replyNote'] as String?) ?? '';
+    final category = (msg['category'] as String?) ?? '';
+    final createdAt = msg['createdAt'] as String?;
+    final hasReply = replyNote.isNotEmpty;
+
+    const statusColors = {
+      'new': Colors.blue,
+      'read': Colors.grey,
+      'replied': Colors.green,
+      'closed': Colors.red,
+    };
+    final statusColor = statusColors[status] ?? Colors.grey;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _tricolorBorder(
+        radius: 20,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFAF9F6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      subject,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF0B1F33),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: statusColor.withValues(alpha: 0.35)),
+                    ),
+                    child: Text(
+                      status[0].toUpperCase() + status.substring(1),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (category.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _sky.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: _sky.withValues(alpha: 0.25)),
+                  ),
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: _sky),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 6),
+              Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade600),
+              ),
+              if (createdAt != null) ...[
+                const SizedBox(height: 5),
+                Text(
+                  _formatMsgTime(createdAt),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                ),
+              ],
+              if (hasReply) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F8FC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _sky.withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.reply_rounded,
+                              size: 14, color: _sky),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Admin Reply',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _sky,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        replyNote,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blueGrey.shade700,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -551,6 +857,7 @@ class _ContactPageState extends State<ContactPage> {
             controller: _nameCtrl,
             label: 'Your Name',
             icon: Icons.person_outline_rounded,
+            readOnly: _nameLocked,
             validator: (v) =>
                 (v?.trim().isEmpty ?? true) ? 'Please enter your name' : null,
           ),
@@ -560,6 +867,7 @@ class _ContactPageState extends State<ContactPage> {
             label: 'Email Address',
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
+            readOnly: _emailLocked,
             validator: (v) {
               if (v?.trim().isEmpty ?? true) return 'Please enter your email';
               if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+').hasMatch(v!.trim())) {
@@ -574,7 +882,60 @@ class _ContactPageState extends State<ContactPage> {
             label: 'Subject (optional)',
             icon: Icons.subject_rounded,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          // Category selector
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Category',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.blueGrey.shade600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _categories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final cat = _categories[i];
+                final selected = _selectedCategory == cat;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCategory = cat),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? _sky
+                          : _sky.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: selected
+                            ? _sky
+                            : _sky.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(
+                      cat,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? Colors.white : _sky,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
           _field(
             controller: _messageCtrl,
             label: 'Message',
@@ -631,29 +992,41 @@ class _ContactPageState extends State<ContactPage> {
     required IconData icon,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool readOnly = false,
     String? Function(String?)? validator,
   }) {
+    final lockedBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: Colors.blueGrey.shade100),
+    );
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      readOnly: readOnly,
       validator: validator,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF0B1F33)),
+      style: TextStyle(
+        fontSize: 14,
+        color: readOnly ? Colors.blueGrey.shade500 : const Color(0xFF0B1F33),
+      ),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
-        prefixIcon: Icon(icon, size: 20, color: _sky),
+        prefixIcon: Icon(icon, size: 20, color: readOnly ? Colors.blueGrey.shade300 : _sky),
+        suffixIcon: readOnly
+            ? Icon(Icons.lock_outline_rounded, size: 16, color: Colors.blueGrey.shade300)
+            : null,
         filled: true,
-        fillColor: _bg,
-        border: OutlineInputBorder(
+        fillColor: readOnly ? Colors.blueGrey.shade50 : _bg,
+        border: readOnly ? lockedBorder : OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.blueGrey.shade200),
         ),
-        enabledBorder: OutlineInputBorder(
+        enabledBorder: readOnly ? lockedBorder : OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.blueGrey.shade200),
         ),
-        focusedBorder: OutlineInputBorder(
+        focusedBorder: readOnly ? lockedBorder : OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: _sky, width: 1.8),
         ),

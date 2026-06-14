@@ -50,7 +50,6 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     final token = session.token;
 
     if (token == null) {
-      print('Socket: Authentication token not found. Cannot connect.');
       return;
     }
 
@@ -67,13 +66,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
 
       socket?.connect();
 
-      socket?.onConnect((_) => print('Socket Connected: ${socket?.id}'));
-      socket?.onDisconnect((_) => print('Socket Disconnected'));
-      socket?.onConnectError((err) => print('Socket Connect Error: $err'));
-      socket?.onError((err) => print('Socket Error: $err'));
-
       socket?.on('support_query_created', (data) {
-        print('Received support_query_created: $data');
         setState(() {
           _queries.insert(0, data);
           _queries.sort((a, b) => DateTime.parse(b['createdAt'])
@@ -83,7 +76,6 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       });
 
       socket?.on('support_query_updated', (data) {
-        print('Received support_query_updated: $data');
         final updatedQuery = data;
         setState(() {
           int index =
@@ -100,7 +92,6 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       });
 
       socket?.on('support_query_deleted', (data) {
-        print('Received support_query_deleted: $data');
         final deletedQueryId = data['queryId'];
         setState(() {
           _queries.removeWhere((q) => q['_id'] == deletedQueryId);
@@ -110,9 +101,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
 
       // Optionally, join a room for admin-specific updates if needed
       // socket?.emit('join_admin_room', {'adminId': session.user?['_id']});
-    } catch (e) {
-      print('Error connecting to socket: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetchAllQueries({String? searchTerm}) async {

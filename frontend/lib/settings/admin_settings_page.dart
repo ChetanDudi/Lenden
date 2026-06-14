@@ -6,6 +6,7 @@ import 'admin_analytics_settings_page.dart';
 import 'admin_security_settings_page.dart';
 import 'admin_notification_settings_page.dart';
 import 'admin_management_page.dart';
+import '../password_management/change_password_page.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -282,6 +283,21 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                     ).then((_) => setState(() {}));
                   },
                   subtitle: 'Configure admin-specific notifications',
+                ),
+                _buildSettingsTile(
+                  context,
+                  'Change Password',
+                  Icons.lock_outline,
+                  Icons.arrow_forward_ios,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChangePasswordPage(),
+                      ),
+                    );
+                  },
+                  subtitle: 'Update your admin account password',
                 ),
                 _buildSettingsTile(
                   context,

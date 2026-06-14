@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class TrackUserActivityPage extends StatefulWidget {
   @override
@@ -14,36 +15,67 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   bool _loading = false;
   String? _error;
   String? _searchedTerm;
+  String _selectedCategory = 'all';
 
-  final List<String> activityTypes = [
-    'transaction_created',
-    'transaction_cleared',
-    'partial_payment_made',
-    'partial_payment_received',
-    'group_created',
-    'group_joined',
-    'group_left',
-    'member_added',
-    'member_removed',
-    'expense_added',
-    'expense_edited',
-    'expense_deleted',
-    'expense_settled',
-    'note_created',
-    'note_edited',
-    'note_deleted',
-    'profile_updated',
-    'password_changed',
-    'login',
-    'logout'
-  ];
+  static const Map<String, List<String>> _categoryTypes = {
+    'auth': ['login', 'logout'],
+    'transactions': [
+      'transaction_created',
+      'transaction_cleared',
+      'partial_payment_made',
+      'partial_payment_received'
+    ],
+    'groups': [
+      'group_created',
+      'group_joined',
+      'group_left',
+      'member_added',
+      'member_removed'
+    ],
+    'expenses': [
+      'expense_added',
+      'expense_edited',
+      'expense_deleted',
+      'expense_settled'
+    ],
+    'notes': ['note_created', 'note_edited', 'note_deleted'],
+    'profile': ['profile_updated', 'password_changed'],
+  };
+
+  static const Map<String, String> _categoryLabels = {
+    'all': 'All',
+    'auth': 'Auth',
+    'transactions': 'Transactions',
+    'groups': 'Groups',
+    'expenses': 'Expenses',
+    'notes': 'Notes',
+    'profile': 'Profile',
+  };
+
+  static const Map<String, IconData> _categoryIcons = {
+    'all': Icons.apps_rounded,
+    'auth': Icons.login_rounded,
+    'transactions': Icons.swap_horiz_rounded,
+    'groups': Icons.group_rounded,
+    'expenses': Icons.receipt_rounded,
+    'notes': Icons.note_rounded,
+    'profile': Icons.person_rounded,
+  };
+
+  List<dynamic> get _filteredActivities {
+    if (_selectedCategory == 'all') return _activities;
+    final types = _categoryTypes[_selectedCategory] ?? [];
+    return _activities
+        .where((a) => types.contains(a['type'] as String?))
+        .toList();
+  }
 
   Future<void> _fetchUserActivity(String searchTerm) async {
     setState(() {
       _loading = true;
       _error = null;
       _searchedTerm = searchTerm;
-      _activities = []; // Clear previous activities
+      _activities = [];
     });
 
     try {
@@ -194,7 +226,6 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
       final now = DateTime.now();
       final difference = now.difference(date);
 
-      // For login activities, always show full date and time
       if (activityType == 'login') {
         return DateFormat('MMM dd, yyyy • h:mm a').format(date);
       }
@@ -237,34 +268,116 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
 
   @override
   Widget build(BuildContext context) {
+    final filtered = _filteredActivities;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromRGBO(0, 180, 216, 1),
-        foregroundColor: Colors.black,
-        title: const Text('Track User Activity'),
-      ),
       backgroundColor: const Color(0xFFF8F6FA),
-      body: Column(
+      body: Stack(
         children: [
-          _buildSearchBar(),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(
-                        child: Text(_error!,
-                            style: const TextStyle(color: Colors.red)),
-                      )
-                    : _searchedTerm == null || _activities.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _activities.length,
-                            itemBuilder: (context, index) {
-                              final activity = _activities[index];
-                              return _buildActivityCard(activity);
-                            },
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: TopWaveClipper(),
+              child: Container(
+                height: 140,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Expanded(
+                        child: Center(
+                          child: Text(
+                            'Track User Activity',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                        ),
+                      ),
+                      if (_searchedTerm != null && _activities.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.refresh_rounded),
+                          tooltip: 'Refresh',
+                          onPressed: () =>
+                              _fetchUserActivity(_searchedTerm!),
+                        )
+                      else
+                        const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+
+                // Search bar
+                _buildSearchBar(),
+
+                // Category filter chips
+                if (_searchedTerm != null && _activities.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  _buildCategoryChips(),
+                ],
+
+                // Result count
+                if (_searchedTerm != null && !_loading && _error == null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                    child: Text(
+                      '${filtered.length} activit${filtered.length == 1 ? 'y' : 'ies'}'
+                      '${_selectedCategory != 'all' ? ' in ${_categoryLabels[_selectedCategory]}' : ''}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 8),
+
+                // Content
+                Expanded(
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _error != null
+                          ? Center(
+                              child: Text(_error!,
+                                  style:
+                                      const TextStyle(color: Colors.red)))
+                          : _searchedTerm == null || _activities.isEmpty
+                              ? _buildEmptyState()
+                              : filtered.isEmpty
+                                  ? _buildNoFilterResults()
+                                  : ListView.builder(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 0, 16, 16),
+                                      itemCount: filtered.length,
+                                      itemBuilder: (context, index) {
+                                        final activity = filtered[index];
+                                        return _buildActivityCard(activity);
+                                      },
+                                    ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -273,7 +386,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: _triBorder(
         radius: 25,
         child: Container(
@@ -284,46 +397,138 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.search,
-                color: Colors.grey[600],
-                size: 20,
-              ),
+              Icon(Icons.search, color: Colors.grey[600], size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: _searchController,
                   onSubmitted: (value) {
-                    if (value.isNotEmpty) {
-                      _fetchUserActivity(value);
+                    if (value.trim().isNotEmpty) {
+                      _fetchUserActivity(value.trim());
                     }
                   },
                   decoration: InputDecoration(
                     hintText: 'Search by Email or Username...',
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 8),
                   ),
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
               if (_searchController.text.isNotEmpty)
                 IconButton(
-                  icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                  icon:
+                      Icon(Icons.clear, color: Colors.grey[600], size: 20),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
                       _activities = [];
                       _searchedTerm = null;
                       _error = null;
+                      _selectedCategory = 'all';
                     });
                   },
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () {
+                  final val = _searchController.text.trim();
+                  if (val.isNotEmpty) _fetchUserActivity(val);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00B4D8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Search',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: _categoryLabels.keys.map((key) {
+          final isSelected = _selectedCategory == key;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedCategory = key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF00B4D8)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF00B4D8)
+                        : Colors.grey.shade300,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF00B4D8)
+                                .withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      : [],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _categoryIcons[key]!,
+                      size: 15,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _categoryLabels[key]!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -332,14 +537,16 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
     final type = activity['type'] as String? ?? 'unknown';
     final title =
         activity['title'] as String? ?? _getActivityTypeDisplayName(type);
-    final description = activity['description'] as String? ?? 'No description';
+    final description =
+        activity['description'] as String? ?? 'No description';
     final createdAt = activity['timestamp'] as String? ??
-        DateTime.now().toIso8601String(); // Use timestamp from backend
+        DateTime.now().toIso8601String();
     final amount = activity['amount'];
     final currency = activity['currency'];
 
     return Card(
       elevation: 2,
+      margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
@@ -352,14 +559,15 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Activity Icon
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _getActivityColor(type).withValues(alpha: 0.1),
+                color:
+                    _getActivityColor(type).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _getActivityColor(type).withValues(alpha: 0.2),
+                  color:
+                      _getActivityColor(type).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -370,8 +578,6 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
               ),
             ),
             const SizedBox(width: 12),
-
-            // Activity Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,10 +598,12 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
+                            color:
+                                Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.green.withValues(alpha: 0.3),
+                              color: Colors.green
+                                  .withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -418,18 +626,12 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _formatDate(createdAt, activityType: type),
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    _formatDate(createdAt, activityType: type),
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -445,18 +647,15 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.manage_search_rounded,
+              size: 72, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             _searchedTerm == null
                 ? 'Search for a user to view activities'
-                : 'No activities found for $_searchedTerm',
+                : 'No activities found for "$_searchedTerm"',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.bold,
               color: Colors.grey[600],
             ),
@@ -467,10 +666,35 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
             _searchedTerm == null
                 ? 'Enter an email or username in the search bar above'
                 : 'Try a different search term or check the spelling',
-            style: TextStyle(
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoFilterResults() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.filter_list_off_rounded,
+              size: 64, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            'No ${_categoryLabels[_selectedCategory]} activities',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () =>
+                setState(() => _selectedCategory = 'all'),
+            child: const Text('Show all activities'),
           ),
         ],
       ),

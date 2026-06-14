@@ -13,6 +13,7 @@ const leoProfanity = require('leo-profanity');
 
 const apiRoutes = require('./routes/api');
 const Admin = require('./models/admin');
+const { autoSyncCurrencyRates } = require('./controllers/currencyConversionController');
 
 const PORT = process.env.PORT || 5000;
 
@@ -71,6 +72,9 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
+
+// Trust Render's (and any single-hop) reverse proxy so req.ip returns the real client IP
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors(corsOptions));
@@ -148,6 +152,13 @@ const {
 const { initializeOfferCleanupScheduler } = require('./utils/offerCleanupScheduler');
 initializeMonthlyLeaderboardRewardScheduler();
 initializeOfferCleanupScheduler();
+
+// Auto-sync ECB currency rates every 4 hours
+cron.schedule('0 */4 * * *', () => {
+  autoSyncCurrencyRates().catch((err) =>
+    console.error('Currency cron sync failed:', err.message)
+  );
+});
 
 // Chat and group-chat socket events are handled inside chatController and groupChatController,
 // which are wired up through apiRoutes(io) above.

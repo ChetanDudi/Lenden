@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class ManageGroupTransactionsPage extends StatefulWidget {
   const ManageGroupTransactionsPage({super.key});
@@ -1529,22 +1530,4 @@ class _ManageGroupTransactionsPageState
       ),
     );
   }
-}
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.5,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.3, size.width, size.height * 0.4);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../widgets/top_wave_clipper.dart';
 
 class AdminRolesPage extends StatefulWidget {
   const AdminRolesPage({super.key});
@@ -285,7 +286,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _TopWaveClipper(),
+              clipper: TopWaveClipper(),
               child: Container(
                 height: 165,
                 decoration: const BoxDecoration(
@@ -416,8 +417,44 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                               )
                             else if (_auditLogs.isEmpty)
                               _buildMessageCard('No audit logs found.', false)
-                            else
-                              ..._auditLogs.take(40).map(_buildAuditCard),
+                            else ...[
+                              ...(_showAll ? _auditLogs : _auditLogs.take(40))
+                                  .map(_buildAuditCard),
+                              if (_auditLogs.length > 40)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12),
+                                  child: Center(
+                                    child: OutlinedButton.icon(
+                                      icon: Icon(
+                                        _showAll
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
+                                        size: 18,
+                                      ),
+                                      label: Text(
+                                        _showAll
+                                            ? 'Show Less'
+                                            : 'Show All (${_auditLogs.length})',
+                                      ),
+                                      onPressed: () =>
+                                          setState(() => _showAll = !_showAll),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            const Color(0xFF00B4D8),
+                                        side: const BorderSide(
+                                            color: Color(0xFF00B4D8)),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 20, vertical: 10),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ],
                         ),
                       ),
@@ -836,30 +873,4 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       return value?.toString() ?? '';
     }
   }
-}
-
-class _TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.5,
-      size.width * 0.5,
-      size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.3,
-      size.width,
-      size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

@@ -16,6 +16,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = false;
+  bool _showAllNotes = false;
   Map<String, dynamic>? _userStats;
   List<Map<String, dynamic>> _recentTransactions = [];
   List<Map<String, dynamic>> _userActivity = [];
@@ -80,11 +81,40 @@ class _UserDetailsPageState extends State<UserDetailsPage>
 
   Future<void> _toggleUserStatus() async {
     final currentStatus = widget.user['isActive'] ?? false;
+    final action = currentStatus ? 'Deactivate' : 'Activate';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('$action User?'),
+        content: Text(
+          currentStatus
+              ? 'Deactivating this user will prevent them from logging in until reactivated.'
+              : 'Activating this user will restore their ability to log in.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: currentStatus ? Colors.deepOrange : Colors.green,
+            ),
+            child: Text(action, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
 
     try {
       final response = await ApiClient.patch(
           '/api/admin/users/${widget.user['_id']}/status',
           body: {'isActive': !currentStatus});
+      final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
         setState(() {
@@ -94,15 +124,19 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'User ${!currentStatus ? 'activated' : 'deactivated'} successfully'),
-            backgroundColor: Colors.green,
+              (data['message'] ?? 'User ${!currentStatus ? 'activated' : 'deactivated'} successfully').toString(),
+            ),
+            backgroundColor: !currentStatus ? Colors.green : Colors.deepOrange,
           ),
         );
+      } else {
+        throw Exception((data['message'] ?? 'Failed to update status').toString());
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
           backgroundColor: Colors.red,
         ),
       );
@@ -571,7 +605,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                 padding: EdgeInsets.only(top: 8),
                 child: Text('No internal notes added yet.'),
               ),
-            ...adminNotes.take(5).map(
+            ...(_showAllNotes ? adminNotes : adminNotes.take(5)).map(
               (note) => Container(
                 margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.all(12),
@@ -605,6 +639,28 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                 ),
               ),
             ),
+            if (adminNotes.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Center(
+                  child: TextButton.icon(
+                    icon: Icon(
+                      _showAllNotes ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _showAllNotes
+                          ? 'Show Less'
+                          : 'Show All (${adminNotes.length})',
+                    ),
+                    onPressed: () =>
+                        setState(() => _showAllNotes = !_showAllNotes),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF00B4D8),
+                    ),
+                  ),
+                ),
+              ),
           ]),
         ],
       ),
@@ -1147,6 +1203,33 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Future<void> _forceLogoutUser() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Force Logout User?'),
+        content: const Text(
+          'This will immediately invalidate all active sessions. The user will be logged out from all devices.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Force Logout'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     try {
       final response = await ApiClient.post(
         '/api/admin/users/${widget.user['_id']}/force-logout',
@@ -1154,18 +1237,28 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       );
       final data = json.decode(response.body);
       if (response.statusCode == 200) {
-        setState(() {
-          widget.user.addAll(Map<String, dynamic>.from(data['user']));
-        });
+        if (data['user'] is Map) {
+          setState(() {
+            widget.user.addAll(Map<String, dynamic>.from(data['user']));
+          });
+        }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text((data['message'] ?? 'User logged out').toString())),
+          SnackBar(
+            content: Text((data['message'] ?? 'User logged out from all devices').toString()),
+            backgroundColor: Colors.red,
+          ),
         );
       } else {
         throw Exception((data['message'] ?? 'Failed to force logout').toString());
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

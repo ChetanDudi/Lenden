@@ -21,6 +21,8 @@ import '../manage_users/admin_roles_page.dart';
 import '../settings/manage_currency_conversions_page.dart';
 import '../ads_and_updates/manage_updates_page.dart';
 import '../ads_and_updates/manage_ads_page.dart';
+import '../audit/audit_logs_page.dart';
+import '../support/contact_messages_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -54,6 +56,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     'user_feedbacks': GlobalKey(),
     'support_queries': GlobalKey(),
     'content_analytics': GlobalKey(),
+    'contact_messages': GlobalKey(),
+    'audit_logs': GlobalKey(),
   };
 
   @override
@@ -482,6 +486,39 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           iconColor: const Color(0xFF236D86),
           onTap: () {
             Navigator.pushNamed(context, '/admin/feedbacks');
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'contact_messages',
+          permissionKey: 'canManageSupport',
+          icon: Icons.contact_mail_rounded,
+          label: 'Contact Messages',
+          caption: 'View and respond to contact form submissions',
+          actionLabel: 'Messages',
+          backgroundColor: const Color(0xFFE8F3FF),
+          iconColor: const Color(0xFF1A5FAB),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const ContactMessagesPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'audit_logs',
+          permissionKey: 'canViewAuditLogs',
+          icon: Icons.history_rounded,
+          label: 'Audit Logs',
+          caption: 'Review all admin actions and changes',
+          actionLabel: 'Logs',
+          backgroundColor: const Color(0xFFF0EAF8),
+          iconColor: const Color(0xFF5B2D8E),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AuditLogsPage()),
+            );
           },
         ),
       ].where((item) {
@@ -1090,9 +1127,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ShaderMask(
                       shaderCallback: (bounds) => const LinearGradient(
                         colors: [
-                          Color(0xFF00B4D8),
-                          Color(0xFF3A7BFF),
-                          Color(0xFF2EAD62),
+                          Color(0xFFFF6B00),
+                          Color(0xFFF4A000),
+                          Color(0xFFFF8C42),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
