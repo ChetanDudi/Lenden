@@ -137,12 +137,11 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
 
   Widget _buildBalanceCard() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         gradient: const LinearGradient(
-          colors: [Color(0xFF5DA9FF), Color(0xFF8FD3FF)],
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -153,6 +152,19 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             offset: const Offset(0, 14),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5DA9FF), Color(0xFF8FD3FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Row(
         children: [
@@ -199,6 +211,8 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -400,25 +414,36 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
         ),
         const SizedBox(height: 16),
         Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Source Split',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  const Text(
+                    'Source Split',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade500),
+                ],
               ),
               const SizedBox(height: 12),
               if (sources.isEmpty)
@@ -427,12 +452,18 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                   style: TextStyle(color: Colors.grey.shade600),
                 )
               else
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: sources.take(10).map(_buildSourceChip).toList(),
+                SizedBox(
+                  height: 90,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: sources.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (_, i) => _buildSourceChip(sources[i]),
+                  ),
                 ),
             ],
+          ),
+            ),
           ),
         ),
       ],

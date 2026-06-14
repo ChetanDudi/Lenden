@@ -404,37 +404,51 @@ class _NotesPageState extends State<NotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/user/dashboard');
-                    },
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'LenDen Notes',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 48), // Balance the back button
-                ],
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: _WaveClipper(),
+              child: Container(
+                height: 140,
+                color: const Color(0xFF00B4D8),
               ),
             ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/user/dashboard');
+                        },
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'LenDen Notes',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 48),
+                    ],
+                  ),
+                ),
             
             // Search Bar with Tricolor Border
             Padding(
@@ -745,9 +759,11 @@ class _NotesPageState extends State<NotesPage> {
                                 );
                               },
                             ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
+        ],
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
@@ -786,4 +802,19 @@ class _NotesPageState extends State<NotesPage> {
     ];
     return colors[index % colors.length];
   }
+}
+
+class _WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height * 0.75);
+    path.cubicTo(size.width * 0.25, size.height * 1.0, size.width * 0.75, size.height * 0.5, size.width, size.height * 0.75);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_) => false;
 }

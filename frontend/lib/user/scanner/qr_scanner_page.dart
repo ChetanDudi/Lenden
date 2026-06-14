@@ -9,6 +9,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
+import '../../widgets/payment_success_page.dart';
 import 'package:provider/provider.dart';
 
 class QrScannerPage extends StatefulWidget {
@@ -81,16 +82,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
     ));
   }
 
-  void _showSuccess(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: Colors.green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
-  }
-
   // ── Razorpay callbacks ─────────────────────────────────────────────────────
   void _onRazorpaySuccess(PaymentSuccessResponse response) async {
     if (!mounted) return;
@@ -114,8 +105,25 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
       if (!mounted) return;
       if (verifyRes.statusCode == 200) {
-        _showSuccess('Paid ₹${meta['amount']} to ${meta['payeeName']} via Razorpay.');
-        Navigator.pop(context, true);
+        final amt = (meta['amount'] as num?)?.toDouble();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessPage(
+              title: 'Payment Successful!',
+              amount: amt,
+              recipientName: meta['payeeName']?.toString(),
+              transactionType: 'QR Payment',
+              extraDetails: {
+                if ((meta['upiId'] ?? '').toString().isNotEmpty)
+                  'UPI ID': meta['upiId'].toString(),
+                if ((meta['note'] ?? '').toString().isNotEmpty)
+                  'Note': meta['note'].toString(),
+              },
+              onDone: () => Navigator.of(context).pop(true),
+            ),
+          ),
+        );
       } else {
         _showError('Payment done but recording failed. Contact support.');
       }
@@ -263,7 +271,22 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
       if (!mounted) return;
       if (paid == true) {
-        Navigator.pop(context, true);
+        final amt = amountStr != null ? double.tryParse(amountStr) : null;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessPage(
+              title: 'Payment Successful!',
+              amount: amt,
+              recipientName: recipientName,
+              transactionType: 'Pay via LenDen',
+              extraDetails: {
+                if (note.isNotEmpty) 'Note': note,
+              },
+              onDone: () => Navigator.of(context).pop(true),
+            ),
+          ),
+        );
       } else {
         _resetProcessing();
       }
@@ -316,10 +339,23 @@ class _QrScannerPageState extends State<QrScannerPage> {
     }
 
     if (result['type'] == 'wallet_success') {
-      _showSuccess(
-          'Paid ₹${result['amount']} to $payeeName via LenDen Wallet. '
-          'Balance: ₹${result['balance'] ?? ''}');
-      Navigator.pop(context, true);
+      final amt = (result['amount'] as num?)?.toDouble();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentSuccessPage(
+            title: 'Payment Successful!',
+            amount: amt,
+            recipientName: payeeName,
+            transactionType: 'UPI via LenDen Wallet',
+            extraDetails: {
+              'UPI ID': upiId,
+              if ((note).isNotEmpty) 'Note': note,
+            },
+            onDone: () => Navigator.of(context).pop(true),
+          ),
+        ),
+      );
     } else if (result['type'] == 'razorpay') {
       // Store meta for the success callback, then open Razorpay
       _pendingRazorpayMeta = {

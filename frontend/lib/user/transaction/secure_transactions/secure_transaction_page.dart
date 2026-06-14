@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import 'view_secure_transactions_page.dart';
 import '../../digitise/gift_card_page.dart';
 import '../../../widgets/stylish_dialog.dart';
+import '../../../widgets/payment_success_page.dart';
 import '../../digitise/subscriptions_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -1686,207 +1687,32 @@ class _TransactionPageState extends State<TransactionPage> {
   Future<void> _showTransactionSuccessDialog({
     required bool giftCardAwarded,
   }) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => PopScope(
-        canPop: false,
-        child: Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: _buildTricolorFrame(
-            padding: EdgeInsets.zero,
-            borderRadius: BorderRadius.circular(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 78,
-                        height: 78,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAF9FD),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF8DDCF0),
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          color: Color(0xFF00B4D8),
-                          size: 42,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Transaction Created!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Choose what you want to do next.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontSize: 14,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FCFE),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: const Color(0xFFBFE8F2),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Transaction ID',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SelectableText(
-                              '${_transactionId ?? ''}',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => UserTransactionsPage(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.account_balance_wallet,
-                              color: Colors.white),
-                          label: const Text(
-                            'View Transactions',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFF00B4D8),
-                              width: 1.3,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                          ),
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                            await _resetFormForAnotherTransaction();
-                          },
-                          icon: const Icon(
-                            Icons.add_task_rounded,
-                            color: Color(0xFF00B4D8),
-                          ),
-                          label: const Text(
-                            'Create Another Transaction',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Color(0xFF00B4D8),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (giftCardAwarded) ...[
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: Colors.green.shade400,
-                                width: 1.4,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 15,
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => GiftCardPage(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.card_giftcard_rounded,
-                              color: Colors.green.shade700,
-                            ),
-                            label: Text(
-                              'View Gift Card Reward',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+    final amt = double.tryParse(_amountController.text.replaceAll(',', ''));
+    final recipient = _counterpartyEmailController.text.trim();
+    final extraDetails = <String, String>{
+      if (_transactionId != null) 'Transaction ID': _transactionId!,
+      'Role': _role,
+      if (giftCardAwarded) 'Bonus': '🎉 Gift card won!',
+    };
+
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentSuccessPage(
+          title: 'Transaction Created!',
+          amount: amt,
+          currency: _currency == 'INR' ? '₹' : _currency,
+          recipientName: recipient.isNotEmpty ? recipient : null,
+          transactionType: 'Secure Transaction',
+          extraDetails: extraDetails,
+          onDone: () {
+            Navigator.of(context).pop();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => UserTransactionsPage()),
+            );
+          },
         ),
       ),
     );

@@ -472,7 +472,7 @@ module.exports = (io) => {
       await query.save();
 
       // Populate the query for emission after status update
-      const populatedQuery = await query
+      const populatedQuery = await SupportQuery.findById(query._id)
         .populate('user', 'username email')
         .populate('replies.admin', 'username email')
         .populate('assignedAdmin', 'username email name')

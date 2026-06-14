@@ -592,7 +592,7 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(top: 72),
+              padding: const EdgeInsets.only(top: 48),
               child: RefreshIndicator(
                 onRefresh: () async {
                   await fetchActivities(refresh: true);
@@ -1706,7 +1706,7 @@ class _ActivityPageState extends State<ActivityPage> {
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF00B4D8), Color(0xFF0077B6)],
+                          colors: [Color(0xFF00B4D8), Color(0xFF00B4D8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),

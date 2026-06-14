@@ -1,5 +1,6 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
+const AdminSettings = require('../models/adminSettings');
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const GroupTransaction = require('../models/groupTransaction');
@@ -771,170 +772,123 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const SYSTEM_SETTINGS_KEYS = [
+  'maintenanceMode','userRegistrationEnabled','emailVerificationRequired',
+  'phoneVerificationRequired','autoApproveUsers','enableNotifications',
+  'enableAnalytics','maxTransactionAmount','minTransactionAmount',
+  'dailyTransactionLimit','monthlyTransactionLimit','defaultCurrency',
+  'timezone','dateFormat','timeFormat','language',
+];
+
+const ANALYTICS_SETTINGS_KEYS = [
+  'enableAnalytics','enableUserTracking','enableTransactionAnalytics',
+  'enablePerformanceMonitoring','enableErrorTracking','enableUsageAnalytics',
+  'reportFrequency','reportFormat','autoGenerateReports','emailReports',
+  'reportEmail','dataRetentionPeriod','anonymizeData','enableDataExport','enableDataBackup',
+];
+
+const SECURITY_SETTINGS_KEYS = [
+  'requireTwoFactorAuth','enableSessionTimeout','sessionTimeoutMinutes',
+  'enableLoginNotifications','enableFailedLoginAlerts','maxFailedAttempts',
+  'lockoutDuration','enableIpWhitelist','allowedIps','enableGeolocationRestriction',
+  'allowedCountries','enableTimeBasedAccess','accessStartTime','accessEndTime',
+  'requireStrongPasswords','enablePasswordExpiry','passwordExpiryDays',
+  'preventPasswordReuse','passwordHistoryCount','enableAccountLockout',
+];
+
+function pickKeys(obj, keys) {
+  const result = {};
+  for (const k of keys) result[k] = obj[k];
+  return result;
+}
+
 // Get system settings
 const getSystemSettings = async (req, res) => {
   try {
-    // In a real app, you'd store these in a separate SystemSettings model
-    const systemSettings = {
-      maintenanceMode: false,
-      userRegistrationEnabled: true,
-      emailVerificationRequired: true,
-      phoneVerificationRequired: false,
-      autoApproveUsers: false,
-      enableNotifications: true,
-      enableAnalytics: true,
-      maxTransactionAmount: 10000,
-      minTransactionAmount: 1,
-      dailyTransactionLimit: 50000,
-      monthlyTransactionLimit: 500000,
-      defaultCurrency: 'USD',
-      timezone: 'UTC',
-      dateFormat: 'MM/DD/YYYY',
-      timeFormat: '12-hour',
-      language: 'English'
-    };
-
-    res.json({
-      success: true,
-      settings: systemSettings
-    });
+    const doc = await AdminSettings.getOrCreate();
+    res.json(pickKeys(doc, SYSTEM_SETTINGS_KEYS));
   } catch (error) {
     console.error('Error fetching system settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch system settings'
-    });
+    res.status(500).json({ message: 'Failed to fetch system settings' });
   }
 };
 
 // Update system settings
 const updateSystemSettings = async (req, res) => {
   try {
-    const settings = req.body;
-
-    // In a real app, you'd save these to a SystemSettings model
-
-    res.json({
-      success: true,
-      message: 'System settings updated successfully'
-    });
+    const update = {};
+    for (const k of SYSTEM_SETTINGS_KEYS) {
+      if (req.body[k] !== undefined) update[k] = req.body[k];
+    }
+    const doc = await AdminSettings.findOneAndUpdate(
+      { _singleton: 'global' },
+      { $set: update },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json(pickKeys(doc, SYSTEM_SETTINGS_KEYS));
   } catch (error) {
     console.error('Error updating system settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update system settings'
-    });
+    res.status(500).json({ message: 'Failed to update system settings' });
   }
 };
 
 // Get analytics settings
 const getAnalyticsSettings = async (req, res) => {
   try {
-    const analyticsSettings = {
-      enableAnalytics: true,
-      enableUserTracking: true,
-      enableTransactionAnalytics: true,
-      enablePerformanceMonitoring: true,
-      enableErrorTracking: true,
-      enableUsageAnalytics: true,
-      reportFrequency: 'daily',
-      reportFormat: 'pdf',
-      autoGenerateReports: true,
-      emailReports: false,
-      reportEmail: '',
-      dataRetentionPeriod: '1_year',
-      anonymizeData: false,
-      enableDataExport: true,
-      enableDataBackup: true
-    };
-
-    res.json({
-      success: true,
-      settings: analyticsSettings
-    });
+    const doc = await AdminSettings.getOrCreate();
+    res.json(pickKeys(doc, ANALYTICS_SETTINGS_KEYS));
   } catch (error) {
     console.error('Error fetching analytics settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch analytics settings'
-    });
+    res.status(500).json({ message: 'Failed to fetch analytics settings' });
   }
 };
 
 // Update analytics settings
 const updateAnalyticsSettings = async (req, res) => {
   try {
-    const settings = req.body;
-
-
-    res.json({
-      success: true,
-      message: 'Analytics settings updated successfully'
-    });
+    const update = {};
+    for (const k of ANALYTICS_SETTINGS_KEYS) {
+      if (req.body[k] !== undefined) update[k] = req.body[k];
+    }
+    const doc = await AdminSettings.findOneAndUpdate(
+      { _singleton: 'global' },
+      { $set: update },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json(pickKeys(doc, ANALYTICS_SETTINGS_KEYS));
   } catch (error) {
     console.error('Error updating analytics settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update analytics settings'
-    });
+    res.status(500).json({ message: 'Failed to update analytics settings' });
   }
 };
 
 // Get security settings
 const getSecuritySettings = async (req, res) => {
   try {
-    const securitySettings = {
-      requireTwoFactorAuth: true,
-      enableSessionTimeout: true,
-      sessionTimeoutMinutes: 30,
-      enableLoginNotifications: true,
-      enableFailedLoginAlerts: true,
-      maxFailedAttempts: 5,
-      lockoutDuration: 15,
-      enableIpWhitelist: false,
-      allowedIps: '',
-      enableGeolocationRestriction: false,
-      allowedCountries: '',
-      enableTimeBasedAccess: false,
-      accessStartTime: '09:00',
-      accessEndTime: '17:00',
-      requireStrongPasswords: true,
-      enablePasswordExpiry: true,
-      passwordExpiryDays: 90,
-      preventPasswordReuse: true,
-      passwordHistoryCount: 5,
-      enableAccountLockout: true
-    };
-
-    res.json({
-      success: true,
-      settings: securitySettings
-    });
+    const doc = await AdminSettings.getOrCreate();
+    res.json(pickKeys(doc, SECURITY_SETTINGS_KEYS));
   } catch (error) {
     console.error('Error fetching security settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch security settings'
-    });
+    res.status(500).json({ message: 'Failed to fetch security settings' });
   }
 };
 
 // Update security settings
 const updateSecuritySettings = async (req, res) => {
   try {
-    const settings = req.body;
-
-
-    res.json({
-      success: true,
-      message: 'Security settings updated successfully'
-    });
+    const update = {};
+    for (const k of SECURITY_SETTINGS_KEYS) {
+      if (req.body[k] !== undefined) update[k] = req.body[k];
+    }
+    const doc = await AdminSettings.findOneAndUpdate(
+      { _singleton: 'global' },
+      { $set: update },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json(pickKeys(doc, SECURITY_SETTINGS_KEYS));
   } catch (error) {
     console.error('Error updating security settings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update security settings'
-    });
+    res.status(500).json({ message: 'Failed to update security settings' });
   }
 };
 
@@ -2591,6 +2545,90 @@ const settleExpenseSplitsInGroup = async (req, res) => {
   }
 };
 
+const getSystemStats = async (req, res) => {
+  try {
+    const [userCount, adminCount, transactionCount, supportQueryCount, activityCount] = await Promise.all([
+      User.countDocuments(),
+      Admin.countDocuments(),
+      Transaction.countDocuments(),
+      SupportQuery.countDocuments(),
+      Activity.countDocuments(),
+    ]);
+    res.json({
+      users: userCount,
+      admins: adminCount,
+      transactions: transactionCount,
+      supportQueries: supportQueryCount,
+      activities: activityCount,
+      serverTime: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch system stats' });
+  }
+};
+
+const exportAdminData = async (req, res) => {
+  try {
+    const type = req.query.type || 'users';
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    if (type === 'users') {
+      const users = await User.find({}).select('name username email gender createdAt').lean();
+      const header = 'Name,Username,Email,Gender,Joined\n';
+      const rows = users.map(u =>
+        [u.name, u.username, u.email, u.gender, u.createdAt?.toISOString().split('T')[0]].map(esc).join(',')
+      ).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(header + rows);
+    }
+    if (type === 'transactions') {
+      const txns = await Transaction.find({}).select('transactionId userEmail counterpartyEmail role amount currency place description date createdAt').lean();
+      const header = 'Transaction ID,User Email,Counterparty Email,Role,Amount,Currency,Place,Description,Date\n';
+      const rows = txns.map(t =>
+        [t.transactionId ?? t._id, t.userEmail, t.counterpartyEmail, t.role, t.amount, t.currency, t.place, t.description, t.date ? new Date(t.date).toISOString().split('T')[0] : ''].map(esc).join(',')
+      ).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(header + rows);
+    }
+    if (type === 'support') {
+      const queries = await SupportQuery.find({}).populate('user', 'email').lean();
+      const header = 'ID,User,Topic,Status,Priority,Created\n';
+      const rows = queries.map(q =>
+        [q._id, q.user?.email, q.topic, q.status, q.priority, q.createdAt?.toISOString().split('T')[0]].map(esc).join(',')
+      ).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(header + rows);
+    }
+    res.status(400).json({ error: 'Invalid export type. Use: users, transactions, support' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to export data' });
+  }
+};
+
+const performMaintenance = async (req, res) => {
+  try {
+    const { action } = req.body;
+    if (action === 'clear_old_queries') {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const result = await SupportQuery.deleteMany({ createdAt: { $lt: sevenDaysAgo }, status: { $in: ['resolved', 'closed'] } });
+      return res.json({ message: `Cleared ${result.deletedCount} old resolved/closed queries` });
+    }
+    if (action === 'clear_old_activities') {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const result = await Activity.deleteMany({ createdAt: { $lt: thirtyDaysAgo } });
+      return res.json({ message: `Cleared ${result.deletedCount} old activity records` });
+    }
+    if (action === 'clear_old_audit_logs') {
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const result = await AdminAuditLog.deleteMany({ createdAt: { $lt: ninetyDaysAgo } });
+      return res.json({ message: `Cleared ${result.deletedCount} old audit log records` });
+    }
+    res.status(400).json({ error: 'Invalid action. Use: clear_old_queries, clear_old_activities, clear_old_audit_logs' });
+  } catch (error) {
+    res.status(500).json({ error: 'Maintenance action failed' });
+  }
+};
+
 module.exports = {
   register,
   getDashboardSummary,
@@ -2629,4 +2667,7 @@ module.exports = {
   updateExpenseInGroup,
   deleteExpenseFromGroup,
   settleExpenseSplitsInGroup,
+  getSystemStats,
+  exportAdminData,
+  performMaintenance,
 };

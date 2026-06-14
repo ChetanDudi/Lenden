@@ -401,6 +401,11 @@ module.exports = (io) => {
   router.get('/admin/notification-settings', auth, isAdmin, settingsController.getAdminNotificationSettings);
   router.put('/admin/notification-settings', auth, isAdmin, settingsController.updateAdminNotificationSettings);
 
+  // Data Management
+  router.get('/admin/data/stats', auth, isAdmin, adminController.getSystemStats);
+  router.get('/admin/data/export', auth, isAdmin, adminController.exportAdminData);
+  router.post('/admin/data/maintenance', auth, isAdmin, adminController.performMaintenance);
+
   // User Activity
   router.get('/admin/user-activity/:searchTerm', auth, isAdmin, userActivityController.getUserActivity);
 

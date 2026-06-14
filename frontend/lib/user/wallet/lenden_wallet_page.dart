@@ -10,6 +10,7 @@ import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../transaction/group_transactions/group_transaction_page.dart';
 import '../transaction/secure_transactions/view_secure_transactions_page.dart';
 import '../digitise/subscriptions_page.dart';
+import '../../widgets/payment_success_page.dart';
 
 // Razorpay only works on Android/iOS — not on Windows, Web, or macOS.
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -327,9 +328,19 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
       backgroundColor: Colors.transparent,
       builder: (_) => _PayToUserSheet(
         walletBalance: _walletBalance,
-        onSuccess: (amount) {
-          _showSnack('₹${amount.toStringAsFixed(2)} sent successfully!', success: true);
+        onSuccess: (amount, recipient) {
           _fetchWalletData();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentSuccessPage(
+                title: 'Payment Sent!',
+                amount: amount,
+                recipientName: recipient.isNotEmpty ? recipient : null,
+                transactionType: 'LenDen Wallet Transfer',
+              ),
+            ),
+          );
         },
       ),
     );
@@ -913,7 +924,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
 // Checks if counterparty phone exists; if not, shows a prompt.
 class _PayToUserSheet extends StatefulWidget {
   final double walletBalance;
-  final void Function(double amount) onSuccess;
+  final void Function(double amount, String recipient) onSuccess;
 
   const _PayToUserSheet({required this.walletBalance, required this.onSuccess});
 
@@ -953,7 +964,7 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
       if (!mounted) return;
       if (res.statusCode == 200) {
         Navigator.pop(context);
-        widget.onSuccess(amt);
+        widget.onSuccess(amt, _emailCtrl.text.trim());
       } else {
         final err = jsonDecode(res.body);
         setState(() { _sending = false; _error = err['error'] ?? 'Payment failed'; });

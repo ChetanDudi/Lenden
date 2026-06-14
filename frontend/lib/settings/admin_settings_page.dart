@@ -7,6 +7,10 @@ import 'admin_security_settings_page.dart';
 import 'admin_notification_settings_page.dart';
 import 'admin_management_page.dart';
 import '../password_management/change_password_page.dart';
+import '../admin/audit/audit_logs_page.dart';
+import 'admin_backup_restore_page.dart';
+import 'admin_data_export_page.dart';
+import 'admin_system_maintenance_page.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -305,8 +309,11 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.history,
                   Icons.arrow_forward_ios,
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Access Logs coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AuditLogsPage(),
+                      ),
                     );
                   },
                   subtitle: 'View system access and activity logs',
@@ -327,9 +334,11 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.backup_outlined,
                   Icons.arrow_forward_ios,
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Backup & Restore coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminBackupRestorePage(),
+                      ),
                     );
                   },
                   subtitle: 'Manage system backups and data restoration',
@@ -340,8 +349,11 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.file_download_outlined,
                   Icons.arrow_forward_ios,
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Data Export coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminDataExportPage(),
+                      ),
                     );
                   },
                   subtitle: 'Export system data and reports',
@@ -352,9 +364,12 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   Icons.build_outlined,
                   Icons.arrow_forward_ios,
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('System Maintenance coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const AdminSystemMaintenancePage(),
+                      ),
                     );
                   },
                   subtitle: 'Perform system maintenance tasks',

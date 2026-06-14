@@ -8,6 +8,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
+import '../../widgets/payment_success_page.dart';
 
 // Models
 class SubscriptionPlan {
@@ -529,58 +530,23 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          padding: const EdgeInsets.all(2),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: const Color(0xFFE8F5E9),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 60),
-                const SizedBox(height: 16),
-                const Text(
-                  'Payment Successful!',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'You are now a premium member. Enjoy unlimited access!',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Awesome!',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+    double? planPrice;
+    String planLabel = _selectedPlan ?? 'Premium';
+    try {
+      final plan = _plans.firstWhere((p) => p.name == _selectedPlan!);
+      planPrice = plan.price * (1 - plan.discount / 100);
+      if (plan.discount > 0) planLabel = '${plan.name} (${plan.discount}% off)';
+    } catch (_) {}
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentSuccessPage(
+          title: 'Subscription Activated!',
+          amount: planPrice,
+          transactionType: 'Subscription — $planLabel',
+          extraDetails: const {'Status': 'Premium Member ✓'},
+          onDone: () => Navigator.of(context).pop(),
         ),
       ),
     );
@@ -854,6 +820,35 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                             : 'Expired on: ${endDate.toLocal().toString().substring(0, 10)}',
                         style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
+                      if (isActive) ...[
+                        const SizedBox(height: 3),
+                        Builder(builder: (_) {
+                          final daysLeft = endDate.difference(DateTime.now()).inDays;
+                          final hoursLeft = endDate.difference(DateTime.now()).inHours % 24;
+                          final label = daysLeft > 0
+                              ? '$daysLeft day${daysLeft == 1 ? '' : 's'} left'
+                              : hoursLeft > 0
+                                  ? '$hoursLeft hour${hoursLeft == 1 ? '' : 's'} left'
+                                  : 'Expiring soon';
+                          final color = daysLeft <= 3
+                              ? Colors.orange
+                              : const Color(0xFF00B4D8);
+                          return Row(
+                            children: [
+                              Icon(Icons.timer_outlined, size: 12, color: color),
+                              const SizedBox(width: 4),
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
                       const SizedBox(height: 5),
                       Row(children: [
                         // Payment method badge

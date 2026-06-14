@@ -233,43 +233,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: const Color(0xFFFAF9F6),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title:
-            const Text('Edit Profile', style: TextStyle(color: Colors.black)),
+        title: const Text('Edit Profile',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // Top blue wave
+          // Top blue wave — behind AppBar
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: _EditProfileWaveClipper(),
               child: Container(
-                height: 120,
-                color: const Color(0xFF00B4D8),
-              ),
-            ),
-          ),
-          // Bottom blue wave
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ClipPath(
-              clipper: BottomWaveClipper(),
-              child: Container(
-                height: 90,
-                color: const Color(0xFF00B4D8),
+                height: 160,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
               ),
             ),
           ),
@@ -446,7 +441,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                         child: const Text('Cancel',
                             style:
-                                TextStyle(fontSize: 18, color: Colors.white70)),
+                                TextStyle(fontSize: 18, color: Colors.black87)),
                       ),
                     ],
                   ),
@@ -460,24 +455,33 @@ class _EditProfilePageState extends State<EditProfilePage> {
 // ...existing code...
   }
 
+  Widget _tricolorBorder({required Widget child, double radius = 16}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius - 2),
+        child: child,
+      ),
+    );
+  }
+
   Widget _editField(
       IconData icon, String label, TextEditingController controller,
       {TextInputType keyboardType = TextInputType.text,
       bool readOnly = false}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+    return _tricolorBorder(
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      color: Colors.white,
       child: Row(
         children: [
           Icon(icon, color: const Color(0xFF00B4D8)),
@@ -540,85 +544,58 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _editGenderField() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
+    return _tricolorBorder(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.transgender, color: Color(0xFF00B4D8)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _gender,
-              decoration: const InputDecoration(
-                labelText: 'Gender',
-                border: InputBorder.none,
+        child: Row(
+          children: [
+            const Icon(Icons.transgender, color: Color(0xFF00B4D8)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _gender,
+                decoration: const InputDecoration(
+                  labelText: 'Gender',
+                  border: InputBorder.none,
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Male', child: Text('Male')),
+                  DropdownMenuItem(value: 'Female', child: Text('Female')),
+                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                ],
+                onChanged: (val) => setState(() => _gender = val),
+                validator: (val) => val == null ? 'Required' : null,
               ),
-              items: const [
-                DropdownMenuItem(value: 'Male', child: Text('Male')),
-                DropdownMenuItem(value: 'Female', child: Text('Female')),
-                DropdownMenuItem(value: 'Other', child: Text('Other')),
-              ],
-              onChanged: (val) => setState(() => _gender = val),
-              validator: (val) => val == null ? 'Required' : null,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// Top blue wave clipper
-class TopWaveClipper extends CustomClipper<Path> {
+class _EditProfileWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
+    final path = Path();
+    path.lineTo(0, size.height * 0.75);
+    path.cubicTo(
+      size.width * 0.25, size.height * 1.05,
+      size.width * 0.75, size.height * 0.45,
+      size.width, size.height * 0.75,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-// Bottom blue wave clipper
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  bool shouldReclip(_) => false;
 }
 

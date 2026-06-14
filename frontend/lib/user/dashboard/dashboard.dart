@@ -773,17 +773,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.list_alt),
-                title: const Text('Transaction Details'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => UserTransactionsPage()));
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.timeline),
                 title: const Text('Activity'),
                 onTap: () {
@@ -835,15 +824,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.star),
-                title: const Text('Ratings'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const RatingsPage()));
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.help_center),
                 title: const Text('Help & Support'),
                 onTap: () {
@@ -858,17 +838,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.pushNamed(context, '/feedback');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.subscriptions),
-                title: const Text('Subscriptions'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const SubscriptionsPage()));
                 },
               ),
               ListTile(

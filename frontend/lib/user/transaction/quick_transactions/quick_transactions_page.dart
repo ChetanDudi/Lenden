@@ -12,6 +12,7 @@ import '../../../utils/api_client.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../widgets/subscription_prompt.dart';
 import '../../../widgets/stylish_dialog.dart';
+import '../../../widgets/payment_success_page.dart';
 import '../../digitise/subscriptions_page.dart';
 import '../../digitise/gift_card_page.dart';
 import '../analytics_page.dart';
@@ -507,30 +508,43 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       session.loadFreebieCounts();
       final giftCardAwarded = result['giftCardAwarded'] as bool?;
       final awardedCard = result['awardedCard'];
+      final txn = result['transaction'] ?? result;
+
+      final amt = (txn['amount'] as num?)?.toDouble();
+      final recipient = (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '').toString();
+      final role = (txn['role'] ?? '').toString();
+      final extraDetails = <String, String>{
+        if (role.isNotEmpty) 'Role': role,
+        if (giftCardAwarded == true && awardedCard != null) 'Bonus': '🎉 Gift card won!',
+      };
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentSuccessPage(
+            title: transaction != null ? 'Transaction Updated!' : 'Transaction Created!',
+            amount: amt,
+            recipientName: recipient.isNotEmpty ? recipient : null,
+            transactionType: 'Quick Transaction',
+            extraDetails: extraDetails,
+          ),
+        ),
+      );
 
       if (giftCardAwarded == true && awardedCard != null) {
-        ElegantNotification.success(
-          title: Text("Congratulations!"),
-          description: Text("You've won a gift card!"),
-          action: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => GiftCardPage()),
-              );
-            },
-            child: Text(
-              'View',
-              style: TextStyle(color: Colors.blue),
-            ),
-          ),
-        ).show(context);
-      } else {
-        ElegantNotification.success(
-          title: Text("Success"),
-          description: Text(
-              "Transaction has been successfully ${transaction != null ? 'updated' : 'created'}!"),
-        ).show(context);
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            ElegantNotification.success(
+              title: Text("Congratulations!"),
+              description: Text("You've won a gift card!"),
+              action: GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => GiftCardPage())),
+                child: Text('View', style: TextStyle(color: Colors.blue)),
+              ),
+            ).show(context);
+          }
+        });
       }
     }
   }
@@ -941,30 +955,43 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       session.loadFreebieCounts();
       final giftCardAwarded = result['giftCardAwarded'] as bool?;
       final awardedCard = result['awardedCard'];
+      final txn = result['transaction'] ?? result;
+
+      final amt = (txn['amount'] as num?)?.toDouble();
+      final recipient = (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '').toString();
+      final role = (txn['role'] ?? '').toString();
+      final extraDetails = <String, String>{
+        if (role.isNotEmpty) 'Role': role,
+        if (giftCardAwarded == true && awardedCard != null) 'Bonus': '🎉 Gift card won!',
+      };
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentSuccessPage(
+            title: transaction != null ? 'Transaction Updated!' : 'Transaction Created!',
+            amount: amt,
+            recipientName: recipient.isNotEmpty ? recipient : null,
+            transactionType: 'Quick Transaction',
+            extraDetails: extraDetails,
+          ),
+        ),
+      );
 
       if (giftCardAwarded == true && awardedCard != null) {
-        ElegantNotification.success(
-          title: Text("Congratulations!"),
-          description: Text("You've won a gift card!"),
-          action: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => GiftCardPage()),
-              );
-            },
-            child: Text(
-              'View',
-              style: TextStyle(color: Colors.blue),
-            ),
-          ),
-        ).show(context);
-      } else {
-        ElegantNotification.success(
-          title: Text("Success"),
-          description: Text(
-              "Transaction has been successfully ${transaction != null ? 'updated' : 'created'}!"),
-        ).show(context);
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            ElegantNotification.success(
+              title: Text("Congratulations!"),
+              description: Text("You've won a gift card!"),
+              action: GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => GiftCardPage())),
+                child: Text('View', style: TextStyle(color: Colors.blue)),
+              ),
+            ).show(context);
+          }
+        });
       }
     }
   }

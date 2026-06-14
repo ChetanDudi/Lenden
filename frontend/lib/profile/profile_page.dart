@@ -159,19 +159,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          // Bottom blue shape
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: BottomWaveClipper(),
-              child: Container(
-                height: context.sh(80),
-                color: const Color(0xFF00B4D8),
-              ),
-            ),
-          ),
           // Main content scrollable to the end
           SafeArea(
             child: SingleChildScrollView(
@@ -302,41 +289,47 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _profileField(IconData icon, String label, String value) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF00B4D8)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
+      padding: const EdgeInsets.all(2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          color: Colors.white,
+          child: Row(
+            children: [
+              Icon(icon, color: const Color(0xFF00B4D8)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text.rich(
                   TextSpan(
-                    text: '$label: ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: context.sp(15)),
+                    children: [
+                      TextSpan(
+                        text: '$label: ',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: context.sp(15)),
+                      ),
+                      TextSpan(
+                        text: value,
+                        style: TextStyle(
+                            fontSize: context.sp(15),
+                            fontWeight: FontWeight.normal),
+                      ),
+                    ],
                   ),
-                  TextSpan(
-                    text: value,
-                    style: TextStyle(
-                        fontSize: context.sp(15), fontWeight: FontWeight.normal),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -360,20 +353,3 @@ class TopWaveClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

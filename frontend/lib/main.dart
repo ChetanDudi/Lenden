@@ -526,14 +526,54 @@ class HomePage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: context.sh(16)),
+                    SizedBox(height: context.sh(24)),
                     Center(
-                      child: Text(
-                        'Welcome to Lenden',
-                        style: TextStyle(
-                            fontSize: context.sp(28),
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black),
+                      child: Column(
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Color(0xFF0077B6), Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ).createShader(bounds),
+                            child: Text(
+                              'Welcome to the',
+                              style: TextStyle(
+                                fontSize: context.sp(18),
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Color(0xFFFF9933), Color(0xFF00B4D8), Color(0xFF138808)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ).createShader(bounds),
+                            child: Text(
+                              'LenDen',
+                              style: TextStyle(
+                                fontSize: context.sp(42),
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 2.5,
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: context.sh(6)),
+                          Text(
+                            'Lend, borrow & manage money — together.',
+                            style: TextStyle(
+                              fontSize: context.sp(12),
+                              color: Colors.grey.shade500,
+                              letterSpacing: 0.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     ),
                     SizedBox(height: context.sh(28)),

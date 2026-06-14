@@ -189,7 +189,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   localRating >= 3 ? 'Good' : localRating >= 2 ? 'Fair' : 'Poor',
                   style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 15,
-                    color: localRating >= 4 ? Colors.green : localRating >= 3 ? Colors.orange : Colors.red,
+                    color: localRating >= 4 ? Colors.green : Colors.orange,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -288,7 +288,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         final star = 5 - i;
         final count = dist[star.toString()] ?? 0;
         final pct = total > 0 ? count / total : 0.0;
-        final color = star >= 4 ? Colors.green : star == 3 ? Colors.orange : Colors.red;
+        final color = star >= 4 ? Colors.green : Colors.orange;
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2.5),
           child: Row(children: [
@@ -357,7 +357,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         ? (r['rateeName'] ?? r['ratee'] ?? 'User').toString()
         : (r['raterName'] ?? r['rater'] ?? 'User').toString();
     final prefix = isGiven ? 'To' : 'From';
-    final starColor = rating >= 4 ? Colors.green : rating >= 3 ? Colors.orange : Colors.red;
+    final starColor = rating >= 4 ? Colors.green : rating >= 3 ? Colors.orange : Colors.orange;
     final comment = r['comment']?.toString() ?? '';
 
     return _tricolorBorder(
@@ -413,7 +413,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
 
   Widget _myRatingHero() {
     final stars = avgRating ?? 0.0;
-    final color = stars >= 4 ? const Color(0xFF2E7D32) : stars >= 3 ? Colors.orange : const Color(0xFFD32F2F);
+    final color = stars >= 4 ? const Color(0xFF2E7D32) : Colors.orange;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       padding: const EdgeInsets.all(24),
@@ -619,7 +619,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                       _selectedRating >= 2 ? 'Fair' : 'Poor',
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold, fontSize: 16,
-                                                        color: _selectedRating >= 4 ? Colors.green : _selectedRating >= 3 ? Colors.orange : Colors.red,
+                                                        color: _selectedRating >= 4 ? Colors.green : Colors.orange,
                                                       ),
                                                     ),
                                                   ],
