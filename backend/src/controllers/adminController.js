@@ -2582,13 +2582,38 @@ const exportAdminData = async (req, res) => {
       return res.send(header + rows);
     }
     if (type === 'transactions') {
-      const txns = await Transaction.find({}).select('transactionId userEmail counterpartyEmail role amount currency place description date createdAt').lean();
+      const txns = await Transaction.find({}).select('transactionId userEmail counterpartyEmail role amount currency place description date').lean();
       const header = 'Transaction ID,User Email,Counterparty Email,Role,Amount,Currency,Place,Description,Date\n';
       const rows = txns.map(t =>
         [t.transactionId ?? t._id, t.userEmail, t.counterpartyEmail, t.role, t.amount, t.currency, t.place, t.description, t.date ? new Date(t.date).toISOString().split('T')[0] : ''].map(esc).join(',')
       ).join('\n');
       res.setHeader('Content-Type', 'text/csv');
       return res.send(header + rows);
+    }
+    if (type === 'quick_transactions') {
+      const txns = await QuickTransaction.find({}).select('amount currency date creatorEmail role description users cleared settlementStatus').lean();
+      const header = 'ID,Creator Email,Participants,Role,Amount,Currency,Description,Date,Cleared,Settlement Status\n';
+      const rows = txns.map(t =>
+        [t._id, t.creatorEmail, (t.users || []).join(';'), t.role, t.amount, t.currency, t.description, t.date ? new Date(t.date).toISOString().split('T')[0] : '', t.cleared ? 'Yes' : 'No', t.settlementStatus].map(esc).join(',')
+      ).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(header + rows);
+    }
+    if (type === 'group_transactions') {
+      const groups = await GroupTransaction.find({}).populate('creator', 'email').lean();
+      const rows = [];
+      for (const g of groups) {
+        if (!g.expenses || g.expenses.length === 0) {
+          rows.push([g._id, g.title, g.creator?.email ?? '', '(no expenses)', '', '', '', '', g.isActive ? 'Active' : 'Inactive'].map(esc).join(','));
+        } else {
+          for (const exp of g.expenses) {
+            rows.push([g._id, g.title, g.creator?.email ?? '', exp.description, exp.amount, exp.currency, exp.addedBy, exp.date ? new Date(exp.date).toISOString().split('T')[0] : '', g.isActive ? 'Active' : 'Inactive'].map(esc).join(','));
+          }
+        }
+      }
+      const header = 'Group ID,Group Title,Creator,Expense Description,Amount,Currency,Added By,Date,Status\n';
+      res.setHeader('Content-Type', 'text/csv');
+      return res.send(header + rows.join('\n'));
     }
     if (type === 'support') {
       const queries = await SupportQuery.find({}).populate('user', 'email').lean();

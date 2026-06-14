@@ -303,6 +303,21 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
     );
   }
 
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 2),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
@@ -430,30 +445,45 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: _blue)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
+                _sectionLabel('Users & Support'),
+                const SizedBox(height: 8),
                 _exportCard(
                   icon: Icons.people_outline,
                   title: 'Users',
-                  subtitle:
-                      'All user accounts — name, username, email, gender, joined date',
+                  subtitle: 'All user accounts — name, username, email, gender, joined date',
                   type: 'users',
                   accent: _cyan,
                 ),
                 _exportCard(
-                  icon: Icons.swap_horiz_rounded,
-                  title: 'Transactions',
-                  subtitle:
-                      'All transactions — sender, receiver, amount, currency, status',
-                  type: 'transactions',
+                  icon: Icons.support_agent_outlined,
+                  title: 'Support Queries',
+                  subtitle: 'All support tickets — user, topic, status, priority, date',
+                  type: 'support',
+                  accent: Colors.orange,
+                ),
+                _sectionLabel('Transactions'),
+                const SizedBox(height: 8),
+                _exportCard(
+                  icon: Icons.flash_on_rounded,
+                  title: 'Quick Transactions',
+                  subtitle: 'Creator, participants, role, amount, settlement status',
+                  type: 'quick_transactions',
                   accent: Colors.green,
                 ),
                 _exportCard(
-                  icon: Icons.support_agent_outlined,
-                  title: 'Support Queries',
-                  subtitle:
-                      'All support tickets — user, topic, status, priority, date',
-                  type: 'support',
-                  accent: Colors.orange,
+                  icon: Icons.lock_outline_rounded,
+                  title: 'Secure Transactions',
+                  subtitle: 'User email, counterparty, role, amount, currency, place',
+                  type: 'transactions',
+                  accent: Colors.purple,
+                ),
+                _exportCard(
+                  icon: Icons.group_outlined,
+                  title: 'Group Transactions',
+                  subtitle: 'Group title, creator, each expense with amount & date',
+                  type: 'group_transactions',
+                  accent: Colors.teal,
                 ),
                 if (_lastExported != null) ...[
                   const SizedBox(height: 16),

@@ -105,7 +105,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   Future<void> _createBackup() async {
     setState(() => _isLoading = true);
     try {
-      final types = ['users', 'transactions', 'support'];
+      final types = ['users', 'transactions', 'quick_transactions', 'group_transactions', 'support'];
       final dir = await _backupDir();
       final ts = DateTime.now().millisecondsSinceEpoch;
       final paths = <String, String>{};
@@ -263,12 +263,16 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
     final label = '${type[0].toUpperCase()}${type.substring(1)}';
     const typeColors = {
       'users': _cyan,
-      'transactions': Colors.green,
+      'transactions': Colors.purple,
+      'quick_transactions': Colors.green,
+      'group_transactions': Colors.teal,
       'support': Colors.orange,
     };
     const typeIcons = {
       'users': Icons.people_outline,
-      'transactions': Icons.swap_horiz_rounded,
+      'transactions': Icons.lock_outline_rounded,
+      'quick_transactions': Icons.flash_on_rounded,
+      'group_transactions': Icons.group_outlined,
       'support': Icons.support_agent_outlined,
     };
     final accent = typeColors[type] ?? _cyan;
@@ -473,12 +477,16 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   Widget _buildHistoryCard(_BackupEntry entry) {
     const typeColors = {
       'users': _cyan,
-      'transactions': Colors.green,
+      'transactions': Colors.purple,
+      'quick_transactions': Colors.green,
+      'group_transactions': Colors.teal,
       'support': Colors.orange,
     };
     const typeIcons = {
       'users': Icons.people_outline,
-      'transactions': Icons.swap_horiz_rounded,
+      'transactions': Icons.lock_outline_rounded,
+      'quick_transactions': Icons.flash_on_rounded,
+      'group_transactions': Icons.group_outlined,
       'support': Icons.support_agent_outlined,
     };
 
