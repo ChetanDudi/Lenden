@@ -21,24 +21,16 @@ class AdminSettingsPage extends StatefulWidget {
 
 class _AdminSettingsPageState extends State<AdminSettingsPage> {
   @override
-  void initState() {
-    super.initState();
-    // No need to refresh on init as the session should already have user data
-  }
-
-  @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFFAF9F6),
       appBar: AppBar(
         title: const Text(
           'Admin Settings',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -47,460 +39,372 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Admin Profile Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    spreadRadius: 1,
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: _AdminTopWaveClipper(),
+              child: Container(
+                height: 110,
+                color: const Color(0xFF00B4D8),
               ),
-              child: Row(
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: const Color(0xFF00B4D8),
-                    child: session.user?['profileImage'] != null
-                        ? ClipOval(
-                            child: session.user!['profileImage'] is String
-                                ? Image.network(
-                                    session.user!['profileImage'],
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Text(
+                  // Admin Profile Card
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        color: const Color(0xFFFFF4E6),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: const Color(0xFF00B4D8),
+                                child: session.user?['profileImage'] != null
+                                    ? ClipOval(
+                                        child: session.user!['profileImage'] is String
+                                            ? Image.network(
+                                                session.user!['profileImage'],
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) =>
+                                                    Text(
+                                                  (session.user?['name'] as String?)
+                                                          ?.substring(0, 1)
+                                                          .toUpperCase() ??
+                                                      'A',
+                                                  style: const TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white),
+                                                ),
+                                              )
+                                            : Image.memory(
+                                                session.user!['profileImage'],
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                              ),
+                                      )
+                                    : Text(
                                         (session.user?['name'] as String?)
                                                 ?.substring(0, 1)
                                                 .toUpperCase() ??
                                             'A',
                                         style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Image.memory(
-                                    session.user!['profileImage'],
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    session.user?['name'] ?? 'Admin',
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
                                   ),
-                          )
-                        : Text(
-                            (session.user?['name'] as String?)
-                                    ?.substring(0, 1)
-                                    .toUpperCase() ??
-                                'A',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    session.user?['email'] ?? 'admin@lenden.com',
+                                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'Administrator',
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                              onPressed: () => Navigator.pushNamed(context, '/profile'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // System Management
+                  _sectionLabel('System Management'),
+                  const SizedBox(height: 8),
+                  _buildTile(
+                    title: 'System Settings',
+                    icon: Icons.settings_system_daydream_outlined,
+                    subtitle: 'Configure system-wide settings and preferences',
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const AdminSystemSettingsPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  _buildTile(
+                    title: 'User Management',
+                    icon: Icons.people_outline,
+                    subtitle: 'Manage and track user accounts',
+                    showStatus: true,
+                    isActive: true,
+                    onTap: () => Navigator.pushNamed(context, '/admin/manage-users'),
+                  ),
+                  _buildTile(
+                    title: 'Analytics & Reports',
+                    icon: Icons.analytics_outlined,
+                    subtitle: 'Configure analytics and reporting settings',
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(
+                                builder: (_) => const AdminAnalyticsSettingsPage()))
+                        .then((_) => setState(() {})),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Admin Management
+                  _sectionLabel('Admin Management'),
+                  const SizedBox(height: 8),
+                  _buildTile(
+                    title: 'Manage Admins',
+                    icon: Icons.admin_panel_settings,
+                    subtitle: 'Add or remove admin accounts',
+                    showStatus: true,
+                    isActive: true,
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const AdminManagementPage())),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Security & Access
+                  _sectionLabel('Security & Access'),
+                  const SizedBox(height: 8),
+                  _buildTile(
+                    title: 'Security Settings',
+                    icon: Icons.security_outlined,
+                    subtitle: 'Manage admin security and access controls',
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(
+                                builder: (_) => const AdminSecuritySettingsPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  _buildTile(
+                    title: 'Admin Notifications',
+                    icon: Icons.admin_panel_settings_outlined,
+                    subtitle: 'Configure admin-specific notifications',
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(
+                                builder: (_) => const AdminNotificationSettingsPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  _buildTile(
+                    title: 'Change Password',
+                    icon: Icons.lock_outline,
+                    subtitle: 'Update your admin account password',
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const ChangePasswordPage())),
+                  ),
+                  _buildTile(
+                    title: 'Access Logs',
+                    icon: Icons.history,
+                    subtitle: 'View system access and activity logs',
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const AuditLogsPage())),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Data Management
+                  _sectionLabel('Data Management'),
+                  const SizedBox(height: 8),
+                  _buildTile(
+                    title: 'Backup & Restore',
+                    icon: Icons.backup_outlined,
+                    subtitle: 'Manage system backups and data restoration',
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const AdminBackupRestorePage())),
+                  ),
+                  _buildTile(
+                    title: 'Data Export',
+                    icon: Icons.file_download_outlined,
+                    subtitle: 'Export system data and reports',
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const AdminDataExportPage())),
+                  ),
+                  _buildTile(
+                    title: 'System Maintenance',
+                    icon: Icons.build_outlined,
+                    subtitle: 'Perform system maintenance tasks',
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const AdminSystemMaintenancePage())),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Logout Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _showLogoutDialog(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTile({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+    String? subtitle,
+    bool showStatus = false,
+    bool isActive = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Material(
+          color: Colors.white,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Stack(
+                    children: [
+                      Icon(icon, color: const Color(0xFF00B4D8), size: 24),
+                      if (showStatus)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isActive ? Colors.green : Colors.grey,
+                              shape: BoxShape.circle,
                             ),
                           ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          session.user?['name'] ?? 'Admin',
+                          title,
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          session.user?['email'] ?? 'admin@lenden.com',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'Administrator',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(subtitle,
+                              style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Color(0xFF00B4D8)),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/profile');
-                    },
-                  ),
+                  const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // System Management Section
-            _buildSettingsSection(
-              context,
-              'System Management',
-              [
-                _buildSettingsTile(
-                  context,
-                  'System Settings',
-                  Icons.settings_system_daydream_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminSystemSettingsPage(),
-                      ),
-                    ).then((_) => setState(() {}));
-                  },
-                  subtitle: 'Configure system-wide settings and preferences',
-                ),
-                _buildSettingsTile(
-                  context,
-                  'User Management',
-                  Icons.people_outline,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.pushNamed(context, '/admin/manage-users');
-                  },
-                  subtitle: 'Manage and track user accounts',
-                  showStatus: true,
-                  isActive: true,
-                ),
-                _buildSettingsTile(
-                  context,
-                  'Analytics & Reports',
-                  Icons.analytics_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const AdminAnalyticsSettingsPage(),
-                      ),
-                    ).then((_) => setState(() {}));
-                  },
-                  subtitle: 'Configure analytics and reporting settings',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Admin Management Section
-            _buildSettingsSection(
-              context,
-              'Admin Management',
-              [
-                _buildSettingsTile(
-                  context,
-                  'Manage Admins',
-                  Icons.admin_panel_settings,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminManagementPage(),
-                      ),
-                    );
-                  },
-                  subtitle: 'Add or remove admin accounts',
-                  showStatus: true,
-                  isActive: true,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Security & Access Section
-            _buildSettingsSection(
-              context,
-              'Security & Access',
-              [
-                _buildSettingsTile(
-                  context,
-                  'Security Settings',
-                  Icons.security_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminSecuritySettingsPage(),
-                      ),
-                    ).then((_) => setState(() {}));
-                  },
-                  subtitle: 'Manage admin security and access controls',
-                ),
-                _buildSettingsTile(
-                  context,
-                  'Admin Notifications',
-                  Icons.admin_panel_settings_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const AdminNotificationSettingsPage(),
-                      ),
-                    ).then((_) => setState(() {}));
-                  },
-                  subtitle: 'Configure admin-specific notifications',
-                ),
-                _buildSettingsTile(
-                  context,
-                  'Change Password',
-                  Icons.lock_outline,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ChangePasswordPage(),
-                      ),
-                    );
-                  },
-                  subtitle: 'Update your admin account password',
-                ),
-                _buildSettingsTile(
-                  context,
-                  'Access Logs',
-                  Icons.history,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AuditLogsPage(),
-                      ),
-                    );
-                  },
-                  subtitle: 'View system access and activity logs',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Data Management Section
-            _buildSettingsSection(
-              context,
-              'Data Management',
-              [
-                _buildSettingsTile(
-                  context,
-                  'Backup & Restore',
-                  Icons.backup_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminBackupRestorePage(),
-                      ),
-                    );
-                  },
-                  subtitle: 'Manage system backups and data restoration',
-                ),
-                _buildSettingsTile(
-                  context,
-                  'Data Export',
-                  Icons.file_download_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminDataExportPage(),
-                      ),
-                    );
-                  },
-                  subtitle: 'Export system data and reports',
-                ),
-                _buildSettingsTile(
-                  context,
-                  'System Maintenance',
-                  Icons.build_outlined,
-                  Icons.arrow_forward_ios,
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const AdminSystemMaintenancePage(),
-                      ),
-                    );
-                  },
-                  subtitle: 'Perform system maintenance tasks',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Logout Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  _showLogoutDialog(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Logout',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSettingsSection(
-      BuildContext context, String title, List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
-              ),
-            ),
-          ),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsTile(
-    BuildContext context,
-    String title,
-    IconData leadingIcon,
-    IconData trailingIcon,
-    VoidCallback onTap, {
-    String? subtitle,
-    bool showStatus = false,
-    bool isActive = false,
-  }) {
-    return ListTile(
-      leading: Stack(
-        children: [
-          Icon(
-            leadingIcon,
-            color: const Color(0xFF00B4D8),
-            size: 24,
-          ),
-          if (showStatus)
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.green : Colors.grey,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-        ],
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            )
-          : null,
-      trailing: Icon(
-        trailingIcon,
-        color: Colors.grey,
-        size: 16,
-      ),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
@@ -509,50 +413,50 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Logout',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          content: const Text(
-            'Are you sure you want to logout?',
-            style: TextStyle(color: Colors.black87),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Logout',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+          content: const Text('Are you sure you want to logout?',
+              style: TextStyle(color: Colors.black87)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () {
-                final session =
-                    Provider.of<SessionProvider>(context, listen: false);
+                final session = Provider.of<SessionProvider>(context, listen: false);
                 session.logout();
                 Navigator.of(context).pop();
                 Navigator.of(context).pushReplacementNamed('/');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
       },
     );
   }
+}
+
+class _AdminTopWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height * 0.35);
+    path.quadraticBezierTo(
+        size.width * 0.25, size.height * 0.5, size.width * 0.5, size.height * 0.35);
+    path.quadraticBezierTo(
+        size.width * 0.75, size.height * 0.2, size.width, size.height * 0.35);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

@@ -29,7 +29,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Manage Features',
+        title: Text('Manage Subscription',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,

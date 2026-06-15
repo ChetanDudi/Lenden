@@ -153,14 +153,19 @@ class _QrScannerPageState extends State<QrScannerPage> {
     if (_processing) return;
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image == null || !mounted) return;
-    setState(() => _processing = true);
-    await _controller?.stop();
+    // Do NOT set _processing or stop the controller here.
+    // analyzeImage triggers _onDetect which manages both.
     try {
       final found = await _controller?.analyzeImage(image.path);
       if (!mounted) return;
-      if (found != true) _showError('No valid QR code found in this image.');
+      // Only show error if _onDetect didn't already start handling the result
+      if (found != true && !_processing) {
+        _showError('No valid QR code found in this image.');
+      }
     } catch (_) {
-      if (mounted) _showError('Could not analyse the image. Try another photo.');
+      if (mounted && !_processing) {
+        _showError('Could not analyse the image. Try another photo.');
+      }
     }
   }
 
