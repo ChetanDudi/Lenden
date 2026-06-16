@@ -162,7 +162,7 @@ exports.pay = async (req, res) => {
         { new: true, session }
       );
       if (!sender) {
-        throw Object.assign(new Error('Insufficient wallet balance'), { status: 400 });
+        throw Object.assign(new Error('Insufficient wallet balance'), { status: 400, userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.' });
       }
       if (sender._id.equals(receiver._id)) {
         throw Object.assign(new Error('Cannot pay yourself'), { status: 400 });
@@ -349,7 +349,7 @@ exports.paySubscription = async (req, res) => {
         { $inc: { walletBalance: -actualPrice } },
         { new: true, session }
       );
-      if (!user) throw Object.assign(new Error('Insufficient wallet balance'), { status: 400 });
+      if (!user) throw Object.assign(new Error('Insufficient wallet balance'), { status: 400, userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.' });
 
       await WalletTransaction.create([{
         user: req.user._id,

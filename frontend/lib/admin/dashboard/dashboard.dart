@@ -10,6 +10,7 @@ import '../../profile/profile_page.dart';
 import '../transactions/manage_secure_transactions_page.dart';
 import '../manage_users/user_management_page.dart';
 import '../transactions/manage_group_transactions_page.dart';
+import '../transactions/manage_quick_transactions_page.dart';
 import '../track_users/track_user_activity_page.dart';
 import '../support/manage_contact_page.dart';
 import '../support/manage_support_queries_page.dart';
@@ -217,6 +218,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           MaterialPageRoute(builder: (_) => ManageGroupTransactionsPage()),
         );
         return;
+      case 'manage_quick_transactions':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const ManageQuickTransactionsPage()),
+        );
+        return;
       case 'support_queries':
         Navigator.push(
           context,
@@ -325,6 +333,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => ManageGroupTransactionsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'manage_quick_transactions',
+          permissionKey: 'canManageTransactions',
+          icon: Icons.flash_on_rounded,
+          label: 'Manage Quick Transactions',
+          caption: 'Inspect and manage quick transaction records',
+          actionLabel: 'Quick',
+          backgroundColor: const Color(0xFFE8F0FE),
+          iconColor: const Color(0xFF1A56DB),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const ManageQuickTransactionsPage()),
             );
           },
         ),

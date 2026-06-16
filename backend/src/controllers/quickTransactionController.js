@@ -545,8 +545,9 @@ exports.respondQuickTransactionSettlement = async (req, res) => {
     quickTransaction.settlementRespondedAt = new Date();
 
     if (normalizedAction === 'accept') {
-      quickTransaction.cleared = true;
       quickTransaction.settlementStatus = 'accepted';
+      quickTransaction.cleared = true;
+      quickTransaction.settledViaPayment = true;
       await quickTransaction.save();
       await logQuickTransactionActivity(
         req.user._id,

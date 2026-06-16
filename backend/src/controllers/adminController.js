@@ -2654,6 +2654,102 @@ const performMaintenance = async (req, res) => {
   }
 };
 
+// Get all quick transactions (for admin)
+const getAllQuickTransactions = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 100,
+      sortBy = 'createdAt',
+      order = 'desc',
+      search,
+      cleared,
+      settlementStatus,
+    } = req.query;
+    const sortDir = order === 'asc' ? 1 : -1;
+
+    const query = {};
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(
+        search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i'
+      );
+      query.$or = [
+        { creatorEmail: searchRegex },
+        { description: searchRegex },
+        { users: searchRegex },
+      ];
+    }
+    if (cleared === 'true') query.cleared = true;
+    else if (cleared === 'false') query.cleared = false;
+    if (settlementStatus && settlementStatus !== 'all') {
+      query.settlementStatus = settlementStatus;
+    }
+
+    const allowedSortFields = ['createdAt', 'amount', 'date'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+
+    const transactions = await QuickTransaction.find(query)
+      .sort({ [sortField]: sortDir })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const total = await QuickTransaction.countDocuments(query);
+
+    res.json({
+      success: true,
+      transactions,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      total,
+    });
+  } catch (error) {
+    console.error('Error fetching quick transactions:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch quick transactions' });
+  }
+};
+
+// Update a quick transaction (for admin)
+const updateAdminQuickTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, currency, description, cleared, settlementStatus, role } = req.body;
+
+    const updateData = {};
+    if (amount !== undefined) updateData.amount = amount;
+    if (currency !== undefined) updateData.currency = currency;
+    if (description !== undefined) updateData.description = description;
+    if (cleared !== undefined) updateData.cleared = cleared;
+    if (settlementStatus !== undefined) updateData.settlementStatus = settlementStatus;
+    if (role !== undefined) updateData.role = role;
+
+    const transaction = await QuickTransaction.findByIdAndUpdate(id, updateData, { new: true });
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Quick transaction not found' });
+    }
+
+    res.json({ success: true, message: 'Quick transaction updated successfully', transaction });
+  } catch (error) {
+    console.error('Error updating quick transaction:', error);
+    res.status(500).json({ success: false, message: 'Failed to update quick transaction' });
+  }
+};
+
+// Delete a quick transaction (for admin)
+const deleteAdminQuickTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const transaction = await QuickTransaction.findByIdAndDelete(id);
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Quick transaction not found' });
+    }
+    res.json({ success: true, message: 'Quick transaction deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting quick transaction:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete quick transaction' });
+  }
+};
+
 module.exports = {
   register,
   getDashboardSummary,
@@ -2692,6 +2788,9 @@ module.exports = {
   updateExpenseInGroup,
   deleteExpenseFromGroup,
   settleExpenseSplitsInGroup,
+  getAllQuickTransactions,
+  updateAdminQuickTransaction,
+  deleteAdminQuickTransaction,
   getSystemStats,
   exportAdminData,
   performMaintenance,

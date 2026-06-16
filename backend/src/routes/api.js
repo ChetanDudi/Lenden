@@ -371,6 +371,11 @@ module.exports = (io) => {
   router.delete('/admin/group-transactions/:groupId/expenses/:expenseId', auth, isAdmin, adminController.deleteExpenseFromGroup);
   router.post('/admin/group-transactions/:groupId/expenses/:expenseId/settle', auth, isAdmin, adminController.settleExpenseSplitsInGroup);
 
+  // Quick Transaction Management (Admin)
+  router.get('/admin/quick-transactions', auth, isAdmin, adminController.getAllQuickTransactions);
+  router.put('/admin/quick-transactions/:id', auth, isAdmin, adminController.updateAdminQuickTransaction);
+  router.delete('/admin/quick-transactions/:id', auth, isAdmin, adminController.deleteAdminQuickTransaction);
+
   // Admin Management routes
   router.get('/admin/admins', auth, isAdmin, adminController.getAllAdmins); // This route now supports ?search=query
   router.get('/admin/audit-logs', auth, isAdmin, adminController.getAdminAuditLogs);
