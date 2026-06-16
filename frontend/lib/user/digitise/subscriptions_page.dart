@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/display_currency_helper.dart';
 import '../../widgets/payment_success_page.dart';
 
@@ -341,26 +343,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
   Future<void> _startPayment() async {
     if (_selectedPlan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a subscription plan.')),
-      );
+      showSnack(context, 'Please select a subscription plan.', isError: true);
       return;
     }
 
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (session.token == null || session.user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to subscribe.')),
-      );
+      showSnack(context, 'Please login to subscribe.', isError: true);
       return;
     }
 
     if (!_isMobilePlatform) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment is only supported on Android & iOS. Please use the mobile app.'),
-        ),
-      );
+      showSnack(context, 'Payment is only supported on Android & iOS. Please use the mobile app.', isError: true);
       return;
     }
 
@@ -379,9 +373,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
       if (orderRes.statusCode != 200) {
         final err = jsonDecode(orderRes.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err['error'] ?? 'Failed to create payment order')),
-        );
+        showSnack(context, err['error'] ?? 'Failed to create payment order', isError: true);
         setState(() => _isProcessingPayment = false);
         return;
       }
@@ -411,9 +403,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       // Payment result arrives in _handlePaymentSuccess / _handlePaymentError
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error initiating payment: $e')),
-      );
+      showSnack(context, 'Error initiating payment: $e', isError: true);
       setState(() => _isProcessingPayment = false);
     }
   }
@@ -443,16 +433,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _showSuccessDialog();
       } else {
         final err = jsonDecode(verifyRes.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment received but verification failed: ${err['error'] ?? ''}. Contact support.')),
-        );
+        showSnack(context, 'Payment received but verification failed: ${err['error'] ?? ''}. Contact support.', isError: true);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment done but verification error: $e')),
-      );
+      showSnack(context, 'Payment done but verification error: $e', isError: true);
     }
   }
 
@@ -460,45 +446,29 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     if (!mounted) return;
     setState(() => _isProcessingPayment = false);
     final message = response.message ?? 'Payment failed';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Payment cancelled or failed: $message'),
-        backgroundColor: Colors.red,
-      ),
-    );
+    showSnack(context, 'Payment cancelled or failed: $message', isError: true);
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
     if (!mounted) return;
     setState(() => _isProcessingPayment = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('External wallet selected: ${response.walletName}')),
-    );
+    showSnack(context, 'External wallet selected: ${response.walletName}');
   }
 
   Future<void> _payViaWallet() async {
     if (_selectedPlan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a subscription plan.')),
-      );
+      showSnack(context, 'Please select a subscription plan.', isError: true);
       return;
     }
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (session.token == null || session.user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to subscribe.')),
-      );
+      showSnack(context, 'Please login to subscribe.', isError: true);
       return;
     }
     final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
     final actualPrice = plan.price * (1 - plan.discount / 100);
     if (_walletBalance < actualPrice) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Insufficient wallet balance. Need ₹${actualPrice.toStringAsFixed(2)}, have ₹${_walletBalance.toStringAsFixed(2)}.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, 'Insufficient wallet balance. Need ₹${actualPrice.toStringAsFixed(2)}, have ₹${_walletBalance.toStringAsFixed(2)}.', isError: true);
       return;
     }
     setState(() => _isPayingViaWallet = true);
@@ -515,16 +485,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _showSuccessDialog();
       } else {
         final err = json.decode(res.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err['error'] ?? 'Wallet payment failed'), backgroundColor: Colors.red),
-        );
+        showSnack(context, err['error'] ?? 'Wallet payment failed', isError: true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isPayingViaWallet = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        showSnack(context, 'Error: $e', isError: true);
       }
     }
   }
@@ -613,7 +579,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   clipper: TopWaveClipper(),
                   child: Container(
                     height: 150,
-                    color: const Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                   ),
                 ),
               ),
@@ -625,7 +591,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   clipper: BottomWaveClipper(),
                   child: Container(
                     height: MediaQuery.of(context).size.height * 0.13,
-                    color: const Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                   ),
                 ),
               ),
@@ -698,7 +664,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               decoration: InputDecoration(
                 hintText: 'Search by plan name...',
                 border: InputBorder.none,
-                icon: Icon(Icons.search, color: Color(0xFF00B4D8)),
+                icon: Icon(Icons.search, color: AppColors.cyan),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: Icon(Icons.clear),
@@ -734,7 +700,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   _filterOption = filter;
                 });
               },
-              selectedColor: Color(0xFF00B4D8),
+              selectedColor: AppColors.cyan,
               labelStyle: TextStyle(
                 color: _filterOption == filter ? Colors.white : Colors.black,
               ),
@@ -770,7 +736,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             if (paymentMethod == 'wallet') {
               pmIcon = Icons.account_balance_wallet_rounded;
               pmLabel = 'LenDen Wallet';
-              pmColor = const Color(0xFF00B4D8);
+              pmColor = AppColors.cyan;
             } else if (paymentMethod == 'admin') {
               pmIcon = Icons.admin_panel_settings_rounded;
               pmLabel = 'Admin';
@@ -832,7 +798,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                                   : 'Expiring soon';
                           final color = daysLeft <= 3
                               ? Colors.orange
-                              : const Color(0xFF00B4D8);
+                              : AppColors.cyan;
                           return Row(
                             children: [
                               Icon(Icons.timer_outlined, size: 12, color: color),
@@ -938,14 +904,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF00B4D8), Color(0xFF0096C7)],
+                colors: [AppColors.cyan, Color(0xFF0096C7)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
+                  color: AppColors.cyan.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: Offset(0, 5),
                 ),
@@ -1022,7 +988,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                    Icon(Icons.edit, color: AppColors.cyan),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -1057,14 +1023,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             onPressed: () => setState(() => _showRenewalSection = !_showRenewalSection),
             icon: Icon(
               _showRenewalSection ? Icons.keyboard_arrow_up_rounded : Icons.refresh_rounded,
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
             label: Text(
               _showRenewalSection ? 'Hide Renewal Options' : 'Renew / Extend Subscription',
-              style: const TextStyle(color: Color(0xFF00B4D8), fontWeight: FontWeight.bold, fontSize: 15),
+              style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 15),
             ),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+              side: const BorderSide(color: AppColors.cyan, width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
@@ -1154,7 +1120,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF00B4D8), width: 2),
+            border: Border.all(color: AppColors.cyan, width: 2),
           ),
           child: ElevatedButton.icon(
             onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _payViaWallet,
@@ -1165,15 +1131,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
             ),
             icon: _isPayingViaWallet
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF00B4D8)))
-                : const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8)),
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
+                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
             label: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _isPayingViaWallet ? 'Processing...' : 'Renew via LenDen Wallet',
-                  style: const TextStyle(fontSize: 17, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, color: AppColors.cyan, fontWeight: FontWeight.bold),
                 ),
                 if (!_isPayingViaWallet)
                   Text('Balance: ₹${_walletBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
@@ -1384,7 +1350,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF00B4D8), width: 2),
+            border: Border.all(color: AppColors.cyan, width: 2),
           ),
           child: ElevatedButton.icon(
             onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _payViaWallet,
@@ -1395,15 +1361,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
             ),
             icon: _isPayingViaWallet
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF00B4D8)))
-                : const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8)),
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
+                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
             label: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _isPayingViaWallet ? 'Processing...' : 'Pay via LenDen Wallet',
-                  style: const TextStyle(fontSize: 17, color: Color(0xFF00B4D8), fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, color: AppColors.cyan, fontWeight: FontWeight.bold),
                 ),
                 if (!_isPayingViaWallet)
                   Text(
@@ -1550,7 +1516,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                             _selectedPlan = value;
                           });
                         },
-                        activeColor: Color(0xFF00B4D8),
+                        activeColor: AppColors.cyan,
                       ),
                       SizedBox(width: 8),
                       Expanded(
@@ -1583,7 +1549,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF00B4D8),
+                                    color: AppColors.cyan,
                                   ),
                                 ),
                               ],
@@ -1646,7 +1612,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(20),
                     bottomRight: Radius.circular(12),
@@ -1735,7 +1701,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                       ),
                     ),
                     SizedBox(height: 4),
@@ -1777,7 +1743,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Widget _buildBadge(IconData icon, String text) {
     return Column(
       children: [
-        Icon(icon, color: Color(0xFF00B4D8), size: 30),
+        Icon(icon, color: AppColors.cyan, size: 30),
         SizedBox(height: 8),
         Text(
           text,
@@ -1807,7 +1773,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           borderRadius: BorderRadius.circular(15),
         ),
         child: ListTile(
-          leading: Icon(icon, color: const Color(0xFF00B4D8), size: 40),
+          leading: Icon(icon, color: AppColors.cyan, size: 40),
           title:
               Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
@@ -1835,7 +1801,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline, color: Color(0xFF00B4D8), size: 28),
+              Icon(Icons.help_outline, color: AppColors.cyan, size: 28),
               SizedBox(width: 10),
               Text(
                 'FAQs',

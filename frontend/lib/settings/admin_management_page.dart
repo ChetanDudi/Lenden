@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:math';
@@ -115,7 +117,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             height: 100,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                                colors: [AppColors.cyan, Color(0xFF48CAE4)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -163,10 +165,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           labelText: 'Name',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: Color(0xFF00B4D8)),
+                            borderSide: BorderSide(color: AppColors.cyan),
                           ),
                           prefixIcon:
-                              Icon(Icons.person, color: Color(0xFF00B4D8)),
+                              Icon(Icons.person, color: AppColors.cyan),
                           filled: true,
                           fillColor: Colors.white,
                         ),
@@ -201,13 +203,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                 borderSide: BorderSide(
                                   color: emailError != null
                                       ? Colors.red
-                                      : Color(0xFF00B4D8),
+                                      : AppColors.cyan,
                                 ),
                               ),
                               prefixIcon: Icon(Icons.email,
                                   color: emailError != null
                                       ? Colors.red
-                                      : Color(0xFF00B4D8)),
+                                      : AppColors.cyan),
                               filled: true,
                               fillColor: Colors.white,
                             ),
@@ -255,13 +257,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                 borderSide: BorderSide(
                                   color: usernameError != null
                                       ? Colors.red
-                                      : Color(0xFF00B4D8),
+                                      : AppColors.cyan,
                                 ),
                               ),
                               prefixIcon: Icon(Icons.account_circle,
                                   color: usernameError != null
                                       ? Colors.red
-                                      : Color(0xFF00B4D8)),
+                                      : AppColors.cyan),
                               filled: true,
                               fillColor: Colors.white,
                             ),
@@ -303,10 +305,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           labelText: 'Password',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: Color(0xFF00B4D8)),
+                            borderSide: BorderSide(color: AppColors.cyan),
                           ),
                           prefixIcon:
-                              Icon(Icons.lock, color: Color(0xFF00B4D8)),
+                              Icon(Icons.lock, color: AppColors.cyan),
                           filled: true,
                           fillColor: Colors.white,
                           helperText:
@@ -344,10 +346,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           labelText: 'Gender',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: Color(0xFF00B4D8)),
+                            borderSide: BorderSide(color: AppColors.cyan),
                           ),
                           prefixIcon:
-                              Icon(Icons.people, color: Color(0xFF00B4D8)),
+                              Icon(Icons.people, color: AppColors.cyan),
                           filled: true,
                           fillColor: Colors.white,
                         ),
@@ -454,9 +456,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             disabledBackgroundColor:
-                                Color(0xFF00B4D8).withValues(alpha: 0.5),
+                                AppColors.cyan.withValues(alpha: 0.5),
                             padding: EdgeInsets.symmetric(
                                 horizontal: 30, vertical: 15),
                             shape: RoundedRectangleBorder(
@@ -687,7 +689,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                   children: [
                     CircleAvatar(
                       radius: 26,
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       child: Text(
                         (admin['name'] as String? ?? 'A')
                             .substring(0, 1)
@@ -829,7 +831,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             ),
                             Switch(
                               value: isSuperAdmin || (perms[key] ?? true),
-                              activeColor: const Color(0xFF00B4D8),
+                              activeColor: AppColors.cyan,
                               onChanged: isSuperAdmin
                                   ? null
                                   : (v) =>
@@ -855,7 +857,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         _savePermissions(admin['_id'] as String, perms);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -937,47 +939,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
     required String message,
     bool isSuccess = true,
     IconData? icon,
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(10),
-        padding: EdgeInsets.zero,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSuccess ? Color(0xFF00B4D8) : Colors.red,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: (isSuccess ? Color(0xFF00B4D8) : Colors.red)
-                    .withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon ?? (isSuccess ? Icons.check_circle : Icons.error),
-                color: Colors.white,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  }) => showSnack(context, message, isError: !isSuccess);
 
   void _filterAdmins() {
     if (_searchController.text.isEmpty) {
@@ -1019,7 +981,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                 height: 220, // Increased height for wave
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1140,7 +1102,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             border: Border.all(
-                                              color: Color(0xFF00B4D8)
+                                              color: AppColors.cyan
                                                   .withValues(alpha: 0.2),
                                               width: 1,
                                             ),
@@ -1203,7 +1165,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                     CircleAvatar(
                                                       radius: 30,
                                                       backgroundColor:
-                                                          Color(0xFF00B4D8),
+                                                          AppColors.cyan,
                                                       child: Text(
                                                         admin['name'][0]
                                                             .toUpperCase(),
@@ -1409,7 +1371,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                           });
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF00B4D8),
+                                          backgroundColor: AppColors.cyan,
                                           padding: EdgeInsets.symmetric(
                                               horizontal: 30, vertical: 15),
                                           shape: RoundedRectangleBorder(
@@ -1455,7 +1417,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
             onPressed: addAdmin,
             icon: Icon(Icons.person_add),
             label: Text('Add Admin'),
-            backgroundColor: Color(0xFF00B4D8),
+            backgroundColor: AppColors.cyan,
           ),
         ],
       ),

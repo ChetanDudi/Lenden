@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -240,7 +242,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       await _fetchFriends();
     } else {
       setState(() => _pendingOutgoingIds.remove(uid));
-      _showSnack('Failed to send request', error: true);
+      showSnack(context, 'Failed to send request', isError: true);
     }
   }
 
@@ -248,7 +250,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final res = await ApiClient.post('/api/friends/requests/$requestId/accept');
     if (res.statusCode == 200) {
       await _fetchFriends();
-      _showSnack('Friend request accepted!');
+      showSnack(context, 'Friend request accepted!');
     }
   }
 
@@ -352,16 +354,6 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     );
   }
 
-  void _showSnack(String msg, {bool error = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: error ? Colors.red : Colors.green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(12),
-    ));
-  }
 
   void _openQuickTransaction(String email) {
     if (_isBlockedEmail(email)) { showBlockedUserDialog(context); return; }
@@ -494,7 +486,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                           right: 0, bottom: 0,
                           child: Container(
                             width: 18, height: 18,
-                            decoration: BoxDecoration(color: const Color(0xFF00B4D8), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                            decoration: BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
                             child: const Icon(Icons.check, color: Colors.white, size: 11),
                           ),
                         ),
@@ -529,14 +521,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: selected ? const Color(0xFF00B4D8).withValues(alpha: 0.12) : Colors.white,
+                        color: selected ? AppColors.cyan.withValues(alpha: 0.12) : Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: selected ? const Color(0xFF00B4D8) : Colors.grey[300]!),
+                        border: Border.all(color: selected ? AppColors.cyan : Colors.grey[300]!),
                       ),
                       child: Icon(
                         selected ? Icons.group_add : Icons.group_add_outlined,
                         size: 18,
-                        color: selected ? const Color(0xFF00B4D8) : Colors.grey[500],
+                        color: selected ? AppColors.cyan : Colors.grey[500],
                       ),
                     ),
                   ),
@@ -657,10 +649,10 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
-              color: (badgeColor ?? const Color(0xFF00B4D8)).withValues(alpha: 0.15),
+              color: (badgeColor ?? AppColors.cyan).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: badgeColor ?? const Color(0xFF00B4D8))),
+            child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: badgeColor ?? AppColors.cyan)),
           ),
       ],
     );
@@ -762,7 +754,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
             else
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   minimumSize: Size.zero,
@@ -849,7 +841,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
             else
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 0,
@@ -880,7 +872,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               height: 160,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -962,7 +954,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                           const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
                         else
                           IconButton(
-                            icon: const Icon(Icons.send_rounded, color: Color(0xFF00B4D8)),
+                            icon: const Icon(Icons.send_rounded, color: AppColors.cyan),
                             onPressed: _searchUsers,
                           ),
                       ],
@@ -983,7 +975,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     isScrollable: true,
                     tabAlignment: TabAlignment.start,
                     indicator: BoxDecoration(
-                      color: const Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
@@ -1029,7 +1021,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     ? const Center(child: CircularProgressIndicator())
                     : RefreshIndicator(
                         onRefresh: _fetchFriends,
-                        color: const Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         child: TabBarView(
                           controller: _tabController,
                           children: [
@@ -1216,7 +1208,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                             onTap: () => _acceptRequest(r['_id']),
                                             child: Container(
                                               width: 36, height: 36,
-                                              decoration: const BoxDecoration(color: Color(0xFF00B4D8), shape: BoxShape.circle),
+                                              decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
                                               child: const Icon(Icons.check, color: Colors.white, size: 18),
                                             ),
                                           ),
@@ -1339,7 +1331,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
-                                _sectionHeader('People You May Know', _suggestions.length, badgeColor: const Color(0xFF00B4D8)),
+                                _sectionHeader('People You May Know', _suggestions.length, badgeColor: AppColors.cyan),
                                 const SizedBox(height: 4),
                                 Text('Based on your friends & transactions',
                                   style: TextStyle(fontSize: 11, color: Colors.grey[500])),
@@ -1502,7 +1494,7 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
           if (_loading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 32),
-              child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+              child: CircularProgressIndicator(color: AppColors.cyan),
             )
           else if (_error != null)
             Padding(

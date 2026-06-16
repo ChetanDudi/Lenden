@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AdminSystemSettingsPage extends StatefulWidget {
   const AdminSystemSettingsPage({super.key});
@@ -80,12 +82,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading settings: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -123,32 +120,17 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('System settings saved successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSnack(context, 'System settings saved successfully!');
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorData['message'] ?? 'Failed to save settings'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -162,22 +144,8 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'System Settings',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
+      backgroundColor: AppColors.scaffoldBg,
+      appBar: transparentAppBar(context, title: 'System Settings', actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _isSaving ? null : _saveSystemSettings,
@@ -190,7 +158,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                   : const Text(
                       'Save',
                       style: TextStyle(
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -225,7 +193,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         const Icon(
                           Icons.settings_system_daydream_outlined,
                           size: 48,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -540,7 +508,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -558,7 +526,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -577,7 +545,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -592,7 +560,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
     TextInputType? keyboardType,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -639,7 +607,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
     ValueChanged<String?> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(

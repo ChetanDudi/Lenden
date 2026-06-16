@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'widgets/app_colors.dart';
 import 'dart:async';
 import 'utils/responsive.dart';
 
@@ -56,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
               clipper: _TopWaveClipper(),
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.18,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -69,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
               clipper: _BottomWaveClipper(),
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.15,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -120,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
                       valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFF00B4D8)),
+                          AlwaysStoppedAnimation<Color>(AppColors.cyan),
                     ),
                   ),
                   const SizedBox(height: 12),

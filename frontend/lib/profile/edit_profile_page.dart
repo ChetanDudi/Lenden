@@ -7,6 +7,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../utils/http_interceptor.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -78,12 +80,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, 'Error picking image: $e', isError: true);
     }
   }
 
@@ -136,52 +133,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _isUpdating = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.check_circle, color: Colors.white, size: 28),
-                SizedBox(width: 12),
-                Text(
-                  'Profile updated successfully!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: const Color(0xFF00B4D8),
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            duration: const Duration(seconds: 2),
-            margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          ),
-        );
+        showSnack(context, 'Profile updated successfully!');
       } else {
         setState(() {
           _isUpdating = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update profile'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Failed to update profile', isError: true);
       }
     } catch (e) {
       setState(() {
         _isUpdating = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating profile: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, 'Error updating profile: $e', isError: true);
     }
   }
 
@@ -198,7 +161,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         key: ValueKey(_imageRefreshKey),
         radius: 54,
         backgroundImage: MemoryImage(_newImageBytes!),
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
       );
     } else if (_removeImage ||
         imageUrl == null ||
@@ -215,7 +178,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ? 'assets/Female.png'
                   : 'assets/Other.png',
         ),
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
       );
     }
     else {
@@ -226,7 +189,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         key: ValueKey(_imageRefreshKey),
         radius: 54,
         backgroundImage: NetworkImage(cacheBustingUrl),
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
         onBackgroundImageError: (exception, stackTrace) {
           // Fallback to default avatar if network image fails
         },
@@ -260,7 +223,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 height: 160,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -310,12 +273,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             icon: Icon(Icons.upload,
                                 color: _isUpdating
                                     ? Colors.grey
-                                    : const Color(0xFF00B4D8)),
+                                    : AppColors.cyan),
                             label: Text('Upload',
                                 style: TextStyle(
                                     color: _isUpdating
                                         ? Colors.grey
-                                        : const Color(0xFF00B4D8))),
+                                        : AppColors.cyan)),
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton.icon(
@@ -403,7 +366,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ElevatedButton(
                         onPressed: _isUpdating ? null : _saveProfile,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -484,7 +447,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       color: Colors.white,
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF00B4D8)),
+          Icon(icon, color: AppColors.cyan),
           const SizedBox(width: 16),
           Expanded(
             child: TextFormField(
@@ -555,7 +518,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         color: Colors.white,
         child: Row(
           children: [
-            const Icon(Icons.transgender, color: Color(0xFF00B4D8)),
+            const Icon(Icons.transgender, color: AppColors.cyan),
             const SizedBox(width: 16),
             Expanded(
               child: DropdownButtonFormField<String>(

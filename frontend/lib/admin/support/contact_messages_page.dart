@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
@@ -135,13 +137,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
           });
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Status updated to $newStatus'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          showSnack(context, 'Status updated to $newStatus');
         }
       }
     } catch (_) {}
@@ -166,25 +162,13 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
       } else {
         final data = jsonDecode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text((data['error'] ?? 'Failed to send reply').toString()),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          showSnack(context, (data['error'] ?? 'Failed to send reply').toString(), isError: true);
         }
         return false;
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        showSnack(context, 'Error: $e', isError: true);
       }
       return false;
     }
@@ -241,13 +225,13 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                           CircleAvatar(
                             radius: 24,
                             backgroundColor:
-                                const Color(0xFF00B4D8).withValues(alpha: 0.15),
+                                AppColors.cyan.withValues(alpha: 0.15),
                             child: Text(
                               (msg['name'] as String? ?? 'U')
                                   .substring(0, 1)
                                   .toUpperCase(),
                               style: const TextStyle(
-                                  color: Color(0xFF00B4D8),
+                                  color: AppColors.cyan,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18),
                             ),
@@ -302,11 +286,11 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF00B4D8)
+                                color: AppColors.cyan
                                     .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                    color: const Color(0xFF00B4D8)
+                                    color: AppColors.cyan
                                         .withValues(alpha: 0.3)),
                               ),
                               child: Text(
@@ -314,7 +298,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                 style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF00B4D8)),
+                                    color: AppColors.cyan),
                               ),
                             ),
                           ],
@@ -496,7 +480,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                  color: Color(0xFF00B4D8)),
+                                  color: AppColors.cyan),
                             ),
                             contentPadding: const EdgeInsets.all(12),
                           ),
@@ -560,7 +544,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                 ? 'Sending...'
                                 : 'Send Reply via Email'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B4D8),
+                              backgroundColor: AppColors.cyan,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   vertical: 14),
@@ -705,13 +689,13 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                     CircleAvatar(
                       radius: 18,
                       backgroundColor:
-                          const Color(0xFF00B4D8).withValues(alpha: 0.12),
+                          AppColors.cyan.withValues(alpha: 0.12),
                       child: Text(
                         (msg['name'] as String? ?? 'U')
                             .substring(0, 1)
                             .toUpperCase(),
                         style: const TextStyle(
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -761,10 +745,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
+                          color: AppColors.cyan.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: const Color(0xFF00B4D8)
+                              color: AppColors.cyan
                                   .withValues(alpha: 0.25)),
                         ),
                         child: Text(
@@ -772,7 +756,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                           style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF00B4D8)),
+                              color: AppColors.cyan),
                         ),
                       ),
                   ],
@@ -820,7 +804,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -868,7 +852,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                         .map((s) {
                       final isSelected = _statusFilter == s;
                       final color =
-                          s == 'all' ? const Color(0xFF00B4D8) : (_statusColors[s] ?? Colors.grey);
+                          s == 'all' ? AppColors.cyan : (_statusColors[s] ?? Colors.grey);
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: GestureDetector(

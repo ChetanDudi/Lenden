@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -8,19 +10,8 @@ class PrivacyPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Privacy Policy',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Privacy Policy'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -135,7 +126,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             ]),
 
             _buildSection('5. Your Privacy Rights', Icons.person_rounded,
-                const Color(0xFF00B4D8), [
+                AppColors.cyan, [
               _buildParagraph('You have the following rights over your data:'),
               _buildBullet(
                   'Access: Request a copy of the personal data we hold about you.'),
@@ -286,7 +277,7 @@ class PrivacyPolicyPage extends StatelessWidget {
         children: [
           const Text('• ',
               style: TextStyle(
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                   fontWeight: FontWeight.bold,
                   fontSize: 15)),
           Expanded(

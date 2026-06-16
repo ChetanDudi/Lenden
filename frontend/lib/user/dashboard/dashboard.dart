@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
@@ -393,14 +394,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.star, color: const Color(0xFF00B4D8), size: ctx.sp(44)),
+                      Icon(Icons.star, color: AppColors.cyan, size: ctx.sp(44)),
                       SizedBox(height: ctx.sh(10)),
                       Text(
                         'Rate Our App!',
                         style: TextStyle(
                           fontSize: ctx.sp(20),
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                       ),
                       SizedBox(height: ctx.sh(8)),
@@ -516,7 +517,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00B4D8).withValues(alpha: 0.15),
+                color: AppColors.cyan.withValues(alpha: 0.15),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -525,14 +526,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.celebration, color: const Color(0xFF00B4D8), size: ctx.sp(52)),
+              Icon(Icons.celebration, color: AppColors.cyan, size: ctx.sp(52)),
               SizedBox(height: ctx.sh(14)),
               Text(
                 'Thank You for Rating!',
                 style: TextStyle(
                   fontSize: ctx.sp(22),
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                   letterSpacing: 1.2,
                 ),
                 textAlign: TextAlign.center,
@@ -550,7 +551,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: EdgeInsets.symmetric(
@@ -753,7 +754,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0xFF00B4D8)),
+                decoration: const BoxDecoration(color: AppColors.cyan),
                 child: Text('Menu',
                     style: TextStyle(color: Colors.white, fontSize: context.sp(22))),
               ),
@@ -940,7 +941,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   _fetchFriends(),
                   _fetchUnreadUpdatesCount(),
                 ]),
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
                 child: SingleChildScrollView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -1148,14 +1149,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 Row(
                                   children: [
                                     Icon(Icons.people,
-                                        color: Color(0xFF00B4D8)),
+                                        color: AppColors.cyan),
                                     SizedBox(width: 8),
                                     Text(
                                       'Counterparties',
                                       style: TextStyle(
                                         fontSize: context.sp(16),
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF00B4D8),
+                                        color: AppColors.cyan,
                                       ),
                                     ),
                                   ],
@@ -1171,7 +1172,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                     );
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF00B4D8),
+                                    backgroundColor: AppColors.cyan,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
@@ -1278,7 +1279,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: context.sh(78),
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
             ),
@@ -1498,7 +1499,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         title: 'Analytics',
         subtitle: 'Secure and group insights',
         valueLabel: 'Stats',
-        iconColor: const Color(0xFF00B4D8),
+        iconColor: AppColors.cyan,
         fillColor: _getBoxColor(3),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
@@ -1585,14 +1586,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: selected ? const Color(0xFF00B4D8) : Colors.transparent,
+          color: selected ? AppColors.cyan : Colors.transparent,
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: context.sp(12),
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : const Color(0xFF00B4D8),
+            color: selected ? Colors.white : AppColors.cyan,
           ),
         ),
       ),
@@ -1696,7 +1697,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
   Widget _navBarItem(IconData icon, String label, VoidCallback onTap,
       {Color? accent}) {
-    final Color base = accent ?? const Color(0xFF00B4D8);
+    final Color base = accent ?? AppColors.cyan;
     final Color dark = Color.lerp(base, const Color(0xFF001A2E), 0.4)!;
     return Tooltip(
       message: label,
@@ -1783,7 +1784,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                           height: context.sh(80),
                           decoration: const BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Color(0xFF0077B6), Color(0xFF00B4D8)],
+                              colors: [Color(0xFF0077B6), AppColors.cyan],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -1828,7 +1829,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       if (isLoggingOut) ...[
                         const CircularProgressIndicator(
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(Color(0xFF00B4D8)),
+                              AlwaysStoppedAnimation<Color>(AppColors.cyan),
                         ),
                         SizedBox(height: context.sh(16)),
                         Text('Logging out...',
@@ -1863,9 +1864,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 onPressed: () =>
                                     Navigator.of(context).pop(false),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF00B4D8),
+                                  foregroundColor: AppColors.cyan,
                                   side: const BorderSide(
-                                      color: Color(0xFF00B4D8), width: 1.5),
+                                      color: AppColors.cyan, width: 1.5),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14)),
                                   padding: EdgeInsets.symmetric(

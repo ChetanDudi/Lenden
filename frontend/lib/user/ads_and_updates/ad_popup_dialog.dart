@@ -1,5 +1,7 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../utils/api_client.dart';
@@ -126,7 +128,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(dialogContext, true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                         ),
                         child: const Text('Report'),
                       ),
@@ -158,14 +160,10 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
         },
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ad reported. Thanks for the feedback.')),
-      );
+      showSnack(context, 'Ad reported. Thanks for the feedback.');
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not report this ad right now.')),
-      );
+      showSnack(context, 'Could not report this ad right now.', isError: true);
     }
   }
 
@@ -233,7 +231,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(dialogContext, true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                         ),
                         child: const Text('Hide 7 Days'),
                       ),
@@ -260,14 +258,10 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This ad will stay hidden for 7 days.')),
-      );
+      showSnack(context, 'This ad will stay hidden for 7 days.');
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not hide this ad right now.')),
-      );
+      showSnack(context, 'Could not hide this ad right now.', isError: true);
     }
   }
 
@@ -346,7 +340,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                       ),
                       child: const Icon(
                         Icons.lock_outline,
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                       ),
                     ),
                 ],
@@ -403,7 +397,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -429,7 +423,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                       children: [
                         Icon(
                           Icons.workspace_premium_outlined,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         SizedBox(width: 8),
                         Expanded(
@@ -524,7 +518,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
         borderRadius: BorderRadius.circular(14),
       ),
       child: IconButton(
-        icon: const Icon(Icons.close, color: Color(0xFF00B4D8)),
+        icon: const Icon(Icons.close, color: AppColors.cyan),
         onPressed: () => _closeAd(context),
       ),
     );

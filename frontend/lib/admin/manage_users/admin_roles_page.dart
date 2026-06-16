@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -151,9 +153,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       await _loadAdmins();
       await _loadAuditLogs();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin created successfully.')),
-      );
+      showSnack(context, 'Admin created successfully.');
       _tabController.animateTo(1);
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -173,20 +173,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text((data['message'] ?? 'Failed to update role').toString()),
-        ),
-      );
+      showSnack(context, (data['message'] ?? 'Failed to update role').toString(), isError: true);
       return;
     }
 
     await _loadAdmins();
     await _loadAuditLogs();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text((data['message'] ?? 'Role updated').toString())),
-    );
+    showSnack(context, (data['message'] ?? 'Role updated').toString());
   }
 
   Future<void> _togglePermission(
@@ -206,24 +200,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            (data['message'] ?? 'Failed to update permissions').toString(),
-          ),
-        ),
-      );
+      showSnack(context, (data['message'] ?? 'Failed to update permissions').toString(), isError: true);
       return;
     }
 
     await _loadAdmins();
     await _loadAuditLogs();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text((data['message'] ?? 'Permissions updated').toString()),
-      ),
-    );
+    showSnack(context, (data['message'] ?? 'Permissions updated').toString());
   }
 
   Future<void> _removeAdmin(Map<String, dynamic> admin) async {
@@ -254,22 +238,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            (data['message'] ?? 'Failed to remove admin').toString(),
-          ),
-        ),
-      );
+      showSnack(context, (data['message'] ?? 'Failed to remove admin').toString(), isError: true);
       return;
     }
 
     await _loadAdmins();
     await _loadAuditLogs();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text((data['message'] ?? 'Admin removed').toString())),
-    );
+    showSnack(context, (data['message'] ?? 'Admin removed').toString());
   }
 
   List<Map<String, dynamic>> get _visibleAdmins =>
@@ -291,7 +267,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                 height: 165,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -350,7 +326,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                       ),
                       child: TabBar(
                         controller: _tabController,
-                        labelColor: const Color(0xFF00B4D8),
+                        labelColor: AppColors.cyan,
                         unselectedLabelColor: Colors.black54,
                         indicator: BoxDecoration(
                           color: const Color(0xFFEAF5FF),
@@ -386,7 +362,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                                 padding: EdgeInsets.only(top: 80),
                                 child: Center(
                                   child: CircularProgressIndicator(
-                                    color: Color(0xFF00B4D8),
+                                    color: AppColors.cyan,
                                   ),
                                 ),
                               )
@@ -411,7 +387,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                                 padding: EdgeInsets.only(top: 80),
                                 child: Center(
                                   child: CircularProgressIndicator(
-                                    color: Color(0xFF00B4D8),
+                                    color: AppColors.cyan,
                                   ),
                                 ),
                               )
@@ -441,9 +417,9 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                                           setState(() => _showAll = !_showAll),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor:
-                                            const Color(0xFF00B4D8),
+                                            AppColors.cyan,
                                         side: const BorderSide(
-                                            color: Color(0xFF00B4D8)),
+                                            color: AppColors.cyan),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(20),
@@ -542,7 +518,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
               child: ElevatedButton(
                 onPressed: _submitting ? null : _createAdmin,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Text(_submitting ? 'Creating...' : 'Create Admin'),
@@ -679,7 +655,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                   child: Text(
                     admin['isSuperAdmin'] == true ? 'Superadmin' : 'Admin',
                     style: const TextStyle(
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -787,7 +763,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
         ? Colors.redAccent
         : severity == 'warning'
             ? Colors.orange
-            : const Color(0xFF00B4D8);
+            : AppColors.cyan;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

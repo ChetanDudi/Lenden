@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class AuditLogsPage extends StatefulWidget {
   const AuditLogsPage({Key? key}) : super(key: key);
@@ -20,7 +22,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   String _actor = 'All';
 
   static const Map<String, Color> _severityColors = {
-    'info': Color(0xFF00B4D8),
+    'info': AppColors.cyan,
     'warning': Colors.orange,
     'critical': Colors.red,
   };
@@ -95,8 +97,8 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   Widget _buildSeverityChip(String value, String label) {
     final isSelected = _severity == value;
     final color = value == 'all'
-        ? const Color(0xFF00B4D8)
-        : (_severityColors[value] ?? const Color(0xFF00B4D8));
+        ? AppColors.cyan
+        : (_severityColors[value] ?? AppColors.cyan);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -130,7 +132,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
 
   Widget _buildLogCard(Map<String, dynamic> log) {
     final severity = (log['severity'] as String?) ?? 'info';
-    final color = _severityColors[severity] ?? const Color(0xFF00B4D8);
+    final color = _severityColors[severity] ?? AppColors.cyan;
     final icon = _severityIcons[severity] ?? Icons.info_outline_rounded;
     final action = (log['action'] as String?) ?? '';
     final summary = (log['summary'] as String?) ?? '';
@@ -247,7 +249,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppColors.scaffoldBgAlt,
       body: Stack(
         children: [
           Positioned(
@@ -260,7 +262,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -304,7 +306,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
                                 color: _actor == 'mine'
-                                    ? const Color(0xFF00B4D8)
+                                    ? AppColors.cyan
                                     : Colors.white.withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -334,22 +336,13 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 4),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
+                  child: tricolorBorder(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(23),
+                        borderRadius: BorderRadius.circular(22),
                       ),
                       child: Row(
                         children: [

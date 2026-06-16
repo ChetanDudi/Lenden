@@ -1,7 +1,9 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../api_config.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 
@@ -582,7 +584,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -721,7 +723,7 @@ class _ActivityPageState extends State<ActivityPage> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
           ),
           const SizedBox(height: 12),
@@ -790,7 +792,7 @@ class _ActivityPageState extends State<ActivityPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF00B4D8),
+        color: AppColors.cyan,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -921,7 +923,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 setState(() => selectedType = null);
                 fetchActivities(refresh: true);
               },
-              backgroundColor: const Color(0xFF00B4D8).withValues(alpha: 0.2),
+              backgroundColor: AppColors.cyan.withValues(alpha: 0.2),
             ),
           if (startDate != null)
             Chip(
@@ -1177,7 +1179,7 @@ class _ActivityPageState extends State<ActivityPage> {
             fetchActivities();
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00B4D8),
+            backgroundColor: AppColors.cyan,
             foregroundColor: Colors.white,
           ),
           child: const Text('Load More'),
@@ -1487,63 +1489,13 @@ class _ActivityPageState extends State<ActivityPage> {
                               });
                               _calculateActivityInsights();
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.check_circle,
-                                          color: Colors.white),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                          'Activity deleted successfully'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.red,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              );
+                              showSnack(context, 'Activity deleted successfully');
                             } else {
                               final errorData = json.decode(response.body);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.error,
-                                          color: Colors.white),
-                                      const SizedBox(width: 8),
-                                      Text(errorData['error'] ??
-                                          'Failed to delete activity'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.red,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              );
+                              showSnack(context, errorData['error'] ?? 'Failed to delete activity', isError: true);
                             }
                           } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    const Icon(Icons.error,
-                                        color: Colors.white),
-                                    const SizedBox(width: 8),
-                                    Text('Error: $e'),
-                                  ],
-                                ),
-                                backgroundColor: Colors.red,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
+                            showSnack(context, 'Error: $e', isError: true);
                           }
                         },
                         icon: const Icon(Icons.delete_forever,
@@ -1613,7 +1565,7 @@ class _ActivityPageState extends State<ActivityPage> {
                             child: const Row(
                               children: [
                                 Icon(Icons.category,
-                                    color: Color(0xFF00B4D8), size: 20),
+                                    color: AppColors.cyan, size: 20),
                                 SizedBox(width: 10),
                                 Expanded(
                                   child: SingleChildScrollView(
@@ -1706,7 +1658,7 @@ class _ActivityPageState extends State<ActivityPage> {
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF00B4D8), Color(0xFF00B4D8)],
+                          colors: [AppColors.cyan, AppColors.cyan],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -1814,21 +1766,21 @@ class _ActivityPageState extends State<ActivityPage> {
                                       children: [
                                         const Icon(
                                           Icons.radio_button_checked,
-                                          color: Color(0xFF00B4D8),
+                                          color: AppColors.cyan,
                                           size: 20,
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF00B4D8)
+                                            color: AppColors.cyan
                                                 .withValues(alpha: 0.1),
                                             borderRadius:
                                                 BorderRadius.circular(8),
                                           ),
                                           child: const Icon(
                                             Icons.category,
-                                            color: Color(0xFF00B4D8),
+                                            color: AppColors.cyan,
                                             size: 20,
                                           ),
                                         ),
@@ -1841,7 +1793,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                               const Text(
                                                 'Activity Type',
                                                 style: TextStyle(
-                                                  color: Color(0xFF00B4D8),
+                                                  color: AppColors.cyan,
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 13,
                                                 ),
@@ -1894,7 +1846,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                         tempShowBookmarkedOnly = value;
                                       });
                                     },
-                                    activeColor: const Color(0xFF00B4D8),
+                                    activeColor: AppColors.cyan,
                                   ),
                                   const SizedBox(width: 8),
                                   const Icon(Icons.bookmark,
@@ -1936,7 +1888,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                         tempShowFriendOnly = value;
                                       });
                                     },
-                                    activeColor: const Color(0xFF00B4D8),
+                                    activeColor: AppColors.cyan,
                                   ),
                                   const SizedBox(width: 8),
                                   const Icon(Icons.people, color: Colors.teal),
@@ -2024,7 +1976,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                                   colorScheme:
                                                       const ColorScheme.light(
                                                     primary:
-                                                        Color(0xFF00B4D8),
+                                                        AppColors.cyan,
                                                     onPrimary: Colors.white,
                                                     surface: Colors.white,
                                                     onSurface: Colors.black,
@@ -2066,7 +2018,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                                   colorScheme:
                                                       const ColorScheme.light(
                                                     primary:
-                                                        Color(0xFF00B4D8),
+                                                        AppColors.cyan,
                                                     onPrimary: Colors.white,
                                                     surface: Colors.white,
                                                     onSurface: Colors.black,
@@ -2154,7 +2106,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                     fontWeight: FontWeight.w600),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B4D8),
+                                backgroundColor: AppColors.cyan,
                                 foregroundColor: Colors.white,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 12),
@@ -2236,7 +2188,7 @@ class _ActivityPageState extends State<ActivityPage> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected
-                ? const Color(0xFF00B4D8)
+                ? AppColors.cyan
                 : Colors.grey.withValues(alpha: 0.20),
           ),
         ),
@@ -2245,7 +2197,7 @@ class _ActivityPageState extends State<ActivityPage> {
             Radio<String?>(
               value: value,
               groupValue: selectedValue,
-              activeColor: const Color(0xFF00B4D8),
+              activeColor: AppColors.cyan,
               onChanged: (_) => onTap(),
             ),
             const SizedBox(width: 6),

@@ -1,6 +1,8 @@
 ﻿import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -419,51 +421,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     );
   }
 
-  void _showStylishMessage(String message, bool isError) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isError ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isError ? Icons.error_outline : Icons.check_circle_outline,
-                  color: isError ? Colors.redAccent : Colors.green,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: TextStyle(
-                      color: isError ? Colors.redAccent : Colors.green.shade800,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _showStylishMessage(String message, bool isError) =>
+      showStylishSnackBar(context, message, isError: isError);
 
   List<Map<String, dynamic>> get _filteredAds {
     final items = _ads.where((ad) {
@@ -547,7 +506,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 height: 165,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -600,7 +559,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                       ),
                       child: TabBar(
                         controller: _tabController,
-                        labelColor: const Color(0xFF00B4D8),
+                        labelColor: AppColors.cyan,
                         unselectedLabelColor: Colors.black54,
                         indicator: BoxDecoration(
                           color: const Color(0xFFEAF5FF),
@@ -638,7 +597,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                                 padding: EdgeInsets.only(top: 40),
                                 child: Center(
                                   child: CircularProgressIndicator(
-                                    color: Color(0xFF00B4D8),
+                                    color: AppColors.cyan,
                                   ),
                                 ),
                               )
@@ -932,7 +891,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                   child: ElevatedButton(
                     onPressed: _submitting ? null : _submitAd,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -1025,7 +984,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       onSelected: (_) => setState(() => _filter = value),
       selectedColor: const Color(0xFFEAF5FF),
       labelStyle: TextStyle(
-        color: selected ? const Color(0xFF00B4D8) : Colors.black87,
+        color: selected ? AppColors.cyan : Colors.black87,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -1045,7 +1004,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             TextSpan(
               text: '$value ',
               style: const TextStyle(
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1140,7 +1099,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             Text(
               '${(ad['mediaKind'] ?? 'none').toString().toUpperCase()} media',
               style: const TextStyle(
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1182,7 +1141,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 'Recent report reasons',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1250,7 +1209,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF00B4D8)),
+          Icon(icon, size: 16, color: AppColors.cyan),
           const SizedBox(width: 8),
           Text(
             label,
@@ -1269,7 +1228,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       onSelected: (_) => setState(() => _videoCloseAtPercent = value),
       selectedColor: const Color(0xFFEAF5FF),
       labelStyle: TextStyle(
-        color: selected ? const Color(0xFF00B4D8) : Colors.black87,
+        color: selected ? AppColors.cyan : Colors.black87,
         fontWeight: FontWeight.w700,
       ),
     );

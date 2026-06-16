@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../session.dart';
@@ -151,7 +153,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  (modifiedCount > 0 ? const Color(0xFF00B4D8) : Colors.green)
+                  (modifiedCount > 0 ? AppColors.cyan : Colors.green)
                       .withValues(alpha: 0.14),
                   Colors.white,
                 ],
@@ -167,7 +169,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       ? Icons.verified_user_rounded
                       : Icons.auto_awesome_rounded,
                   color: modifiedCount > 0
-                      ? const Color(0xFF00B4D8)
+                      ? AppColors.cyan
                       : Colors.green,
                 ),
                 const SizedBox(width: 12),
@@ -189,11 +191,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       _loadDashboardSummary();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
+      showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
@@ -639,7 +637,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             padding: EdgeInsets.zero,
             children: [
               const DrawerHeader(
-                decoration: BoxDecoration(color: Color(0xFF00B4D8)),
+                decoration: BoxDecoration(color: AppColors.cyan),
                 child: Text('Menu',
                     style: TextStyle(color: Colors.white, fontSize: 24)),
               ),
@@ -786,7 +784,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             hintText: 'Search admin sections',
                             prefixIcon: const Icon(
                               Icons.search_rounded,
-                              color: Color(0xFF00B4D8),
+                              color: AppColors.cyan,
                             ),
                             suffixIcon: _searchController.text.isEmpty
                                 ? null
@@ -895,7 +893,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: 60,
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
             ),
@@ -1183,7 +1181,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
+                          color: AppColors.cyan.withValues(alpha: 0.08),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -1196,13 +1194,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           _showOverviewPanel
                               ? Icons.visibility_off_rounded
                               : Icons.auto_awesome_mosaic_rounded,
-                          color: const Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           _showOverviewPanel ? 'Hide Box' : 'Open Box',
                           style: const TextStyle(
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -1261,12 +1259,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           },
                           icon: const Icon(
                             Icons.keyboard_arrow_up_rounded,
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                           ),
                           label: const Text(
                             'Hide',
                             style: TextStyle(
-                              color: Color(0xFF00B4D8),
+                              color: AppColors.cyan,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -1279,7 +1277,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: CircularProgressIndicator(
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                           ),
                         ),
                       )
@@ -1422,7 +1420,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
-                                            color: Color(0xFF00B4D8),
+                                            color: AppColors.cyan,
                                           ),
                                         ),
                                         const SizedBox(width: 4),
@@ -1431,7 +1429,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                               ? Icons.keyboard_arrow_up_rounded
                                               : Icons
                                                   .keyboard_arrow_down_rounded,
-                                          color: const Color(0xFF00B4D8),
+                                          color: AppColors.cyan,
                                           size: 18,
                                         ),
                                       ],
@@ -1538,7 +1536,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                     ),
                   ),
                   Column(
@@ -1626,7 +1624,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ? Colors.redAccent
         : tone == 'warning'
             ? Colors.orange
-            : const Color(0xFF00B4D8);
+            : AppColors.cyan;
 
     return Container(
       padding: const EdgeInsets.all(2),
@@ -1787,14 +1785,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: selected ? const Color(0xFF00B4D8) : Colors.transparent,
+          color: selected ? AppColors.cyan : Colors.transparent,
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : const Color(0xFF00B4D8),
+            color: selected ? Colors.white : AppColors.cyan,
           ),
         ),
       ),
@@ -1835,7 +1833,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF00B4D8), Color(0xFF0096CC)],
+                        colors: [AppColors.cyan, Color(0xFF0096CC)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -1907,7 +1905,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.of(context).pop(true),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF00B4D8),
+                                backgroundColor: AppColors.cyan,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -1915,7 +1913,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 padding: EdgeInsets.symmetric(vertical: 16),
                                 elevation: 2,
                                 shadowColor:
-                                    Color(0xFF00B4D8).withValues(alpha: 0.3),
+                                    AppColors.cyan.withValues(alpha: 0.3),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

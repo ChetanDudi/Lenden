@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../utils/api_client.dart';
+import '../utils/csv_utils.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 // ── Persistent backup entry ───────────────────────────────────────────────
 
@@ -50,8 +53,6 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   Map<String, dynamic>? _stats;
   List<_BackupEntry> _history = [];
 
-  static const _cyan = Color(0xFF00B4D8);
-  static const _blue = Color(0xFF0077B6);
 
   // ── Disk helpers ─────────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
       }
 
       if (paths.isEmpty) {
-        _showSnack('No data to backup.', isError: true);
+        if (mounted) showSnack(context, 'No data to backup.', isError: true);
         return;
       }
 
@@ -140,114 +141,13 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
       await _saveHistory();
 
       if (!mounted) return;
-      _showSnack(
+      showSnack(context,
           'Backup created! ${(totalBytes / 1024).toStringAsFixed(1)} KB');
     } catch (e) {
-      _showSnack('Backup failed: $e', isError: true);
+      if (mounted) showSnack(context, 'Backup failed: $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  // ── CSV helpers ───────────────────────────────────────────────────────────
-
-  ({List<String> headers, List<List<String>> rows}) _parseCsv(String csv) {
-    final lines = csv.trim().split('\n');
-    if (lines.isEmpty) return (headers: [], rows: []);
-    return (
-      headers: _splitLine(lines.first),
-      rows: lines.skip(1).map(_splitLine).toList(),
-    );
-  }
-
-  List<String> _splitLine(String line) {
-    final result = <String>[];
-    bool inQuote = false;
-    final buf = StringBuffer();
-    for (int i = 0; i < line.length; i++) {
-      final c = line[i];
-      if (c == '"') {
-        if (inQuote && i + 1 < line.length && line[i + 1] == '"') {
-          buf.write('"');
-          i++;
-        } else {
-          inQuote = !inQuote;
-        }
-      } else if (c == ',' && !inQuote) {
-        result.add(buf.toString().trim());
-        buf.clear();
-      } else {
-        buf.write(c);
-      }
-    }
-    result.add(buf.toString().trim());
-    return result;
-  }
-
-  // ── Table builder ─────────────────────────────────────────────────────────
-
-  Widget _buildTable(List<String> headers, List<List<String>> rows) {
-    final colWidths = List.generate(headers.length, (i) {
-      double w = headers[i].length * 8.0 + 24;
-      for (final row in rows) {
-        if (i < row.length) {
-          final cw = row[i].length * 7.0 + 24;
-          if (cw > w) w = cw;
-        }
-      }
-      return w.clamp(70.0, 200.0);
-    });
-
-    return Table(
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      columnWidths: {
-        for (int i = 0; i < colWidths.length; i++)
-          i: FixedColumnWidth(colWidths[i]),
-      },
-      border: TableBorder.all(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      children: [
-        TableRow(
-          decoration: const BoxDecoration(color: _blue),
-          children: headers
-              .map((h) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 10),
-                    child: Text(h,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.white)),
-                  ))
-              .toList(),
-        ),
-        ...rows.asMap().entries.map((e) {
-          final row = e.value;
-          return TableRow(
-            decoration: BoxDecoration(
-              color: e.key.isEven
-                  ? Colors.white
-                  : _cyan.withValues(alpha: 0.04),
-            ),
-            children: List.generate(headers.length, (i) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 9),
-                child: Text(
-                  i < row.length ? row[i] : '',
-                  style:
-                      const TextStyle(fontSize: 12, color: Colors.black87),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-              );
-            }),
-          );
-        }),
-      ],
-    );
   }
 
   // ── View sheet ────────────────────────────────────────────────────────────
@@ -255,19 +155,12 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   void _viewBackup(_BackupEntry entry, String type) async {
     final filePath = entry.filePaths[type];
     if (filePath == null || !File(filePath).existsSync()) {
-      _showSnack('File not found on disk.', isError: true);
+      if (mounted) showSnack(context, 'File not found on disk.', isError: true);
       return;
     }
     final csv = await File(filePath).readAsString();
-    final parsed = _parseCsv(csv);
+    final parsed = parseCsv(csv);
     final label = '${type[0].toUpperCase()}${type.substring(1)}';
-    const typeColors = {
-      'users': _cyan,
-      'transactions': Colors.purple,
-      'quick_transactions': Colors.green,
-      'group_transactions': Colors.teal,
-      'support': Colors.orange,
-    };
     const typeIcons = {
       'users': Icons.people_outline,
       'transactions': Icons.lock_outline_rounded,
@@ -275,140 +168,18 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
       'group_transactions': Icons.group_outlined,
       'support': Icons.support_agent_outlined,
     };
-    final accent = typeColors[type] ?? _cyan;
 
     if (!mounted) return;
-    showModalBottomSheet(
+    showCsvBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (_, scrollCtrl) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFFAF9F6),
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(typeIcons[type] ?? Icons.table_chart,
-                          color: accent, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('$label Data',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15)),
-                          Text(
-                            '${parsed.rows.length} record${parsed.rows.length == 1 ? '' : 's'} '
-                            '• ${(csv.length / 1024).toStringAsFixed(1)} KB',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await Share.shareXFiles(
-                          [XFile(filePath, mimeType: 'text/csv')],
-                          subject: 'LenDen $label Export',
-                        );
-                      },
-                      icon: const Icon(Icons.share_rounded,
-                          color: Colors.white, size: 15),
-                      label: const Text('Share',
-                          style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: parsed.rows.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.inbox_outlined,
-                                color: Colors.grey, size: 48),
-                            SizedBox(height: 8),
-                            Text('No records found.',
-                                style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        controller: scrollCtrl,
-                        padding: const EdgeInsets.all(12),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: _buildTable(
-                              parsed.headers, parsed.rows),
-                        ),
-                      ),
-              ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: accent),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text('Close',
-                          style: TextStyle(color: accent)),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+      label: label,
+      icon: typeIcons[type] ?? Icons.table_chart,
+      csvBody: csv,
+      headers: parsed.headers,
+      rows: parsed.rows,
+      onShare: () => Share.shareXFiles(
+        [XFile(filePath, mimeType: 'text/csv')],
+        subject: 'LenDen $label Export',
       ),
     );
   }
@@ -419,21 +190,11 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
         .map((p) => XFile(p, mimeType: 'text/csv'))
         .toList();
     if (existing.isEmpty) {
-      _showSnack('Backup files not found on disk.', isError: true);
+      showSnack(context, 'Backup files not found on disk.', isError: true);
       return;
     }
     await Share.shareXFiles(existing,
         subject: 'LenDen Backup — ${entry.label}');
-  }
-
-  void _showSnack(String msg, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: isError ? Colors.red : Colors.green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
   }
 
   // ── UI helpers ────────────────────────────────────────────────────────────
@@ -459,13 +220,13 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: _cyan, size: 22),
+            Icon(icon, color: AppColors.cyan, size: 22),
             const SizedBox(height: 6),
             Text(value,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: _blue)),
+                    color: AppColors.blue)),
             Text(label,
                 style: const TextStyle(fontSize: 11, color: Colors.grey)),
           ],
@@ -476,7 +237,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
 
   Widget _buildHistoryCard(_BackupEntry entry) {
     const typeColors = {
-      'users': _cyan,
+      'users': AppColors.cyan,
       'transactions': Colors.purple,
       'quick_transactions': Colors.green,
       'group_transactions': Colors.teal,
@@ -526,7 +287,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.share_rounded, color: _cyan),
+                  icon: const Icon(Icons.share_rounded, color: AppColors.cyan),
                   tooltip: 'Share all files',
                   onPressed: () => _shareBackup(entry),
                 ),
@@ -539,7 +300,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
               spacing: 8,
               runSpacing: 6,
               children: entry.filePaths.keys.map((type) {
-                final color = typeColors[type] ?? _cyan;
+                final color = typeColors[type] ?? AppColors.cyan;
                 final icon = typeIcons[type] ?? Icons.table_chart;
                 final label =
                     '${type[0].toUpperCase()}${type.substring(1)}';
@@ -586,7 +347,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
       appBar: AppBar(
         title: const Text('Backup & Restore',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: _cyan,
+        backgroundColor: AppColors.cyan,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -604,7 +365,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: _blue)),
+                          color: AppColors.blue)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -638,7 +399,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.backup_outlined, color: _cyan),
+                            Icon(Icons.backup_outlined, color: AppColors.cyan),
                             SizedBox(width: 10),
                             Text('Create Backup',
                                 style: TextStyle(
@@ -664,7 +425,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _cyan,
+                              backgroundColor: AppColors.cyan,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -683,7 +444,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: _blue)),
+                              color: AppColors.blue)),
                       const Spacer(),
                       if (_history.isNotEmpty)
                         Text(

@@ -1,5 +1,7 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -215,17 +217,11 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
         await _fetchReceivedNotifications();
         await _fetchSentNotifications();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _deliveryStatus == 'scheduled'
-                    ? 'Notification scheduled successfully.'
-                    : _deliveryStatus == 'draft'
-                        ? 'Notification draft saved successfully.'
-                        : 'Notification sent successfully.',
-              ),
-            ),
-          );
+          showSnack(context, _deliveryStatus == 'scheduled'
+              ? 'Notification scheduled successfully.'
+              : _deliveryStatus == 'draft'
+                  ? 'Notification draft saved successfully.'
+                  : 'Notification sent successfully.');
         }
       } else if (mounted) {
         String errorMessage = 'Failed to send notification.';
@@ -235,15 +231,11 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             errorMessage = errorBody['message'].toString();
           }
         } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        showSnack(context, errorMessage, isError: true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An unexpected error occurred: $e')),
-        );
+        showSnack(context, 'An unexpected error occurred: $e', isError: true);
       }
     } finally {
       if (mounted) {
@@ -298,14 +290,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
       await _fetchReceivedNotifications();
       await _fetchSentNotifications();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification deleted successfully.')),
-        );
+        showSnack(context, 'Notification deleted successfully.');
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete notification: ${response.body}')),
-      );
+      showSnack(context, 'Failed to delete notification: ${response.body}', isError: true);
     }
   }
 
@@ -419,11 +407,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                       await _fetchSentNotifications();
                       if (mounted) {
                         Navigator.pop(dialogContext);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Notification updated successfully.'),
-                          ),
-                        );
+                        showSnack(context, 'Notification updated successfully.');
                       }
                     }
                   },
@@ -473,7 +457,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: 132,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -529,10 +513,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                         controller: _tabController,
                         indicator: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          color: const Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         labelColor: Colors.white,
-                        unselectedLabelColor: const Color(0xFF00B4D8),
+                        unselectedLabelColor: AppColors.cyan,
                         dividerColor: Colors.transparent,
                         overlayColor:
                             WidgetStateProperty.all(Colors.transparent),
@@ -622,7 +606,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             child: _buildStatTile(
               title: 'Unread',
               value: '$_unreadCount',
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
               icon: Icons.mark_email_unread_outlined,
             ),
           ),
@@ -702,7 +686,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
 
     if (loading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+        child: CircularProgressIndicator(color: AppColors.cyan),
       );
     }
 
@@ -721,12 +705,12 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                   label: Text(chip.label),
                   selected: selected,
                   onSelected: (_) => onCategoryChanged(chip.value),
-                  selectedColor: const Color(0xFF00B4D8),
+                  selectedColor: AppColors.cyan,
                   labelStyle: TextStyle(
-                    color: selected ? Colors.white : const Color(0xFF00B4D8),
+                    color: selected ? Colors.white : AppColors.cyan,
                     fontWeight: FontWeight.w600,
                   ),
-                  side: const BorderSide(color: Color(0xFF00B4D8)),
+                  side: const BorderSide(color: AppColors.cyan),
                   backgroundColor: Colors.white,
                 ),
               );
@@ -772,7 +756,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
               child: ElevatedButton(
                 onPressed: onViewAll,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 26,
@@ -852,7 +836,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           width: 10,
                           height: 10,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -1071,7 +1055,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                   child: ElevatedButton(
                     onPressed: _isSending ? null : _sendNotification,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -1112,7 +1096,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
       case 'system':
         return Colors.redAccent;
       default:
-        return const Color(0xFF00B4D8);
+        return AppColors.cyan;
     }
   }
 

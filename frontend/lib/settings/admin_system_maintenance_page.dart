@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AdminSystemMaintenancePage extends StatefulWidget {
   const AdminSystemMaintenancePage({super.key});
@@ -15,7 +17,7 @@ class _AdminSystemMaintenancePageState
   bool _isLoading = false;
   Map<String, dynamic>? _stats;
 
-  static const _cyan = Color(0xFF00B4D8);
+  static const _cyan = AppColors.cyan;
   static const _blue = Color(0xFF0077B6);
 
   @override
@@ -74,26 +76,17 @@ class _AdminSystemMaintenancePageState
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        _showSnack(data['message'] ?? 'Done!');
+        showSnack(context, data['message'] ?? 'Done!');
         await _fetchStats();
       } else {
         final data = jsonDecode(response.body);
-        _showSnack(data['error'] ?? 'Action failed.', isError: true);
+        showSnack(context, data['error'] ?? 'Action failed.', isError: true);
       }
     } catch (e) {
-      _showSnack('Network error: $e', isError: true);
+      showSnack(context, 'Network error: $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: isError ? Colors.red : Colors.green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
   }
 
   Widget _statTile(String label, String value, IconData icon, Color color) {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
 import '../otp_input.dart';
 import '../utils/api_client.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -143,7 +144,7 @@ class EmailOtpLogin {
           backgroundColor: const Color(0xFFF8F6FA),
           title: Row(
             children: const [
-              Icon(Icons.lock_clock, color: Color(0xFF00B4D8), size: 28),
+              Icon(Icons.lock_clock, color: AppColors.cyan, size: 28),
               SizedBox(width: 8),
               Text('Enter OTP', style: TextStyle(color: Colors.black)),
             ],
@@ -173,7 +174,7 @@ class EmailOtpLogin {
               },
               child: const Text('Verify',
                   style: TextStyle(
-                      color: Color(0xFF00B4D8), fontWeight: FontWeight.bold)),
+                      color: AppColors.cyan, fontWeight: FontWeight.bold)),
             ),
           ],
         );

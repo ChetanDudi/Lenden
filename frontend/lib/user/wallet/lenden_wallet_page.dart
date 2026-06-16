@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../session.dart';
@@ -107,7 +109,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
 
   Future<void> _initiateAddMoney(double amount) async {
     if (!_isMobile) {
-      _showSnack('Razorpay payments are only available on Android & iOS.');
+      showSnack(context, 'Razorpay payments are only available on Android & iOS.', isError: true);
       return;
     }
     setState(() => _processingPayment = true);
@@ -119,7 +121,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
       if (!mounted) return;
       if (orderRes.statusCode != 200) {
         final err = jsonDecode(orderRes.body);
-        _showSnack(err['error'] ?? 'Failed to create order');
+        showSnack(context, err['error'] ?? 'Failed to create order', isError: true);
         setState(() => _processingPayment = false);
         return;
       }
@@ -142,7 +144,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
       _razorpay!.open(options);
     } catch (e) {
       if (mounted) {
-        _showSnack('Error: $e');
+        showSnack(context, 'Error: $e', isError: true);
         setState(() => _processingPayment = false);
       }
     }
@@ -161,15 +163,15 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
       if (verifyRes.statusCode == 200) {
         final data = jsonDecode(verifyRes.body);
         _amountController.clear();
-        _showSnack('₹${data['addedAmount'] ?? ''} added to wallet!', success: true);
+        showSnack(context, '₹${data['addedAmount'] ?? ''} added to wallet!');
         _fetchWalletData();
       } else {
-        _showSnack('Payment received but verification failed. Contact support.');
+        showSnack(context, 'Payment received but verification failed. Contact support.', isError: true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _processingPayment = false);
-        _showSnack('Verification error: $e');
+        showSnack(context, 'Verification error: $e', isError: true);
       }
     }
   }
@@ -177,7 +179,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   void _handlePaymentError(PaymentFailureResponse response) {
     if (!mounted) return;
     setState(() => _processingPayment = false);
-    _showSnack('Payment failed: ${response.message ?? 'Unknown'}');
+    showSnack(context, 'Payment failed: ${response.message ?? 'Unknown'}', isError: true);
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
@@ -185,16 +187,6 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
     setState(() => _processingPayment = false);
   }
 
-  void _showSnack(String msg, {bool success = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: success ? Colors.green : Colors.red,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(12),
-    ));
-  }
 
   void _showAddMoneySheet() {
     _amountController.clear();
@@ -226,11 +218,11 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                 Row(children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: const Color(0xFF00B4D8).withValues(alpha: 0.12), shape: BoxShape.circle),
-                    child: const Icon(Icons.add_rounded, color: Color(0xFF00B4D8), size: 22),
+                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    child: const Icon(Icons.add_rounded, color: AppColors.cyan, size: 22),
                   ),
                   const SizedBox(width: 10),
-                  const Text('Add Money to Wallet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8))),
+                  const Text('Add Money to Wallet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.cyan)),
                 ]),
                 const SizedBox(height: 4),
                 Row(children: [
@@ -264,7 +256,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                             color: const Color(0xFFF0F7FF),
                             borderRadius: BorderRadius.circular(21),
                           ),
-                          child: Text('₹$amt', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF00B4D8), fontSize: 13)),
+                          child: Text('₹$amt', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.cyan, fontSize: 13)),
                         ),
                       ),
                     ),
@@ -282,7 +274,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                      borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                     ),
                   ),
                 ),
@@ -291,7 +283,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
@@ -304,7 +296,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                     onPressed: _processingPayment ? null : () {
                       final amount = double.tryParse(_amountController.text.trim());
                       if (amount == null || amount < 1) {
-                        _showSnack('Enter a valid amount (min ₹1)');
+                        showSnack(context, 'Enter a valid amount (min ₹1)', isError: true);
                         return;
                       }
                       Navigator.pop(ctx);
@@ -357,7 +349,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
           final msg = isTestMode
               ? '[Test] ₹${amount.toStringAsFixed(2)} simulated — balance deducted'
               : '₹${amount.toStringAsFixed(2)} withdrawal initiated!';
-          _showSnack(msg, success: true);
+          showSnack(context, msg);
           _fetchWalletData();
         },
       ),
@@ -415,7 +407,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                 // ── Scrollable body ───────────────────────────────────
                 Expanded(child: RefreshIndicator(
                   onRefresh: _fetchWalletData,
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                   child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(children: [
@@ -433,7 +425,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                         end: Alignment.bottomRight,
                       ),
                       boxShadow: [
-                        BoxShadow(color: const Color(0xFF00B4D8).withValues(alpha: 0.18), blurRadius: 24, offset: const Offset(0, 10)),
+                        BoxShadow(color: AppColors.cyan.withValues(alpha: 0.18), blurRadius: 24, offset: const Offset(0, 10)),
                       ],
                     ),
                     child: Container(
@@ -447,14 +439,14 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                             const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFFFF8000), size: 20),
                             const SizedBox(width: 7),
-                            const Text('LenDen Wallet Balance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF00B4D8))),
+                            const Text('LenDen Wallet Balance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.cyan)),
                           ]),
                           const SizedBox(height: 10),
                           _loading
-                            ? const CircularProgressIndicator(color: Color(0xFF00B4D8))
+                            ? const CircularProgressIndicator(color: AppColors.cyan)
                             : Text(
                                 '₹${_walletBalance.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8)),
+                                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.cyan),
                               ),
                           const SizedBox(height: 4),
                           Text('Available to send or pay', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
@@ -463,7 +455,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                             Expanded(
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00B4D8),
+                                  backgroundColor: AppColors.cyan,
                                   padding: const EdgeInsets.symmetric(vertical: 13),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   elevation: 0,
@@ -513,7 +505,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(children: [
-                    _infoBadge(Icons.security_rounded, 'Secure Payments', const Color(0xFF00B4D8)),
+                    _infoBadge(Icons.security_rounded, 'Secure Payments', AppColors.cyan),
                     const SizedBox(width: 10),
                     _infoBadge(Icons.flash_on_rounded, 'Instant Transfer', const Color(0xFFFF8000)),
                   ]),
@@ -594,19 +586,19 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                           Container(
                             padding: const EdgeInsets.all(9),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00B4D8).withValues(alpha: 0.14),
+                              color: AppColors.cyan.withValues(alpha: 0.14),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.group_rounded, color: Color(0xFF00B4D8), size: 18),
+                            child: const Icon(Icons.group_rounded, color: AppColors.cyan, size: 18),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              const Text('Group Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF00B4D8))),
+                              const Text('Group Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.cyan)),
                               Text('Settle shared group expenses', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                             ]),
                           ),
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: Color(0xFF00B4D8)),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 13, color: AppColors.cyan),
                         ]),
                       ),
                     ),
@@ -724,7 +716,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                 if (_loading)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(child: CircularProgressIndicator(color: Color(0xFF00B4D8))),
+                    child: Center(child: CircularProgressIndicator(color: AppColors.cyan)),
                   )
                 else if (_transactions.isEmpty)
                   Padding(
@@ -785,7 +777,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                             } else if (hasRazorpay) {
                               txLabel = isCredit ? 'Razorpay Received' : 'Razorpay P2P';
                               txIcon = Icons.payment_rounded;
-                              txBadgeColor = const Color(0xFF00B4D8);
+                              txBadgeColor = AppColors.cyan;
                             } else {
                               txLabel = isCredit ? 'Wallet Received' : 'Wallet Transfer';
                               txIcon = isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded;
@@ -1023,10 +1015,10 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8), size: 16),
+                  const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan, size: 16),
                   const SizedBox(width: 6),
                   Text('Wallet Balance: ₹${widget.walletBalance.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Color(0xFF00B4D8), fontWeight: FontWeight.w600, fontSize: 13)),
+                    style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600, fontSize: 13)),
                 ]),
               ),
             ),
@@ -1042,7 +1034,7 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                 ),
               ),
               keyboardType: TextInputType.emailAddress,
@@ -1058,7 +1050,7 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                 ),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1096,7 +1088,7 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
@@ -1639,7 +1631,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
               ),
               child: Column(children: [
                 Row(children: [
-                  const Icon(Icons.person_outline, size: 16, color: Color(0xFF00B4D8)),
+                  const Icon(Icons.person_outline, size: 16, color: AppColors.cyan),
                   const SizedBox(width: 6),
                   Expanded(child: Text(widget.counterpartyEmail, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
                 ]),
@@ -1691,10 +1683,10 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   hintText: 'Enter phone number (optional, for UPI)',
-                  prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF00B4D8), size: 20),
+                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.cyan, size: 20),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00B4D8))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cyan)),
                   filled: true,
                   fillColor: const Color(0xFFF8FBFF),
                 ),
@@ -1713,7 +1705,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00B4D8),
+                backgroundColor: AppColors.cyan,
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
@@ -1734,15 +1726,15 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             width: double.infinity,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                side: const BorderSide(color: AppColors.cyan, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               icon: _payingWallet
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00B4D8)))
-                : const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00B4D8)),
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
               label: Text(_payingWallet ? 'Processing...' : 'Pay via LenDen Wallet',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF00B4D8))),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.cyan)),
               onPressed: (_payingWallet || _payingRazorpay) ? null : _payViaWallet,
             ),
           ),
@@ -1873,9 +1865,9 @@ class _RazorpayPayPageState extends State<_RazorpayPayPage> {
         body: const Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             SizedBox(width: 52, height: 52,
-              child: CircularProgressIndicator(color: Color(0xFF00B4D8), strokeWidth: 3)),
+              child: CircularProgressIndicator(color: AppColors.cyan, strokeWidth: 3)),
             SizedBox(height: 20),
-            Text('Verifying payment...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF00B4D8))),
+            Text('Verifying payment...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.cyan)),
             SizedBox(height: 6),
             Text('Please wait, do not go back.', style: TextStyle(fontSize: 13, color: Colors.grey)),
           ]),
@@ -1893,7 +1885,7 @@ class _RazorpayPayPageState extends State<_RazorpayPayPage> {
             children: [
               // Back
               IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF00B4D8)),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.cyan),
                 onPressed: () => Navigator.pop(context),
                 padding: EdgeInsets.zero,
               ),
@@ -1909,7 +1901,7 @@ class _RazorpayPayPageState extends State<_RazorpayPayPage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  boxShadow: [BoxShadow(color: const Color(0xFF00B4D8).withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 8))],
+                  boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 8))],
                 ),
                 child: Container(
                   width: double.infinity,
@@ -1922,13 +1914,13 @@ class _RazorpayPayPageState extends State<_RazorpayPayPage> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+                        color: AppColors.cyan.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.payment_rounded, color: Color(0xFF00B4D8), size: 38),
+                      child: const Icon(Icons.payment_rounded, color: AppColors.cyan, size: 38),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Complete Your Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8))),
+                    const Text('Complete Your Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan)),
                     const SizedBox(height: 14),
                     Text('₹${amountRupees.toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Color(0xFFFF8000))),
@@ -1971,7 +1963,7 @@ class _RazorpayPayPageState extends State<_RazorpayPayPage> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,

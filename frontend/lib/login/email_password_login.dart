@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -116,7 +117,7 @@ class EmailPasswordLogin {
             },
             child: const Text('Forgot Password',
                 style: TextStyle(
-                    color: Color(0xFF00B4D8), fontWeight: FontWeight.bold)),
+                    color: AppColors.cyan, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -139,14 +140,14 @@ class EmailPasswordLogin {
                 height: 72,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF0077B6), Color(0xFF00B4D8)],
+                    colors: [Color(0xFF0077B6), AppColors.cyan],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00B4D8).withValues(alpha: 0.35),
+                      color: AppColors.cyan.withValues(alpha: 0.35),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -197,7 +198,7 @@ class EmailPasswordLogin {
                         Navigator.pushReplacementNamed(context, '/register');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(

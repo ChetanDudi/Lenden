@@ -2,6 +2,8 @@
 import 'dart:convert';
 import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class UserDetailsPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -63,12 +65,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading user details: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error loading user details: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -134,12 +131,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
@@ -150,21 +142,10 @@ class _UserDetailsPageState extends State<UserDetailsPage>
     final isVerified = user['isVerified'] ?? false;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: Text(
-          user['name'] ?? 'User Details',
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(
+        context,
+        title: user['name'] ?? 'User Details',
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.black),
@@ -207,7 +188,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                         children: [
                           CircleAvatar(
                             radius: 40,
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             child: _buildProfileImage(user),
                           ),
                           const SizedBox(width: 16),
@@ -236,7 +217,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                   '@${user['username'] ?? 'unknown'}',
                                   style: const TextStyle(
                                     fontSize: 14,
-                                    color: Color(0xFF00B4D8),
+                                    color: AppColors.cyan,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -367,7 +348,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                     },
                                     style: OutlinedButton.styleFrom(
                                       side: const BorderSide(
-                                          color: Color(0xFF00B4D8)),
+                                          color: AppColors.cyan),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -375,7 +356,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                     child: const Text(
                                       'Edit User',
                                       style:
-                                          TextStyle(color: Color(0xFF00B4D8)),
+                                          TextStyle(color: AppColors.cyan),
                                     ),
                                   )
                                 : ElevatedButton.icon(
@@ -406,14 +387,14 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                 },
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(
-                                      color: Color(0xFF00B4D8)),
+                                      color: AppColors.cyan),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                                 child: const Text(
                                   'Edit User',
-                                  style: TextStyle(color: Color(0xFF00B4D8)),
+                                  style: TextStyle(color: AppColors.cyan),
                                 ),
                               ),
                             ),
@@ -441,9 +422,9 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: const Color(0xFF00B4D8),
+                    labelColor: AppColors.cyan,
                     unselectedLabelColor: Colors.grey,
-                    indicatorColor: const Color(0xFF00B4D8),
+                    indicatorColor: AppColors.cyan,
                     tabs: const [
                       Tab(text: 'Profile'),
                       Tab(text: 'Stats'),
@@ -656,7 +637,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                     onPressed: () =>
                         setState(() => _showAllNotes = !_showAllNotes),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF00B4D8),
+                      foregroundColor: AppColors.cyan,
                     ),
                   ),
                 ),
@@ -823,7 +804,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -882,7 +863,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       ),
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF00B4D8), size: 24),
+          Icon(icon, color: AppColors.cyan, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
@@ -932,12 +913,12 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+              color: AppColors.cyan.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.receipt,
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
               size: 20,
             ),
           ),
@@ -1032,12 +1013,12 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+              color: AppColors.cyan.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               _getActivityIcon(action),
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
               size: 20,
             ),
           ),
@@ -1136,16 +1117,12 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           widget.user['adminNotes'] = notes;
         });
         _adminNoteController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Internal note added successfully')),
-        );
+        showSnack(context, 'Internal note added successfully');
       } else {
         throw Exception((data['message'] ?? 'Failed to add note').toString());
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+      showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
@@ -1189,16 +1166,12 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           widget.user.addAll(Map<String, dynamic>.from(data['user']));
         });
         _suspensionReasonController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text((data['message'] ?? 'Suspension updated').toString())),
-        );
+        showSnack(context, (data['message'] ?? 'Suspension updated').toString());
       } else {
         throw Exception((data['message'] ?? 'Failed to update suspension').toString());
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+      showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
@@ -1243,23 +1216,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           });
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text((data['message'] ?? 'User logged out from all devices').toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, (data['message'] ?? 'User logged out from all devices').toString(), isError: true);
       } else {
         throw Exception((data['message'] ?? 'Failed to force logout').toString());
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
@@ -1316,12 +1279,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 

@@ -1,9 +1,11 @@
 ﻿import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../widgets/app_widgets.dart';
 import '../../../utils/display_currency_helper.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -336,7 +338,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -356,21 +358,21 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       constraints: const BoxConstraints(maxWidth: 220),
       decoration: BoxDecoration(
-        color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
+        color: AppColors.cyan.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF00B4D8).withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: const Color(0xFF00B4D8)),
+          Icon(icon, size: 13, color: AppColors.cyan),
           const SizedBox(width: 4),
           Flexible(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Text(
                 '$label: $value',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF00B4D8), fontWeight: FontWeight.w500),
+                style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w500),
                 softWrap: false,
               ),
             ),
@@ -484,13 +486,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         // Refresh the groups data
         await _fetchUserGroups();
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Expense updated successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        showSnack(context, '✅ Expense updated successfully!');
       } else {
         setState(() {
           error = data?['error'] ?? 'Failed to update expense';
@@ -541,7 +537,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                colors: [AppColors.cyan, Color(0xFF48CAE4)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -575,7 +571,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -589,7 +585,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: Color(0xFF00B4D8), width: 2),
+                            BorderSide(color: AppColors.cyan, width: 2),
                       ),
                     ),
                   ),
@@ -600,7 +596,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -616,7 +612,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: Color(0xFF00B4D8), width: 2),
+                            BorderSide(color: AppColors.cyan, width: 2),
                       ),
                     ),
                     items: _currencies
@@ -642,7 +638,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -658,7 +654,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: Color(0xFF00B4D8), width: 2),
+                            BorderSide(color: AppColors.cyan, width: 2),
                       ),
                     ),
                   ),
@@ -670,7 +666,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -705,7 +701,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -718,7 +714,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            BorderSide(color: Color(0xFF00B4D8), width: 2),
+                            BorderSide(color: AppColors.cyan, width: 2),
                       ),
                     ),
                     items: [
@@ -768,29 +764,19 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         if (editDescController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Please enter a description')),
-                          );
+                          showSnack(context, 'Please enter a description', isError: true);
                           return;
                         }
 
                         final amount =
                             double.tryParse(editAmountController.text);
                         if (amount == null || amount <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Please enter a valid amount')),
-                          );
+                          showSnack(context, 'Please enter a valid amount', isError: true);
                           return;
                         }
 
                         if (editSelectedMembers.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content:
-                                    Text('Please select at least one member')),
-                          );
+                          showSnack(context, 'Please select at least one member', isError: true);
                           return;
                         }
 
@@ -808,7 +794,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             groupId, expense['_id'], expenseData);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                         padding: EdgeInsets.symmetric(vertical: 12),
@@ -843,7 +829,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+              colors: [AppColors.cyan, Color(0xFF48CAE4)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -874,22 +860,22 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF00B4D8).withValues(alpha: 0.1),
+                    color: AppColors.cyan.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border:
-                        Border.all(color: Color(0xFF00B4D8).withValues(alpha: 0.3)),
+                        Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.info_outline,
-                          color: Color(0xFF00B4D8), size: 20),
+                          color: AppColors.cyan, size: 20),
                       SizedBox(width: 8),
                       Text(
                         'Total Expenses: ${expenses.length}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                       ),
                     ],
@@ -903,7 +889,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Color(0xFF00B4D8).withValues(alpha: 0.2),
+                        color: AppColors.cyan.withValues(alpha: 0.2),
                         width: 1.5,
                       ),
                       boxShadow: [
@@ -919,7 +905,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                           EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: CircleAvatar(
                         radius: 20,
-                        backgroundColor: Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         child: Icon(
                           Icons.receipt,
                           color: Colors.white,
@@ -930,7 +916,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         expense['description'] ?? 'No description',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                       ),
                       subtitle: Column(
@@ -982,7 +968,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                           return shouldShowEdit
                               ? IconButton(
                                   icon: Icon(Icons.edit,
-                                      color: Color(0xFF00B4D8)),
+                                      color: AppColors.cyan),
                                   onPressed: () {
                                     Navigator.of(context).pop();
                                     _showEditExpenseDialog(expense, groupId);
@@ -1005,7 +991,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF00B4D8),
+                backgroundColor: AppColors.cyan,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 padding: EdgeInsets.symmetric(vertical: 12),
@@ -1033,7 +1019,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('View Group Transactions'),
-        backgroundColor: Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
@@ -1166,7 +1152,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Color(0xFF00B4D8)
+                                              color: AppColors.cyan
                                                   .withValues(alpha: 0.1),
                                               blurRadius: 8,
                                               offset: Offset(0, 2),
@@ -1185,7 +1171,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                             decoration: InputDecoration(
                                               labelText: 'Search Groups',
                                               labelStyle: TextStyle(
-                                                color: Color(0xFF00B4D8),
+                                                color: AppColors.cyan,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                               border: OutlineInputBorder(
@@ -1199,14 +1185,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                 margin: EdgeInsets.all(8),
                                                 padding: EdgeInsets.all(8),
                                                 decoration: BoxDecoration(
-                                                  color: Color(0xFF00B4D8)
+                                                  color: AppColors.cyan
                                                       .withValues(alpha: 0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
                                                 child: Icon(
                                                   Icons.search,
-                                                  color: Color(0xFF00B4D8),
+                                                  color: AppColors.cyan,
                                                   size: 20,
                                                 ),
                                               ),
@@ -1252,20 +1238,20 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         borderRadius: BorderRadius.circular(20),
                                         gradient: LinearGradient(
                                           colors: [
-                                            Color(0xFF00B4D8),
+                                            AppColors.cyan,
                                             Color(0xFF48CAE4),
                                           ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         ),
                                         border: Border.all(
-                                          color: Color(0xFF00B4D8)
+                                          color: AppColors.cyan
                                               .withValues(alpha: 0.3),
                                           width: 2,
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Color(0xFF00B4D8)
+                                            color: AppColors.cyan
                                                 .withValues(alpha: 0.2),
                                             blurRadius: 8,
                                             offset: Offset(0, 2),
@@ -1278,7 +1264,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                           onChanged: _onGroupFilterChanged,
                                           icon: Icon(Icons.arrow_drop_down,
                                               color: Colors.white),
-                                          dropdownColor: Color(0xFF00B4D8),
+                                          dropdownColor: AppColors.cyan,
                                           borderRadius:
                                               BorderRadius.circular(16),
                                           style: TextStyle(
@@ -1365,7 +1351,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         'Show Favourites Only',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF00B4D8),
+                                          color: AppColors.cyan,
                                         ),
                                       ),
                                       value: _showFavouritesOnly,
@@ -1373,7 +1359,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         setState(() => _showFavouritesOnly = value);
                                         _fetchUserGroups();
                                       },
-                                      activeColor: const Color(0xFF00B4D8),
+                                      activeColor: AppColors.cyan,
                                     ),
                                   ),
                                 ),
@@ -1387,7 +1373,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                                colors: [AppColors.cyan, Color(0xFF48CAE4)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -1512,7 +1498,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                 child: ExpansionTile(
                                                   leading: CircleAvatar(
                                                     backgroundColor:
-                                                        Color(0xFF00B4D8),
+                                                        AppColors.cyan,
                                                     child: Text(
                                                       (group['title'] ?? 'G')[0]
                                                           .toUpperCase(),
@@ -1817,7 +1803,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                   children: [
                                                                     Row(
                                                                       children: [
-                                                                        Icon(Icons.receipt, color: Color(0xFF00B4D8), size: 20),
+                                                                        Icon(Icons.receipt, color: AppColors.cyan, size: 20),
                                                                         SizedBox(width: 8),
                                                                         Expanded(
                                                                           child: Text(
@@ -1875,11 +1861,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                         decoration:
                                                                             BoxDecoration(
                                                                           color:
-                                                                              Color(0xFF00B4D8).withValues(alpha: 0.05),
+                                                                              AppColors.cyan.withValues(alpha: 0.05),
                                                                           borderRadius:
                                                                               BorderRadius.circular(6),
                                                                           border:
-                                                                              Border.all(color: Color(0xFF00B4D8).withValues(alpha: 0.2)),
+                                                                              Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
                                                                         ),
                                                                         child:
                                                                             Column(
@@ -1888,14 +1874,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                           children: [
                                                                             Row(
                                                                               children: [
-                                                                                Icon(Icons.people_outline, color: Color(0xFF00B4D8), size: 14),
+                                                                                Icon(Icons.people_outline, color: AppColors.cyan, size: 14),
                                                                                 SizedBox(width: 4),
                                                                                 Text(
                                                                                   'Split Details:',
                                                                                   style: TextStyle(
                                                                                     fontSize: 12,
                                                                                     fontWeight: FontWeight.w600,
-                                                                                    color: Color(0xFF00B4D8),
+                                                                                    color: AppColors.cyan,
                                                                                   ),
                                                                                 ),
                                                                               ],
@@ -1932,12 +1918,12 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                                       style: TextStyle(
                                                                                         fontSize: 11,
                                                                                         fontWeight: FontWeight.w600,
-                                                                                        color: isSettled ? Colors.grey[500] : (isCurrentUser ? Color(0xFF00B4D8) : Colors.green[700]),
+                                                                                        color: isSettled ? Colors.grey[500] : (isCurrentUser ? AppColors.cyan : Colors.green[700]),
                                                                                         decoration: isSettled ? TextDecoration.lineThrough : null,
                                                                                       ),
                                                                                     ),
                                                                                     if (isCurrentUser)
-                                                                                      Text(' (You)', style: TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontStyle: FontStyle.italic)),
+                                                                                      Text(' (You)', style: TextStyle(fontSize: 10, color: AppColors.cyan, fontStyle: FontStyle.italic)),
                                                                                     if (isSettled)
                                                                                       Text(' ✓', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
                                                                                   ],
@@ -2079,9 +2065,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
     if (email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User email not found.')),
-      );
+      showSnack(context, 'User email not found.', isError: true);
       return;
     }
 
@@ -2112,47 +2096,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       Navigator.pop(context); // Close the loading dialog
       final data = response.body.isNotEmpty ? jsonDecode(response.body) : null;
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text('Receipt sent to your email!'))
-              ],
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        showSnack(context, 'Receipt sent to your email!');
       } else {
         String errorMessage = data?['error'] ?? 'Failed to send receipt';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text(errorMessage)),
-              ],
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, errorMessage, isError: true);
       }
     } catch (e) {
       Navigator.pop(context); // Close the loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.error, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(child: Text('Network error: ${e.toString()}'))
-            ],
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, 'Network error: ${e.toString()}', isError: true);
     }
   }
 
@@ -2190,43 +2141,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         final file = File('${output.path}/group-receipt-${group['_id']}.pdf');
         await file.writeAsBytes(response.bodyBytes);
         OpenFile.open(file.path);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Receipt downloaded to ${file.path}'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        showSnack(context, 'Receipt downloaded to ${file.path}');
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
         String errorMessage = data?['error'] ?? 'Failed to download receipt';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text(errorMessage)),
-              ],
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, errorMessage, isError: true);
       }
     } catch (e) {
       Navigator.pop(context); // Close the loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.error, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(child: Text('Network error: ${e.toString()}'))
-            ],
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showSnack(context, 'Network error: ${e.toString()}', isError: true);
     }
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class TermsOfServicePage extends StatelessWidget {
   const TermsOfServicePage({super.key});
@@ -8,19 +10,8 @@ class TermsOfServicePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Terms of Service',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Terms of Service'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -32,7 +23,7 @@ class TermsOfServicePage extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF0096B4)],
+                  colors: [AppColors.cyan, Color(0xFF0096B4)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -189,7 +180,7 @@ class TermsOfServicePage extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(height: 10),

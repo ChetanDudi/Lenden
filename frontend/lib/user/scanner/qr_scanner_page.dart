@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_widgets.dart';
 import '../../session.dart';
 import '../../widgets/payment_success_page.dart';
 import 'package:provider/provider.dart';
@@ -20,7 +22,7 @@ class QrScannerPage extends StatefulWidget {
 }
 
 class _QrScannerPageState extends State<QrScannerPage> {
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
 
   static bool get _isMobile =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -74,12 +76,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
   void _showError(String msg) {
     if (!mounted) return;
     _resetProcessing();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: Colors.redAccent,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    showSnack(context, msg, isError: true);
   }
 
   // ── Razorpay callbacks ─────────────────────────────────────────────────────
@@ -486,7 +483,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                           icon: const Icon(Icons.settings_rounded, size: 18),
                           label: const Text('Open Settings'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
@@ -644,7 +641,7 @@ class _ScanFrame extends StatelessWidget {
   final bool processing;
   const _ScanFrame({this.processing = false});
 
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
 
   @override
   Widget build(BuildContext context) {
@@ -777,7 +774,7 @@ class _LenDenPaymentDialog extends StatefulWidget {
 }
 
 class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
   static const _deep = Color(0xFF0077B6);
 
   final _amountCtrl = TextEditingController();
@@ -820,15 +817,7 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Paid ₹${amount.toStringAsFixed(2)} to ${widget.recipientName}. '
-              'Balance: ₹${(body['balance'] ?? 0).toStringAsFixed(2)}'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ));
+        showSnack(context, 'Paid ₹${amount.toStringAsFixed(2)} to ${widget.recipientName}. Balance: ₹${(body['balance'] ?? 0).toStringAsFixed(2)}');
       } else {
         final body = jsonDecode(res.body);
         setState(() {
@@ -1014,7 +1003,7 @@ class _UpiPaymentDialog extends StatefulWidget {
 }
 
 class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
   final _amountCtrl = TextEditingController();
   bool _loadingWallet = false;
   bool _loadingRazorpay = false;

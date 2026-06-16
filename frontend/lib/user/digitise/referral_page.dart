@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class ReferralPage extends StatefulWidget {
   const ReferralPage({super.key});
@@ -97,34 +99,24 @@ class _ReferralPageState extends State<ReferralPage> {
       await Clipboard.setData(ClipboardData(text: rawCopy));
       await _logShare(key);
       if (!mounted) return;
-      _showSnack('Invite content copied!', success: true);
+      showSnack(context, 'Invite content copied!');
       return;
     }
 
     final uri = Uri.tryParse(resolvedUrl);
-    if (uri == null) { _showSnack('Invalid share URL'); return; }
+    if (uri == null) { showSnack(context, 'Invalid share URL', isError: true); return; }
 
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (launched) {
       await _logShare(key);
       if (!mounted) return;
-      _showSnack('Invite opened! Ask your friend to sign up.', success: true);
+      showSnack(context, 'Invite opened! Ask your friend to sign up.');
     } else {
       if (!mounted) return;
-      _showSnack('Could not open ${option['label'] ?? 'the app'}. Make sure it is installed.');
+      showSnack(context, 'Could not open ${option['label'] ?? 'the app'}. Make sure it is installed.', isError: true);
     }
   }
 
-  void _showSnack(String msg, {bool success = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: success ? Colors.green : Colors.red,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(12),
-    ));
-  }
 
   IconData _iconFor(String name) {
     switch (name.toLowerCase().trim()) {
@@ -171,7 +163,7 @@ class _ReferralPageState extends State<ReferralPage> {
               height: 200,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -213,7 +205,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                     const SizedBox(width: 24),
                                     Container(width: 1, height: 60, color: Colors.grey[200]),
                                     const SizedBox(width: 24),
-                                    _coinBadge('Friend Gets', _refereeRewardCoins, const Color(0xFF00B4D8)),
+                                    _coinBadge('Friend Gets', _refereeRewardCoins, AppColors.cyan),
                                   ]),
                                   const SizedBox(height: 18),
                                   Container(
@@ -235,7 +227,7 @@ class _ReferralPageState extends State<ReferralPage> {
 
                             // ── Stats row ─────────────────────────────────
                             Row(children: [
-                              Expanded(child: _statCard('$_totalShares', 'Shares', Icons.share_rounded, const Color(0xFF00B4D8))),
+                              Expanded(child: _statCard('$_totalShares', 'Shares', Icons.share_rounded, AppColors.cyan)),
                               const SizedBox(width: 10),
                               Expanded(child: _statCard('$_invitedUsers', 'Invited', Icons.person_add_rounded, Colors.orange)),
                               const SizedBox(width: 10),
@@ -252,7 +244,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Row(children: [
-                                      Icon(Icons.qr_code_2, color: Color(0xFF00B4D8), size: 20),
+                                      Icon(Icons.qr_code_2, color: AppColors.cyan, size: 20),
                                       SizedBox(width: 8),
                                       Text('Your Referral Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                     ]),
@@ -260,7 +252,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                     GestureDetector(
                                       onTap: () async {
                                         await Clipboard.setData(ClipboardData(text: _referralCode));
-                                        _showSnack('Code copied!', success: true);
+                                        showSnack(context, 'Code copied!');
                                       },
                                       child: Container(
                                         width: double.infinity,
@@ -268,7 +260,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF0F9FF),
                                           borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: const Color(0xFF00B4D8), width: 1.5, style: BorderStyle.solid),
+                                          border: Border.all(color: AppColors.cyan, width: 1.5, style: BorderStyle.solid),
                                         ),
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
@@ -280,7 +272,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                                   _referralCode.isNotEmpty ? _referralCode : '—',
                                                   style: const TextStyle(
                                                     fontSize: 26, fontWeight: FontWeight.bold,
-                                                    letterSpacing: 4, color: Color(0xFF00B4D8),
+                                                    letterSpacing: 4, color: AppColors.cyan,
                                                   ),
                                                 ),
                                               ),
@@ -288,8 +280,8 @@ class _ReferralPageState extends State<ReferralPage> {
                                             const SizedBox(width: 12),
                                             Container(
                                               padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(color: const Color(0xFF00B4D8).withValues(alpha: 0.1), shape: BoxShape.circle),
-                                              child: const Icon(Icons.copy_rounded, size: 18, color: Color(0xFF00B4D8)),
+                                              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.1), shape: BoxShape.circle),
+                                              child: const Icon(Icons.copy_rounded, size: 18, color: AppColors.cyan),
                                             ),
                                           ],
                                         ),
@@ -305,18 +297,18 @@ class _ReferralPageState extends State<ReferralPage> {
                                       GestureDetector(
                                         onTap: () async {
                                           await Clipboard.setData(ClipboardData(text: _inviteLink));
-                                          _showSnack('Link copied!', success: true);
+                                          showSnack(context, 'Link copied!');
                                         },
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+                                            color: AppColors.cyan.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(20),
                                           ),
                                           child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                            Icon(Icons.link, size: 14, color: Color(0xFF00B4D8)),
+                                            Icon(Icons.link, size: 14, color: AppColors.cyan),
                                             SizedBox(width: 4),
-                                            Text('Copy', style: TextStyle(fontSize: 12, color: Color(0xFF00B4D8), fontWeight: FontWeight.w600)),
+                                            Text('Copy', style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
                                           ]),
                                         ),
                                       ),
@@ -336,7 +328,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Row(children: [
-                                      Icon(Icons.share_rounded, color: Color(0xFF00B4D8), size: 20),
+                                      Icon(Icons.share_rounded, color: AppColors.cyan, size: 20),
                                       SizedBox(width: 8),
                                       Text('Share Via', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                     ]),
@@ -405,7 +397,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const Row(children: [
-                                        Icon(Icons.history, color: Color(0xFF00B4D8), size: 20),
+                                        Icon(Icons.history, color: AppColors.cyan, size: 20),
                                         SizedBox(width: 8),
                                         Text('Recent Shares', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                       ]),
@@ -449,12 +441,12 @@ class _ReferralPageState extends State<ReferralPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Row(children: [
-                                      Icon(Icons.info_outline, color: Color(0xFF00B4D8), size: 20),
+                                      Icon(Icons.info_outline, color: AppColors.cyan, size: 20),
                                       SizedBox(width: 8),
                                       Text('How it Works', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                     ]),
                                     const SizedBox(height: 14),
-                                    _step(1, 'Share your referral code or link with friends', Icons.share_rounded, const Color(0xFF00B4D8)),
+                                    _step(1, 'Share your referral code or link with friends', Icons.share_rounded, AppColors.cyan),
                                     _step(2, 'Friend signs up on LenDen using your code', Icons.person_add_rounded, Colors.orange),
                                     _step(3, 'Friend creates their first transaction', Icons.receipt_long_rounded, const Color(0xFF48CAE4)),
                                     _step(4, 'Both of you earn LenDen coins!', Icons.monetization_on_rounded, Colors.amber, isLast: true),

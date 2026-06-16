@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 
 class UserUpdatesPage extends StatefulWidget {
@@ -17,7 +18,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   String _filter = 'all';
   List<Map<String, dynamic>> _updates = [];
 
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
   static const _deepBlue = Color(0xFF0077B6);
 
   List<Map<String, dynamic>> get _filteredUpdates {
@@ -159,7 +160,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
               clipper: _WaveClipper(),
               child: Container(
                 height: (MediaQuery.of(context).padding.top + kToolbarHeight) * 1.5,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),

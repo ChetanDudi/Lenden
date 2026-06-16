@@ -1,5 +1,7 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 
@@ -38,41 +40,8 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
     super.dispose();
   }
 
-  void _showStylishMessage(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: isError ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Icon(
-                  isError ? Icons.error_outline : Icons.check_circle,
-                  color: isError ? Colors.red : Colors.green,
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: Text(message)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _showStylishMessage(String message, {bool isError = false}) =>
+      showStylishSnackBar(context, message, isError: isError);
 
   String _errorFromBody(String body, {String fallback = 'Request failed'}) {
     try {
@@ -1158,7 +1127,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             ),
             ElevatedButton.icon(
               onPressed: () => _openOfferDialog(),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00B4D8)),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text('Add Offer', style: TextStyle(color: Colors.white)),
             ),
@@ -1255,7 +1224,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _openAnalytics(offer['_id'].toString()),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00B4D8)),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
                       icon: const Icon(Icons.analytics, color: Colors.white),
                       label:
                           const Text('Analytics', style: TextStyle(color: Colors.white)),
@@ -1329,7 +1298,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class TrackUserActivityPage extends StatefulWidget {
   @override
@@ -247,30 +249,11 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
     }
   }
 
-  Widget _triBorder({
-    required Widget child,
-    double radius = 18,
-    EdgeInsets padding = const EdgeInsets.all(2),
-  }) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: child,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredActivities;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppColors.scaffoldBgAlt,
       body: Stack(
         children: [
           Positioned(
@@ -283,7 +266,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -387,13 +370,12 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: _triBorder(
-        radius: 25,
+      child: tricolorBorder(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(23),
+            borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
             children: [
@@ -443,7 +425,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Text(
@@ -481,18 +463,18 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                     horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF00B4D8)
+                      ? AppColors.cyan
                       : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFF00B4D8)
+                        ? AppColors.cyan
                         : Colors.grey.shade300,
                   ),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF00B4D8)
+                            color: AppColors.cyan
                                 .withValues(alpha: 0.3),
                             blurRadius: 6,
                             offset: const Offset(0, 2),

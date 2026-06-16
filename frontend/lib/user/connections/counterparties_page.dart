@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
@@ -242,9 +243,9 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF00B4D8) : Colors.white,
+          color: selected ? AppColors.cyan : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? const Color(0xFF00B4D8) : Colors.grey.withValues(alpha: 0.35)),
+          border: Border.all(color: selected ? AppColors.cyan : Colors.grey.withValues(alpha: 0.35)),
         ),
         child: Text(label,
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
@@ -344,7 +345,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -409,7 +410,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           icon: const Icon(Icons.search,
-                              color: Color(0xFF00B4D8)),
+                              color: AppColors.cyan),
                           hintText: 'Search counterparties',
                           suffixIcon: _searchQuery.isEmpty
                               ? null
@@ -479,7 +480,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () => _fetchCounterparties(forceRefresh: true),
-                    color: const Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                     child: _isLoading
                       ? const SingleChildScrollView(
                           physics: AlwaysScrollableScrollPhysics(),
@@ -623,7 +624,7 @@ class _CounterpartyGridCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00B4D8).withValues(alpha: 0.92),
+                          color: AppColors.cyan.withValues(alpha: 0.92),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -749,7 +750,7 @@ class _PrivateProfileDialog extends StatelessWidget {
           Container(
             width: double.infinity,
             decoration: const BoxDecoration(
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -787,7 +788,7 @@ class _PrivateProfileDialog extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00B4D8),
+                backgroundColor: AppColors.cyan,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -838,7 +839,7 @@ class _StylishProfileDialog extends StatelessWidget {
           Container(
             width: double.infinity,
             decoration: const BoxDecoration(
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -969,7 +970,7 @@ class _StylishProfileDialog extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

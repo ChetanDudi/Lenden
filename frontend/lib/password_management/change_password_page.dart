@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
 import '../settings/custom_warning_widget.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -121,19 +123,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     final newPwd = _newPasswordController.text;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Change Password',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Change Password'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -159,7 +150,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ),
                 child: Column(
                   children: const [
-                    Icon(Icons.lock_outline, size: 48, color: Color(0xFF00B4D8)),
+                    Icon(Icons.lock_outline, size: 48, color: AppColors.cyan),
                     SizedBox(height: 16),
                     Text(
                       'Change Your Password',
@@ -256,7 +247,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _changePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -402,37 +393,25 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     required VoidCallback onToggleVisibility,
     required String? Function(String?) validator,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.all(2),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          validator: validator,
-          decoration: InputDecoration(
-            labelText: label,
-            hintText: hint,
-            border: InputBorder.none,
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscureText ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
-              ),
-              onPressed: onToggleVisibility,
+    return tricolorBorder(
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          border: InputBorder.none,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          suffixIcon: IconButton(
+            icon: Icon(
+              obscureText ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
             ),
+            onPressed: onToggleVisibility,
           ),
         ),
       ),

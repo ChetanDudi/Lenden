@@ -1,5 +1,6 @@
 ﻿import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -9,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../widgets/app_widgets.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../widgets/subscription_prompt.dart';
 import '../../../widgets/stylish_dialog.dart';
@@ -273,7 +275,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -1360,11 +1362,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         final res = await ApiClient.put('/api/quick-transactions/$id/clear', body: {});
         if (!mounted) return;
         if (res.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Payment successful! Transaction settled.'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ));
+          showSnack(context, 'Payment successful! Transaction settled.');
         }
       },
     );
@@ -1438,10 +1436,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF00B4D8) : Colors.white,
+          color: isSelected ? AppColors.cyan : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? const Color(0xFF00B4D8) : Colors.grey.shade300,
+            color: isSelected ? AppColors.cyan : Colors.grey.shade300,
           ),
         ),
         child: Row(
@@ -1713,11 +1711,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Color(0xFF00B4D8) : Colors.black87,
+          color: isSelected ? AppColors.cyan : Colors.black87,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF00B4D8)) : null,
+      trailing: isSelected ? Icon(Icons.check, color: AppColors.cyan) : null,
       onTap: () {
         setState(() => sortBy = value);
         Navigator.pop(context);
@@ -1754,7 +1752,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           SafeArea(
             child: RefreshIndicator(
               onRefresh: fetchQuickTransactions,
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
               child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.only(top: 90, bottom: MediaQuery.of(context).padding.bottom + 110),
@@ -1797,7 +1795,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                           icon: const Icon(Icons.analytics_outlined),
                           label: const Text('Open Quick Analytics'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -1837,12 +1835,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                       horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: _showFavouritesOnly
-                                        ? const Color(0xFF00B4D8)
+                                        ? AppColors.cyan
                                         : Colors.white,
                                     borderRadius: BorderRadius.circular(18),
                                     border: Border.all(
                                       color: _showFavouritesOnly
-                                          ? const Color(0xFF00B4D8)
+                                          ? AppColors.cyan
                                           : Colors.grey.shade300,
                                     ),
                                   ),
@@ -2136,7 +2134,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                         : Icons.filter_alt,
                                     color: filterBy == 'all'
                                         ? Colors.black87
-                                        : Color(0xFF00B4D8),
+                                        : AppColors.cyan,
                                     size: 18,
                                   ),
                                   SizedBox(width: 6),
@@ -2145,7 +2143,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                     style: TextStyle(
                                       color: !_hasActiveFilters()
                                           ? Colors.black87
-                                          : Color(0xFF00B4D8),
+                                          : AppColors.cyan,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -2333,7 +2331,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                                 children: const [
                                                   Icon(
                                                     Icons.refresh_rounded,
-                                                    color: Color(0xFF00B4D8),
+                                                    color: AppColors.cyan,
                                                     size: 18,
                                                   ),
                                                   SizedBox(width: 8),
@@ -2441,7 +2439,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 height: 90, // Reduced from 180 to 90
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -2706,9 +2704,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               const PopupMenuItem(
                                 value: 'pay_now',
                                 child: Row(children: [
-                                  Icon(Icons.payment_rounded, size: 16, color: Color(0xFF00B4D8)),
+                                  Icon(Icons.payment_rounded, size: 16, color: AppColors.cyan),
                                   SizedBox(width: 8),
-                                  Text('Pay Now (Real Money)', style: TextStyle(color: Color(0xFF00B4D8), fontWeight: FontWeight.w600)),
+                                  Text('Pay Now (Real Money)', style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600)),
                                 ]),
                               ),
                             if (_canRespondToSettlement(transaction))
@@ -2863,7 +2861,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B4D8),
+                              backgroundColor: AppColors.cyan,
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
@@ -3003,10 +3001,10 @@ class _QuickTransactionFilterPageState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
+                    color: AppColors.cyan.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(icon, color: const Color(0xFF00B4D8)),
+                  child: Icon(icon, color: AppColors.cyan),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -3059,7 +3057,7 @@ class _QuickTransactionFilterPageState
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: selected
-                ? const Color(0xFF00B4D8)
+                ? AppColors.cyan
                 : Colors.grey.withValues(alpha: 0.25),
           ),
         ),
@@ -3068,7 +3066,7 @@ class _QuickTransactionFilterPageState
             Radio<String>(
               value: value,
               groupValue: groupValue,
-              activeColor: const Color(0xFF00B4D8),
+              activeColor: AppColors.cyan,
               onChanged: onChanged,
             ),
             const SizedBox(width: 4),
@@ -3139,12 +3137,12 @@ class _QuickTransactionFilterPageState
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
+                              color: AppColors.cyan.withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Icon(
                               Icons.people_alt_outlined,
-                              color: Color(0xFF00B4D8),
+                              color: AppColors.cyan,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -3188,7 +3186,7 @@ class _QuickTransactionFilterPageState
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: selected
-                                      ? const Color(0xFF00B4D8)
+                                      ? AppColors.cyan
                                       : Colors.grey.withValues(alpha: 0.18),
                                 ),
                                 boxShadow: [
@@ -3204,7 +3202,7 @@ class _QuickTransactionFilterPageState
                                   Radio<String>(
                                     value: email,
                                     groupValue: _counterparty,
-                                    activeColor: const Color(0xFF00B4D8),
+                                    activeColor: AppColors.cyan,
                                     onChanged: (_) =>
                                         Navigator.of(sheetContext).pop(email),
                                   ),
@@ -3224,7 +3222,7 @@ class _QuickTransactionFilterPageState
                                           ? Icons.groups_rounded
                                           : Icons.person_rounded,
                                       color: isAll
-                                          ? const Color(0xFF00B4D8)
+                                          ? AppColors.cyan
                                           : const Color(0xFF3B82F6),
                                     ),
                                   ),
@@ -3438,7 +3436,7 @@ class _QuickTransactionFilterPageState
                               alignment: Alignment.center,
                               child: const Icon(
                                 Icons.people_alt_outlined,
-                                color: Color(0xFF00B4D8),
+                                color: AppColors.cyan,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -3509,7 +3507,7 @@ class _QuickTransactionFilterPageState
                         children: [
                           Switch(
                             value: _favouritesOnly,
-                            activeColor: const Color(0xFF00B4D8),
+                            activeColor: AppColors.cyan,
                             onChanged: (value) =>
                                 setState(() => _favouritesOnly = value),
                           ),
@@ -3551,7 +3549,7 @@ class _QuickTransactionFilterPageState
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFF00B4D8)),
+                        side: const BorderSide(color: AppColors.cyan),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -3559,7 +3557,7 @@ class _QuickTransactionFilterPageState
                       child: const Text(
                         'Reset',
                         style: TextStyle(
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -3578,7 +3576,7 @@ class _QuickTransactionFilterPageState
                         });
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -3898,7 +3896,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -4007,7 +4005,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
                           decoration: InputDecoration(
                             labelText: 'Currency',
                             prefixIcon: Icon(Icons.currency_exchange,
-                                color: Color(0xFF00B4D8)),
+                                color: AppColors.cyan),
                             border: InputBorder.none,
                           ),
                         ),
@@ -4025,7 +4023,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
                               child: Text(
                                 _currencySymbol(),
                                 style: const TextStyle(
-                                  color: Color(0xFF00B4D8),
+                                  color: AppColors.cyan,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -4051,7 +4049,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
                           decoration: InputDecoration(
                             labelText: 'Description',
                             prefixIcon: Icon(Icons.description,
-                                color: Color(0xFF00B4D8)),
+                                color: AppColors.cyan),
                             border: InputBorder.none,
                           ),
                           maxLines: 2,
@@ -4089,12 +4087,12 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
                             prefixIcon: Icon(Icons.person_outline,
                                 color: isEditing
                                     ? Colors.grey
-                                    : Color(0xFF00B4D8)),
+                                    : AppColors.cyan),
                             suffixIcon: IconButton(
                               icon: Icon(Icons.people,
                                   color: isEditing
                                       ? Colors.grey
-                                      : Color(0xFF00B4D8)),
+                                      : AppColors.cyan),
                               onPressed: isEditing ? null : _pickFriend,
                             ),
                             border: InputBorder.none,
@@ -4173,7 +4171,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
                           decoration: InputDecoration(
                             labelText: 'Your Position',
                             prefixIcon:
-                                Icon(Icons.people, color: Color(0xFF00B4D8)),
+                                Icon(Icons.people, color: AppColors.cyan),
                             border: InputBorder.none,
                           ),
                         ),
@@ -4295,7 +4293,7 @@ class __QuickTransactionDialogState extends State<_QuickTransactionDialog> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),

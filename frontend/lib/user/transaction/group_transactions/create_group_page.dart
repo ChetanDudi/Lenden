@@ -1,5 +1,6 @@
 ﻿import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -321,7 +322,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         padding: const EdgeInsets.all(12),
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             minimumSize: const Size.fromHeight(44),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -630,7 +631,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
     final focusedBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
+      borderSide: const BorderSide(color: AppColors.cyan, width: 2),
     );
     final decoration = InputDecoration(
       filled: true,
@@ -842,7 +843,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 ElevatedButton(
                   onPressed: _addMemberEmail,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                     elevation: 4,
@@ -890,8 +891,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: _addMembersFromFriends,
-                icon: const Icon(Icons.people, color: Color(0xFF00B4D8)),
-                label: const Text('Add from Friends', style: TextStyle(color: Color(0xFF00B4D8))),
+                icon: const Icon(Icons.people, color: AppColors.cyan),
+                label: const Text('Add from Friends', style: TextStyle(color: AppColors.cyan)),
               ),
             ),
 
@@ -951,7 +952,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     ElevatedButton(
                       onPressed: _creatingGroup || !canCreate ? null : _createGroup,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 4,

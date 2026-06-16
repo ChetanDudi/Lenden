@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import '../otp_input.dart';
@@ -398,7 +399,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: context.sh(110),
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
             ),
@@ -549,7 +550,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B4D8),
+                                backgroundColor: AppColors.cyan,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24)),
                                 padding:
@@ -620,7 +621,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                   ? null
                                   : _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B4D8),
+                                backgroundColor: AppColors.cyan,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24)),
                                 padding:
@@ -693,7 +694,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 14),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF00B4D8),
+                                  color: AppColors.cyan,
                                   borderRadius: BorderRadius.circular(22),
                                 ),
                                 child: _isLoading
@@ -767,7 +768,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 clipper: BottomWaveClipper(),
                 child: Container(
                   height: context.sh(75),
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
             ),
@@ -926,7 +927,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       padding: EdgeInsets.symmetric(vertical: context.sh(12)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

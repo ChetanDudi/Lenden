@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -10,6 +11,7 @@ import '../../widgets/subscription_prompt.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
 import 'chat_encryption_service.dart';
+import '../../widgets/app_widgets.dart';
 
 class GroupChatPage extends StatefulWidget {
   final String groupTransactionId;
@@ -49,15 +51,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   void _showEncryptionUnavailableMessage() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Encrypted group chat is not ready for all members yet. Everyone needs to open the updated app once before messages can be sent.',
-        ),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 4),
-      ),
-    );
+    showSnack(context, 'Encrypted group chat is not ready for all members yet. Everyone needs to open the updated app once before messages can be sent.', isError: true);
   }
 
   @override
@@ -242,13 +236,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
         showInsufficientCoinsDialog(context);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['error'] ?? 'Failed to send message'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
+          showSnack(context, data['error'] ?? 'Failed to send message', isError: true);
         }
       }
     });
@@ -283,37 +271,19 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
     socket.on('editGroupMessageError', (data) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['error'] ?? 'Failed to edit message'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        showSnack(context, data['error'] ?? 'Failed to edit message', isError: true);
       }
     });
 
     socket.on('deleteGroupMessageError', (data) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['error'] ?? 'Failed to delete message'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        showSnack(context, data['error'] ?? 'Failed to delete message', isError: true);
       }
     });
 
     socket.on('addGroupReactionError', (data) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['error'] ?? 'Failed to add reaction'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        showSnack(context, data['error'] ?? 'Failed to add reaction', isError: true);
       }
     });
   }
@@ -372,14 +342,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     if (!_encryptionReady || _currentUserId == null) return;
 
     if (!_isActiveMember) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'You are no longer an active member of this group. Chat is disabled.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      showSnack(context, 'You are no longer an active member of this group. Chat is disabled.', isError: true);
       return;
     }
 
@@ -993,7 +956,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1076,7 +1039,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: 120,
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
             ),

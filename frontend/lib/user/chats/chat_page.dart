@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -10,6 +11,7 @@ import '../../widgets/subscription_prompt.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
 import 'chat_encryption_service.dart';
+import '../../widgets/app_widgets.dart';
 
 class ChatPage extends StatefulWidget {
   final String transactionId;
@@ -45,15 +47,7 @@ class _ChatPageState extends State<ChatPage> {
 
   void _showEncryptionUnavailableMessage() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Encrypted chat is not ready for this user yet. They need to open the updated app once before messages can be sent.',
-        ),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 4),
-      ),
-    );
+    showSnack(context, 'Encrypted chat is not ready for this user yet. They need to open the updated app once before messages can be sent.', isError: true);
   }
 
   @override
@@ -901,7 +895,7 @@ class _ChatPageState extends State<ChatPage> {
 
     if (_isLoading && !_encryptionReady) {
       return Scaffold(
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

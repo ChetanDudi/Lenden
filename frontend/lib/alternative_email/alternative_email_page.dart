@@ -6,6 +6,8 @@ import '../session.dart';
 import '../otp_input.dart';
 import '../settings/custom_warning_widget.dart';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AlternativeEmailPage extends StatefulWidget {
   const AlternativeEmailPage({super.key});
@@ -293,22 +295,8 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Alternative Email',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Alternative Email'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -339,7 +327,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                           const Icon(
                             Icons.email_outlined,
                             size: 48,
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                           ),
                           const SizedBox(height: 16),
                           const Text(
@@ -408,42 +396,30 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
 
                     // Email Input Field (only show when not verifying OTP)
                     if (!_showOtpInput)
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter an email address';
-                              }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                  .hasMatch(value)) {
-                                return 'Please enter a valid email address';
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                              labelText: 'Alternative Email',
-                              hintText: 'Enter your alternative email address',
-                              border: InputBorder.none,
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 16),
-                              prefixIcon: Icon(Icons.email_outlined,
-                                  color: Color(0xFF00B4D8)),
-                            ),
+                      tricolorBorder(
+                        child: TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter an email address';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                .hasMatch(value)) {
+                              return 'Please enter a valid email address';
+                            }
+                            return null;
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'Alternative Email',
+                            hintText: 'Enter your alternative email address',
+                            border: InputBorder.none,
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 16),
+                            prefixIcon: Icon(Icons.email_outlined,
+                                color: AppColors.cyan),
                           ),
                         ),
                       ),
@@ -592,7 +568,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                     style: TextStyle(
                                       color:
                                           _timeRemaining == 0 && !_isSendingOtp
-                                              ? const Color(0xFF00B4D8)
+                                              ? AppColors.cyan
                                               : Colors.grey,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -612,7 +588,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                         ? _verifyOtp
                                         : null,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00B4D8),
+                                  backgroundColor: AppColors.cyan,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -694,7 +670,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                               child: ElevatedButton(
                                 onPressed: _isSendingOtp ? null : _sendOtp,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00B4D8),
+                                  backgroundColor: AppColors.cyan,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -755,7 +731,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                           child: ElevatedButton(
                             onPressed: _isSendingOtp ? null : _sendOtp,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B4D8),
+                              backgroundColor: AppColors.cyan,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),

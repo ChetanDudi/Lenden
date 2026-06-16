@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 
@@ -18,7 +19,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   bool _isLoading = false;
 
   static const _bg = Color(0xFFFAF9F6);
-  static const _cyan = Color(0xFF00B4D8);
+  static const _cyan = AppColors.cyan;
   static const _blue = Color(0xFF0077B6);
 
   @override

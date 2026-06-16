@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../session.dart';
 import 'custom_warning_widget.dart';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -171,41 +173,26 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Account Information',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          if (!_isLoading)
-            TextButton(
-              onPressed: _isSaving ? null : _updateAccountInformation,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Color(0xFF00B4D8),
-                        fontWeight: FontWeight.bold,
-                      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Account Information', actions: [
+        if (!_isLoading)
+          TextButton(
+            onPressed: _isSaving ? null : _updateAccountInformation,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold,
                     ),
-            ),
-        ],
-      ),
+                  ),
+          ),
+      ]),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -241,7 +228,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                             : const Icon(
                                 Icons.person_outline,
                                 size: 64,
-                                color: Color(0xFF00B4D8),
+                                color: AppColors.cyan,
                               ),
                         const SizedBox(height: 16),
                         const Text(
@@ -422,7 +409,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -438,7 +425,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     IconData icon,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -484,7 +471,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     int maxLines = 1,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -520,7 +507,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     ValueChanged<String?> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -560,7 +547,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     VoidCallback onTap,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -581,7 +568,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+            color: AppColors.cyan.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -589,7 +576,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
           ),
         ),
@@ -605,7 +592,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     Color statusColor,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -632,7 +619,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     IconData icon,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(

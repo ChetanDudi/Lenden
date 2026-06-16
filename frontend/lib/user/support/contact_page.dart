@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_widgets.dart';
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -16,7 +18,7 @@ class ContactPage extends StatefulWidget {
 }
 
 class _ContactPageState extends State<ContactPage> {
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
   static const _deepBlue = Color(0xFF0077B6);
   static const _bg = Color(0xFFFAF9F6);
 
@@ -188,13 +190,7 @@ class _ContactPageState extends State<ContactPage> {
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    showSnack(context, message);
   }
 
   Future<void> _submitMessage() async {
@@ -354,7 +350,7 @@ class _ContactPageState extends State<ContactPage> {
               clipper: _WaveClipper(),
               child: Container(
                 height: (MediaQuery.of(context).padding.top + kToolbarHeight) * 1.5,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -1211,7 +1207,7 @@ class _FaqTileWidget extends StatefulWidget {
 
 class _FaqTileWidgetState extends State<_FaqTileWidget>
     with SingleTickerProviderStateMixin {
-  static const _sky = Color(0xFF00B4D8);
+  static const _sky = AppColors.cyan;
   static const _deepBlue = Color(0xFF0077B6);
 
   bool _expanded = false;

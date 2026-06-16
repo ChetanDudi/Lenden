@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 import '../user/digitise/subscriptions_page.dart';
 
 void showSubscriptionPrompt(BuildContext context) {
@@ -58,7 +59,7 @@ class SubscriptionPrompt extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(height: 10),
@@ -89,7 +90,7 @@ class SubscriptionPrompt extends StatelessWidget {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                     ),
                   ),
                   if (showUseCoins) ...[

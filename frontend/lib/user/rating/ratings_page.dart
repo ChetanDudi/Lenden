@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
+import '../../widgets/app_widgets.dart';
 import '../../widgets/subscription_prompt.dart';
 
 class RatingsPage extends StatefulWidget {
@@ -205,7 +207,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                      borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                     ),
                     counterStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
                   ),
@@ -226,7 +228,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
@@ -242,15 +244,11 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                         if (res.statusCode == 200) {
                           fetchRatings();
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Rating updated!'), backgroundColor: Colors.green),
-                            );
+                            showSnack(context, 'Rating updated!');
                           }
                         } else {
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(json.decode(res.body)['error'] ?? 'Failed to update.'), backgroundColor: Colors.red),
-                            );
+                            showSnack(context, json.decode(res.body)['error'] ?? 'Failed to update.', isError: true);
                           }
                         }
                       },
@@ -399,7 +397,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
             ),
             if (isGiven && r['_id'] != null)
               IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF00B4D8)),
+                icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.cyan),
                 onPressed: () => _showEditRatingSheet(r),
                 tooltip: 'Edit',
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -481,7 +479,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
               height: 180,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -520,7 +518,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    indicator: BoxDecoration(color: const Color(0xFF00B4D8), borderRadius: BorderRadius.circular(12)),
+                    indicator: BoxDecoration(color: AppColors.cyan, borderRadius: BorderRadius.circular(12)),
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     labelColor: Colors.white,
@@ -593,7 +591,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                                                   focusedBorder: OutlineInputBorder(
                                                     borderRadius: BorderRadius.circular(14),
-                                                    borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                                                    borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                                                   ),
                                                 ),
                                                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
@@ -642,7 +640,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                                                   focusedBorder: OutlineInputBorder(
                                                     borderRadius: BorderRadius.circular(14),
-                                                    borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 1.5),
+                                                    borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                                                   ),
                                                   counterStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
                                                 ),
@@ -667,7 +665,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                 width: double.infinity,
                                                 child: ElevatedButton(
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFF00B4D8),
+                                                    backgroundColor: AppColors.cyan,
                                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                                     elevation: 0,
@@ -700,7 +698,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                       padding: const EdgeInsets.all(22),
                                       decoration: BoxDecoration(color: const Color(0xFFFFF8F0), borderRadius: BorderRadius.circular(18)),
                                       child: Column(children: [
-                                        const Icon(Icons.lock_rounded, size: 48, color: Color(0xFF00B4D8)),
+                                        const Icon(Icons.lock_rounded, size: 48, color: AppColors.cyan),
                                         const SizedBox(height: 14),
                                         const Text('Premium Feature', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0096C7))),
                                         const SizedBox(height: 8),
@@ -712,7 +710,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                         const SizedBox(height: 16),
                                         ElevatedButton.icon(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF00B4D8),
+                                            backgroundColor: AppColors.cyan,
                                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                           ),
@@ -751,7 +749,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                 onTap: _searching ? null : _searchUserRating,
                                                 child: Container(
                                                   width: 48, height: 48,
-                                                  decoration: const BoxDecoration(color: Color(0xFF00B4D8), shape: BoxShape.circle),
+                                                  decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
                                                   child: _searching
                                                     ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                                     : const Icon(Icons.search, color: Colors.white),
@@ -786,10 +784,10 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                           child: Column(children: [
                                             CircleAvatar(
                                               radius: 32,
-                                              backgroundColor: const Color(0xFF00B4D8).withValues(alpha: 0.12),
+                                              backgroundColor: AppColors.cyan.withValues(alpha: 0.12),
                                               child: Text(
                                                 (_searchedName?.isNotEmpty == true ? _searchedName![0] : _searchedUsername?[0] ?? '?').toUpperCase(),
-                                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8)),
+                                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.cyan),
                                               ),
                                             ),
                                             const SizedBox(height: 12),
@@ -837,7 +835,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                 child: Row(children: [
                                   const Icon(Icons.arrow_upward, color: Colors.blue, size: 18),
                                   const SizedBox(width: 6),
-                                  const Text('Ratings Given', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8))),
+                                  const Text('Ratings Given', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.cyan)),
                                   const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

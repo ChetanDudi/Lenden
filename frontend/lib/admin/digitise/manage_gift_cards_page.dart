@@ -1,4 +1,6 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -165,7 +167,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
         '$label: $value',
         style: const TextStyle(
           fontWeight: FontWeight.bold,
-          color: Color(0xFF00B4D8),
+          color: AppColors.cyan,
         ),
       ),
     );
@@ -219,7 +221,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
           borderRadius: BorderRadius.circular(13)
         ),
         child: ListTile(
-          leading: Icon(icon, color: _sortBy == value ? Color(0xFF00B4D8) : Colors.grey),
+          leading: Icon(icon, color: _sortBy == value ? AppColors.cyan : Colors.grey),
           title: Text(title, style: TextStyle(fontWeight: _sortBy == value ? FontWeight.bold : FontWeight.normal)),
           onTap: () => _setSortBy(value),
         ),
@@ -304,7 +306,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                           },
                           child: Text('Save'),
                            style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -590,7 +592,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                                           Row(
                                             children: [
                                               IconButton(
-                                                icon: Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                                                icon: Icon(Icons.edit, color: AppColors.cyan),
                                                 onPressed: () => _showEditDialog(giftCard),
                                               ),
                                               IconButton(
@@ -763,7 +765,7 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
                 padding: EdgeInsets.all(2),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: ElevatedButton(
@@ -869,7 +871,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
           controller: _tabController,
           labelColor: Colors.black,
           unselectedLabelColor: Colors.black54,
-          indicatorColor: Color(0xFF00B4D8),
+          indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
             Tab(text: 'Add Gift Card', icon: Icon(Icons.add_card)),
@@ -887,7 +889,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: 150,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -899,7 +901,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
               clipper: BottomWaveClipper(),
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.13,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -918,55 +920,6 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
       ),
     );
   }
-}
-
-
-// Re-usable stylish snackbar
-void showStylishSnackBar(BuildContext context, String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Container(
-        padding: EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isError ? Color(0xFFFFEBEE) : Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isError ? Icons.error_outline : Icons.check_circle,
-                color: isError ? Colors.red : Colors.green,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      behavior: SnackBarBehavior.floating,
-      duration: Duration(seconds: 3),
-    ),
-  );
 }
 
 

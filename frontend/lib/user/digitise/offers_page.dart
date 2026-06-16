@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
+import '../../widgets/app_widgets.dart';
 
 class UserOffersPage extends StatefulWidget {
   const UserOffersPage({super.key});
@@ -41,41 +43,8 @@ class _UserOffersPageState extends State<UserOffersPage>
     super.dispose();
   }
 
-  void _showMsg(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        content: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: isError ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Icon(
-                  isError ? Icons.error_outline : Icons.check_circle,
-                  color: isError ? Colors.red : Colors.green,
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: Text(message)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _showMsg(String message, {bool isError = false}) =>
+      showStylishSnackBar(context, message, isError: isError);
 
   String _countdownLabel(int remainingMs) {
     if (remainingMs <= 0) return 'Ended';
@@ -245,7 +214,7 @@ class _UserOffersPageState extends State<UserOffersPage>
           children: [
             const Text('🎁', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 12),
-            const CircularProgressIndicator(color: Color(0xFF00B4D8)),
+            const CircularProgressIndicator(color: AppColors.cyan),
             const SizedBox(height: 12),
             Text('Loading surprises...',
                 style: TextStyle(color: Colors.grey[600])),

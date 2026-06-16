@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class ManageSupportQueriesPage extends StatefulWidget {
   @override
@@ -366,25 +368,8 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     }
   }
 
-  void _showStylishSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.info_outline, color: color),
-            SizedBox(width: 12),
-            Expanded(
-                child: Text(message,
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-        ),
-        backgroundColor: color.withValues(alpha: 0.15),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
+  void _showStylishSnackBar(String message, Color color) =>
+      showSnack(context, message, isError: color == Colors.red);
 
   String _formatDateTime(String dateTimeString) {
     final dateTime = DateTime.parse(dateTimeString);
@@ -435,7 +420,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -470,7 +455,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       labelText: 'Search by Topic',
-                      prefixIcon: Icon(Icons.search, color: Color(0xFF00B4D8)),
+                      prefixIcon: Icon(Icons.search, color: AppColors.cyan),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16)),
                       filled: true,
@@ -499,7 +484,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4),
                   child: Row(
                     children: [
-                      Icon(Icons.support_agent, color: Color(0xFF00B4D8)),
+                      Icon(Icons.support_agent, color: AppColors.cyan),
                       SizedBox(width: 8),
                       Text(
                         'All Support Queries',
@@ -685,7 +670,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       label: Text(label),
       selected: selected,
       onSelected: (_) => setState(() => _supportLane = value),
-      selectedColor: const Color(0xFF00B4D8).withValues(alpha: 0.16),
+      selectedColor: AppColors.cyan.withValues(alpha: 0.16),
       labelStyle: TextStyle(
         fontWeight: FontWeight.w700,
         color: selected ? const Color(0xFF0077B5) : Colors.black87,
@@ -711,7 +696,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.question_answer, color: Color(0xFF00B4D8)),
+                Icon(Icons.question_answer, color: AppColors.cyan),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -935,7 +920,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   icon: Icon(Icons.reply, size: 18),
                   label: Text('Reply'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -960,7 +945,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: Color(0xFF00B4D8)),
+                color: AppColors.cyan),
           ),
           SizedBox(height: 10),
           ...replies.map<Widget>((reply) {
@@ -969,7 +954,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
               padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.blue[50],
-                border: Border.all(color: Color(0xFF00B4D8), width: 1),
+                border: Border.all(color: AppColors.cyan, width: 1),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   topRight: Radius.circular(14),
@@ -1053,7 +1038,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: Color(0xFF00B4D8))),
+                      color: AppColors.cyan)),
               SizedBox(height: 16),
               TextField(
                 controller: replyController,
@@ -1062,7 +1047,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: Icon(Icons.reply, color: Color(0xFF00B4D8)),
+                  prefixIcon: Icon(Icons.reply, color: AppColors.cyan),
                 ),
                 maxLines: 3,
               ),
@@ -1079,7 +1064,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     icon: Icon(Icons.send, color: Colors.white),
                     label: Text('Send Reply'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1115,7 +1100,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: Color(0xFF00B4D8))),
+                      color: AppColors.cyan)),
               SizedBox(height: 16),
               TextField(
                 controller: editReplyController,
@@ -1124,7 +1109,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                  prefixIcon: Icon(Icons.edit, color: AppColors.cyan),
                 ),
                 maxLines: 3,
               ),
@@ -1141,7 +1126,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     icon: Icon(Icons.save, color: Colors.white),
                     label: Text('Save Changes'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1175,7 +1160,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: Color(0xFF00B4D8))),
+                      color: AppColors.cyan)),
               const SizedBox(height: 16),
               TextField(
                 controller: noteController,
@@ -1184,7 +1169,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: const Icon(Icons.sticky_note_2, color: Color(0xFF00B4D8)),
+                  prefixIcon: const Icon(Icons.sticky_note_2, color: AppColors.cyan),
                 ),
                 maxLines: 3,
               ),

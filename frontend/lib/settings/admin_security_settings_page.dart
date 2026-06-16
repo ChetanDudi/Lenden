@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AdminSecuritySettingsPage extends StatefulWidget {
   const AdminSecuritySettingsPage({super.key});
@@ -86,12 +88,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading settings: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -134,32 +131,17 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Security settings saved successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSnack(context, 'Security settings saved successfully!');
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorData['message'] ?? 'Failed to save settings'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -191,22 +173,8 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Security Settings',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
+      backgroundColor: AppColors.scaffoldBg,
+      appBar: transparentAppBar(context, title: 'Security Settings', actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _isSaving ? null : _saveSecuritySettings,
@@ -219,7 +187,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                   : const Text(
                       'Save',
                       style: TextStyle(
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -254,7 +222,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                         const Icon(
                           Icons.security,
                           size: 48,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -544,7 +512,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -562,7 +530,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -581,7 +549,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -596,7 +564,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
     TextInputType? keyboardType,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -642,7 +610,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
     VoidCallback onTap,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -663,7 +631,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+            color: AppColors.cyan.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -671,7 +639,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
           ),
         ),

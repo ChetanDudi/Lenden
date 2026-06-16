@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../profile/profile_page.dart' hide TopWaveClipper, BottomWaveClipper;
 import '../../utils/api_client.dart';
@@ -122,7 +123,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                 style: const TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               Row(
@@ -215,12 +216,12 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFF00B4D8)
+                              ? AppColors.cyan
                               : Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF00B4D8)
+                                ? AppColors.cyan
                                 : Colors.grey.shade300,
                           ),
                         ),
@@ -344,18 +345,18 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
     final isSelected = _sortBy == value;
     return ListTile(
       leading: Icon(icon,
-          color: isSelected ? const Color(0xFF00B4D8) : Colors.grey),
+          color: isSelected ? AppColors.cyan : Colors.grey),
       title: Text(label,
           style: TextStyle(
             color: isSelected
-                ? const Color(0xFF00B4D8)
+                ? AppColors.cyan
                 : Colors.grey[800],
             fontWeight:
                 isSelected ? FontWeight.bold : FontWeight.normal,
           )),
       trailing: isSelected
           ? const Icon(Icons.check_circle,
-              color: Color(0xFF00B4D8))
+              color: AppColors.cyan)
           : null,
       onTap: () {
         setState(() => _sortBy = value);
@@ -394,7 +395,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   radius: 20,
                   child: Text(
                     (rating['userName'] as String? ?? 'U')
@@ -477,7 +478,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
               icon: const Icon(Icons.person_outline, size: 16),
               label: const Text('View Profile'),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF00B4D8),
+                foregroundColor: AppColors.cyan,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4),
                 minimumSize: Size.zero,
@@ -516,7 +517,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),

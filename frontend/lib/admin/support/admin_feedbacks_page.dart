@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../profile/profile_page.dart' hide TopWaveClipper;
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../widgets/app_colors.dart';
 
 class AdminFeedbacksPage extends StatefulWidget {
   const AdminFeedbacksPage({Key? key}) : super(key: key);
@@ -153,15 +154,15 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
     final isSelected = _sortBy == value;
     return ListTile(
       leading: Icon(icon,
-          color: isSelected ? const Color(0xFF00B4D8) : Colors.grey),
+          color: isSelected ? AppColors.cyan : Colors.grey),
       title: Text(label,
           style: TextStyle(
-            color: isSelected ? const Color(0xFF00B4D8) : Colors.grey[800],
+            color: isSelected ? AppColors.cyan : Colors.grey[800],
             fontWeight:
                 isSelected ? FontWeight.bold : FontWeight.normal,
           )),
       trailing: isSelected
-          ? const Icon(Icons.check_circle, color: Color(0xFF00B4D8))
+          ? const Icon(Icons.check_circle, color: AppColors.cyan)
           : null,
       onTap: () {
         setState(() => _sortBy = value);
@@ -201,11 +202,11 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: const Color(0xFF00B4D8).withValues(alpha: 0.15),
+                  backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
                   child: Text(
                     name.substring(0, 1).toUpperCase(),
                     style: const TextStyle(
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                         fontSize: 16),
                   ),
@@ -253,7 +254,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                           '@${feedback['username']}',
                           style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF00B4D8)),
+                              color: AppColors.cyan),
                         ),
                       const SizedBox(height: 4),
                       Row(
@@ -316,7 +317,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                     icon: const Icon(Icons.person_outline, size: 14),
                     label: const Text('Profile'),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF00B4D8),
+                      foregroundColor: AppColors.cyan,
                       padding:
                           const EdgeInsets.symmetric(horizontal: 6),
                       minimumSize: Size.zero,
@@ -373,7 +374,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),

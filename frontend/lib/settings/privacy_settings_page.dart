@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../session.dart';
 import 'custom_warning_widget.dart';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class PrivacySettingsPage extends StatefulWidget {
   const PrivacySettingsPage({super.key});
@@ -366,11 +368,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF00B4D8).withValues(alpha: 0.12),
+                color: AppColors.cyan.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.download_rounded,
-                  color: Color(0xFF00B4D8), size: 20),
+                  color: AppColors.cyan, size: 20),
             ),
             const SizedBox(width: 10),
             const Text('Your Data Summary',
@@ -410,7 +412,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00B4D8),
+              backgroundColor: AppColors.cyan,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -456,41 +458,26 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Privacy Settings',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          if (!_isLoading)
-            TextButton(
-              onPressed: _isSaving ? null : _savePrivacySettings,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Color(0xFF00B4D8),
-                        fontWeight: FontWeight.bold,
-                      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Privacy Settings', actions: [
+        if (!_isLoading)
+          TextButton(
+            onPressed: _isSaving ? null : _savePrivacySettings,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold,
                     ),
-            ),
-        ],
-      ),
+                  ),
+          ),
+      ]),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -519,7 +506,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                         const Icon(
                           Icons.privacy_tip_outlined,
                           size: 48,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -747,7 +734,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -765,7 +752,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -784,7 +771,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -799,7 +786,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     ValueChanged<String?> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -840,7 +827,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     return ListTile(
       leading: Icon(
         icon,
-        color: isDestructive ? Colors.red : const Color(0xFF00B4D8),
+        color: isDestructive ? Colors.red : AppColors.cyan,
       ),
       title: Text(
         title,

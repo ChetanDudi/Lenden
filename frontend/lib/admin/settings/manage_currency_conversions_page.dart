@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 
@@ -193,15 +195,8 @@ class _ManageCurrencyConversionsPageState
     }
   }
 
-  void _showMessage(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : const Color(0xFF00B4D8),
-      ),
-    );
-  }
+  void _showMessage(String message, {bool isError = false}) =>
+      showSnack(context, message, isError: isError);
 
   String _prettyTimestamp(String? raw) {
     if (raw == null || raw.isEmpty) return 'No manual updates yet';
@@ -263,7 +258,7 @@ class _ManageCurrencyConversionsPageState
                 height: 170,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF67D5EB)],
+                    colors: [AppColors.cyan, Color(0xFF67D5EB)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -549,7 +544,7 @@ class _ManageCurrencyConversionsPageState
                                               '1 $_baseCurrency equals how many $_quoteCurrency?',
                                           prefixIcon: const Icon(
                                             Icons.calculate_outlined,
-                                            color: Color(0xFF00B4D8),
+                                            color: AppColors.cyan,
                                           ),
                                           filled: true,
                                           fillColor: const Color(0xFFF7FBFD),
@@ -575,7 +570,7 @@ class _ManageCurrencyConversionsPageState
                                           onPressed: _saving ? null : _saveRate,
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor:
-                                                const Color(0xFF00B4D8),
+                                                AppColors.cyan,
                                             foregroundColor: Colors.white,
                                             padding: const EdgeInsets.symmetric(
                                                 vertical: 14),
@@ -813,7 +808,7 @@ class _ManageCurrencyConversionsPageState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF00B4D8)),
+          Icon(icon, size: 16, color: AppColors.cyan),
           const SizedBox(width: 8),
           Flexible(
             child: Text(

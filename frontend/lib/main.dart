@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'login/login_page.dart';
 import 'register/register_page.dart';
@@ -152,7 +153,7 @@ class _AppInitializerState extends State<AppInitializer>
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     padding: EdgeInsets.symmetric(vertical: context.sh(13)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -274,7 +275,7 @@ class HomePage extends StatelessWidget {
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -347,7 +348,7 @@ class HomePage extends StatelessWidget {
               clipper: TopWaveClipper(),
               child: Container(
                 height: 120,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -403,7 +404,7 @@ class HomePage extends StatelessWidget {
                                           title: Row(
                                             children: [
                                               Icon(Icons.lock_outline,
-                                                  color: const Color(0xFF00B4D8),
+                                                  color: AppColors.cyan,
                                                   size: context.sp(26)),
                                               SizedBox(width: context.sw(8)),
                                               Text('Login Required',
@@ -424,7 +425,7 @@ class HomePage extends StatelessWidget {
                                               style: TextButton.styleFrom(
                                                 foregroundColor: Colors.white,
                                                 backgroundColor:
-                                                    const Color(0xFF00B4D8),
+                                                    AppColors.cyan,
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(16),
@@ -465,7 +466,7 @@ class HomePage extends StatelessWidget {
                                     ),
                                     child: CircleAvatar(
                                       radius: context.sw(18),
-                                      backgroundColor: const Color(0xFF00B4D8),
+                                      backgroundColor: AppColors.cyan,
                                       backgroundImage: profileImage,
                                       child: profileImage == null
                                           ? const Icon(Icons.person,
@@ -520,7 +521,7 @@ class HomePage extends StatelessWidget {
                               errorBuilder: (context, error, stackTrace) =>
                                   Icon(Icons.account_balance_wallet,
                                       size: context.sw(90),
-                                      color: const Color(0xFF00B4D8)),
+                                      color: AppColors.cyan),
                             ),
                           ),
                         ),
@@ -532,7 +533,7 @@ class HomePage extends StatelessWidget {
                         children: [
                           ShaderMask(
                             shaderCallback: (bounds) => const LinearGradient(
-                              colors: [Color(0xFF0077B6), Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                              colors: [Color(0xFF0077B6), AppColors.cyan, Color(0xFF48CAE4)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ).createShader(bounds),
@@ -548,7 +549,7 @@ class HomePage extends StatelessWidget {
                           ),
                           ShaderMask(
                             shaderCallback: (bounds) => const LinearGradient(
-                              colors: [Color(0xFFFF9933), Color(0xFF00B4D8), Color(0xFF138808)],
+                              colors: [Color(0xFFFF9933), AppColors.cyan, Color(0xFF138808)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ).createShader(bounds),
@@ -593,7 +594,7 @@ class HomePage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
+                                color: AppColors.cyan.withValues(alpha: 0.3),
                                 blurRadius: 6,
                                 offset: const Offset(0, 4),
                               )
@@ -614,7 +615,7 @@ class HomePage extends StatelessWidget {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B4D8),
+                              backgroundColor: AppColors.cyan,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(21.5),
                               ),
@@ -657,11 +658,11 @@ class HomePage extends StatelessWidget {
                                   horizontal: context.sw(28)),
                             ),
                             icon: const Icon(Icons.arrow_forward,
-                                color: Color(0xFF00B4D8)),
+                                color: AppColors.cyan),
                             label: Text('Register',
                                 style: TextStyle(
                                     fontSize: context.sp(17),
-                                    color: const Color(0xFF00B4D8),
+                                    color: AppColors.cyan,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1.1)),
                           ),
@@ -737,7 +738,7 @@ class _FeatureCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFF00B4D8), size: context.sp(26)),
+            Icon(icon, color: AppColors.cyan, size: context.sp(26)),
             SizedBox(height: context.sh(4)),
             Text(title,
                 style: TextStyle(

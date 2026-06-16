@@ -5,6 +5,8 @@ import 'dart:convert';
 import '../utils/api_client.dart';
 import '../utils/responsive.dart';
 import 'edit_profile_page.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? email;
@@ -155,7 +157,7 @@ class _ProfilePageState extends State<ProfilePage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(110),
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -171,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: CircleAvatar(
                       key: ValueKey(_imageRefreshKey),
                       radius: context.sw(50),
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       backgroundImage: avatarProvider,
                       child: null,
                     ),
@@ -249,7 +251,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         _fetchProfile();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00B4D8),
+                        backgroundColor: AppColors.cyan,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24)),
                         padding: EdgeInsets.symmetric(vertical: context.sh(14)),
@@ -264,14 +266,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
-                            color: Color(0xFF00B4D8), width: 2),
+                            color: AppColors.cyan, width: 2),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24)),
                         padding: EdgeInsets.symmetric(vertical: context.sh(14)),
                       ),
                       child: Text('Settings',
                           style: TextStyle(
-                              fontSize: context.sp(17), color: const Color(0xFF00B4D8))),
+                              fontSize: context.sp(17), color: AppColors.cyan)),
                     ),
                   ],
                 ],
@@ -305,7 +307,7 @@ class _ProfilePageState extends State<ProfilePage> {
           color: Colors.white,
           child: Row(
             children: [
-              Icon(icon, color: const Color(0xFF00B4D8)),
+              Icon(icon, color: AppColors.cyan),
               const SizedBox(width: 16),
               Expanded(
                 child: Text.rich(

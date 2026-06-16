@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class UserEditPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -117,33 +119,18 @@ class _UserEditPageState extends State<UserEditPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('User updated successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSnack(context, 'User updated successfully!');
           Navigator.pop(context, true);
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorData['message'] ?? 'Failed to update user'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showSnack(context, errorData['message'] ?? 'Failed to update user', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -157,21 +144,10 @@ class _UserEditPageState extends State<UserEditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: Text(
-          'Edit ${widget.user['name'] ?? 'User'}',
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(
+        context,
+        title: 'Edit ${widget.user['name'] ?? 'User'}',
         actions: [
           if (!_isLoading)
             TextButton(
@@ -182,10 +158,10 @@ class _UserEditPageState extends State<UserEditPage> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
+                  : Text(
                       'Save',
                       style: TextStyle(
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -222,7 +198,7 @@ class _UserEditPageState extends State<UserEditPage> {
                           const Icon(
                             Icons.edit,
                             size: 48,
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                           ),
                           const SizedBox(height: 16),
                           const Text(
@@ -389,7 +365,7 @@ class _UserEditPageState extends State<UserEditPage> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveUser,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -447,7 +423,7 @@ class _UserEditPageState extends State<UserEditPage> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -476,13 +452,13 @@ class _UserEditPageState extends State<UserEditPage> {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF00B4D8)),
+        prefixIcon: Icon(icon, color: AppColors.cyan),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
+          borderSide: const BorderSide(color: AppColors.cyan, width: 2),
         ),
       ),
     );
@@ -498,13 +474,13 @@ class _UserEditPageState extends State<UserEditPage> {
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF00B4D8)),
+        prefixIcon: Icon(icon, color: AppColors.cyan),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
+          borderSide: const BorderSide(color: AppColors.cyan, width: 2),
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -523,13 +499,13 @@ class _UserEditPageState extends State<UserEditPage> {
       decoration: InputDecoration(
         labelText: 'Date of Birth',
         prefixIcon:
-            const Icon(Icons.calendar_today, color: const Color(0xFF00B4D8)),
+            const Icon(Icons.calendar_today, color: AppColors.cyan),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00B4D8), width: 2),
+          borderSide: const BorderSide(color: AppColors.cyan, width: 2),
         ),
       ),
       child: InkWell(
@@ -564,7 +540,7 @@ class _UserEditPageState extends State<UserEditPage> {
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -583,7 +559,7 @@ class _UserEditPageState extends State<UserEditPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: EdgeInsets.zero,
     );

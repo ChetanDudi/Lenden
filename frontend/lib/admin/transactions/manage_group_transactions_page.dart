@@ -1,6 +1,8 @@
 ﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
@@ -261,7 +263,7 @@ class _ManageGroupTransactionsPageState
               color: Colors.white,
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: const Color(0xFF00B4D8).withValues(alpha: 0.18),
+                color: AppColors.cyan.withValues(alpha: 0.18),
               ),
               boxShadow: [
                 BoxShadow(
@@ -280,7 +282,7 @@ class _ManageGroupTransactionsPageState
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF003049), Color(0xFF00B4D8)],
+                        colors: [Color(0xFF003049), AppColors.cyan],
                       ),
                       borderRadius: BorderRadius.circular(22),
                     ),
@@ -538,7 +540,7 @@ class _ManageGroupTransactionsPageState
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -732,15 +734,8 @@ class _ManageGroupTransactionsPageState
         false;
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF00B4D8),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  void _showSnackBar(String message) =>
+      showSnack(context, message);
 
   String _formatDate(dynamic raw) {
     if (raw == null) return 'Unknown';
@@ -808,7 +803,7 @@ class _ManageGroupTransactionsPageState
             right: 0,
             child: ClipPath(
               clipper: TopWaveClipper(),
-              child: Container(height: 60, color: const Color(0xFF00B4D8)),
+              child: Container(height: 60, color: AppColors.cyan),
             ),
           ),
           SafeArea(
@@ -923,7 +918,7 @@ class _ManageGroupTransactionsPageState
                 border: InputBorder.none,
                 hintText: 'Search group, member, creator, id...',
                 prefixIcon:
-                    Icon(Icons.search_rounded, color: Color(0xFF00B4D8)),
+                    Icon(Icons.search_rounded, color: AppColors.cyan),
               ),
             ),
           ),
@@ -1005,7 +1000,7 @@ class _ManageGroupTransactionsPageState
             ),
             child: Column(
               children: [
-                Icon(item.$3, color: const Color(0xFF00B4D8)),
+                Icon(item.$3, color: AppColors.cyan),
                 const SizedBox(height: 6),
                 Text(item.$2,
                     style: const TextStyle(
@@ -1122,7 +1117,7 @@ class _ManageGroupTransactionsPageState
                                       gradient: const LinearGradient(
                                         colors: [
                                           Color(0xFF003049),
-                                          Color(0xFF00B4D8)
+                                          AppColors.cyan
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(22),
@@ -1300,7 +1295,7 @@ class _ManageGroupTransactionsPageState
                                   gradient: const LinearGradient(
                                     colors: [
                                       Color(0xFF003049),
-                                      Color(0xFF00B4D8)
+                                      AppColors.cyan
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(22),
@@ -1348,7 +1343,7 @@ class _ManageGroupTransactionsPageState
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
-                                            const Color(0xFF00B4D8),
+                                            AppColors.cyan,
                                         foregroundColor: Colors.white,
                                       ),
                                       child: const Text('Add'),

@@ -11,6 +11,8 @@ import 'user_details_page.dart';
 import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class UserManagementPage extends StatefulWidget {
   final String initialStatusFilter;
@@ -81,23 +83,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
       } else {
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to load users: ${response.statusCode}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showSnack(context, 'Failed to load users: ${response.statusCode}', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading users: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error loading users: ${e.toString()}', isError: true);
       }
     }
   }
@@ -195,7 +187,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _buildTriBorder(
+          child: tricolorBorder(
             radius: 28,
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -385,7 +377,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ? Icons.verified_user_rounded
               : Icons.auto_awesome_rounded,
           accentColor:
-              modifiedCount > 0 ? const Color(0xFF00B4D8) : Colors.green,
+              modifiedCount > 0 ? AppColors.cyan : Colors.green,
         );
       } else {
         throw Exception(
@@ -417,7 +409,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: _buildTriBorder(
+            child: tricolorBorder(
               radius: 28,
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -493,7 +485,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             icon: const Icon(Icons.verified_rounded),
                             label: const Text('Mark Verified'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B4D8),
+                              backgroundColor: AppColors.cyan,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -566,7 +558,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF00B4D8)),
+          Icon(icon, size: 18, color: AppColors.cyan),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -589,7 +581,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _buildTriBorder(
+          child: tricolorBorder(
             radius: 28,
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -656,7 +648,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             title: 'Copied',
                             message: 'Export content was copied to clipboard.',
                             icon: Icons.copy_rounded,
-                            accentColor: const Color(0xFF00B4D8),
+                            accentColor: AppColors.cyan,
                           );
                         },
                       ),
@@ -718,13 +710,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8F6FA),
+          color: AppColors.scaffoldBgAlt,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF00B4D8)),
+            Icon(icon, size: 18, color: AppColors.cyan),
             const SizedBox(width: 8),
             Text(
               label,
@@ -755,7 +747,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           title: 'Export Ready',
           message: 'The full export file was prepared and opened for external sharing.',
           icon: Icons.file_open_rounded,
-          accentColor: const Color(0xFF00B4D8),
+          accentColor: AppColors.cyan,
         );
         return;
       }
@@ -817,7 +809,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
-        child: _buildTriBorder(
+        child: tricolorBorder(
           radius: 28,
           child: Container(
             padding: const EdgeInsets.all(18),
@@ -831,7 +823,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 Row(
                   children: [
                     const Icon(Icons.file_present_rounded,
-                        color: Color(0xFF00B4D8)),
+                        color: AppColors.cyan),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -926,7 +918,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _buildTriBorder(
+          child: tricolorBorder(
             radius: 28,
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -1049,7 +1041,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _buildTriBorder(
+          child: tricolorBorder(
             radius: 28,
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -1177,29 +1169,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
     return colors[index % colors.length];
   }
 
-  Widget _buildTriBorder({
-    required Widget child,
-    double radius = 16,
-    EdgeInsets padding = const EdgeInsets.all(2),
-  }) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: child,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppColors.scaffoldBgAlt,
       body: Stack(
         children: [
           Positioned(
@@ -1210,7 +1184,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: 60,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -1248,7 +1222,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _buildTriBorder(
+                      tricolorBorder(
                         radius: 16,
                         child: Container(
                           decoration: BoxDecoration(
@@ -1261,7 +1235,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                               hintText:
                                   'Search users by name, email, or username...',
                               prefixIcon: const Icon(Icons.search,
-                                  color: Color(0xFF00B4D8)),
+                                  color: AppColors.cyan),
                               suffixIcon: _searchQuery.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(Icons.clear),
@@ -1294,7 +1268,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       Row(
                         children: [
                           Expanded(
-                            child: _buildTriBorder(
+                            child: tricolorBorder(
                               radius: 12,
                               child: Container(
                                 padding:
@@ -1352,7 +1326,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                 child: Text('Sort by Date'),
                               ),
                             ],
-                            child: _buildTriBorder(
+                            child: tricolorBorder(
                               radius: 12,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -1365,7 +1339,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.sort,
-                                        size: 20, color: Color(0xFF00B4D8)),
+                                        size: 20, color: AppColors.cyan),
                                     const SizedBox(width: 4),
                                     Text(_sortBy == 'name'
                                         ? 'Name'
@@ -1531,7 +1505,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Widget _buildStatCard(String title, String value, IconData icon, int index) {
     return Expanded(
-      child: _buildTriBorder(
+      child: tricolorBorder(
         radius: 14,
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -1549,7 +1523,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           ),
           child: Column(
             children: [
-              Icon(icon, color: const Color(0xFF00B4D8), size: 24),
+              Icon(icon, color: AppColors.cyan, size: 24),
               const SizedBox(height: 8),
               Text(
                 value,
@@ -1578,7 +1552,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final isActive = user['isActive'] ?? false;
     final isVerified = user['isVerified'] ?? false;
 
-    return _buildTriBorder(
+    return tricolorBorder(
       radius: 14,
       padding: const EdgeInsets.all(1),
       child: Container(
@@ -1598,7 +1572,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           contentPadding: const EdgeInsets.all(16),
           leading: CircleAvatar(
             radius: 25,
-            backgroundColor: const Color(0xFF00B4D8),
+            backgroundColor: AppColors.cyan,
             child: _buildProfileImage(user),
           ),
           title: Row(

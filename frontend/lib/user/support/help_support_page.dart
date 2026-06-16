@@ -7,6 +7,8 @@ import '../../session.dart';
 import 'contact_page.dart';
 import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class HelpSupportPage extends StatefulWidget {
   @override
@@ -24,9 +26,9 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   bool _showAllQueries = false;
   String _searchTerm = '';
 
-  static const _bg = Color(0xFFFAF9F6);
-  static const _cyan = Color(0xFF00B4D8);
-  static const _blue = Color(0xFF0077B6);
+  static const _bg = AppColors.scaffoldBg;
+  static const _cyan = AppColors.cyan;
+  static const _blue = AppColors.blue;
 
   @override
   void initState() {
@@ -152,25 +154,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
     }
   }
 
-  void _snack(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.info_outline, color: color),
-            const SizedBox(width: 12),
-            Expanded(
-                child: Text(message,
-                    style: const TextStyle(fontWeight: FontWeight.bold))),
-          ],
-        ),
-        backgroundColor: color.withValues(alpha: 0.15),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+  void _snack(String message, Color color) =>
+      showSnack(context, message, isError: color == Colors.red);
 
   Future<void> _editQuery(
       String queryId, String currentTopic, String currentDescription) async {
@@ -332,24 +317,6 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   String _formatDateTime(String s) =>
       DateFormat('MMM d, yyyy h:mm a').format(DateTime.parse(s));
 
-  Widget _tricolorBorder({required Widget child, double radius = 16}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      padding: const EdgeInsets.all(2),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 2),
-        child: child,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final filtered = _searchTerm.isEmpty
@@ -405,7 +372,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Quick access card
-                  _tricolorBorder(
+                  tricolorBorder(
                     child: Container(
                       color: Colors.white,
                       child: ListTile(
@@ -437,7 +404,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   const SizedBox(height: 20),
 
                   // Search bar
-                  _tricolorBorder(
+                  tricolorBorder(
                     radius: 14,
                     child: Container(
                       color: Colors.white,
@@ -473,7 +440,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                           fontWeight: FontWeight.bold,
                           color: _blue)),
                   const SizedBox(height: 12),
-                  _tricolorBorder(
+                  tricolorBorder(
                     child: Container(
                       color: Colors.white,
                       padding: const EdgeInsets.all(16),
@@ -641,7 +608,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: _tricolorBorder(
+      child: tricolorBorder(
         child: Container(
           color: _bg,
           child: Padding(

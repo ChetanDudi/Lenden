@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../widgets/app_widgets.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../chats/chat_page.dart';
 import '../../../otp_input.dart';
@@ -194,11 +196,7 @@ class _SecureTransactionDetailPageState
     final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0;
     if (remaining <= 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No outstanding balance to pay.'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ));
+        showSnack(context, 'No outstanding balance to pay.', isError: true);
       }
       return;
     }
@@ -229,19 +227,11 @@ class _SecureTransactionDetailPageState
           _t['counterpartyCleared'] = true;
           _needsRefresh = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Payment sent and marked as cleared!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
+        showSnack(context, 'Payment sent and marked as cleared!');
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Payment sent! Refresh to see updated status.'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ));
+        showSnack(context, 'Payment sent! Refresh to see updated status.');
       }
     }
   }
@@ -272,9 +262,7 @@ class _SecureTransactionDetailPageState
             fav.remove(email);
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Failed to update favourite'),
-            backgroundColor: Colors.red));
+        showSnack(context, 'Failed to update favourite', isError: true);
       }
     } catch (_) {
       setState(() {
@@ -304,17 +292,12 @@ class _SecureTransactionDetailPageState
           }
           _needsRefresh = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Transaction cleared'),
-            backgroundColor: Colors.green));
+        showSnack(context, 'Transaction cleared');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Failed to clear transaction'),
-            backgroundColor: Colors.red));
+        showSnack(context, 'Failed to clear transaction', isError: true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Network error: $e'), backgroundColor: Colors.red));
+      showSnack(context, 'Network error: $e', isError: true);
     }
   }
 
@@ -329,13 +312,10 @@ class _SecureTransactionDetailPageState
         if (mounted) Navigator.of(context).pop(true);
       } else {
         final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(data?['error'] ?? 'Failed to delete'),
-            backgroundColor: Colors.red));
+        showSnack(context, data?['error'] ?? 'Failed to delete', isError: true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Network error: $e'), backgroundColor: Colors.red));
+      showSnack(context, 'Network error: $e', isError: true);
     }
   }
 
@@ -421,8 +401,7 @@ class _SecureTransactionDetailPageState
         currentEmail == userEmail ? counterpartyEmail : userEmail;
     final profile = await _fetchCounterpartyProfile(otherEmail?.toString() ?? '');
     if (profile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not open chat. User not found.')));
+      showSnack(context, 'Could not open chat. User not found.', isError: true);
       return;
     }
     Navigator.push(
@@ -512,19 +491,14 @@ class _SecureTransactionDetailPageState
           body: {'email': email, 'action': 'email'});
       Navigator.pop(context);
       if (res.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Receipt sent to your email!'),
-            backgroundColor: Colors.green));
+        showSnack(context, 'Receipt sent to your email!');
       } else {
         final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(data?['error'] ?? 'Failed to send receipt'),
-            backgroundColor: Colors.red));
+        showSnack(context, data?['error'] ?? 'Failed to send receipt', isError: true);
       }
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Network error: $e'), backgroundColor: Colors.red));
+      showSnack(context, 'Network error: $e', isError: true);
     }
   }
 
@@ -553,19 +527,14 @@ class _SecureTransactionDetailPageState
             File('${out.path}/receipt-${_t['transactionId']}.pdf');
         await file.writeAsBytes(res.bodyBytes);
         OpenFile.open(file.path);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Receipt downloaded to ${file.path}'),
-                backgroundColor: Colors.green));
+        showSnack(context, 'Receipt downloaded to ${file.path}');
       } else {
         final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(data?['error'] ?? 'Failed to download'),
-            backgroundColor: Colors.red));
+        showSnack(context, data?['error'] ?? 'Failed to download', isError: true);
       }
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Network error: $e'), backgroundColor: Colors.red));
+      showSnack(context, 'Network error: $e', isError: true);
     }
   }
 
@@ -775,9 +744,7 @@ class _SecureTransactionDetailPageState
   void _copyTransactionId() {
     final id = _t['transactionId']?.toString() ?? '';
     Clipboard.setData(ClipboardData(text: id));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Transaction ID copied!'),
-        duration: Duration(seconds: 2)));
+    showSnack(context, 'Transaction ID copied!');
   }
 
   void _shareTransaction() {
@@ -857,7 +824,7 @@ class _SecureTransactionDetailPageState
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                          colors: [Color(0xFF00B4D8), Color(0xFF0077B6)]),
+                          colors: [AppColors.cyan, Color(0xFF0077B6)]),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.timeline,
@@ -986,8 +953,7 @@ class _SecureTransactionDetailPageState
   void _showRepaymentSchedule() {
     final t = _t;
     if (t['interestType'] == null || t['interestRate'] == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No interest on this transaction')));
+      showSnack(context, 'No interest on this transaction');
       return;
     }
     final remaining =
@@ -1646,7 +1612,7 @@ class _SecureTransactionDetailPageState
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFF00B4D8), Color(0xFF0077B6)],
+                                    colors: [AppColors.cyan, Color(0xFF0077B6)],
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -2266,7 +2232,7 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(Icons.lock_clock, color: Color(0xFF00B4D8), size: 20),
+            Icon(Icons.lock_clock, color: AppColors.cyan, size: 20),
             SizedBox(width: 8),
             Text(title,
                 style: TextStyle(
@@ -2418,7 +2384,7 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(children: [
-                  Icon(Icons.payment, color: Color(0xFF00B4D8), size: 28),
+                  Icon(Icons.payment, color: AppColors.cyan, size: 28),
                   SizedBox(width: 12),
                   Text('Partial Payment',
                       style: TextStyle(
@@ -2885,7 +2851,7 @@ class _StylishProfileDialog extends StatelessWidget {
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
                 borderRadius: BorderRadius.vertical(
                     top: Radius.circular(24))),
             padding: EdgeInsets.symmetric(vertical: 24),
@@ -2941,7 +2907,7 @@ class _StylishProfileDialog extends StatelessWidget {
             child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
                 child: Text('Close')),

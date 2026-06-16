@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 
@@ -414,7 +415,7 @@ class _NotesPageState extends State<NotesPage> {
               clipper: _WaveClipper(),
               child: Container(
                 height: 140,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),

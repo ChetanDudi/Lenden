@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -10,19 +12,8 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'About LenDen',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'About LenDen'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -34,14 +25,14 @@ class AboutPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF0096B4)],
+                  colors: [AppColors.cyan, Color(0xFF0096B4)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
+                    color: AppColors.cyan.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -85,9 +76,7 @@ class AboutPage extends StatelessWidget {
                     onLongPress: () {
                       Clipboard.setData(const ClipboardData(
                           text: 'LenDen v$_appVersion (build $_buildNumber)'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Version copied')),
-                      );
+                      showSnack(context, 'Version copied');
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -116,7 +105,7 @@ class AboutPage extends StatelessWidget {
             _buildSection(
               'What is LenDen?',
               Icons.info_outline_rounded,
-              const Color(0xFF00B4D8),
+              AppColors.cyan,
               [
                 _buildTextBlock(
                   'LenDen is a comprehensive peer-to-peer money management platform designed to simplify how you track, '
@@ -324,7 +313,7 @@ class AboutPage extends StatelessWidget {
         children: [
           const Text('• ',
               style: TextStyle(
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                   fontWeight: FontWeight.bold,
                   fontSize: 16)),
           Expanded(

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
 import 'dart:convert';
 import '../api_config.dart';
 import '../otp_input.dart';
@@ -223,7 +224,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Icon(Icons.check_circle, color: Color(0xFF00B4D8), size: 60),
+            Icon(Icons.check_circle, color: AppColors.cyan, size: 60),
             SizedBox(height: 12),
             Text('Password Reset Successful',
                 style: TextStyle(
@@ -247,7 +248,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
             },
             child: const Text('Login',
                 style: TextStyle(
-                    color: Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                     fontWeight: FontWeight.bold,
                     fontSize: 16)),
           ),
@@ -271,7 +272,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: 120,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
                 child: SafeArea(
                   bottom: false,
                   child: Align(
@@ -300,7 +301,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
               clipper: BottomWaveClipper(),
               child: Container(
                 height: 90,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -354,7 +355,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _sendOtp,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24)),
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -473,7 +474,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
                         child: ElevatedButton(
                           onPressed: _isResetting ? null : _resetPassword,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24)),
                             padding: const EdgeInsets.symmetric(vertical: 16),

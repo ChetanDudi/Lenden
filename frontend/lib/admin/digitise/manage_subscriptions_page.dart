@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
@@ -38,7 +40,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
           controller: _tabController,
           labelColor: Colors.black,
           unselectedLabelColor: Colors.black54,
-          indicatorColor: Color(0xFF00B4D8),
+          indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
             Tab(text: 'Plans', icon: Icon(Icons.card_membership)),
@@ -58,7 +60,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: 150,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -70,7 +72,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
               clipper: BottomWaveClipper(),
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.13,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -159,54 +161,6 @@ class Faq {
   }
 }
 
-void showStylishSnackBar(BuildContext context, String message,
-    {bool isError = false}) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Container(
-        padding: EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isError ? Color(0xFFFFEBEE) : Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isError ? Icons.error_outline : Icons.check_circle,
-                color: isError ? Colors.red : Colors.green,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      behavior: SnackBarBehavior.floating,
-      duration: Duration(seconds: 3),
-    ),
-  );
-}
-
 // Subscription Plans Tab
 class SubscriptionPlansTab extends StatefulWidget {
   @override
@@ -266,9 +220,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
 
       if (response.statusCode == 200) {
         _fetchPlans();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Plan availability updated successfully')),
-        );
+        showSnack(context, 'Plan availability updated successfully');
       } else {
         // handle error
       }
@@ -378,7 +330,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                             children: [
                               IconButton(
                                 icon:
-                                    Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                                    Icon(Icons.edit, color: AppColors.cyan),
                                 onPressed: () => _showPlanDialog(plan: plan),
                               ),
                               IconButton(
@@ -406,7 +358,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFF00B4D8),
+            color: AppColors.cyan,
             borderRadius: BorderRadius.circular(28),
           ),
           child: FloatingActionButton.extended(
@@ -681,7 +633,7 @@ class _PlanDialogState extends State<PlanDialog> {
                       ElevatedButton(
                         onPressed: _isSaving ? null : _savePlan,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -835,14 +787,14 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
                     ),
                     child: ListTile(
                       leading: Icon(Icons.check_circle,
-                          color: Color(0xFF00B4D8), size: 32),
+                          color: AppColors.cyan, size: 32),
                       title: Text(benefit.text,
                           style: TextStyle(fontWeight: FontWeight.w600)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                            icon: Icon(Icons.edit, color: AppColors.cyan),
                             onPressed: () =>
                                 _showBenefitDialog(benefit: benefit),
                           ),
@@ -869,7 +821,7 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFF00B4D8),
+            color: AppColors.cyan,
             borderRadius: BorderRadius.circular(28),
           ),
           child: FloatingActionButton.extended(
@@ -1075,7 +1027,7 @@ class _BenefitDialogState extends State<BenefitDialog> {
                       ElevatedButton(
                         onPressed: _isSaving ? null : _saveBenefit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -1224,7 +1176,7 @@ class _FaqsTabState extends State<FaqsTab> {
                       children: [
                         ExpansionTile(
                           leading: Icon(Icons.help_outline,
-                              color: Color(0xFF00B4D8), size: 28),
+                              color: AppColors.cyan, size: 28),
                           title: Text(
                             faq.question,
                             style: TextStyle(
@@ -1251,7 +1203,7 @@ class _FaqsTabState extends State<FaqsTab> {
                             children: [
                               IconButton(
                                 icon:
-                                    Icon(Icons.edit, color: Color(0xFF00B4D8)),
+                                    Icon(Icons.edit, color: AppColors.cyan),
                                 onPressed: () => _showFaqDialog(faq: faq),
                               ),
                               IconButton(
@@ -1279,7 +1231,7 @@ class _FaqsTabState extends State<FaqsTab> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFF00B4D8),
+            color: AppColors.cyan,
             borderRadius: BorderRadius.circular(28),
           ),
           child: FloatingActionButton.extended(
@@ -1509,7 +1461,7 @@ class _FaqDialogState extends State<FaqDialog> {
                       ElevatedButton(
                         onPressed: _isSaving ? null : _saveFaq,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -1550,22 +1502,14 @@ class _FaqDialogState extends State<FaqDialog> {
         if (response.statusCode == 201 || response.statusCode == 200) {
           widget.onSave();
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('FAQ saved successfully')),
-          );
+          showSnack(context, 'FAQ saved successfully');
         } else {
           final respBody =
               response.body.isNotEmpty ? json.decode(response.body) : null;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Failed to save FAQ: ${respBody?['message'] ?? response.body}')),
-          );
+          showSnack(context, 'Failed to save FAQ: ${respBody?['message'] ?? response.body}', isError: true);
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e')),
-        );
+        showSnack(context, 'An error occurred: $e', isError: true);
       } finally {
         if (mounted) setState(() => _isSaving = false);
       }
@@ -1867,16 +1811,16 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
     final isSelected = _sortBy == value;
     return ListTile(
       leading: Icon(icon,
-          color: isSelected ? const Color(0xFF00B4D8) : Colors.grey),
+          color: isSelected ? AppColors.cyan : Colors.grey),
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? const Color(0xFF00B4D8) : Colors.grey[800],
+          color: isSelected ? AppColors.cyan : Colors.grey[800],
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle, color: Color(0xFF00B4D8))
+          ? const Icon(Icons.check_circle, color: AppColors.cyan)
           : null,
       onTap: () {
         setState(() => _sortBy = value);
@@ -1960,13 +1904,13 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor:
-                      const Color(0xFF00B4D8).withValues(alpha: 0.15),
+                      AppColors.cyan.withValues(alpha: 0.15),
                   child: Text(
                     userName.isNotEmpty
                         ? userName.substring(0, 1).toUpperCase()
                         : '?',
                     style: const TextStyle(
-                      color: Color(0xFF00B4D8),
+                      color: AppColors.cyan,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1999,7 +1943,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                       decoration: BoxDecoration(
                         color: isFree
                             ? Colors.green.withValues(alpha: 0.12)
-                            : const Color(0xFF00B4D8)
+                            : AppColors.cyan
                                 .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -2012,7 +1956,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                           fontWeight: FontWeight.bold,
                           color: isFree
                               ? Colors.green
-                              : const Color(0xFF00B4D8),
+                              : AppColors.cyan,
                         ),
                       ),
                     ),
@@ -2099,7 +2043,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                   icon: const Icon(Icons.edit_outlined, size: 14),
                   label: const Text('Edit'),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF00B4D8),
+                    foregroundColor: AppColors.cyan,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     minimumSize: Size.zero,
@@ -2206,7 +2150,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                         child: Row(
                           children: [
                             _buildStatusChip(
-                                'all', 'All', const Color(0xFF00B4D8)),
+                                'all', 'All', AppColors.cyan),
                             const SizedBox(width: 8),
                             _buildStatusChip(
                                 'active', 'Active', Colors.green),
@@ -2512,7 +2456,7 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                         title: Text(
                             '${_endDate.toLocal().toString().substring(0, 10)}'),
                         trailing: Icon(Icons.calendar_today,
-                            color: Color(0xFF00B4D8)),
+                            color: AppColors.cyan),
                         onTap: () => _selectEndDate(context),
                       ),
                     ),

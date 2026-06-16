@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
@@ -479,7 +480,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),

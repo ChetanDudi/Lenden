@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class ManageContactPage extends StatefulWidget {
   const ManageContactPage({super.key});
@@ -137,16 +139,8 @@ class _ManageContactPageState extends State<ManageContactPage> {
         'enabled': _enabled[key] == true,
       };
 
-  void _showMessage(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor:
-            isError ? const Color(0xFFB3261E) : const Color(0xFF0B8FAC),
-      ),
-    );
-  }
+  void _showMessage(String message, {bool isError = false}) =>
+      showSnack(context, message, isError: isError);
 
   Widget _sectionCard({
     required String title,
@@ -256,7 +250,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -311,7 +305,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                 borderRadius: BorderRadius.circular(28),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF00B4D8)
+                                    color: AppColors.cyan
                                         .withValues(alpha: 0.12),
                                     blurRadius: 16,
                                     offset: const Offset(0, 8),
@@ -325,7 +319,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF00B4D8),
+                                      color: AppColors.cyan,
                                       borderRadius: BorderRadius.circular(99),
                                     ),
                                     child: const Text(

@@ -1,5 +1,6 @@
 ﻿//This file is to view user transactions
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import 'dart:convert';
@@ -186,7 +187,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -725,7 +726,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00B4D8),
+                                  backgroundColor: AppColors.cyan,
                                   padding: const EdgeInsets.symmetric(vertical: 10),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   elevation: 0,
@@ -803,7 +804,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                   _buildPrimaryFilterTab(
                     label: 'All',
                     selected: filter == 'All',
-                    accentColor: const Color(0xFF00B4D8),
+                    accentColor: AppColors.cyan,
                     onTap: () { setState(() => filter = 'All'); fetchTransactions(); },
                   ),
                   const SizedBox(width: 10),
@@ -838,7 +839,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     icon: Icons.tune_rounded,
                     label:
                         activeCount > 0 ? 'Filters ($activeCount)' : 'Filters',
-                    accentColor: const Color(0xFF00B4D8),
+                    accentColor: AppColors.cyan,
                     isActive: activeCount > 0,
                     onTap: _showFiltersBottomSheet,
                   ),
@@ -974,7 +975,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF00B4D8),
+              primary: AppColors.cyan,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black87,
@@ -987,7 +988,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF00B4D8),
+                foregroundColor: AppColors.cyan,
               ),
             ),
             cardColor: Colors.white,
@@ -1131,12 +1132,12 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF00B4D8)
+                                    color: AppColors.cyan
                                         .withValues(alpha: 0.10),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: const Icon(Icons.tune_rounded,
-                                      color: Color(0xFF00B4D8)),
+                                      color: AppColors.cyan),
                                 ),
                                 const SizedBox(width: 12),
                                 const Expanded(
@@ -1363,7 +1364,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                             isDense: true,
                                             prefixIcon: const Icon(
                                               Icons.calendar_today,
-                                              color: Color(0xFF00B4D8),
+                                              color: AppColors.cyan,
                                             ),
                                           ),
                                           child: Row(
@@ -1394,7 +1395,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                             isDense: true,
                                             prefixIcon: const Icon(
                                               Icons.calendar_today,
-                                              color: Color(0xFF00B4D8),
+                                              color: AppColors.cyan,
                                             ),
                                           ),
                                           child: Row(
@@ -1567,7 +1568,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       fetchTransactions();
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF00B4D8),
+                                      backgroundColor: AppColors.cyan,
                                       shadowColor: Colors.transparent,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -1639,7 +1640,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       chips.add({
         'label':
             'Dates: ${_startDate == null ? 'Any' : DateFormat('MMM d').format(_startDate!)} - ${_endDate == null ? 'Any' : DateFormat('MMM d').format(_endDate!)}',
-        'color': const Color(0xFF00B4D8),
+        'color': AppColors.cyan,
       });
     }
     if (_minAmount != null || _maxAmount != null) {
@@ -1681,7 +1682,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
             Row(
               children: [
                 const Icon(Icons.filter_alt_outlined,
-                    size: 18, color: Color(0xFF00B4D8)),
+                    size: 18, color: AppColors.cyan),
                 const SizedBox(width: 8),
                 const Text(
                   'Active filters',
@@ -1962,7 +1963,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
               ElevatedButton.icon(
                 onPressed: _resetFilters,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -1996,7 +1997,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF00B4D8),
+        backgroundColor: AppColors.cyan,
         elevation: 0,
         title: Text('Your Transactions ($totalTransactions)',
             style: TextStyle(color: Colors.black)),
@@ -2025,7 +2026,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                             hintText:
                                 'Search transactions... (email, place, type, id, amount, lending/borrowing)',
                             prefixIcon:
-                                Icon(Icons.search, color: Color(0xFF00B4D8)),
+                                Icon(Icons.search, color: AppColors.cyan),
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: EdgeInsets.symmetric(
@@ -2109,7 +2110,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     Expanded(
                       child: RefreshIndicator(
                         onRefresh: fetchTransactions,
-                        color: const Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         child: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: [
@@ -2123,7 +2124,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                   onPressed: () => setState(
                                       () => showAllTransactions = true),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF00B4D8),
+                                    backgroundColor: AppColors.cyan,
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(16)),
@@ -2153,7 +2154,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                   ),
                                   child: Text('Show Less',
                                       style: TextStyle(
-                                          color: Color(0xFF00B4D8),
+                                          color: AppColors.cyan,
                                           fontSize: 16)),
                                 ),
                               ),

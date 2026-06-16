@@ -6,6 +6,8 @@ import '../../settings/privacy_settings_page.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/display_currency_helper.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'quick_transactions/quick_transactions_page.dart';
 import 'secure_transactions/view_secure_transactions_page.dart';
 
@@ -293,7 +295,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
-            child: CircularProgressIndicator(color: Color(0xFF00B4D8))),
+            child: CircularProgressIndicator(color: AppColors.cyan)),
       );
     }
     if (_userGroups.isEmpty) return const SizedBox.shrink();
@@ -1381,18 +1383,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.black),
-          title: const Text(
-            'Analytics',
-            style: TextStyle(color: Colors.black),
-          ),
-        ),
-      ),
+      appBar: transparentAppBar(context, title: 'Analytics'),
       backgroundColor: const Color(0xFFF7F8FC),
       body: Stack(
         children: [
@@ -1406,7 +1397,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 height: 150,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1436,7 +1427,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               const Icon(
                 Icons.analytics_outlined,
                 size: 64,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
               const SizedBox(height: 24),
               const Text(
@@ -1470,7 +1461,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   style: TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 26,
                     vertical: 14,
@@ -1516,11 +1507,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 controller: _tabController,
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
                 dividerColor: Colors.transparent,
                 labelColor: Colors.white,
-                unselectedLabelColor: const Color(0xFF00B4D8),
+                unselectedLabelColor: AppColors.cyan,
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 tabs: const [
                   Tab(text: 'Secure Trxns'),
@@ -1753,7 +1744,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }) {
     if (loading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+        child: CircularProgressIndicator(color: AppColors.cyan),
       );
     }
 
@@ -1811,7 +1802,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B4D8),
+                    backgroundColor: AppColors.cyan,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -1913,7 +1904,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 const SizedBox(
                   height: 110,
                   child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+                    child: CircularProgressIndicator(color: AppColors.cyan),
                   ),
                 )
               else if (_secureTransactionsError != null)
@@ -2182,7 +2173,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                             Row(children: [
                               CircleAvatar(
                                 radius: 18,
-                                backgroundColor: const Color(0xFF00B4D8)
+                                backgroundColor: AppColors.cyan
                                     .withValues(alpha: 0.15),
                                 child: Text(
                                   displayName.isNotEmpty
@@ -2333,7 +2324,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 const SizedBox(
                   height: 110,
                   child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+                    child: CircularProgressIndicator(color: AppColors.cyan),
                   ),
                 )
               else if (_quickTransactionsError != null)
@@ -2562,7 +2553,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     icon: const Icon(Icons.list_alt_rounded),
                     label: const Text('View Quick Transactions'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
@@ -2831,7 +2822,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                   ),
                 ),
               ],
@@ -3070,7 +3061,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF00B4D8), size: 60),
+            Icon(icon, color: AppColors.cyan, size: 60),
             const SizedBox(height: 18),
             Text(
               title,
@@ -3129,15 +3120,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: Text(
-          metric.title,
-          style: const TextStyle(color: Colors.black),
-        ),
-      ),
+      appBar: transparentAppBar(context, title: metric.title),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         child: Column(
@@ -3255,7 +3238,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
                   child: _MiniInfoCard(
                     title: 'Completion',
                     value: '${(ratio * 100).toStringAsFixed(0)}%',
-                    color: const Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                   ),
                 ),
               ],
@@ -3291,7 +3274,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
                   ? const Text(
                       '12 months',
                       style: TextStyle(
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         fontWeight: FontWeight.w600,
                       ),
                     )

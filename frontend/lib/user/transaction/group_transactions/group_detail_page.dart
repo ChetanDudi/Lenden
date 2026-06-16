@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -178,7 +179,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             _group['color'].toString().replaceFirst('#', '0xff')));
       } catch (_) {}
     }
-    return const Color(0xFF00B4D8);
+    return AppColors.cyan;
   }
 
   Future<void> _updateColor() async {
@@ -748,7 +749,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 // ── Scrollable body ───────────────────────────────────
                 Expanded(child: RefreshIndicator(
                   onRefresh: _refresh,
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                   child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
@@ -1074,7 +1075,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                             const SizedBox(height: 3),
                                             Text(
                                               '→ ${payTo.split('@').first}',
-                                              style: const TextStyle(fontSize: 10, color: Color(0xFF00B4D8), fontWeight: FontWeight.w600),
+                                              style: const TextStyle(fontSize: 10, color: AppColors.cyan, fontWeight: FontWeight.w600),
                                               maxLines: 1, overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 6),
@@ -1083,7 +1084,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                               height: 26,
                                               child: ElevatedButton(
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFF00B4D8),
+                                                  backgroundColor: AppColors.cyan,
                                                   padding: EdgeInsets.zero,
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                                   elevation: 0,
@@ -1117,10 +1118,10 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Row(children: [
-                                  const Icon(Icons.swap_horiz_rounded, size: 15, color: Color(0xFF00B4D8)),
+                                  const Icon(Icons.swap_horiz_rounded, size: 15, color: AppColors.cyan),
                                   const SizedBox(width: 6),
                                   const Text('How to Settle',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF00B4D8))),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.cyan)),
                                 ]),
                               ),
                               const SizedBox(height: 8),
@@ -1144,7 +1145,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                           CircleAvatar(
                                             radius: 14,
                                             backgroundColor: fromMe
-                                                ? const Color(0xFF00B4D8)
+                                                ? AppColors.cyan
                                                 : Colors.grey[300],
                                             child: Text(
                                               fromShort[0].toUpperCase(),
@@ -1164,7 +1165,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                     text: fromShort,
                                                     style: TextStyle(
                                                       fontWeight: FontWeight.bold,
-                                                      color: fromMe ? const Color(0xFF00B4D8) : Colors.black87,
+                                                      color: fromMe ? AppColors.cyan : Colors.black87,
                                                     ),
                                                   ),
                                                   const TextSpan(text: ' pays '),
@@ -1191,7 +1192,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                               height: 28,
                                               child: ElevatedButton(
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFF00B4D8),
+                                                  backgroundColor: AppColors.cyan,
                                                   padding: const EdgeInsets.symmetric(horizontal: 10),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                                   elevation: 0,
@@ -1254,7 +1255,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         },
                         child: const Text('See all →',
                             style:
-                                TextStyle(color: Color(0xFF00B4D8))),
+                                TextStyle(color: AppColors.cyan)),
                       ),
                     ],
                   ),

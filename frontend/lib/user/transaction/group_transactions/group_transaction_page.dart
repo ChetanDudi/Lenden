@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -202,7 +203,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -454,7 +455,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                 height: 100,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -509,12 +510,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                         ),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: Icon(Icons.group_rounded, size: 72, color: Color(0xFF00B4D8)),
+                                      child: Icon(Icons.group_rounded, size: 72, color: AppColors.cyan),
                                     ),
                                     const SizedBox(height: 24),
                                     Text(
                                       'No Groups Yet!',
-                                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8)),
+                                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.cyan),
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
@@ -538,7 +539,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                         icon: const Icon(Icons.add_rounded),
                                         label: const Text('Create First Group', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF00B4D8),
+                                          backgroundColor: AppColors.cyan,
                                           foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -574,7 +575,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                       hintText:
                                           'Search by group name or creator email...',
                                       prefixIcon: Icon(Icons.search,
-                                          color: Color(0xFF00B4D8)),
+                                          color: AppColors.cyan),
                                       filled: true,
                                       fillColor: Colors.white,
                                       contentPadding: EdgeInsets.symmetric(
@@ -633,7 +634,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                   : Icons.star_border,
                                               color: _showFavouritesOnly
                                                   ? Colors.amber
-                                                  : Color(0xFF00B4D8),
+                                                  : AppColors.cyan,
                                             ),
                                             onPressed: () {
                                               setState(() {
@@ -675,7 +676,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             style: const TextStyle(
-                                                color: Color(0xFF00B4D8),
+                                                color: AppColors.cyan,
                                                 fontWeight: FontWeight.bold),
                                             underline: Container(),
                                             items: const [
@@ -729,7 +730,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             style: const TextStyle(
-                                                color: Color(0xFF00B4D8),
+                                                color: AppColors.cyan,
                                                 fontWeight: FontWeight.bold),
                                             underline: Container(),
                                             items: const [
@@ -794,7 +795,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             style: const TextStyle(
-                                                color: Color(0xFF00B4D8),
+                                                color: AppColors.cyan,
                                                 fontWeight: FontWeight.bold),
                                             underline: Container(),
                                             items: const [
@@ -851,7 +852,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             style: const TextStyle(
-                                                color: Color(0xFF00B4D8),
+                                                color: AppColors.cyan,
                                                 fontWeight: FontWeight.bold),
                                             underline: Container(),
                                             items: const [
@@ -972,7 +973,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                   style:
                                                       ElevatedButton.styleFrom(
                                                     backgroundColor: canCreate
-                                                        ? Color(0xFF00B4D8)
+                                                        ? AppColors.cyan
                                                         : Colors.grey,
                                                     foregroundColor:
                                                         Colors.white,
@@ -1031,7 +1032,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                               style: TextStyle(
                                                 fontSize: 24,
                                                 fontWeight: FontWeight.bold,
-                                                color: Color(0xFF00B4D8),
+                                                color: AppColors.cyan,
                                               ),
                                             ),
                                             SizedBox(height: 8),

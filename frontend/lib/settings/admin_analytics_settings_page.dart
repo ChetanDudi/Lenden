@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AdminAnalyticsSettingsPage extends StatefulWidget {
   const AdminAnalyticsSettingsPage({super.key});
@@ -74,12 +76,7 @@ class _AdminAnalyticsSettingsPageState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading settings: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -119,32 +116,17 @@ class _AdminAnalyticsSettingsPageState
 
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Analytics settings saved successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSnack(context, 'Analytics settings saved successfully!');
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorData['message'] ?? 'Failed to save settings'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -158,22 +140,8 @@ class _AdminAnalyticsSettingsPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Analytics Settings',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
+      backgroundColor: AppColors.scaffoldBg,
+      appBar: transparentAppBar(context, title: 'Analytics Settings', actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _isSaving ? null : _saveAnalyticsSettings,
@@ -186,7 +154,7 @@ class _AdminAnalyticsSettingsPageState
                   : const Text(
                       'Save',
                       style: TextStyle(
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -221,7 +189,7 @@ class _AdminAnalyticsSettingsPageState
                         const Icon(
                           Icons.analytics_outlined,
                           size: 48,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -478,7 +446,7 @@ class _AdminAnalyticsSettingsPageState
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -496,7 +464,7 @@ class _AdminAnalyticsSettingsPageState
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -515,7 +483,7 @@ class _AdminAnalyticsSettingsPageState
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -530,7 +498,7 @@ class _AdminAnalyticsSettingsPageState
     ValueChanged<String?> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -570,7 +538,7 @@ class _AdminAnalyticsSettingsPageState
     TextInputType? keyboardType,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(

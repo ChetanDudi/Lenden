@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'app_colors.dart';
 import 'dart:math';
 
 class PremiumWaveBackground extends StatefulWidget {
@@ -34,7 +35,7 @@ class _PremiumWaveBackgroundState extends State<PremiumWaveBackground>
                 controller.value,
                 0.8,
                 25,
-                const Color(0xFF00B4D8).withValues(alpha: 0.4),
+                AppColors.cyan.withValues(alpha: 0.4),
               ),
               size: Size.infinite,
             ),
@@ -43,7 +44,7 @@ class _PremiumWaveBackgroundState extends State<PremiumWaveBackground>
                 controller.value * 1.5,
                 0.82,
                 30,
-                const Color(0xFF00B4D8).withValues(alpha: 0.6),
+                AppColors.cyan.withValues(alpha: 0.6),
               ),
               size: Size.infinite,
             ),

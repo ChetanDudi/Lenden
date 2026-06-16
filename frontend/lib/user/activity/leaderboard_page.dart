@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../api_config.dart';
 import '../../utils/api_client.dart';
@@ -155,7 +156,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           icon: message == 'Already friends'
               ? Icons.people_alt_rounded
               : Icons.person_add_alt_1_rounded,
-          color: const Color(0xFF00B4D8),
+          color: AppColors.cyan,
         );
       } else {
         String message = 'Could not send friend request right now.';
@@ -240,7 +241,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             message:
                 'No users are ranked for this filter right now. Rankings update as activity happens.',
             icon: Icons.info_outline,
-            color: const Color(0xFF00B4D8),
+            color: AppColors.cyan,
           );
         }
       } else {
@@ -291,8 +292,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         iconTheme: const IconThemeData(color: Colors.black87),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF00B4D8),
-          labelColor: const Color(0xFF00B4D8),
+          indicatorColor: AppColors.cyan,
+          labelColor: AppColors.cyan,
           unselectedLabelColor: Colors.black54,
           tabs: const [
             Tab(text: 'Quick'),
@@ -311,7 +312,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               height: 150,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00B4D8), Color(0xFF4CC9F0)],
+                  colors: [AppColors.cyan, Color(0xFF4CC9F0)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -329,7 +330,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                           title: 'Refreshed',
                           message: 'Leaderboard updated for selected filters.',
                           icon: Icons.refresh,
-                          color: const Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         );
                       }
                     },
@@ -367,17 +368,17 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         decoration: BoxDecoration(
           color: myRow != null ? const Color(0xFFE6F7FF) : Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: myRow != null ? Border.all(color: const Color(0xFF00B4D8), width: 1.2) : null,
+          border: myRow != null ? Border.all(color: AppColors.cyan, width: 1.2) : null,
         ),
         child: Row(
           children: [
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFF00B4D8).withValues(alpha: 0.12),
+                color: AppColors.cyan.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.emoji_events_outlined, color: Color(0xFF00B4D8), size: 20),
+              child: const Icon(Icons.emoji_events_outlined, color: AppColors.cyan, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -391,7 +392,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                         const SizedBox(height: 2),
                         Text(
                           'Rank #${myRow['rank']} · ${myRow['points']} pts',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF00B4D8)),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.cyan),
                         ),
                       ],
                     ),
@@ -442,7 +443,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                 ),
                 Switch(
                   value: _friendsOnly,
-                  activeColor: const Color(0xFF00B4D8),
+                  activeColor: AppColors.cyan,
                   onChanged: (v) {
                     setState(() => _friendsOnly = v);
                     _loadLeaderboard();
@@ -535,7 +536,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             title: 'How Points Work',
             message: 'Each transaction gives 10 points. Equal points share the same rank.',
             icon: Icons.stars_rounded,
-            color: const Color(0xFF00B4D8),
+            color: AppColors.cyan,
           );
         },
         style: ElevatedButton.styleFrom(
@@ -589,7 +590,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               decoration: BoxDecoration(
                 color: isMe ? const Color(0xFFE6F7FF) : const Color(0xFFF1F5F9),
                 border: isMe
-                    ? Border.all(color: const Color(0xFF00B4D8), width: 1.2)
+                    ? Border.all(color: AppColors.cyan, width: 1.2)
                     : null,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -723,7 +724,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               onPressed: isLoading ? null : () => _sendFriendRequest(row),
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.zero,
-                side: const BorderSide(color: Color(0xFF00B4D8)),
+                side: const BorderSide(color: AppColors.cyan),
                 backgroundColor: Colors.white,
                 shape: const CircleBorder(),
               ),
@@ -738,7 +739,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                       ),
                     ),
             ),
@@ -746,10 +747,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         : OutlinedButton(
             onPressed: isLoading ? null : () => _sendFriendRequest(row),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF00B4D8),
+              foregroundColor: AppColors.cyan,
               backgroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              side: const BorderSide(color: Color(0xFF00B4D8)),
+              side: const BorderSide(color: AppColors.cyan),
               shape:
                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -803,7 +804,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       label = '-$delta';
     } else if (direction == 'new') {
       icon = Icons.fiber_new_rounded;
-      color = const Color(0xFF00B4D8);
+      color = AppColors.cyan;
       label = 'new';
     }
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 
@@ -76,7 +77,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                 height: 165,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -124,7 +125,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                             padding: EdgeInsets.only(top: 100),
                             child: Center(
                               child: CircularProgressIndicator(
-                                color: Color(0xFF00B4D8),
+                                color: AppColors.cyan,
                               ),
                             ),
                           )
@@ -247,14 +248,14 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
           ),
           child: Column(
             children: [
-              Icon(icon, color: const Color(0xFF00B4D8)),
+              Icon(icon, color: AppColors.cyan),
               const SizedBox(height: 8),
               Text(
                 value,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(height: 4),
@@ -327,7 +328,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
           (ad['mediaKind'] ?? 'none').toString() == 'video'
               ? Icons.play_circle_outline
               : Icons.image_outlined,
-          color: const Color(0xFF00B4D8),
+          color: AppColors.cyan,
         ),
       ),
       title: Text(
@@ -350,7 +351,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
       contentPadding: EdgeInsets.zero,
       leading: const CircleAvatar(
         backgroundColor: Color(0xFFEAF5FF),
-        child: Icon(Icons.campaign_outlined, color: Color(0xFF00B4D8)),
+        child: Icon(Icons.campaign_outlined, color: AppColors.cyan),
       ),
       title: Text(
         (update['title'] ?? '').toString(),

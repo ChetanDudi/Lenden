@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../session.dart';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class AdminNotificationSettingsPage extends StatefulWidget {
   const AdminNotificationSettingsPage({super.key});
@@ -112,12 +114,7 @@ class _AdminNotificationSettingsPageState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading settings: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -171,32 +168,17 @@ class _AdminNotificationSettingsPageState
         final session = Provider.of<SessionProvider>(context, listen: false);
         session.updateNotificationSettings(settings);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Notification settings saved successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          showSnack(context, 'Notification settings saved successfully!');
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorData['message'] ?? 'Failed to save settings'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showSnack(context, 'Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -228,41 +210,26 @@ class _AdminNotificationSettingsPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Admin Notifications',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          if (!_isLoading)
-            TextButton(
-              onPressed: _isSaving ? null : _saveNotificationSettings,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Color(0xFF00B4D8),
-                        fontWeight: FontWeight.bold,
-                      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Admin Notifications', actions: [
+        if (!_isLoading)
+          TextButton(
+            onPressed: _isSaving ? null : _saveNotificationSettings,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold,
                     ),
-            ),
-        ],
-      ),
+                  ),
+          ),
+      ]),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -291,7 +258,7 @@ class _AdminNotificationSettingsPageState
                         const Icon(
                           Icons.admin_panel_settings_outlined,
                           size: 48,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -664,7 +631,7 @@ class _AdminNotificationSettingsPageState
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -682,7 +649,7 @@ class _AdminNotificationSettingsPageState
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -701,7 +668,7 @@ class _AdminNotificationSettingsPageState
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -716,7 +683,7 @@ class _AdminNotificationSettingsPageState
     ValueChanged<String?> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -755,7 +722,7 @@ class _AdminNotificationSettingsPageState
     VoidCallback onTap,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -776,7 +743,7 @@ class _AdminNotificationSettingsPageState
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+            color: AppColors.cyan.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -784,7 +751,7 @@ class _AdminNotificationSettingsPageState
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
           ),
         ),

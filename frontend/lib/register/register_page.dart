@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -264,7 +265,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.email, color: const Color(0xFF00B4D8), size: context.sp(52)),
+            Icon(Icons.email, color: AppColors.cyan, size: context.sp(52)),
             SizedBox(height: context.sh(10)),
             Text('OTP Sent!',
                 style: TextStyle(
@@ -285,7 +286,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
             onPressed: () => Navigator.of(context).pop(),
             child: Text('OK',
                 style: TextStyle(
-                    color: const Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                     fontWeight: FontWeight.bold,
                     fontSize: context.sp(15))),
           ),
@@ -342,7 +343,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       Navigator.pushReplacementNamed(context, '/login');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -398,7 +399,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(110),
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
                 child: SafeArea(
                   bottom: false,
                   child: Align(
@@ -418,7 +419,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
               clipper: BottomWaveClipper(),
               child: Container(
                 height: context.sh(80),
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -626,7 +627,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF00B4D8),
+                                color: AppColors.cyan,
                                 borderRadius: BorderRadius.circular(22),
                               ),
                               child: _isLoading
@@ -675,7 +676,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.email, color: Color(0xFF00B4D8)),
+                            const Icon(Icons.email, color: AppColors.cyan),
                             const SizedBox(width: 8),
                             Text('OTP sent to your email',
                                 style: TextStyle(
@@ -717,7 +718,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                               ? null
                               : () => _verifyOtpWithOtp(_registerOtp),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00B4D8),
+                            backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24)),
                             padding: const EdgeInsets.symmetric(vertical: 16),

@@ -1,8 +1,10 @@
 ﻿import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
+import '../../widgets/app_widgets.dart';
 
 class GiftCardPage extends StatefulWidget {
   const GiftCardPage({Key? key}) : super(key: key);
@@ -244,9 +246,7 @@ class _GiftCardPageState extends State<GiftCardPage>
       }
     } catch (e) {
       print('Error scratching card: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      showSnack(context, 'Error: ${e.toString()}', isError: true);
     } finally {
       setState(() {
         isScratching = false;
@@ -390,7 +390,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

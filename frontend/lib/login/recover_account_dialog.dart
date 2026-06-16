@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_colors.dart';
 
 class RecoverAccountDialog extends StatelessWidget {
   final VoidCallback onRecover;
@@ -67,7 +68,7 @@ class RecoverAccountDialog extends StatelessWidget {
                   ElevatedButton(
                     onPressed: onRecover,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -93,7 +94,7 @@ class RecoverAccountDialog extends StatelessWidget {
               child: Icon(
                 Icons.lock_outline,
                 size: 50,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),

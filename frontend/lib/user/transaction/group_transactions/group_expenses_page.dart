@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../utils/api_client.dart';
@@ -608,10 +609,10 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                       decoration: BoxDecoration(
-                        color: sel ? const Color(0xFF00B4D8) : Colors.grey[100],
+                        color: sel ? AppColors.cyan : Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: sel ? const Color(0xFF00B4D8) : Colors.grey[300]!,
+                          color: sel ? AppColors.cyan : Colors.grey[300]!,
                         ),
                       ),
                       child: Row(
@@ -2097,7 +2098,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
               child: filtered.isEmpty
                   ? SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../session.dart';
@@ -106,7 +107,7 @@ class _NotificationIconState extends State<NotificationIcon> {
                     title: Row(
                       children: [
                         Icon(Icons.lock_outline,
-                            color: Color(0xFF00B4D8), size: 28),
+                            color: AppColors.cyan, size: 28),
                         SizedBox(width: 10),
                         Text('Login Required',
                             style: TextStyle(
@@ -121,7 +122,7 @@ class _NotificationIconState extends State<NotificationIcon> {
                       TextButton(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

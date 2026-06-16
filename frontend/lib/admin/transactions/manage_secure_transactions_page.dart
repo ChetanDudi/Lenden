@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -114,37 +116,8 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     }
   }
 
-  void _showStylishSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(isError ? Icons.error : Icons.check_circle,
-                color: Colors.white, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: isError ? Colors.red : const Color(0xFF00B4D8),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(seconds: 3),
-        margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      ),
-    );
-  }
+  void _showStylishSnackBar(String message, {bool isError = false}) =>
+      showSnack(context, message, isError: isError);
 
   Future<void> _updateTransaction(
     String transactionId,
@@ -298,7 +271,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
             label,
             style: const TextStyle(
               fontWeight: FontWeight.w700,
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
           ),
           const SizedBox(height: 6),
@@ -366,7 +339,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   'Photos',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                   ),
                 ),
               ),
@@ -480,7 +453,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 'Partial Payment History',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               if (editable)
@@ -810,7 +783,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: 70,
-                  color: const Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               Padding(
@@ -947,7 +920,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     height: 70,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                        colors: [AppColors.cyan, Color(0xFF48CAE4)],
                       ),
                     ),
                   ),
@@ -1217,7 +1190,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B4D8),
+                                backgroundColor: AppColors.cyan,
                                 foregroundColor: Colors.white,
                               ),
                               child: const Text('Save'),
@@ -1362,7 +1335,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 ),
                 child: Column(
                   children: [
-                    Icon(item.$3, color: const Color(0xFF00B4D8)),
+                    Icon(item.$3, color: AppColors.cyan),
                     const SizedBox(height: 6),
                     Text(
                       item.$2,
@@ -1447,7 +1420,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF00B4D8),
+                        color: AppColors.cyan,
                       ),
                     ),
                     _buildStatusChip(transaction),
@@ -1533,7 +1506,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: 60,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -1603,7 +1576,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                               'Search amount, lender, borrower, id, notes...',
                                           prefixIcon: const Icon(
                                             Icons.search_rounded,
-                                            color: Color(0xFF00B4D8),
+                                            color: AppColors.cyan,
                                           ),
                                           suffixIcon: _searchQuery.isEmpty
                                               ? null
@@ -1739,7 +1712,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                             'View All (${filteredTransactions.length})',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF00B4D8),
+                                              color: AppColors.cyan,
                                             ),
                                           ),
                                         ),

@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 
@@ -185,15 +187,8 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
     });
   }
 
-  void _showMsg(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : const Color(0xFF00B4D8),
-      ),
-    );
-  }
+  void _showMsg(String message, {bool isError = false}) =>
+      showSnack(context, message, isError: isError);
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +206,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                 height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   ),
                 ),
               ),
@@ -390,7 +385,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                                     : const Icon(Icons.save),
                                 label: Text(_saving ? 'Saving...' : 'Save Referral Settings'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00B4D8),
+                                  backgroundColor: AppColors.cyan,
                                   foregroundColor: Colors.white,
                                 ),
                               ),

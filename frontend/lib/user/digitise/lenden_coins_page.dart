@@ -1,6 +1,8 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class LenDenCoinsPage extends StatefulWidget {
   final int coins;
@@ -61,18 +63,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: const Color(0xFFF7F8FC),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.black),
-          title: const Text(
-            'LenDen Coins',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ),
+      appBar: transparentAppBar(context, title: 'LenDen Coins'),
       body: Stack(
         children: [
           Positioned(
@@ -85,7 +76,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                 height: 160,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -136,82 +127,64 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildBalanceCard() {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return tricolorBorder(
+      radius: 30,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF5DA9FF), Color(0xFF8FD3FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5DA9FF).withValues(alpha: 0.28),
-            blurRadius: 26,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5DA9FF), Color(0xFF8FD3FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(18),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(
+                Icons.monetization_on,
+                color: Colors.amber,
+                size: 34,
+              ),
             ),
-            child: const Icon(
-              Icons.monetization_on,
-              color: Colors.amber,
-              size: 34,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Current Balance',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white70,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Current Balance',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '$_displayBalance',
-                  style: const TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  const SizedBox(height: 6),
+                  Text(
+                    '$_displayBalance',
+                    style: const TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Available LenDen Coins',
-                  style: TextStyle(fontSize: 13, color: Colors.white),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Available LenDen Coins',
+                    style: TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
         ),
       ),
     );
@@ -307,7 +280,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                 ),
                 child: const Icon(
                   Icons.history_toggle_off_rounded,
-                  color: Color(0xFF00B4D8),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(width: 12),
@@ -336,7 +309,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             child: ElevatedButton.icon(
               onPressed: _isFetchingHistory ? null : _fetchHistory,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00B4D8),
+                backgroundColor: AppColors.cyan,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -413,56 +386,45 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
           ],
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        tricolorBorder(
+          radius: 26,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    'Source Split',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade500),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (sources.isEmpty)
-                Text(
-                  'No tracked source entries yet.',
-                  style: TextStyle(color: Colors.grey.shade600),
-                )
-              else
-                SizedBox(
-                  height: 90,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: sources.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (_, i) => _buildSourceChip(sources[i]),
-                  ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Source Split',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade500),
+                  ],
                 ),
-            ],
-          ),
+                const SizedBox(height: 12),
+                if (sources.isEmpty)
+                  Text(
+                    'No tracked source entries yet.',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  )
+                else
+                  SizedBox(
+                    height: 90,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: sources.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (_, i) => _buildSourceChip(sources[i]),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -583,17 +545,9 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
     final bg = isEarned ? const Color(0xFFEAF8EC) : const Color(0xFFFFEBEE);
     final amount = (entry['coins'] ?? 0) as num;
 
-    return Container(
+    return tricolorBorder(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      radius: 22,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

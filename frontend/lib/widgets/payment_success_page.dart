@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 
@@ -50,7 +51,7 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
   late Animation<double> _burstOpacity;
   late Animation<double> _slideUp;
 
-  static const _cyan = Color(0xFF00B4D8);
+  static const _cyan = AppColors.cyan;
   static const _green = Color(0xFF138808);
   static const _saffron = Color(0xFFFF9933);
 
@@ -117,7 +118,7 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF005F85), Color(0xFF00B4D8), Color(0xFF48CAE4)],
+            colors: [Color(0xFF005F85), AppColors.cyan, Color(0xFF48CAE4)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -157,7 +158,7 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
                               ],
                             ),
                             child: const Icon(Icons.check_rounded,
-                                color: Color(0xFF00B4D8), size: 65),
+                                color: AppColors.cyan, size: 65),
                           ),
                         ),
                       ),

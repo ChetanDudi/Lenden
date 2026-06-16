@@ -5,6 +5,8 @@ import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../connections/friends_page.dart';
 import '../digitise/offers_page.dart';
+import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class UserNotificationsPage extends StatefulWidget {
   const UserNotificationsPage({Key? key}) : super(key: key);
@@ -185,7 +187,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     final userId = session.user!['_id'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppColors.scaffoldBgAlt,
       body: Stack(
         children: [
           Positioned(
@@ -196,7 +198,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: 132,
-                color: const Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -233,17 +235,8 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
+                  child: tricolorBorder(
                     child: Container(
-                      margin: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.96),
                         borderRadius: BorderRadius.circular(22),
@@ -253,10 +246,10 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                         isScrollable: true,
                         indicator: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          color: const Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         labelColor: Colors.white,
-                        unselectedLabelColor: const Color(0xFF00B4D8),
+                        unselectedLabelColor: AppColors.cyan,
                         dividerColor: Colors.transparent,
                         overlayColor:
                             WidgetStateProperty.all(Colors.transparent),
@@ -272,7 +265,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                   child: _isLoading
                       ? const Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                           ),
                         )
                       : TabBarView(
@@ -324,7 +317,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             child: _buildStatTile(
               title: 'Unread',
               value: '$_unreadCount',
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
               icon: Icons.mark_email_unread_outlined,
             ),
           ),
@@ -443,7 +436,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
               child: ElevatedButton(
                 onPressed: () => _fetchNotifications(viewAll: true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B4D8),
+                  backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 26,
@@ -464,16 +457,8 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   Widget _buildFriendRequestsCard() {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
+      child: tricolorBorder(
+        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFFFFF4E6),
@@ -484,7 +469,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           children: [
             const Row(
               children: [
-                Icon(Icons.people_alt_outlined, color: Color(0xFF00B4D8)),
+                Icon(Icons.people_alt_outlined, color: AppColors.cyan),
                 SizedBox(width: 8),
                 Text(
                   'Friend Requests',
@@ -545,7 +530,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                                   ? null
                                   : () => _acceptRequest(request['_id']),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B4D8),
+                                backgroundColor: AppColors.cyan,
                                 foregroundColor: Colors.white,
                               ),
                               child: const Text('Accept'),
@@ -560,6 +545,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             }),
           ],
         ),
+      ),
       ),
     );
   }
@@ -579,16 +565,8 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       borderRadius: BorderRadius.circular(22),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Container(
+        child: tricolorBorder(
+          child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: _getNoteColor(index),
@@ -628,7 +606,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                             width: 10,
                             height: 10,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF00B4D8),
+                              color: AppColors.cyan,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -657,6 +635,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -672,7 +651,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       case 'group':
         return Colors.deepPurple;
       default:
-        return const Color(0xFF00B4D8);
+        return AppColors.cyan;
     }
   }
 

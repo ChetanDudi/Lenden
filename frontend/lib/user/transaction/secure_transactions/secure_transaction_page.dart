@@ -1,5 +1,6 @@
 ﻿//This file is to create Transactions.
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -244,12 +245,12 @@ class _TransactionPageState extends State<TransactionPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
+                    color: AppColors.cyan.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.preview_rounded,
-                    color: Color(0xFF00B4D8),
+                    color: AppColors.cyan,
                     size: 18,
                   ),
                 ),
@@ -378,7 +379,7 @@ class _TransactionPageState extends State<TransactionPage> {
               icon: Icons.play_circle_outline_rounded,
               title: 'Start date',
               value: DateFormat('MMM d, yyyy • hh:mm a').format(startDate),
-              color: const Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
             const SizedBox(height: 10),
             item(
@@ -455,10 +456,10 @@ class _TransactionPageState extends State<TransactionPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
+              color: AppColors.cyan.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: const Color(0xFF00B4D8), size: 20),
+            child: Icon(icon, color: AppColors.cyan, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -501,7 +502,7 @@ class _TransactionPageState extends State<TransactionPage> {
       required bool complete,
     }) {
       final color = complete || active
-          ? const Color(0xFF00B4D8)
+          ? AppColors.cyan
           : Colors.grey.shade400;
       return Expanded(
         child: Column(
@@ -662,7 +663,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF00B4D8)),
+          const Icon(Icons.lightbulb_outline_rounded, color: AppColors.cyan),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -747,7 +748,7 @@ class _TransactionPageState extends State<TransactionPage> {
       message:
           'Your secure transaction draft is saved. You can continue it anytime from this page.',
       icon: Icons.save_outlined,
-      accentColor: const Color(0xFF00B4D8),
+      accentColor: AppColors.cyan,
       actionLabel: 'Continue',
     );
   }
@@ -829,7 +830,7 @@ class _TransactionPageState extends State<TransactionPage> {
           message:
               'A saved secure transaction draft was found. Do you want to continue from where you left off?',
           icon: Icons.auto_awesome_outlined,
-          accentColor: const Color(0xFF00B4D8),
+          accentColor: AppColors.cyan,
           primaryLabel: 'Continue Draft',
           secondaryLabel: 'Start Fresh',
         ) ??
@@ -1456,7 +1457,7 @@ class _TransactionPageState extends State<TransactionPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
+                color: AppColors.cyan.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -1488,7 +1489,7 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.image_outlined, color: Color(0xFF00B4D8)),
+                const Icon(Icons.image_outlined, color: AppColors.cyan),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -1580,7 +1581,7 @@ class _TransactionPageState extends State<TransactionPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_done_outlined, color: Color(0xFF00B4D8)),
+          const Icon(Icons.cloud_done_outlined, color: AppColors.cyan),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -1760,12 +1761,12 @@ class _TransactionPageState extends State<TransactionPage> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00B4D8).withValues(alpha: 0.10),
+                            color: AppColors.cyan.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
                             Icons.fact_check_outlined,
-                            color: Color(0xFF00B4D8),
+                            color: AppColors.cyan,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1827,7 +1828,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       icon: Icons.person_outline_rounded,
                       title: 'Counterparty',
                       value: counterparty,
-                      accent: const Color(0xFF00B4D8),
+                      accent: AppColors.cyan,
                     ),
                     const SizedBox(height: 10),
                     _buildReviewInfoTile(
@@ -1870,7 +1871,7 @@ class _TransactionPageState extends State<TransactionPage> {
                           _submit();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00B4D8),
+                          backgroundColor: AppColors.cyan,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -1968,7 +1969,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   child: ElevatedButton(
                     onPressed: canSubmit ? _showReviewSheetAndSubmit : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00B4D8),
+                      backgroundColor: AppColors.cyan,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: _isLoading
@@ -2526,7 +2527,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   return Theme(
                     data: ThemeData.light().copyWith(
                       colorScheme: ColorScheme.light(
-                        primary: Color(0xFF00B4D8),
+                        primary: AppColors.cyan,
                         onPrimary: Colors.white,
                         surface: Colors.white,
                         onSurface: Colors.black87,
@@ -2539,7 +2540,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       ),
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
-                          foregroundColor: Color(0xFF00B4D8),
+                          foregroundColor: AppColors.cyan,
                         ),
                       ),
                       cardColor: Colors.white,
@@ -2557,7 +2558,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: 'Transaction Date',
-          prefixIcon: Icon(Icons.calendar_today, color: Color(0xFF00B4D8)),
+          prefixIcon: Icon(Icons.calendar_today, color: AppColors.cyan),
           border: InputBorder.none,
         ),
         child: Row(
@@ -2590,7 +2591,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   return Theme(
                     data: ThemeData.light().copyWith(
                       colorScheme: ColorScheme.light(
-                        primary: Color(0xFF00B4D8),
+                        primary: AppColors.cyan,
                         onPrimary: Colors.white,
                         surface: Colors.white,
                         onSurface: Colors.black87,
@@ -2603,7 +2604,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       ),
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
-                          foregroundColor: Color(0xFF00B4D8),
+                          foregroundColor: AppColors.cyan,
                         ),
                       ),
                       cardColor: Colors.white,
@@ -2621,7 +2622,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: 'Time',
-          prefixIcon: Icon(Icons.access_time, color: Color(0xFF00B4D8)),
+          prefixIcon: Icon(Icons.access_time, color: AppColors.cyan),
           border: InputBorder.none,
         ),
         child: Row(
@@ -2837,7 +2838,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 height: 180,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00B4D8), Color(0xFF48CAE4)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -2945,7 +2946,7 @@ class _TransactionPageState extends State<TransactionPage> {
                           title: 'Save Draft',
                           subtitle: 'Pause now and continue later',
                           icon: Icons.save_outlined,
-                          accentColor: const Color(0xFF00B4D8),
+                          accentColor: AppColors.cyan,
                           onTap: () {
                             _saveDraftWithFeedback();
                           },
@@ -2993,7 +2994,7 @@ class _TransactionPageState extends State<TransactionPage> {
                         decoration: InputDecoration(
                           labelText: 'Your Role',
                           prefixIcon:
-                              Icon(Icons.people, color: Color(0xFF00B4D8)),
+                              Icon(Icons.people, color: AppColors.cyan),
                           border: InputBorder.none,
                           helperText:
                               _bothUsersVerified ? 'Details locked' : null,
@@ -3019,7 +3020,7 @@ class _TransactionPageState extends State<TransactionPage> {
                         decoration: InputDecoration(
                           labelText: 'Currency',
                           prefixIcon: Icon(Icons.currency_exchange,
-                              color: Color(0xFF00B4D8)),
+                              color: AppColors.cyan),
                           border: InputBorder.none,
                         ),
                       ),
@@ -3041,7 +3042,7 @@ class _TransactionPageState extends State<TransactionPage> {
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF00B4D8),
+                                color: AppColors.cyan,
                               ),
                             ),
                           ),
@@ -3068,7 +3069,7 @@ class _TransactionPageState extends State<TransactionPage> {
                         decoration: InputDecoration(
                           labelText: 'Place',
                           prefixIcon:
-                              Icon(Icons.location_on, color: Color(0xFF00B4D8)),
+                              Icon(Icons.location_on, color: AppColors.cyan),
                           border: InputBorder.none,
                           helperText: _bothUsersVerified
                               ? 'Transaction details locked after verification'
@@ -3217,7 +3218,7 @@ class _TransactionPageState extends State<TransactionPage> {
                                     return Theme(
                                       data: ThemeData.light().copyWith(
                                         colorScheme: ColorScheme.light(
-                                          primary: Color(0xFF00B4D8),
+                                          primary: AppColors.cyan,
                                           onPrimary: Colors.white,
                                           surface: Colors.white,
                                           onSurface: Colors.black87,
@@ -3232,7 +3233,7 @@ class _TransactionPageState extends State<TransactionPage> {
                                         textButtonTheme: TextButtonThemeData(
                                           style: TextButton.styleFrom(
                                             foregroundColor:
-                                                Color(0xFF00B4D8),
+                                                AppColors.cyan,
                                           ),
                                         ),
                                         cardColor: Colors.white,
@@ -3263,7 +3264,7 @@ class _TransactionPageState extends State<TransactionPage> {
                               color: _bothUsersVerified
                                   ? Colors.grey.shade300
                                   : (_interestType == 'none'
-                                      ? const Color(0xFF00B4D8)
+                                      ? AppColors.cyan
                                       : Colors.red.shade300),
                             ),
                           ),

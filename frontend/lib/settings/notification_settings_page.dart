@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../session.dart';
 import 'custom_warning_widget.dart';
 import '../utils/api_client.dart';
+import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -167,41 +169,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Notification Settings',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          if (!_isLoading)
-            TextButton(
-              onPressed: _isSaving ? null : _saveNotificationSettings,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Color(0xFF00B4D8),
-                        fontWeight: FontWeight.bold,
-                      ),
+      backgroundColor: AppColors.scaffoldBgAlt,
+      appBar: transparentAppBar(context, title: 'Notification Settings', actions: [
+        if (!_isLoading)
+          TextButton(
+            onPressed: _isSaving ? null : _saveNotificationSettings,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold,
                     ),
-            ),
-        ],
-      ),
+                  ),
+          ),
+      ]),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -230,7 +217,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         const Icon(
                           Icons.notifications_outlined,
                           size: 48,
-                          color: Color(0xFF00B4D8),
+                          color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -446,7 +433,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00B4D8),
+                color: AppColors.cyan,
               ),
             ),
           ),
@@ -464,7 +451,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     ValueChanged<bool> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -483,7 +470,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF00B4D8),
+        activeColor: AppColors.cyan,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -498,7 +485,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     ValueChanged<String?> onChanged,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -537,7 +524,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     VoidCallback onTap,
   ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00B4D8)),
+      leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
         style: const TextStyle(
@@ -558,7 +545,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF00B4D8).withValues(alpha: 0.1),
+            color: AppColors.cyan.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -566,7 +553,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF00B4D8),
+              color: AppColors.cyan,
             ),
           ),
         ),
