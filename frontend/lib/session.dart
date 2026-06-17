@@ -373,7 +373,9 @@ class SessionProvider extends ChangeNotifier {
   Future<void> _saveUserData(Map<String, dynamic> user) async {
     try {
       await _storage.write(key: 'user_data', value: jsonEncode(user));
-    } catch (_) {}
+    } catch (e) {
+      print('Failed to persist user data: $e');
+    }
   }
 
   Future<void> refreshUserProfile() async {
@@ -423,7 +425,7 @@ class SessionProvider extends ChangeNotifier {
     }
   }
 
-  void clearUser() async {
+  Future<void> clearUser() async {
     _user = null;
     _role = null;
     await _storage.delete(key: 'user_data');

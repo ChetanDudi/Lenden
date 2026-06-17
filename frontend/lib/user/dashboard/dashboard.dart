@@ -385,7 +385,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         });
         if (!_hasRatedApp &&
             !_ratingDialogShown &&
-            (DateTime.now().millisecondsSinceEpoch % 3 == 0)) {
+            (_adRandom.nextInt(3) == 0)) {
           _ratingDialogShown = true;
           Future.delayed(Duration(milliseconds: 500), () {
             if (mounted) _showAppRatingDialog();

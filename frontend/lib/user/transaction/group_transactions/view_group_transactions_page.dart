@@ -10,9 +10,10 @@ import '../../../utils/display_currency_helper.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-import '../../chats/group_chat_page.dart';
+import '../../chats/group_chat_page.dart' hide TopWaveClipper;
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
+import '../../../widgets/wave_widget.dart';
 
 class ViewGroupTransactionsPage extends StatefulWidget {
   const ViewGroupTransactionsPage({super.key});
@@ -1055,45 +1056,62 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     final currentUserEmail = session.user?['email'];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('View Group Transactions'),
-        backgroundColor: AppColors.cyan,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedDisplayCurrency,
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  items: (_displayCurrencyData?.currencies ?? _currencies)
-                      .map(
-                        (currency) => DropdownMenuItem(
-                          value: currency['code'],
-                          child: Text(
-                            '${currency['symbol']} ${currency['code']}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _selectedDisplayCurrency = value;
-                    });
-                  },
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          title: const Text('Group Transactions',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          iconTheme: const IconThemeData(color: Colors.black),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: 90,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
           ),
-        ],
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedDisplayCurrency,
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    items: (_displayCurrencyData?.currencies ?? _currencies)
+                        .map(
+                          (currency) => DropdownMenuItem(
+                            value: currency['code'],
+                            child: Text(
+                              '${currency['symbol']} ${currency['code']}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() {
+                        _selectedDisplayCurrency = value;
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())

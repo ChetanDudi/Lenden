@@ -53,6 +53,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     _tabController = TabController(length: 3, vsync: this);
     fetchRatings();
     fetchRatingActivities();
+    _usernameController.addListener(() {
+      if (_showSuccess) setState(() => _showSuccess = false);
+    });
   }
 
   @override
@@ -81,11 +84,13 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   }
 
   Future<void> fetchRatingActivities() async {
-    final res = await ApiClient.get('/api/activities?type=user_rated,user_rating_received&limit=10');
-    if (res.statusCode == 200) {
-      final data = json.decode(res.body);
-      setState(() => ratingActivities = data['activities'] ?? []);
-    }
+    try {
+      final res = await ApiClient.get('/api/activities?type=user_rated,user_rating_received&limit=10');
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (mounted) setState(() => ratingActivities = data['activities'] ?? []);
+      }
+    } catch (_) {}
   }
 
   Future<void> submitRating() async {
@@ -132,7 +137,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         final data = json.decode(res.body);
         Map<String, int>? dist;
         if (data['distribution'] != null) {
-          dist = (data['distribution'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+          dist = (data['distribution'] as Map).map((k, v) => MapEntry(k.toString(), (v as num?)?.toInt() ?? 0));
         }
         setState(() {
           _searchedAvgRating = (data['avgRating'] ?? 0).toDouble();
@@ -158,6 +163,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     final commentCtrl = TextEditingController(text: r['comment'] ?? '');
     double localRating = (r['rating'] ?? 5).toDouble();
 
+    bool _isUpdating = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -233,8 +239,8 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
                       ),
-                      onPressed: () async {
-                        setSheet(() {});
+                      onPressed: _isUpdating ? null : () async {
+                        setSheet(() => _isUpdating = true);
                         final res = await ApiClient.patch('/api/ratings/$ratingId', body: {
                           'rating': localRating,
                           'comment': commentCtrl.text.trim(),

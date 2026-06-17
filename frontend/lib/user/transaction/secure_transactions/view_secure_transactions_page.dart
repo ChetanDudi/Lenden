@@ -11,8 +11,9 @@ import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
-import 'secure_transaction_page.dart';
+import 'secure_transaction_page.dart' hide TopWaveClipper;
 import '../../../widgets/stylish_dialog.dart';
+import '../../../widgets/wave_widget.dart';
 
 class UserTransactionsPage extends StatefulWidget {
   final String initialFilter;
@@ -2034,11 +2035,28 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.cyan,
-        elevation: 0,
-        title: Text('Your Transactions ($totalTransactions)',
-            style: TextStyle(color: Colors.black)),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          title: Text('Your Transactions ($totalTransactions)',
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          iconTheme: const IconThemeData(color: Colors.black),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: 90,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: loading
           ? Center(child: CircularProgressIndicator())

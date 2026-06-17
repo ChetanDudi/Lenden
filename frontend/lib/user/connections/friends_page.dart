@@ -95,7 +95,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       final results = await Future.wait([
         ApiClient.get('/api/friends'),
         ApiClient.get('/api/friends/requests'),
-      ]);
+      ]).timeout(const Duration(seconds: 15));
       final res = results[0];
       final reqRes = results[1];
       if (res.statusCode == 200) {

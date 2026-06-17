@@ -9,6 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
+import '../../widgets/wave_widget.dart';
 import 'chat_encryption_service.dart';
 import '../../widgets/app_widgets.dart';
 
@@ -204,8 +205,18 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  bool _withinEditWindow(dynamic message) {
+    try {
+      final created = DateTime.parse((message['createdAt'] ?? '').toString());
+      return DateTime.now().difference(created).inMinutes < 2;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
+    socket.disconnect();
     socket.dispose();
     _messageController.dispose();
     _messageFocusNode.dispose();
@@ -465,11 +476,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
             child: Wrap(
               children: <Widget>[
-                if (isMe &&
-                    DateTime.now()
-                            .difference(DateTime.parse(message['createdAt']))
-                            .inMinutes <
-                        2)
+                if (isMe && _withinEditWindow(message))
                   ListTile(
                     leading: Icon(Icons.edit, color: Colors.blueAccent),
                     title: Text('Edit'),
@@ -801,16 +808,18 @@ class _ChatPageState extends State<ChatPage> {
       },
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(120.0),
+          preferredSize: const Size.fromHeight(100.0),
           child: AppBar(
             flexibleSpace: ClipPath(
-              clipper: WaveClipper(),
+              clipper: const TopWaveClipper(),
               child: Container(
-                decoration: BoxDecoration(
+                height: 100,
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                      colors: [Colors.blue.shade400, Colors.blue.shade600],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight),
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
@@ -1219,26 +1228,3 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-class WaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.525); // 0.7 * 0.75
-    path.quadraticBezierTo(
-        size.width * 0.25,
-        size.height * 0.75, // 1.0 * 0.75
-        size.width * 0.5,
-        size.height * 0.525); // 0.7 * 0.75
-    path.quadraticBezierTo(
-        size.width * 0.75,
-        size.height * 0.3, // 0.4 * 0.75
-        size.width,
-        size.height * 0.525); // 0.7 * 0.75
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

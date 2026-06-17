@@ -9,6 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
+import '../../widgets/wave_widget.dart';
 import 'chat_encryption_service.dart';
 import '../../widgets/app_widgets.dart';
 
@@ -902,10 +903,16 @@ class _GroupChatPageState extends State<GroupChatPage> {
               left: 0,
               right: 0,
               child: ClipPath(
-                clipper: TopWaveClipper(),
+                clipper: const TopWaveClipper(),
                 child: Container(
                   height: 120,
-                  color: AppColors.cyan,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1404,20 +1411,3 @@ class _GroupChatPageState extends State<GroupChatPage> {
   }
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
