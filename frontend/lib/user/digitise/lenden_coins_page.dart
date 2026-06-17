@@ -18,8 +18,29 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   bool _hasFetchedHistory = false;
   String? _historyError;
   int? _fetchedBalance;
+  bool _isLoadingBalance = true;
   Map<String, dynamic>? _summary;
   List<Map<String, dynamic>> _entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBalance();
+  }
+
+  Future<void> _fetchBalance() async {
+    setState(() => _isLoadingBalance = true);
+    try {
+      final res = await ApiClient.get('/api/coins/history?limit=0');
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && mounted) {
+        setState(() => _fetchedBalance = data['balance'] as int?);
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoadingBalance = false);
+    }
+  }
 
   Future<void> _fetchHistory() async {
     setState(() {
@@ -168,14 +189,23 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    '$_displayBalance',
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  _isLoadingBalance
+                      ? const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.8,
+                          ),
+                        )
+                      : Text(
+                          '$_displayBalance',
+                          style: const TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                   const SizedBox(height: 4),
                   const Text(
                     'Available LenDen Coins',

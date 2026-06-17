@@ -905,7 +905,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               child: ClipPath(
                 clipper: const TopWaveClipper(),
                 child: Container(
-                  height: 120,
+                  height: 140,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -918,7 +918,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             ),
             Column(
               children: [
-                SizedBox(height: 120),
+                SizedBox(height: 140),
                 Expanded(
                   child: _isLoading
                       ? Center(child: CircularProgressIndicator())

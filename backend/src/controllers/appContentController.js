@@ -1145,9 +1145,43 @@ exports.trackAdEvent = async (req, res) => {
   }
 };
 
+const _mimeFromFilename = (filename = '') => {
+  const ext = filename.split('.').pop().toLowerCase();
+  const map = {
+    mp4: 'video/mp4',
+    mov: 'video/quicktime',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
+    webm: 'video/webm',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+  };
+  return map[ext] || null;
+};
+
 exports.streamAdMedia = async (req, res) => {
+  // Allow cross-origin video loading (needed for Flutter Web and browser-based players)
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges, Content-Disposition',
+  });
+
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Headers', 'Range');
+    return res.sendStatus(204);
+  }
+
+  let fileId;
   try {
-    const fileId = new mongoose.Types.ObjectId(req.params.fileId);
+    fileId = new mongoose.Types.ObjectId(req.params.fileId);
+  } catch {
+    return res.status(400).json({ error: 'Invalid media ID.' });
+  }
+
+  try {
     const bucket = getAdMediaBucket();
     const files = await bucket.find({ _id: fileId }).toArray();
     const file = files[0];
@@ -1156,36 +1190,68 @@ exports.streamAdMedia = async (req, res) => {
       return res.status(404).json({ error: 'Media not found.' });
     }
 
+    // Derive content type from filename extension as the reliable fallback
+    const contentType =
+      (file.contentType && file.contentType !== 'application/octet-stream')
+        ? file.contentType
+        : (_mimeFromFilename(file.filename) || 'application/octet-stream');
+
+    const disposition = `inline; filename="${file.filename || 'media'}"`;
     const range = req.headers.range;
-    const contentType = file.contentType || 'application/octet-stream';
 
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : file.length - 1;
-      const chunkSize = end - start + 1;
+      const start = parseInt(parts[0], 10) || 0;
+      const end = parts[1] && parts[1].trim() !== ''
+        ? Math.min(parseInt(parts[1], 10), file.length - 1)
+        : file.length - 1;
 
+      if (start > end || start >= file.length) {
+        res.set('Content-Range', `bytes */${file.length}`);
+        return res.status(416).json({ error: 'Range not satisfiable.' });
+      }
+
+      const chunkSize = end - start + 1;
       res.status(206);
       res.set({
         'Content-Range': `bytes ${start}-${end}/${file.length}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
         'Content-Type': contentType,
+        'Content-Disposition': disposition,
+        'Cache-Control': 'public, max-age=3600',
       });
 
-      bucket.openDownloadStream(fileId, { start, end: end + 1 }).pipe(res);
+      const downloadStream = bucket.openDownloadStream(fileId, { start, end: end + 1 });
+      req.on('close', () => downloadStream.destroy());
+      downloadStream.on('error', (err) => {
+        console.error('GridFS range stream error:', err);
+        if (!res.writableEnded) res.end();
+      });
+      downloadStream.pipe(res);
       return;
     }
 
+    res.status(200);
     res.set({
       'Content-Length': file.length,
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
+      'Content-Disposition': disposition,
+      'Cache-Control': 'public, max-age=3600',
     });
 
-    bucket.openDownloadStream(fileId).pipe(res);
+    const downloadStream = bucket.openDownloadStream(fileId);
+    req.on('close', () => downloadStream.destroy());
+    downloadStream.on('error', (err) => {
+      console.error('GridFS stream error:', err);
+      if (!res.writableEnded) res.end();
+    });
+    downloadStream.pipe(res);
   } catch (error) {
     console.error('Failed to stream ad media:', error);
-    res.status(500).json({ error: 'Failed to stream media' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to stream media.' });
+    }
   }
 };

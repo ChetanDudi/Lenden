@@ -2036,7 +2036,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(90),
+        preferredSize: const Size.fromHeight(140),
         child: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -2046,7 +2046,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
           flexibleSpace: ClipPath(
             clipper: const TopWaveClipper(),
             child: Container(
-              height: 90,
+              height: 140,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.cyan, Color(0xFF48CAE4)],

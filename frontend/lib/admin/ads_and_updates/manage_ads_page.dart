@@ -22,8 +22,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
   final _bodyController = TextEditingController();
   final _ctaTextController = TextEditingController();
   final _ctaUrlController = TextEditingController();
-  final _startsAtController = TextEditingController();
-  final _endsAtController = TextEditingController();
+  DateTime? _startsAt;
+  DateTime? _endsAt;
   final _tagsController = TextEditingController();
   final _placementsController = TextEditingController(text: 'dashboard');
 
@@ -77,8 +77,6 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     _bodyController.dispose();
     _ctaTextController.dispose();
     _ctaUrlController.dispose();
-    _startsAtController.dispose();
-    _endsAtController.dispose();
     _tagsController.dispose();
     _placementsController.dispose();
     _tabController.dispose();
@@ -146,47 +144,122 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     return null;
   }
 
-  String _toEditableDateTime(dynamic rawValue) {
-    final parsed = DateTime.tryParse(rawValue?.toString() ?? '')?.toLocal();
-    if (parsed == null) return '';
-    return _toApiDateTime(parsed);
+  String _formatAdDateTime(DateTime dt) {
+    final d = dt.day.toString().padLeft(2, '0');
+    final mo = dt.month.toString().padLeft(2, '0');
+    final y = dt.year.toString();
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final hh = h.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final ampm = dt.hour < 12 ? 'AM' : 'PM';
+    return '$d/$mo/$y  $hh:$mm $ampm';
   }
 
-  String _toApiDateTime(DateTime value) => value.toUtc().toIso8601String();
-
-  Future<void> _pickDateTime({
-    required TextEditingController controller,
-    required String title,
+  Future<DateTime?> _pickDateTimeStyled({
+    DateTime? initial,
+    required String helpText,
   }) async {
-    final initial =
-        DateTime.tryParse(controller.text.trim())?.toLocal() ?? DateTime.now();
+    final now = initial ?? DateTime.now();
     final date = await showDatePicker(
       context: context,
-      initialDate: initial,
+      initialDate: now,
       firstDate: DateTime(2024),
       lastDate: DateTime(2100),
-      helpText: title,
+      helpText: helpText,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.cyan,
+            onPrimary: Colors.white,
+            surface: Colors.white,
+            onSurface: Colors.black87,
+          ),
+          dialogTheme: DialogThemeData(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.cyan),
+          ),
+        ),
+        child: child!,
+      ),
     );
-    if (date == null || !mounted) return;
+    if (date == null || !mounted) return null;
 
     final time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-      helpText: '$title Time',
+      initialTime: TimeOfDay.fromDateTime(now),
+      helpText: '$helpText Time',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.cyan,
+            onPrimary: Colors.white,
+            surface: Colors.white,
+            onSurface: Colors.black87,
+          ),
+          dialogTheme: DialogThemeData(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.cyan),
+          ),
+        ),
+        child: child!,
+      ),
     );
-    if (time == null || !mounted) return;
+    if (time == null) return null;
 
-    final combined = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Widget _buildStylishDateTimePicker({
+    required String label,
+    required String helperText,
+    required DateTime? value,
+    required ValueChanged<DateTime> onPick,
+    VoidCallback? onClear,
+  }) {
+    return InkWell(
+      onTap: () async {
+        final picked = await _pickDateTimeStyled(
+          initial: value,
+          helpText: 'Select $label',
+        );
+        if (picked != null) onPick(picked);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helperText,
+          hintText: 'Tap to choose date and time',
+          border: const OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.calendar_month_outlined, color: AppColors.cyan),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (onClear != null && value != null)
+                IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: onClear,
+                ),
+            ],
+          ),
+        ),
+        child: Text(
+          value != null ? _formatAdDateTime(value) : '',
+          style: TextStyle(
+            color: value != null ? Colors.black87 : Colors.grey,
+            fontSize: 15,
+          ),
+        ),
+      ),
     );
-
-    setState(() {
-      controller.text = _toApiDateTime(combined);
-    });
   }
 
   void _startEditing(Map<String, dynamic> ad) {
@@ -196,8 +269,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       _bodyController.text = (ad['body'] ?? '').toString();
       _ctaTextController.text = (ad['callToActionText'] ?? '').toString();
       _ctaUrlController.text = (ad['callToActionUrl'] ?? '').toString();
-      _startsAtController.text = _toEditableDateTime(ad['startsAt']);
-      _endsAtController.text = _toEditableDateTime(ad['endsAt']);
+      _startsAt = DateTime.tryParse(ad['startsAt']?.toString() ?? '')?.toLocal();
+      _endsAt = DateTime.tryParse(ad['endsAt']?.toString() ?? '')?.toLocal();
       _tagsController.text =
           ((ad['tags'] as List?) ?? const []).map((e) => '$e').join(', ');
       _placementsController.text =
@@ -223,8 +296,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       _bodyController.clear();
       _ctaTextController.clear();
       _ctaUrlController.clear();
-      _startsAtController.clear();
-      _endsAtController.clear();
+      _startsAt = null;
+      _endsAt = null;
       _tagsController.clear();
       _placementsController.text = 'dashboard';
       _selectedMedia = null;
@@ -266,8 +339,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
         'body': _bodyController.text.trim(),
         'callToActionText': _ctaTextController.text.trim(),
         'callToActionUrl': _ctaUrlController.text.trim(),
-        'startsAt': _startsAtController.text.trim(),
-        'endsAt': _endsAtController.text.trim(),
+        'startsAt': _startsAt?.toUtc().toIso8601String() ?? '',
+        'endsAt': _endsAt?.toUtc().toIso8601String() ?? '',
         'audience': _audience,
         'tags': _tagsController.text.trim(),
         'placements': _placementsController.text.trim(),
@@ -704,61 +777,19 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                   setState(() => _audience = value ?? 'nonsubscribed'),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _startsAtController,
-              readOnly: true,
-              onTap: () => _pickDateTime(
-                controller: _startsAtController,
-                title: 'Select Start Date',
-              ),
-              decoration: InputDecoration(
-                labelText: 'Starts At',
-                helperText:
-                    'Choose when this ad should start appearing to eligible users.',
-                hintText: 'Tap to choose date and time',
-                border: OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_month_outlined),
-                  onPressed: () => _pickDateTime(
-                    controller: _startsAtController,
-                    title: 'Select Start Date',
-                  ),
-                ),
-              ),
+            _buildStylishDateTimePicker(
+              label: 'Starts At',
+              helperText: 'Choose when this ad should start appearing to eligible users.',
+              value: _startsAt,
+              onPick: (dt) => setState(() => _startsAt = dt),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _endsAtController,
-              readOnly: true,
-              onTap: () => _pickDateTime(
-                controller: _endsAtController,
-                title: 'Select End Date',
-              ),
-              decoration: InputDecoration(
-                labelText: 'Ends At',
-                helperText:
-                    'Optional. Choose when this ad should stop appearing.',
-                hintText: 'Tap to choose date and time',
-                border: OutlineInputBorder(),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_endsAtController.text.trim().isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () =>
-                            setState(() => _endsAtController.clear()),
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      onPressed: () => _pickDateTime(
-                        controller: _endsAtController,
-                        title: 'Select End Date',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            _buildStylishDateTimePicker(
+              label: 'Ends At',
+              helperText: 'Optional. Choose when this ad should stop appearing.',
+              value: _endsAt,
+              onPick: (dt) => setState(() => _endsAt = dt),
+              onClear: () => setState(() => _endsAt = null),
             ),
             const SizedBox(height: 12),
             TextField(

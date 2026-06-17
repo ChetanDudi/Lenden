@@ -67,10 +67,17 @@ const corsOptions = {
     'Authorization',
     'X-Requested-With',
     'Accept',
-    'Origin'
+    'Origin',
+    'Range',
+  ],
+  exposedHeaders: [
+    'Content-Range',
+    'Content-Length',
+    'Accept-Ranges',
+    'Content-Disposition',
   ],
   credentials: true,
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 200
 };
 
 // Trust Render's (and any single-hop) reverse proxy so req.ip returns the real client IP

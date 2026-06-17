@@ -1057,7 +1057,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(90),
+        preferredSize: const Size.fromHeight(140),
         child: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -1067,7 +1067,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
           flexibleSpace: ClipPath(
             clipper: const TopWaveClipper(),
             child: Container(
-              height: 90,
+              height: 140,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.cyan, Color(0xFF48CAE4)],

@@ -808,12 +808,12 @@ class _ChatPageState extends State<ChatPage> {
       },
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(100.0),
+          preferredSize: const Size.fromHeight(140.0),
           child: AppBar(
             flexibleSpace: ClipPath(
               clipper: const TopWaveClipper(),
               child: Container(
-                height: 100,
+                height: 140,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

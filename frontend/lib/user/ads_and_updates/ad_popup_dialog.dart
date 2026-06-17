@@ -284,223 +284,156 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
+            colors: [AppColors.cyan, Color(0xFF0077B6)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-          ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Sponsored',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          allowImmediateClose
-                              ? 'You can close this ad anytime.'
-                              : 'Close unlocks after ${_closeUnlockLabel(videoCloseAtPercent)}.',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (allowImmediateClose || _videoCanClose)
-                    _buildCloseButton(context)
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF5FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.lock_outline,
-                        color: AppColors.cyan,
-                      ),
-                    ),
-                ],
-              ),
-              if ((ad['title'] ?? '').toString().trim().isNotEmpty)
-                Text(
-                  ad['title'].toString(),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              if ((ad['body'] ?? '').toString().trim().isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  ad['body'].toString(),
-                  style: const TextStyle(height: 1.45),
-                ),
-              ],
-              if (mediaKind != 'none' && mediaUrl.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: mediaKind == 'video'
-                      ? _AdVideoPlayer(
-                          url: mediaUrl,
-                          closeAtPercent: videoCloseAtPercent,
-                          onCloseUnlocked: () {
-                            if (!mounted || _videoCanClose) return;
-                            setState(() => _videoCanClose = true);
-                          },
-                          onWatchSecondsChanged: (seconds) {
-                            widget.ad['_watchSeconds'] = seconds;
-                          },
-                        )
-                      : Image.network(
-                          mediaUrl,
-                          height: 210,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                ),
-              ],
-              if (ctaText.trim().isNotEmpty && ctaUrl.trim().isNotEmpty) ...[
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final uri = Uri.tryParse(ctaUrl);
-                      if (uri != null) {
-                        await _trackAdEvent('click', watchSeconds: _watchSeconds());
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(ctaText),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 14),
+              // Gradient header
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF5FF),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFBDE7F3)),
+                padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.cyan, Color(0xFF0077B6)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
-                          Icons.workspace_premium_outlined,
-                          color: AppColors.cyan,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Subscribe to remove ads',
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.4)),
+                          ),
+                          child: const Text(
+                            'Sponsored',
                             style: TextStyle(
-                              fontSize: 15,
+                              color: Colors.white,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF0077B6),
+                              fontSize: 12,
+                              letterSpacing: 0.4,
                             ),
                           ),
                         ),
+                        const Spacer(),
+                        _buildOptionsMenu(context),
+                        const SizedBox(width: 4),
+                        if (allowImmediateClose || _videoCanClose)
+                          _buildCloseButton(context)
+                        else
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.lock_outline,
+                                color: Colors.white, size: 20),
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      'Upgrade once to enjoy an ad-free experience across your account.',
-                      style: TextStyle(
-                        color: Colors.grey.shade800,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
+                      allowImmediateClose
+                          ? 'You can close this ad anytime.'
+                          : 'Close unlocks after ${_closeUnlockLabel(videoCloseAtPercent)}.',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        alignment: WrapAlignment.end,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () {
-                              unawaited(
-                                _trackAdEventWithMetadata(
-                                  'hide',
-                                  watchSeconds: _watchSeconds(),
-                                  metadata: const {'hideMode': 'today'},
-                                ),
-                              );
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('Hide Today'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () => _hideForAWeek(context),
-                            child: const Text('Not Interested'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () => _reportAd(context),
-                            child: const Text('Report Ad'),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const SubscriptionsPage(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0077B6),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                  ],
+                ),
+              ),
+              // Content area
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if ((ad['title'] ?? '').toString().trim().isNotEmpty)
+                      Text(
+                        ad['title'].toString(),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    if ((ad['body'] ?? '').toString().trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        ad['body'].toString(),
+                        style: const TextStyle(height: 1.45),
+                      ),
+                    ],
+                    if (mediaKind != 'none' && mediaUrl.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: mediaKind == 'video'
+                            ? _AdVideoPlayer(
+                                url: mediaUrl,
+                                closeAtPercent: videoCloseAtPercent,
+                                onCloseUnlocked: () {
+                                  if (!mounted || _videoCanClose) return;
+                                  setState(() => _videoCanClose = true);
+                                },
+                                onWatchSecondsChanged: (seconds) {
+                                  widget.ad['_watchSeconds'] = seconds;
+                                },
+                              )
+                            : Image.network(
+                                mediaUrl,
+                                height: 210,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                      ),
+                    ],
+                    if (ctaText.trim().isNotEmpty &&
+                        ctaUrl.trim().isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final uri = Uri.tryParse(ctaUrl);
+                            if (uri != null) {
+                              await _trackAdEvent('click',
+                                  watchSeconds: _watchSeconds());
+                              await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.cyan,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            icon: const Icon(Icons.arrow_forward_rounded),
-                            label: const Text('Subscribe'),
                           ),
-                        ],
+                          child: Text(ctaText),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -511,16 +444,83 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
     );
   }
 
+  Widget _buildOptionsMenu(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, color: Colors.white),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 4,
+      onSelected: (value) {
+        switch (value) {
+          case 'hide_today':
+            unawaited(_trackAdEventWithMetadata(
+              'hide',
+              watchSeconds: _watchSeconds(),
+              metadata: const {'hideMode': 'today'},
+            ));
+            Navigator.of(context).pop();
+          case 'not_interested':
+            _hideForAWeek(context);
+          case 'report':
+            _reportAd(context);
+          case 'subscribe':
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SubscriptionsPage()),
+            );
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'hide_today',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.visibility_off_outlined, size: 20),
+            title: Text('Hide Today', style: TextStyle(fontSize: 14)),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'not_interested',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.thumb_down_outlined, size: 20),
+            title: Text('Not Interested', style: TextStyle(fontSize: 14)),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'report',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.flag_outlined, size: 20),
+            title: Text('Report Ad', style: TextStyle(fontSize: 14)),
+            dense: true,
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'subscribe',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.workspace_premium_outlined,
+                size: 20, color: Color(0xFF0077B6)),
+            title: Text(
+              'Subscribe',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF0077B6),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            dense: true,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCloseButton(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF5FF),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.close, color: AppColors.cyan),
-        onPressed: () => _closeAd(context),
-      ),
+    return IconButton(
+      icon: const Icon(Icons.close, color: Colors.white),
+      onPressed: () => _closeAd(context),
     );
   }
 
@@ -556,7 +556,7 @@ class _AdVideoPlayer extends StatefulWidget {
 }
 
 class _AdVideoPlayerState extends State<_AdVideoPlayer> {
-  late final VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   Timer? _refreshTimer;
   Timer? _loadingCountdownTimer;
   bool _ready = false;
@@ -577,40 +577,61 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
         _unlockClose();
       }
     });
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() {
-          _ready = true;
-          _loadFailed = false;
-        });
-        _controller
-          ..setLooping(true)
-          ..play();
-        _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (!mounted || !_controller.value.isInitialized) return;
-          _checkCloseUnlock();
-          widget.onWatchSecondsChanged?.call(
-            _controller.value.position.inSeconds.clamp(0, 86400),
-          );
-          setState(() {});
-        });
-      }).catchError((_) {
-        if (!mounted) return;
-        setState(() => _loadFailed = true);
+    _initController();
+  }
+
+  void _initController() {
+    final ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    _controller = ctrl;
+    ctrl.initialize().then((_) {
+      if (!mounted || _controller != ctrl) return;
+      setState(() {
+        _ready = true;
+        _loadFailed = false;
       });
+      ctrl
+        ..setLooping(true)
+        ..play();
+      _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || !ctrl.value.isInitialized) return;
+        _checkCloseUnlock();
+        widget.onWatchSecondsChanged?.call(
+          ctrl.value.position.inSeconds.clamp(0, 86400),
+        );
+        setState(() {});
+      });
+    }).catchError((error) {
+      debugPrint('AdVideoPlayer: initialize() failed: $error');
+      if (!mounted || _controller != ctrl) return;
+      setState(() => _loadFailed = true);
+    });
+  }
+
+  Future<void> _retry() async {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    final old = _controller;
+    _controller = null;
+    setState(() {
+      _ready = false;
+      _loadFailed = false;
+      _fallbackUnlockSeconds = _fallbackSecondsFor(widget.closeAtPercent);
+    });
+    await old?.dispose();
+    if (!mounted) return;
+    _initController();
   }
 
   int _fallbackSecondsFor(int closeAtPercent) {
     switch (closeAtPercent) {
       case 25:
-        return 4;
-      case 50:
-        return 8;
-      case 75:
-        return 12;
-      default:
         return 16;
+      case 50:
+        return 24;
+      case 75:
+        return 32;
+      default:
+        return 45;
     }
   }
 
@@ -622,8 +643,10 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
 
   void _checkCloseUnlock() {
     if (_closeUnlocked) return;
-    final duration = _controller.value.duration;
-    final position = _controller.value.position;
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    final duration = ctrl.value.duration;
+    final position = ctrl.value.position;
     if (duration.inMilliseconds <= 0) return;
     final unlockAtMs =
         (duration.inMilliseconds * widget.closeAtPercent / 100).round();
@@ -636,7 +659,7 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
   void dispose() {
     _refreshTimer?.cancel();
     _loadingCountdownTimer?.cancel();
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -652,17 +675,30 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 14),
-                  Text(
-                    _loadFailed
-                        ? 'Video is taking too long to load.'
-                        : 'Loading video...',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                  if (_loadFailed) ...[
+                    const Icon(Icons.videocam_off_outlined,
+                        size: 40, color: Colors.black45),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Video failed to load.',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: Colors.black87),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _retry,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Retry'),
+                    ),
+                  ] else ...[
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Loading video...',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: Colors.black87),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Text(
                     _closeUnlocked
@@ -704,8 +740,9 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
       );
     }
 
-    final duration = _controller.value.duration;
-    final position = _controller.value.position;
+    final ctrl = _controller!;
+    final duration = ctrl.value.duration;
+    final position = ctrl.value.position;
     final totalSeconds = duration.inSeconds > 0 ? duration.inSeconds : 0;
     final remainingSeconds =
         (duration - position).inSeconds.clamp(0, totalSeconds);
@@ -718,8 +755,8 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
       alignment: Alignment.bottomCenter,
       children: [
         AspectRatio(
-          aspectRatio: _controller.value.aspectRatio,
-          child: VideoPlayer(_controller),
+          aspectRatio: ctrl.value.aspectRatio,
+          child: VideoPlayer(ctrl),
         ),
         Positioned(
           top: 12,
