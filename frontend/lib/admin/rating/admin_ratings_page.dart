@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
-import '../../profile/profile_page.dart' hide TopWaveClipper, BottomWaveClipper;
+import '../../profile/profile_page.dart' hide TopWaveClipper;
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 

@@ -15,7 +15,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'view_secure_transactions_page.dart';
-import '../../digitise/gift_card_page.dart';
+
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -761,42 +761,6 @@ class _TransactionPageState extends State<TransactionPage> {
         _draftStatusMessage = 'No saved draft';
       });
     }
-  }
-
-  Future<void> _resetFormForAnotherTransaction() async {
-    await _clearDraft();
-    if (!mounted) return;
-    final user = Provider.of<SessionProvider>(context, listen: false).user;
-    setState(() {
-      _formKey.currentState?.reset();
-      _amountController.clear();
-      _placeController.clear();
-      _counterpartyEmailController.clear();
-      _userEmailController.text = (user?['email'] ?? '').toString();
-      _interestRateController.clear();
-      _descriptionController.clear();
-      _pickedFiles = [];
-      _transactionId = null;
-      _role = 'lender';
-      _currency = 'INR';
-      _selectedDate = null;
-      _selectedTime = null;
-      _counterpartyOtp = null;
-      _userOtp = null;
-      _counterpartyOtpError = null;
-      _userOtpError = null;
-      _counterpartyEmailError = null;
-      _userEmailError = null;
-      _sameEmailError = null;
-      _counterpartyOtpSeconds = 0;
-      _userOtpSeconds = 0;
-      _counterpartyVerified = false;
-      _userVerified = false;
-      _interestType = 'none';
-      _expectedReturnDate = null;
-      _compoundingFrequency = 1;
-      _draftStatusMessage = 'Start your next secure transaction';
-    });
   }
 
   Future<void> _discardDraftWithConfirmation() async {

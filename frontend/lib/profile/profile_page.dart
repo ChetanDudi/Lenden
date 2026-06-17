@@ -6,7 +6,7 @@ import '../utils/api_client.dart';
 import '../utils/responsive.dart';
 import 'edit_profile_page.dart';
 import '../widgets/app_colors.dart';
-import '../widgets/app_widgets.dart';
+
 
 class ProfilePage extends StatefulWidget {
   final String? email;
