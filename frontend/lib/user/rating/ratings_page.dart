@@ -5,7 +5,7 @@ import '../../session.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
-import '../../widgets/subscription_prompt.dart';
+import '../digitise/subscriptions_page.dart';
 
 class RatingsPage extends StatefulWidget {
   const RatingsPage({super.key});
@@ -716,7 +716,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                           ),
                                           icon: const Icon(Icons.workspace_premium, color: Colors.amber),
                                           label: const Text('Subscribe Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                          onPressed: () => showSubscriptionPrompt(context),
+                                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
                                         ),
                                       ]),
                                     ),

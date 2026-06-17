@@ -12,10 +12,8 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../widgets/app_widgets.dart';
 import '../../../utils/display_currency_helper.dart';
-import '../../../widgets/subscription_prompt.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
-import '../../digitise/subscriptions_page.dart';
 import '../../digitise/gift_card_page.dart';
 import '../analytics_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
@@ -442,8 +440,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     if (_blockedEmails.isEmpty) {
       await _loadBlockedUsers();
     }
-    if (!session.isSubscribed && _dailyLimits == null) {
-      await _loadDailyLimits();
+    if (!session.isSubscribed) {
+      await Future.wait([
+        session.loadFreebieCounts(),
+        _loadDailyLimits(),
+      ]);
     }
     if (_isBlockedEmail(prefillEmail)) {
       showBlockedUserDialog(context);
@@ -452,32 +453,39 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
     final dailyQuickRemaining =
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
+
+    // Rule: if daily limit is expired → hard block; free attempts are also paused.
+    if (!session.isSubscribed && transaction == null &&
+        dailyQuickRemaining != null && dailyQuickRemaining <= 0) {
+      showDailyLimitDialog(context,
+          message:
+              'You\'ve reached today\'s limit of 3 quick transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+      return;
+    }
+
+    // Daily limit OK but free attempts exhausted → offer coins.
     final shouldUseCoins = !session.isSubscribed &&
         transaction == null &&
-        ((dailyQuickRemaining != null && dailyQuickRemaining <= 0) ||
-            (session.freeQuickTransactionsRemaining ?? 0) <= 0);
+        (session.freeQuickTransactionsRemaining ?? 0) <= 0;
 
     if (shouldUseCoins) {
-      if ((session.lenDenCoins ?? 0) < 5) {
-        if ((session.lenDenCoins ?? 0) == 0) {
+      const int coinCost = 5;
+      final coins = session.lenDenCoins ?? 0;
+      if (coins < coinCost) {
+        if (coins == 0) {
           showZeroCoinsDialog(context);
         } else {
           showInsufficientCoinsDialog(context);
         }
         return;
       }
-      final useCoins = await showDialog(
-        context: context,
-        builder: (context) => SubscriptionPrompt(
-          title: 'No Free Quick Transactions Left',
-          subtitle: dailyQuickRemaining != null && dailyQuickRemaining <= 0
-              ? 'Your daily quick transaction limit is finished. You can still create one more now by spending 5 LenDen coins.'
-              : 'You have no free quick transactions remaining. Would you like to use 5 LenDen coins to create one?',
-        ),
+      final useCoins = await showFreeAttemptsExhaustedDialog(
+        context,
+        featureName: 'quick transaction',
+        coinCost: coinCost,
+        currentCoins: coins,
       );
-      if (useCoins != true) {
-        return;
-      }
+      if (useCoins != true) return;
     }
 
     final result = await Navigator.push(
@@ -770,172 +778,47 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     if (_blockedEmails.isEmpty) {
       await _loadBlockedUsers();
     }
-    if (!session.isSubscribed && _dailyLimits == null) {
-      await _loadDailyLimits();
+    if (!session.isSubscribed) {
+      await Future.wait([
+        session.loadFreebieCounts(),
+        _loadDailyLimits(),
+      ]);
     }
     final dailyQuickRemaining =
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
+
+    // Daily limit expired → hard block (free attempts also paused until tomorrow).
+    if (!session.isSubscribed && transaction == null &&
+        dailyQuickRemaining != null && dailyQuickRemaining <= 0) {
+      showDailyLimitDialog(context,
+          message:
+              'You\'ve reached today\'s limit of 3 quick transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+      return;
+    }
+
+    // Daily limit OK but free attempts exhausted → offer coins.
     final shouldUseCoins = !session.isSubscribed &&
         transaction == null &&
-        ((dailyQuickRemaining != null && dailyQuickRemaining <= 0) ||
-            (session.freeQuickTransactionsRemaining ?? 0) <= 0);
+        (session.freeQuickTransactionsRemaining ?? 0) <= 0;
+
     if (shouldUseCoins) {
-      if ((session.lenDenCoins ?? 0) < 5) {
-        if ((session.lenDenCoins ?? 0) == 0) {
+      const int coinCost = 5;
+      final coins = session.lenDenCoins ?? 0;
+      if (coins < coinCost) {
+        if (coins == 0) {
           showZeroCoinsDialog(context);
         } else {
           showInsufficientCoinsDialog(context);
         }
         return;
       }
-      final useCoins = await showDialog<bool>(
-        context: context,
-        builder: (context) => Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.monetization_on, color: Colors.orange, size: 48),
-                  SizedBox(height: 16),
-                  Text(
-                    'Use LenDen Coins',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    dailyQuickRemaining != null && dailyQuickRemaining <= 0
-                        ? 'Your daily quick transaction limit is finished. You can still create this transaction now by spending 5 LenDen coins.'
-                        : 'You have no free quick transactions remaining. Would you like to use 5 LenDen coins to create this transaction?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-                  ),
-                  if (dailyQuickRemaining != null &&
-                      dailyQuickRemaining <= 0) ...[
-                    SizedBox(height: 12),
-                    Text(
-                      'Warning: this will bypass today\'s free daily limit.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.orange[800],
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: 8),
-                  Text(
-                    'OR',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.orange,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Subscribe now for unlimited access',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                              color: Colors.grey[800],
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context, false);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SubscriptionsPage(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Subscribe',
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Use Coins',
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      final useCoins = await showFreeAttemptsExhaustedDialog(
+        context,
+        featureName: 'quick transaction',
+        coinCost: coinCost,
+        currentCoins: coins,
       );
-      if (useCoins != true) {
-        return;
-      }
+      if (useCoins != true) return;
     }
 
     final result = await Navigator.push(
@@ -2483,38 +2366,28 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           ),
         ],
       ),
-      floatingActionButton: Consumer<SessionProvider>(
-        builder: (context, session, child) {
-          final bool canCreate = session.isSubscribed ||
-              (session.freeQuickTransactionsRemaining ?? 0) > 0 ||
-              (session.lenDenCoins ?? 0) >= 5;
-          return Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: canCreate
-                    ? [Colors.orange, Colors.green]
-                    : [Colors.grey, Colors.grey],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Colors.orange, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: FloatingActionButton(
-              onPressed:
-                  canCreate ? () => createOrEditQuickTransaction() : null,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
-            ),
-          );
-        },
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () => createOrEditQuickTransaction(),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
     );
   }

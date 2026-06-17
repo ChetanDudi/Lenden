@@ -13,10 +13,13 @@ import '../../../utils/api_client.dart';
 import '../../../widgets/app_widgets.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../chats/chat_page.dart';
-import '../../../otp_input.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../wallet/lenden_wallet_page.dart';
+import 'partial_payment_page.dart';
+import 'partial_payment_history_page.dart';
+import 'payment_timeline_page.dart';
+import 'repayment_schedule_page.dart';
 
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -216,10 +219,15 @@ class _SecureTransactionDetailPageState
   Future<void> _clearAfterPayment(double amountPaid) async {
     final email = Provider.of<SessionProvider>(context, listen: false).user?['email'];
     if (email == null || !mounted) return;
-    // Payment made — clear both sides
+    // Payment made — clear both sides and record the payment in history
     try {
-      final res = await ApiClient.post('/api/transactions/clear',
-          body: {'transactionId': _t['transactionId'], 'email': email, 'bothSides': true});
+      final res = await ApiClient.post('/api/transactions/clear', body: {
+        'transactionId': _t['transactionId'],
+        'email': email,
+        'bothSides': true,
+        'amount': amountPaid,
+        'paymentMethod': 'wallet',
+      });
       if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() {
@@ -431,41 +439,46 @@ class _SecureTransactionDetailPageState
                     child: Text('Choose an option to generate the receipt.',
                         textAlign: TextAlign.center)),
                 const SizedBox(height: 20),
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                              icon: const Icon(Icons.email, color: Colors.white),
-                              label: const Text('Send to Email',
-                                  style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue[600],
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 12)),
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                _sendReceiptByEmail();
-                              }),
-                          ElevatedButton.icon(
-                              icon: const Icon(Icons.download,
-                                  color: Colors.white),
-                              label: const Text('Download Locally',
-                                  style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green[600],
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 12)),
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                _downloadReceiptLocally();
-                              }),
-                        ])),
+                SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton.icon(
+                                icon: const Icon(Icons.email, color: Colors.white),
+                                label: const Text('Send to Email',
+                                    style: TextStyle(color: Colors.white)),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue[600],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 12)),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _sendReceiptByEmail();
+                                }),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                                icon: const Icon(Icons.download,
+                                    color: Colors.white),
+                                label: const Text('Download Locally',
+                                    style: TextStyle(color: Colors.white)),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green[600],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 12)),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _downloadReceiptLocally();
+                                }),
+                          ]),
+                    )),
               ]),
             ));
   }
@@ -538,26 +551,30 @@ class _SecureTransactionDetailPageState
     }
   }
 
-  void _showPartialPaymentDialog() {
-    showDialog(
-        context: context,
-        builder: (_) => PartialPaymentDialog(
-              transaction: Map<String, dynamic>.from(_t),
-              onPaymentComplete: () {
-                _needsRefresh = true;
-                Navigator.of(context).pop(true);
-              },
-            ));
+  void _showPartialPaymentDialog() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PartialPaymentPage(transaction: Map<String, dynamic>.from(_t)),
+      ),
+    );
+    if (result == true && mounted) {
+      _needsRefresh = true;
+      Navigator.of(context).pop(true);
+    }
   }
 
   void _showPartialPaymentHistoryDialog() {
-    showDialog(
-        context: context,
-        builder: (_) => PartialPaymentHistoryDialog(
-              transaction: _t,
-              displayCurrencyData: _displayCurrencyData,
-              selectedDisplayCurrency: _selectedDisplayCurrency,
-            ));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PartialPaymentHistoryPage(
+          transaction: _t,
+          displayCurrencyData: _displayCurrencyData,
+          selectedDisplayCurrency: _selectedDisplayCurrency,
+        ),
+      ),
+    );
   }
 
   Widget _serviceChip({
@@ -780,172 +797,16 @@ class _SecureTransactionDetailPageState
 
   void _showPaymentTimeline() {
     final t = _t;
-    final txDate = DateTime.tryParse(t['date']?.toString() ?? '');
-    final returnDate =
-        DateTime.tryParse(t['expectedReturnDate']?.toString() ?? '');
-    final partialPayments = ((t['partialPayments'] as List?) ?? [])
-        .map((p) => p as Map)
-        .toList();
-    partialPayments.sort((a, b) {
-      final da = DateTime.tryParse(a['date']?.toString() ?? '');
-      final db = DateTime.tryParse(b['date']?.toString() ?? '');
-      if (da == null || db == null) return 0;
-      return da.compareTo(db);
-    });
-    final fullyCleared =
-        t['userCleared'] == true && t['counterpartyCleared'] == true;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (_, ctrl) => SingleChildScrollView(
-          controller: ctrl,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                    child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 16),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [AppColors.cyan, Color(0xFF0077B6)]),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.timeline,
-                        color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text('Payment Timeline',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0077B6))),
-                ]),
-                const SizedBox(height: 20),
-                _timelineItem(
-                    icon: Icons.flag_circle,
-                    color: Colors.teal,
-                    label: 'Transaction Created',
-                    date: txDate != null
-                        ? DateFormat('MMM d, yyyy').format(txDate)
-                        : '—',
-                    amount: _formatDisplayAmount(
-                        (t['amount'] as num?) ?? 0,
-                        t['currency']?.toString()),
-                    isFirst: true),
-                ...partialPayments.map((p) {
-                  final pDate =
-                      DateTime.tryParse(p['date']?.toString() ?? '');
-                  final pAmount = (p['amount'] as num?) ?? 0;
-                  final pDesc = p['description']?.toString() ?? '';
-                  return _timelineItem(
-                    icon: Icons.payments,
-                    color: Colors.purple,
-                    label:
-                        'Partial Payment${pDesc.isNotEmpty ? ': $pDesc' : ''}',
-                    date: pDate != null
-                        ? DateFormat('MMM d, yyyy').format(pDate)
-                        : '—',
-                    amount: _formatDisplayAmount(
-                        pAmount, t['currency']?.toString()),
-                  );
-                }),
-                if (returnDate != null)
-                  _timelineItem(
-                      icon: Icons.event,
-                      color: Colors.orange,
-                      label: 'Expected Return',
-                      date: DateFormat('MMM d, yyyy').format(returnDate),
-                      amount: _formatDisplayAmount(
-                          double.tryParse(
-                                  _calculateCurrentAmountWithInterest(t)) ??
-                              0,
-                          t['currency']?.toString())),
-                _timelineItem(
-                    icon: Icons.check_circle,
-                    color: fullyCleared ? Colors.green : Colors.grey,
-                    label:
-                        fullyCleared ? 'Fully Cleared' : 'Pending Clearance',
-                    date: fullyCleared ? 'Done' : 'Awaiting…',
-                    isLast: true),
-              ],
-            ),
-          ),
+    final fullyCleared = t['userCleared'] == true && t['counterpartyCleared'] == true;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentTimelinePage(
+          transaction: t,
+          displayCurrencyData: _displayCurrencyData,
+          selectedDisplayCurrency: _selectedDisplayCurrency,
+          fullyCleared: fullyCleared,
         ),
-      ),
-    );
-  }
-
-  Widget _timelineItem({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required String date,
-    String? amount,
-    bool isFirst = false,
-    bool isLast = false,
-  }) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-                border: Border.all(color: color, width: 2),
-              ),
-              child: Icon(icon, color: color, size: 18),
-            ),
-            if (!isLast)
-              Expanded(
-                  child: Container(width: 2, color: Colors.grey.shade200)),
-          ]),
-          const SizedBox(width: 14),
-          Expanded(
-              child: Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 20, top: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(date,
-                    style:
-                        const TextStyle(color: Colors.grey, fontSize: 12)),
-                if (amount != null) ...[
-                  const SizedBox(height: 2),
-                  Text(amount,
-                      style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13)),
-                ],
-              ],
-            ),
-          )),
-        ],
       ),
     );
   }
@@ -956,107 +817,15 @@ class _SecureTransactionDetailPageState
       showSnack(context, 'No interest on this transaction');
       return;
     }
-    final remaining =
-        double.tryParse(_calculateRemainingAmount(t)) ?? 0.0;
-    final rate = (t['interestRate'] as num).toDouble();
-    final type = t['interestType']?.toString() ?? '';
-
-    double amountAt(int days) {
-      if (type == 'simple') {
-        return remaining + (remaining * rate * days / 36500);
-      } else {
-        final n = (t['compoundingFrequency'] as num?)?.toInt() ?? 1;
-        return remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
-      }
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFFFF9933), Color(0xFF138808)]),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.table_chart,
-                      color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 10),
-                const Text('Repayment Schedule',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0077B6))),
-              ]),
-              const SizedBox(height: 12),
-              Text(
-                  'Amount owed grows over time if not cleared.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              ...[30, 60, 90, 180].map((days) {
-                final amt = amountAt(days);
-                final isEarly = days <= 30;
-                final isMid = days <= 60;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isEarly
-                        ? Colors.green.shade50
-                        : isMid
-                            ? Colors.orange.shade50
-                            : Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: isEarly
-                            ? Colors.green.shade200
-                            : isMid
-                                ? Colors.orange.shade200
-                                : Colors.red.shade200),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('In $days days',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text(
-                          _formatDisplayAmount(
-                              amt, t['currency']?.toString()),
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: isEarly
-                                  ? Colors.green[700]
-                                  : isMid
-                                      ? Colors.orange[700]
-                                      : Colors.red[700])),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0077B6)),
-                child: const Text('Close',
-                    style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
+    final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0.0;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RepaymentSchedulePage(
+          transaction: t,
+          displayCurrencyData: _displayCurrencyData,
+          selectedDisplayCurrency: _selectedDisplayCurrency,
+          remainingAmount: remaining,
         ),
       ),
     );
@@ -1489,6 +1258,126 @@ class _SecureTransactionDetailPageState
               ),
               const SizedBox(height: 16),
 
+              // Pay Now amount card
+              if (!fullyCleared)
+                Builder(builder: (_) {
+                  final payNowAmount =
+                      double.tryParse(_calculateRemainingAmount(t)) ?? 0.0;
+                  final paidSoFar =
+                      double.tryParse(_calculateAmountPaidTillNow(t)) ?? 0.0;
+                  final hasPartial =
+                      t['isPartiallyPaid'] == true && paidSoFar > 0;
+                  final partialCount = hasPartial
+                      ? ((t['partialPayments'] as List?)?.length ?? 0)
+                      : 0;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.indigo.shade50,
+                          Colors.blue.shade50,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.indigo.shade200),
+                      boxShadow: const [
+                        BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 6,
+                            offset: Offset(0, 2))
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Icon(Icons.flash_on,
+                              color: Colors.indigo.shade600, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Pay Now Amount',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.indigo.shade700,
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 10),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _formatDisplayAmount(payNowAmount,
+                                  t['currency']?.toString()),
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.indigo.shade700,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 3),
+                              child: Text(
+                                hasPartial
+                                    ? 'remaining after $partialCount partial payment${partialCount == 1 ? '' : 's'}'
+                                    : 'full amount to settle',
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (hasPartial) ...[
+                          const SizedBox(height: 10),
+                          Divider(color: Colors.indigo.shade100, height: 1),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Already paid',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600)),
+                              Text(
+                                _formatDisplayAmount(paidSoFar,
+                                    t['currency']?.toString()),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.teal),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Pay Now (remaining)',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600)),
+                              Text(
+                                _formatDisplayAmount(payNowAmount,
+                                    t['currency']?.toString()),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.indigo.shade700),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+
               // Repayment progress bar
               Builder(builder: (context) {
                 final totalWithInterest = double.tryParse(
@@ -1884,784 +1773,6 @@ class _SecureTransactionDetailPageState
         ),
       ),
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Classes moved from view_secure_transactions_page.dart
-// ---------------------------------------------------------------------------
-
-class PartialPaymentDialog extends StatefulWidget {
-  final Map<String, dynamic> transaction;
-  final VoidCallback onPaymentComplete;
-
-  const PartialPaymentDialog({
-    Key? key,
-    required this.transaction,
-    required this.onPaymentComplete,
-  }) : super(key: key);
-
-  @override
-  _PartialPaymentDialogState createState() => _PartialPaymentDialogState();
-}
-
-class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _descriptionController =
-      TextEditingController();
-  final TextEditingController _lenderOtpController = TextEditingController();
-  final TextEditingController _borrowerOtpController =
-      TextEditingController();
-
-  String? lenderEmail;
-  String? borrowerEmail;
-  String? paidBy;
-  bool lenderOtpSent = false;
-  bool borrowerOtpSent = false;
-  bool lenderOtpVerified = false;
-  bool borrowerOtpVerified = false;
-  bool isProcessing = false;
-  bool isSendingLenderOtp = false;
-  bool isSendingBorrowerOtp = false;
-  bool isVerifyingLenderOtp = false;
-  bool isVerifyingBorrowerOtp = false;
-  String? message;
-  bool isMessageError = false;
-
-  int lenderOtpSecondsLeft = 0;
-  int borrowerOtpSecondsLeft = 0;
-  bool lenderOtpExpired = false;
-  bool borrowerOtpExpired = false;
-  Timer? _otpTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeEmails();
-    _otpTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) _checkOtpExpiration();
-    });
-  }
-
-  void _initializeEmails() {
-    final user =
-        Provider.of<SessionProvider>(context, listen: false).user;
-    final userEmail = user?['email'];
-
-    if (widget.transaction['role'] == 'lender') {
-      lenderEmail = widget.transaction['userEmail'];
-      borrowerEmail = widget.transaction['counterpartyEmail'];
-    } else {
-      lenderEmail = widget.transaction['counterpartyEmail'];
-      borrowerEmail = widget.transaction['userEmail'];
-    }
-
-    if (userEmail == lenderEmail) {
-      paidBy = 'lender';
-    } else if (userEmail == borrowerEmail) {
-      paidBy = 'borrower';
-    }
-  }
-
-  @override
-  void dispose() {
-    _otpTimer?.cancel();
-    _amountController.dispose();
-    _descriptionController.dispose();
-    _lenderOtpController.dispose();
-    _borrowerOtpController.dispose();
-    super.dispose();
-  }
-
-  void _showMessage(String msg, {bool isError = false}) {
-    setState(() {
-      message = msg;
-      isMessageError = isError;
-    });
-    Future.delayed(Duration(seconds: 3), () {
-      if (mounted) setState(() => message = null);
-    });
-  }
-
-  String _calculateRemainingAmount(Map transaction) {
-    double original = transaction['amount']?.toDouble() ?? 0.0;
-    double paid = 0.0;
-    bool isFullyCleared = (transaction['userCleared'] == true &&
-        transaction['counterpartyCleared'] == true);
-    if (isFullyCleared) {
-      paid = original;
-    } else if (transaction['isPartiallyPaid'] == true &&
-        transaction['partialPayments'] != null) {
-      List pp = transaction['partialPayments'] as List;
-      paid = pp.fold<double>(
-          0, (s, p) => s + (p['amount'] as num).toDouble());
-    }
-    double remaining = original - paid;
-    if (paid >= original) return '0.00';
-    if (transaction['interestType'] != null &&
-        transaction['interestRate'] != null) {
-      final txDate = DateTime.tryParse(transaction['date'] ?? '');
-      if (txDate != null) {
-        final days = DateTime.now().difference(txDate).inDays;
-        if (days > 0) {
-          final rate = transaction['interestRate']?.toDouble() ?? 0.0;
-          if (transaction['interestType'] == 'simple') {
-            remaining = remaining + (remaining * rate * days / 365);
-          } else if (transaction['interestType'] == 'compound') {
-            final n =
-                transaction['compoundingFrequency']?.toInt() ?? 1;
-            remaining = remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
-          }
-        }
-      }
-    }
-    return remaining.toStringAsFixed(2);
-  }
-
-  void _checkOtpExpiration() {
-    if (lenderOtpSecondsLeft > 0 && lenderOtpSent && !lenderOtpVerified) {
-      setState(() => lenderOtpSecondsLeft--);
-      if (lenderOtpSecondsLeft == 0) {
-        setState(() => lenderOtpExpired = true);
-        _showMessage('Lender OTP has expired. Please resend.',
-            isError: true);
-      }
-    }
-    if (borrowerOtpSecondsLeft > 0 &&
-        borrowerOtpSent &&
-        !borrowerOtpVerified) {
-      setState(() => borrowerOtpSecondsLeft--);
-      if (borrowerOtpSecondsLeft == 0) {
-        setState(() => borrowerOtpExpired = true);
-        _showMessage('Borrower OTP has expired. Please resend.',
-            isError: true);
-      }
-    }
-  }
-
-  Future<void> _sendOtp(String email, bool isLender) async {
-    setState(() {
-      if (isLender) {
-        isSendingLenderOtp = true;
-      } else {
-        isSendingBorrowerOtp = true;
-      }
-    });
-    try {
-      final response = await ApiClient.post(
-          '/api/transactions/send-partial-payment-otp',
-          body: {'email': email});
-      if (response.statusCode == 200) {
-        setState(() {
-          if (isLender) {
-            lenderOtpSent = true;
-            lenderOtpSecondsLeft = 120;
-            lenderOtpExpired = false;
-            isSendingLenderOtp = false;
-          } else {
-            borrowerOtpSent = true;
-            borrowerOtpSecondsLeft = 120;
-            borrowerOtpExpired = false;
-            isSendingBorrowerOtp = false;
-          }
-        });
-        _showMessage(
-            'OTP sent to ${isLender ? 'lender' : 'borrower'} email');
-      } else {
-        final data =
-            response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to send OTP', isError: true);
-        setState(() {
-          if (isLender) {
-            isSendingLenderOtp = false;
-          } else {
-            isSendingBorrowerOtp = false;
-          }
-        });
-      }
-    } catch (e) {
-      _showMessage('Network error: ${e.toString()}', isError: true);
-      setState(() {
-        if (isLender) {
-          isSendingLenderOtp = false;
-        } else {
-          isSendingBorrowerOtp = false;
-        }
-      });
-    }
-  }
-
-  Future<void> _verifyOtp(
-      String email, String otp, bool isLender) async {
-    if (isLender && lenderOtpExpired) {
-      _showMessage('Lender OTP has expired. Please resend.',
-          isError: true);
-      return;
-    }
-    if (!isLender && borrowerOtpExpired) {
-      _showMessage('Borrower OTP has expired. Please resend.',
-          isError: true);
-      return;
-    }
-    setState(() {
-      if (isLender) {
-        isVerifyingLenderOtp = true;
-      } else {
-        isVerifyingBorrowerOtp = true;
-      }
-    });
-    try {
-      final response = await ApiClient.post(
-          '/api/transactions/verify-partial-payment-otp',
-          body: {'email': email, 'otp': otp});
-      if (response.statusCode == 200) {
-        setState(() {
-          if (isLender) {
-            lenderOtpVerified = true;
-            isVerifyingLenderOtp = false;
-          } else {
-            borrowerOtpVerified = true;
-            isVerifyingBorrowerOtp = false;
-          }
-        });
-        _showMessage(
-            'OTP verified for ${isLender ? 'lender' : 'borrower'}');
-      } else {
-        final data =
-            response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to verify OTP',
-            isError: true);
-        setState(() {
-          if (isLender) {
-            isVerifyingLenderOtp = false;
-          } else {
-            isVerifyingBorrowerOtp = false;
-          }
-        });
-      }
-    } catch (e) {
-      _showMessage('Network error: ${e.toString()}', isError: true);
-      setState(() {
-        if (isLender) {
-          isVerifyingLenderOtp = false;
-        } else {
-          isVerifyingBorrowerOtp = false;
-        }
-      });
-    }
-  }
-
-  Future<void> _processPartialPayment() async {
-    if (!lenderOtpVerified || !borrowerOtpVerified) {
-      _showMessage('Both parties must verify their OTP', isError: true);
-      return;
-    }
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      _showMessage('Please enter a valid amount', isError: true);
-      return;
-    }
-    final remainingAmount =
-        double.tryParse(_calculateRemainingAmount(widget.transaction)) ??
-            0.0;
-    if (amount > remainingAmount) {
-      _showMessage(
-          'Payment amount cannot exceed remaining amount of ${remainingAmount.toStringAsFixed(2)} ${widget.transaction['currency']}',
-          isError: true);
-      return;
-    }
-    setState(() => isProcessing = true);
-    try {
-      final response =
-          await ApiClient.post('/api/transactions/partial-payment', body: {
-        'transactionId': widget.transaction['transactionId'],
-        'amount': amount,
-        'description': _descriptionController.text,
-        'paidBy': paidBy,
-        'lenderEmail': lenderEmail,
-        'borrowerEmail': borrowerEmail,
-        'lenderOtpVerified': lenderOtpVerified,
-        'borrowerOtpVerified': borrowerOtpVerified,
-      });
-      if (response.statusCode == 200) {
-        _showMessage('Partial payment processed successfully');
-        Future.delayed(Duration(seconds: 2), () {
-          Navigator.pop(context);
-          widget.onPaymentComplete();
-        });
-      } else {
-        final data =
-            response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to process partial payment',
-            isError: true);
-      }
-    } catch (e) {
-      _showMessage('Network error: ${e.toString()}', isError: true);
-    } finally {
-      setState(() => isProcessing = false);
-    }
-  }
-
-  Widget _otpSection({
-    required String title,
-    required String? email,
-    required bool otpSent,
-    required bool otpVerified,
-    required bool otpExpired,
-    required int otpSecondsLeft,
-    required bool isSending,
-    required bool isVerifying,
-    required TextEditingController otpController,
-    required bool isLender,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: Offset(0, 1))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(Icons.lock_clock, color: AppColors.cyan, size: 20),
-            SizedBox(width: 8),
-            Text(title,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
-          ]),
-          SizedBox(height: 8),
-          Text('Email: ${email ?? ''}'),
-          SizedBox(height: 8),
-          if (otpSent) ...[
-            Text('Enter the 6-digit OTP sent to $email:',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-            SizedBox(height: 12),
-            OtpInput(
-              onChanged: (val) => otpController.text = val,
-              enabled: otpSent,
-              autoFocus: false,
-            ),
-            SizedBox(height: 12),
-          ],
-          Row(children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: (email != null &&
-                        !isSending &&
-                        !otpVerified &&
-                        (!otpSent || otpExpired))
-                    ? () => _sendOtp(email, isLender)
-                    : null,
-                child: isSending
-                    ? Row(mainAxisSize: MainAxisSize.min, children: [
-                        SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white)),
-                        SizedBox(width: 8),
-                        Text('Sending OTP...'),
-                      ])
-                    : otpVerified
-                        ? Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.check_circle,
-                                color: Colors.white, size: 16),
-                            SizedBox(width: 8),
-                            Text('Verified'),
-                          ])
-                        : otpExpired
-                            ? Text('Resend OTP')
-                            : Text('Send OTP'),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        otpVerified ? Colors.green : Colors.orange),
-              ),
-            ),
-          ]),
-          if (otpSent && !otpVerified) ...[
-            SizedBox(height: 4),
-            Row(children: [
-              Icon(otpExpired ? Icons.warning : Icons.timer,
-                  color: otpExpired ? Colors.red : Colors.orange,
-                  size: 14),
-              SizedBox(width: 4),
-              Text(
-                otpExpired
-                    ? 'OTP expired. Please resend.'
-                    : 'OTP expires in ${otpSecondsLeft ~/ 60}:${(otpSecondsLeft % 60).toString().padLeft(2, '0')}',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: otpExpired ? Colors.red : Colors.orange),
-              ),
-            ]),
-          ],
-          if (message != null &&
-              ((isLender &&
-                      (message!.contains('lender') ||
-                          message!.contains('Lender'))) ||
-                  (!isLender &&
-                      (message!.contains('borrower') ||
-                          message!.contains('Borrower'))))) ...[
-            SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isMessageError
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                    color: isMessageError
-                        ? Colors.red.withValues(alpha: 0.3)
-                        : Colors.green.withValues(alpha: 0.3)),
-              ),
-              child: Row(children: [
-                Icon(
-                    isMessageError ? Icons.error : Icons.check_circle,
-                    color: isMessageError ? Colors.red : Colors.green,
-                    size: 16),
-                SizedBox(width: 6),
-                Expanded(
-                    child: Text(message!,
-                        style: TextStyle(
-                            color: isMessageError
-                                ? Colors.red[700]
-                                : Colors.green[700],
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12))),
-              ]),
-            ),
-          ],
-          if (otpSent && !otpVerified) ...[
-            SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: (!isVerifying)
-                  ? () => _verifyOtp(email!, otpController.text, isLender)
-                  : null,
-              child: isVerifying
-                  ? Row(mainAxisSize: MainAxisSize.min, children: [
-                      SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white)),
-                      SizedBox(width: 8),
-                      Text('Verifying OTP...'),
-                    ])
-                  : Text('Verify OTP'),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        backgroundColor: const Color(0xFFF8F6FA),
-        child: Container(
-          width: 400,
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8),
-          padding: EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(children: [
-                  Icon(Icons.payment, color: AppColors.cyan, size: 28),
-                  SizedBox(width: 12),
-                  Text('Partial Payment',
-                      style: TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                ]),
-                SizedBox(height: 20),
-                TextFormField(
-                  controller: _amountController,
-                  decoration: InputDecoration(
-                    labelText: 'Payment Amount',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.attach_money),
-                    helperText: (lenderOtpVerified && borrowerOtpVerified)
-                        ? 'Amount locked after OTP verification'
-                        : 'Maximum: ${_calculateRemainingAmount(widget.transaction)} ${widget.transaction['currency']}',
-                    helperMaxLines: 2,
-                  ),
-                  keyboardType:
-                      TextInputType.numberWithOptions(decimal: true),
-                  enabled: !(lenderOtpVerified && borrowerOtpVerified),
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.description),
-                    helperText: (lenderOtpVerified && borrowerOtpVerified)
-                        ? 'Description locked after OTP verification'
-                        : null,
-                  ),
-                  maxLines: 2,
-                  enabled: !(lenderOtpVerified && borrowerOtpVerified),
-                ),
-                SizedBox(height: 20),
-                _otpSection(
-                  title: 'Lender OTP Verification',
-                  email: lenderEmail,
-                  otpSent: lenderOtpSent,
-                  otpVerified: lenderOtpVerified,
-                  otpExpired: lenderOtpExpired,
-                  otpSecondsLeft: lenderOtpSecondsLeft,
-                  isSending: isSendingLenderOtp,
-                  isVerifying: isVerifyingLenderOtp,
-                  otpController: _lenderOtpController,
-                  isLender: true,
-                ),
-                SizedBox(height: 16),
-                _otpSection(
-                  title: 'Borrower OTP Verification',
-                  email: borrowerEmail,
-                  otpSent: borrowerOtpSent,
-                  otpVerified: borrowerOtpVerified,
-                  otpExpired: borrowerOtpExpired,
-                  otpSecondsLeft: borrowerOtpSecondsLeft,
-                  isSending: isSendingBorrowerOtp,
-                  isVerifying: isVerifyingBorrowerOtp,
-                  otpController: _borrowerOtpController,
-                  isLender: false,
-                ),
-                SizedBox(height: 20),
-                if (message != null &&
-                    !message!.contains('lender') &&
-                    !message!.contains('Lender') &&
-                    !message!.contains('borrower') &&
-                    !message!.contains('Borrower')) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isMessageError
-                          ? Colors.red.withValues(alpha: 0.1)
-                          : Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: isMessageError
-                              ? Colors.red.withValues(alpha: 0.3)
-                              : Colors.green.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(children: [
-                      Icon(
-                          isMessageError
-                              ? Icons.error
-                              : Icons.check_circle,
-                          color:
-                              isMessageError ? Colors.red : Colors.green,
-                          size: 20),
-                      SizedBox(width: 8),
-                      Expanded(
-                          child: Text(message!,
-                              style: TextStyle(
-                                  color: isMessageError
-                                      ? Colors.red[700]
-                                      : Colors.green[700],
-                                  fontWeight: FontWeight.w500))),
-                    ]),
-                  ),
-                  SizedBox(height: 16),
-                ],
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                          onPressed: isProcessing
-                              ? null
-                              : () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green),
-                          child: Text('Cancel')),
-                      ElevatedButton(
-                          onPressed: (lenderOtpVerified &&
-                                  borrowerOtpVerified &&
-                                  !isProcessing)
-                              ? _processPartialPayment
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green),
-                          child: isProcessing
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white))
-                              : Text('Process Payment')),
-                    ]),
-              ],
-            ),
-          ),
-        ));
-  }
-}
-
-class PartialPaymentHistoryDialog extends StatelessWidget {
-  final Map<String, dynamic> transaction;
-  final DisplayCurrencyData? displayCurrencyData;
-  final String selectedDisplayCurrency;
-
-  const PartialPaymentHistoryDialog({
-    Key? key,
-    required this.transaction,
-    required this.displayCurrencyData,
-    required this.selectedDisplayCurrency,
-  }) : super(key: key);
-
-  String _getPaidByEmail(Map payment, Map transaction) {
-    String paidBy = payment['paidBy'] ?? '';
-    if (paidBy == 'lender') return transaction['userEmail'] ?? 'Lender';
-    if (paidBy == 'borrower')
-      return transaction['counterpartyEmail'] ?? 'Borrower';
-    return paidBy;
-  }
-
-  String _formatDisplayAmount(num amount, String? originalCurrency) {
-    final src = (originalCurrency ?? 'INR').toUpperCase();
-    final tgt = selectedDisplayCurrency.toUpperCase();
-    final canConvert = displayCurrencyData?.canConvert(src, tgt) ??
-        (src == tgt);
-    if (!canConvert) {
-      final sym = displayCurrencyData?.symbolFor(src) ?? src;
-      return '$sym${amount.toStringAsFixed(2)} $src';
-    }
-    final converted =
-        displayCurrencyData?.convert(amount.toDouble(), src, tgt) ??
-            amount.toDouble();
-    final sym = displayCurrencyData?.symbolFor(tgt) ?? tgt;
-    return '$sym${converted.toStringAsFixed(2)} $tgt';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final partialPayments =
-        transaction['partialPayments'] as List? ?? [];
-    final currency = transaction['currency'] ?? '';
-
-    return Dialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          width: 400,
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8),
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(children: [
-                Icon(Icons.history, color: Colors.purple, size: 28),
-                SizedBox(width: 12),
-                Text('Partial Payment History',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.purple[700])),
-              ]),
-              SizedBox(height: 20),
-              if (partialPayments.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text('No partial payments yet.',
-                      style: TextStyle(color: Colors.grey)),
-                )
-              else
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: partialPayments.length,
-                    itemBuilder: (ctx, i) {
-                      final p = partialPayments[i] as Map;
-                      final amount = (p['amount'] as num?) ?? 0;
-                      final date = p['date']?.toString() ?? '';
-                      final desc = p['description']?.toString() ?? '';
-                      final paidByEmail =
-                          _getPaidByEmail(p, transaction);
-                      return Card(
-                        margin: EdgeInsets.only(bottom: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Row(children: [
-                                Icon(Icons.payments,
-                                    color: Colors.purple, size: 18),
-                                SizedBox(width: 6),
-                                Text(
-                                    _formatDisplayAmount(
-                                        amount, currency),
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.purple[700],
-                                        fontSize: 15)),
-                              ]),
-                              if (date.isNotEmpty) ...[
-                                SizedBox(height: 4),
-                                Text(
-                                    'Date: ${date.length >= 10 ? date.substring(0, 10) : date}',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700])),
-                              ],
-                              if (paidByEmail.isNotEmpty) ...[
-                                SizedBox(height: 4),
-                                Text('Paid by: $paidByEmail',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700])),
-                              ],
-                              if (desc.isNotEmpty) ...[
-                                SizedBox(height: 4),
-                                Text('Note: $desc',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600])),
-                              ],
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple),
-                child: Text('Close',
-                    style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        ));
   }
 }
 

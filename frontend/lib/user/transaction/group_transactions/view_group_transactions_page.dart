@@ -11,6 +11,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import '../../chats/group_chat_page.dart';
+import 'create_group_page.dart';
+import '../../../widgets/stylish_dialog.dart';
 
 class ViewGroupTransactionsPage extends StatefulWidget {
   const ViewGroupTransactionsPage({super.key});
@@ -1011,6 +1013,42 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     ).then((_) {});
   }
 
+  Future<void> _openCreateGroup() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      int? dailyRemaining;
+      await Future.wait([
+        session.loadFreebieCounts(),
+        ApiClient.get('/api/limits/daily').then((res) {
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            dailyRemaining = data['limits']?['groups']?['remaining'];
+          }
+        }),
+      ]);
+      if (!mounted) return;
+      if (dailyRemaining != null && dailyRemaining! <= 0) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+        return;
+      }
+      final freeRemaining = session.freeGroupsRemaining ?? 0;
+      if (freeRemaining <= 0) {
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'group creation', coinCost: 20, currentCoins: coins);
+        if (!mounted) return;
+        if (useCoins != true) return;
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const CreateGroupPage(useCoins: true)));
+        return;
+      }
+    }
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const CreateGroupPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
@@ -1982,6 +2020,22 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         ],
                       ),
                     ),
+      floatingActionButton: Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Colors.orange, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: FloatingActionButton(
+          onPressed: _openCreateGroup,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
+      ),
     );
   }
 

@@ -29,6 +29,7 @@ import '../digitise/lenden_coins_page.dart';
 import '../ads_and_updates/updates_page.dart';
 import '../ads_and_updates/ad_popup_dialog.dart';
 import '../wallet/lenden_wallet_page.dart';
+import '../../widgets/stylish_dialog.dart';
 import '../scanner/qr_scanner_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
@@ -315,8 +316,40 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     }
   }
 
-  void showTransactionForm() => Navigator.push(
-      context, MaterialPageRoute(builder: (_) => TransactionPage()));
+  Future<void> showTransactionForm() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      int? dailyRemaining;
+      await Future.wait([
+        session.loadFreebieCounts(),
+        ApiClient.get('/api/limits/daily').then((res) {
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            dailyRemaining = data['limits']?['userTransactions']?['remaining'];
+          }
+        }),
+      ]);
+      if (!mounted) return;
+      if (dailyRemaining != null && dailyRemaining! <= 0) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve reached today\'s limit of 2 secure transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+        return;
+      }
+      final freeRemaining = session.freeUserTransactionsRemaining ?? 0;
+      if (freeRemaining <= 0) {
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'secure transaction', coinCost: 10, currentCoins: coins);
+        if (!mounted) return;
+        if (useCoins != true) return;
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => TransactionPage(useCoins: true)));
+        return;
+      }
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => TransactionPage()));
+  }
 
   ImageProvider _getUserAvatar() {
     final session = Provider.of<SessionProvider>(context, listen: false);

@@ -6,6 +6,7 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import 'group_detail_page.dart';
 import 'create_group_page.dart';
+import '../../../widgets/stylish_dialog.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -401,7 +402,45 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     ).then((_) => _fetchUserGroups());
   }
 
-  void _showCreateGroup({List<String>? prefill}) async {
+  Future<void> _showCreateGroup({List<String>? prefill}) async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      int? dailyRemaining;
+      await Future.wait([
+        session.loadFreebieCounts(),
+        ApiClient.get('/api/limits/daily').then((res) {
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            dailyRemaining = data['limits']?['groups']?['remaining'];
+          }
+        }),
+      ]);
+      if (!mounted) return;
+      if (dailyRemaining != null && dailyRemaining! <= 0) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+        return;
+      }
+      final freeRemaining = session.freeGroupsRemaining ?? 0;
+      if (freeRemaining <= 0) {
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'group creation', coinCost: 20, currentCoins: coins);
+        if (!mounted) return;
+        if (useCoins != true) return;
+        final result = await Navigator.push<Map<String, dynamic>>(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  CreateGroupPage(prefillMemberEmails: prefill, useCoins: true)),
+        );
+        if (!mounted) return;
+        _fetchUserGroups();
+        if (result != null) _showGroupDetails(result);
+        return;
+      }
+    }
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
@@ -410,9 +449,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     );
     if (!mounted) return;
     _fetchUserGroups();
-    if (result != null) {
-      _showGroupDetails(result);
-    }
+    if (result != null) _showGroupDetails(result);
   }
 
 

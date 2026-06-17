@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/display_currency_helper.dart';
+import '../../../session.dart';
+import '../../../widgets/stylish_dialog.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -942,6 +945,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   String _searchQuery = '';
   DateTime? _dateFrom;
   DateTime? _dateTo;
+  int _dailyExpenseLimit = 3;
+  int _dailyExpenseUsed = 0;
 
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
@@ -963,9 +968,51 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     _members = List<dynamic>.from(widget.initialMembers);
     _memberPayments = List<dynamic>.from(widget.initialMemberPayments);
     _loadDisplayCurrencies();
+    _fetchDailyExpenseLimit();
     if (widget.openAddExpense) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showAddEditSheet());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openAddExpense());
     }
+  }
+
+  Future<void> _fetchDailyExpenseLimit() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (session.isSubscribed) return;
+    try {
+      final res = await ApiClient.get(
+          '/api/limits/group/${widget.groupId}/expenses');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (mounted) {
+          setState(() {
+            _dailyExpenseLimit = data['limit'] ?? 3;
+            _dailyExpenseUsed = data['used'] ?? 0;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openAddExpense() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      await Future.wait([
+        session.loadFreebieCounts(),
+        _fetchDailyExpenseLimit(),
+      ]);
+    }
+    if (!session.isSubscribed && _dailyExpenseUsed >= _dailyExpenseLimit) {
+      final coins = session.lenDenCoins ?? 0;
+      final useCoins = await showFreeAttemptsExhaustedDialog(
+        context,
+        featureName: 'group expense',
+        coinCost: 5,
+        currentCoins: coins,
+      );
+      if (useCoins != true) return;
+      _showAddEditSheet(useCoins: true);
+      return;
+    }
+    _showAddEditSheet();
   }
 
   Future<void> _loadDisplayCurrencies() async {
@@ -1366,7 +1413,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     );
   }
 
-  void _showAddEditSheet({Map<String, dynamic>? expense}) {
+  void _showAddEditSheet({Map<String, dynamic>? expense, bool useCoins = false}) {
     final lockedCurrency = _groupCurrency;
     final activeMembers = _activeMembers;
     final allEmails = activeMembers
@@ -1426,6 +1473,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             split: split,
             category: category,
             addedBy: addedBy,
+            useCoins: useCoins,
           );
         },
       ),
@@ -1442,6 +1490,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     required List<Map<String, dynamic>> split,
     required String category,
     required String addedBy,
+    bool useCoins = false,
   }) async {
     setState(() => _loading = true);
     if (expense == null) {
@@ -1456,6 +1505,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           'selectedMembers': selectedEmails,
           'category': category,
           'addedBy': addedBy,
+          if (useCoins) 'useCoins': true,
         },
       );
       if (!mounted) return;
@@ -2117,7 +2167,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           style: ElevatedButton.styleFrom(
                               backgroundColor:
                                   const Color(0xFF2E7D32)),
-                          onPressed: () => _showAddEditSheet(),
+                          onPressed: _openAddExpense,
                           icon: const Icon(Icons.add,
                               color: Colors.white),
                           label: const Text('Add First Expense',
@@ -2476,7 +2526,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         ),
         padding: const EdgeInsets.all(2),
         child: FloatingActionButton.extended(
-          onPressed: () => _showAddEditSheet(),
+          onPressed: _openAddExpense,
           backgroundColor: const Color(0xFF2E7D32),
           elevation: 0,
           icon: const Icon(Icons.add_rounded, color: Colors.white),

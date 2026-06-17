@@ -7,7 +7,6 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../widgets/stylish_dialog.dart';
-import '../../digitise/subscriptions_page.dart';
 import '../../digitise/gift_card_page.dart';
 
 const _tricolorGradient = LinearGradient(
@@ -18,8 +17,9 @@ const _tricolorGradient = LinearGradient(
 
 class CreateGroupPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
+  final bool useCoins;
 
-  const CreateGroupPage({Key? key, this.prefillMemberEmails}) : super(key: key);
+  const CreateGroupPage({Key? key, this.prefillMemberEmails, this.useCoins = false}) : super(key: key);
 
   @override
   State<CreateGroupPage> createState() => _CreateGroupPageState();
@@ -441,116 +441,51 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Future<void> _createGroup() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final dailyLimitExceeded = !session.isSubscribed &&
-        _dailyGroupRemaining != null &&
-        _dailyGroupRemaining! <= 0;
-    final shouldUseCoins = !session.isSubscribed &&
-        (dailyLimitExceeded || (session.freeGroupsRemaining ?? 0) <= 0);
 
     if (_hasBlockedMembers()) {
       showBlockedUserDialog(context);
       return;
     }
 
+    if (!session.isSubscribed) {
+      await Future.wait([
+        session.loadFreebieCounts(),
+        _loadDailyLimits(),
+      ]);
+    }
+
+    // Daily limit expired → hard block; free attempts are also paused until tomorrow.
+    if (!session.isSubscribed &&
+        _dailyGroupRemaining != null &&
+        _dailyGroupRemaining! <= 0) {
+      showDailyLimitDialog(context,
+          message:
+              'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+      return;
+    }
+
+    // useCoins confirmed before navigation — skip the dialog.
+    if (!session.isSubscribed && widget.useCoins) {
+      _createGroupWithCoins();
+      return;
+    }
+
+    // Daily limit OK but free attempts exhausted → offer coins.
+    final shouldUseCoins = !session.isSubscribed &&
+        (session.freeGroupsRemaining ?? 0) <= 0;
+
     if (shouldUseCoins) {
-      if ((session.lenDenCoins ?? 0) < 20) {
-        (session.lenDenCoins ?? 0) == 0
-            ? showZeroCoinsDialog(context)
-            : showInsufficientCoinsDialog(context);
+      const int coinCost = 20;
+      final coins = session.lenDenCoins ?? 0;
+      if (coins < coinCost) {
+        coins == 0 ? showZeroCoinsDialog(context) : showInsufficientCoinsDialog(context);
         return;
       }
-      final useCoins = await showDialog<bool>(
-        context: context,
-        builder: (context) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: _tricolorGradient,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.monetization_on, color: Colors.orange, size: 48),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Use LenDen Coins',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.orange),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    dailyLimitExceeded
-                        ? 'Your daily group creation limit is finished. You can still create this group now by spending 20 LenDen coins.'
-                        : 'You have no free groups remaining. Would you like to use 20 LenDen coins to create this group?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-                  ),
-                  if (dailyLimitExceeded) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      "Warning: this will bypass today's free daily limit.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.orange[800], fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  const Text('OR', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.orange)),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Subscribe now for unlimited access',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.green, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: Text('Cancel', style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context, false);
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => SubscriptionsPage()));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: const Text('Subscribe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: const Text('Use Coins', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      final useCoins = await showFreeAttemptsExhaustedDialog(
+        context,
+        featureName: 'group creation',
+        coinCost: coinCost,
+        currentCoins: coins,
       );
       if (useCoins == true) _createGroupWithCoins();
       return;

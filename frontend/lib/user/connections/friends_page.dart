@@ -362,16 +362,81 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     ));
   }
 
-  void _openUserTransaction(String email) {
+  Future<void> _openUserTransaction(String email) async {
     if (_isBlockedEmail(email)) { showBlockedUserDialog(context); return; }
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      int? dailyRemaining;
+      await Future.wait([
+        session.loadFreebieCounts(),
+        ApiClient.get('/api/limits/daily').then((res) {
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            dailyRemaining = data['limits']?['userTransactions']?['remaining'];
+          }
+        }),
+      ]);
+      if (!mounted) return;
+      if (dailyRemaining != null && dailyRemaining! <= 0) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve reached today\'s limit of 2 secure transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+        return;
+      }
+      final freeRemaining = session.freeUserTransactionsRemaining ?? 0;
+      if (freeRemaining <= 0) {
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'secure transaction', coinCost: 10, currentCoins: coins);
+        if (!mounted) return;
+        if (useCoins != true) return;
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => TransactionPage(prefillCounterpartyEmail: email, useCoins: true),
+        ));
+        return;
+      }
+    }
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => TransactionPage(prefillCounterpartyEmail: email),
     ));
   }
 
-  void _openGroupWithSelected() {
+  Future<void> _openGroupWithSelected() async {
     if (_selectedForGroup.isEmpty) return;
     if (_selectedForGroup.any(_isBlockedEmail)) { showBlockedUserDialog(context); return; }
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      int? dailyRemaining;
+      await Future.wait([
+        session.loadFreebieCounts(),
+        ApiClient.get('/api/limits/daily').then((res) {
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            dailyRemaining = data['limits']?['groups']?['remaining'];
+          }
+        }),
+      ]);
+      if (!mounted) return;
+      if (dailyRemaining != null && dailyRemaining! <= 0) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+        return;
+      }
+      final freeRemaining = session.freeGroupsRemaining ?? 0;
+      if (freeRemaining <= 0) {
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'group creation', coinCost: 20, currentCoins: coins);
+        if (!mounted) return;
+        if (useCoins != true) return;
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => CreateGroupPage(
+              prefillMemberEmails: _selectedForGroup.toList(), useCoins: true),
+        ));
+        return;
+      }
+    }
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => CreateGroupPage(prefillMemberEmails: _selectedForGroup.toList()),
     ));

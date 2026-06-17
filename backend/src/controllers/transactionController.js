@@ -924,6 +924,28 @@ exports.clearTransaction = async (req, res) => {
     if (bothSides && updated) {
       transaction.userCleared = true;
       transaction.counterpartyCleared = true;
+
+      // Record the wallet Pay Now payment in partialPayments so it appears in history.
+      // (Razorpay path already records this inside verifyP2PPayment before reaching here,
+      // so by the time Razorpay calls clear, userCleared is already true → updated=false → skipped.)
+      const paidAmount = req.body.amount ? Number(req.body.amount) : 0;
+      if (paidAmount > 0) {
+        const lenderEmail = transaction.role === 'lender'
+          ? transaction.userEmail
+          : transaction.counterpartyEmail;
+        const paidBy = email.toLowerCase() === lenderEmail.toLowerCase() ? 'lender' : 'borrower';
+        const paymentMethod = req.body.paymentMethod || 'wallet';
+        transaction.partialPayments.push({
+          amount: paidAmount,
+          paidBy,
+          paidAt: new Date(),
+          description: paymentMethod === 'wallet'
+            ? 'Pay Now via LenDen Wallet'
+            : 'Pay Now payment',
+          paymentMethod,
+        });
+        transaction.isPartiallyPaid = true;
+      }
     }
     if (updated) {
       await transaction.save();

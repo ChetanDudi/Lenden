@@ -11,6 +11,8 @@ import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
+import 'secure_transaction_page.dart';
+import '../../../widgets/stylish_dialog.dart';
 
 class UserTransactionsPage extends StatefulWidget {
   final String initialFilter;
@@ -1980,6 +1982,42 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     return widgets;
   }
 
+  Future<void> _openCreateSecureTransaction() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (!session.isSubscribed) {
+      int? dailyRemaining;
+      await Future.wait([
+        session.loadFreebieCounts(),
+        ApiClient.get('/api/limits/daily').then((res) {
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            dailyRemaining = data['limits']?['userTransactions']?['remaining'];
+          }
+        }),
+      ]);
+      if (!mounted) return;
+      if (dailyRemaining != null && dailyRemaining! <= 0) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve reached today\'s limit of 2 secure transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+        return;
+      }
+      final freeRemaining = session.freeUserTransactionsRemaining ?? 0;
+      if (freeRemaining <= 0) {
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'secure transaction', coinCost: 10, currentCoins: coins);
+        if (!mounted) return;
+        if (useCoins != true) return;
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => TransactionPage(useCoins: true)));
+        return;
+      }
+    }
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => TransactionPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final buckets = _getFilteredTransactionBuckets();
@@ -2165,6 +2203,22 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     ),
                   ],
                 ),
+      floatingActionButton: Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Colors.orange, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: FloatingActionButton(
+          onPressed: _openCreateSecureTransaction,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
+      ),
     );
   }
 

@@ -7,7 +7,6 @@ import '../../api_config.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
-import '../../widgets/subscription_prompt.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
 import 'chat_encryption_service.dart';
@@ -347,155 +346,22 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
 
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final dailyLimitReached =
-        !session.isSubscribed && _dailyMessageUsed >= _dailyMessageLimit;
 
-    // Allow if subscribed OR free messages remaining
-    final remainingFree = 5 - (_messageCounts[_currentUserId] ?? 0);
-    const int messageCost = 7;
-
-    if (!session.isSubscribed && (dailyLimitReached || remainingFree <= 0)) {
-      final coins = session.lenDenCoins ?? 0;
-      if (coins < messageCost) {
-        if (coins == 0) {
-          showZeroCoinsDialog(context);
-        } else {
-          showInsufficientCoinsDialog(context);
-        }
+    if (!session.isSubscribed) {
+      if (_dailyMessageUsed >= _dailyMessageLimit) {
+        showDailyLimitDialog(context,
+            message:
+                'You\'ve sent $_dailyMessageLimit messages today in this group. '
+                'Your free attempts are also paused. Come back tomorrow!');
         return;
       }
-
-      final reasonText = dailyLimitReached
-          ? 'Daily limit reached. Would you like to use $messageCost LenDen coins to send this message?'
-          : 'You have no free messages remaining. Would you like to use $messageCost LenDen coins to send this message?';
-
-      final useCoins = await showDialog<bool>(
-        context: context,
-        builder: (context) => Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.monetization_on, color: Colors.orange, size: 48),
-                  SizedBox(height: 16),
-                  Text(
-                    'Use LenDen Coins',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    reasonText,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'OR',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.orange,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Subscribe now for unlimited access',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                              color: Colors.grey[800],
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context, false);
-                          showSubscriptionPrompt(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Subscribe',
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Use Coins',
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-      if (useCoins != true) {
-        return;
+      final remainingFree = 5 - (_messageCounts[_currentUserId] ?? 0);
+      if (remainingFree <= 0) {
+        await session.loadFreebieCounts();
+        final coins = session.lenDenCoins ?? 0;
+        final useCoins = await showFreeAttemptsExhaustedDialog(context,
+            featureName: 'group chat message', coinCost: 7, currentCoins: coins);
+        if (useCoins != true) return;
       }
     }
 

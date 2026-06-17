@@ -18,7 +18,6 @@ import 'view_secure_transactions_page.dart';
 import '../../digitise/gift_card_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
-import '../../digitise/subscriptions_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TopWaveClipper extends CustomClipper<Path> {
@@ -49,8 +48,9 @@ class TopWaveClipper extends CustomClipper<Path> {
 
 class TransactionPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
+  final bool useCoins;
 
-  const TransactionPage({Key? key, this.prefillCounterpartyEmail})
+  const TransactionPage({Key? key, this.prefillCounterpartyEmail, this.useCoins = false})
       : super(key: key);
 
   @override
@@ -1203,86 +1203,162 @@ class _TransactionPageState extends State<TransactionPage> {
           .where((e) => e.isNotEmpty)
           .toSet();
       if (!mounted) return;
+
+      String searchQuery = '';
+
       showModalBottomSheet(
         context: context,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        builder: (context) => Container(
-          padding: const EdgeInsets.all(16),
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _getFriendNoteColor(0),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  const Text('Select Friend',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  if (friends.isEmpty)
-                    const Text('No friends found')
-                  else
-                    ...friends.map((f) {
-                      final email = f['email'] ?? '';
-                      final name = f['name'] ?? f['username'] ?? '';
-                      final isBlocked = _blockedEmails
-                          .contains(email.toString().toLowerCase().trim());
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Colors.white, Colors.green],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (_, scrollController) => StatefulBuilder(
+            builder: (ctx2, setSheetState) {
+              final filtered = friends.where((f) {
+                final name =
+                    (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
+                final email = (f['email'] ?? '').toString().toLowerCase();
+                final q = searchQuery.toLowerCase();
+                return name.contains(q) || email.contains(q);
+              }).toList();
+
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 4),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Row(
+                        children: [
+                          const Text('Select Friend',
+                              style: TextStyle(
+                                  fontSize: 17, fontWeight: FontWeight.bold)),
+                          const Spacer(),
+                          Text('${filtered.length} friend${filtered.length == 1 ? '' : 's'}',
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        autofocus: false,
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or email…',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 14),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: const Color(0xFFF5F7FA),
                         ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color:
-                                _getFriendNoteColor(email.hashCode.abs() % 6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            title: Text(name.toString()),
-                            subtitle: Text(email.toString()),
-                            trailing: isBlocked
-                                ? const Text('Blocked',
-                                    style: TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.w600))
-                                : null,
-                            onTap: () {
-                              if (isBlocked) {
-                                showBlockedUserDialog(context);
-                                return;
-                              }
-                              setState(() {
-                                _counterpartyEmailController.text =
-                                    email.toString();
-                              });
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                ],
-              ),
-            ),
+                        onChanged: (v) =>
+                            setSheetState(() => searchQuery = v),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Text('No friends found',
+                                  style: TextStyle(color: Colors.grey)))
+                          : ListView.builder(
+                              controller: scrollController,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              itemCount: filtered.length,
+                              itemBuilder: (_, i) {
+                                final f = filtered[i];
+                                final email = (f['email'] ?? '').toString();
+                                final name = (f['name'] ??
+                                        f['username'] ??
+                                        email)
+                                    .toString();
+                                final isBlocked = _blockedEmails.contains(
+                                    email.toLowerCase().trim());
+                                final initials = name.isNotEmpty
+                                    ? name
+                                        .trim()
+                                        .split(' ')
+                                        .where((p) => p.isNotEmpty)
+                                        .take(2)
+                                        .map((p) => p[0].toUpperCase())
+                                        .join()
+                                    : '?';
+                                final avatarColor = Colors.primaries[
+                                    name.hashCode.abs() %
+                                        Colors.primaries.length];
+                                return Card(
+                                  margin:
+                                      const EdgeInsets.only(bottom: 8),
+                                  elevation: 1,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12)),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor:
+                                          avatarColor.withValues(alpha: 0.2),
+                                      child: Text(initials,
+                                          style: TextStyle(
+                                              color: avatarColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15)),
+                                    ),
+                                    title: Text(name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                    subtitle: Text(email,
+                                        style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12)),
+                                    trailing: isBlocked
+                                        ? const Text('Blocked',
+                                            style: TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12))
+                                        : const Icon(Icons.chevron_right,
+                                            color: Colors.grey),
+                                    onTap: () {
+                                      if (isBlocked) {
+                                        Navigator.pop(ctx);
+                                        showBlockedUserDialog(context);
+                                        return;
+                                      }
+                                      setState(() {
+                                        _counterpartyEmailController.text =
+                                            email;
+                                      });
+                                      Navigator.pop(ctx);
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       );
@@ -2098,181 +2174,28 @@ class _TransactionPageState extends State<TransactionPage> {
 
   Future<void> _submit() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final dailyLimitExceeded = !session.isSubscribed &&
-        _dailyUserTxRemaining != null &&
-        _dailyUserTxRemaining! <= 0;
-    final shouldUseCoins = !session.isSubscribed &&
-        (dailyLimitExceeded ||
-            (session.freeUserTransactionsRemaining ?? 0) <= 0);
     if (_isBlockedEmail(_counterpartyEmailController.text)) {
       showBlockedUserDialog(context);
       return;
     }
-    if (session.isSubscribed || !shouldUseCoins) {
+
+    // Safety net: re-check daily limit in case user had the page open a while.
+    if (!session.isSubscribed) await _loadDailyLimits();
+
+    if (!session.isSubscribed &&
+        _dailyUserTxRemaining != null &&
+        _dailyUserTxRemaining! <= 0) {
+      showDailyLimitDialog(context,
+          message:
+              'You\'ve reached today\'s limit of 2 secure transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+      return;
+    }
+
+    // useCoins was determined before this page was opened.
+    if (session.isSubscribed || !widget.useCoins) {
       _submitWithApi();
     } else {
-      if ((session.lenDenCoins ?? 0) < 10) {
-        if ((session.lenDenCoins ?? 0) == 0) {
-          showZeroCoinsDialog(context);
-        } else {
-          showInsufficientCoinsDialog(context);
-        }
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: const LinearGradient(
-                    colors: [Colors.orange, Colors.white, Colors.green],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Container(
-                  padding: EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.monetization_on,
-                          color: Colors.orange, size: 48),
-                      SizedBox(height: 16),
-                      Text(
-                        'Use LenDen Coins',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        dailyLimitExceeded
-                            ? 'Your daily secure transaction limit is finished. You can still create this transaction now by spending 10 LenDen coins.'
-                            : 'You have no free transactions remaining. Would you like to use 10 LenDen coins to create this transaction?',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-                      ),
-                      if (dailyLimitExceeded) ...[
-                        SizedBox(height: 12),
-                        Text(
-                          'Warning: this will bypass today\'s free daily limit.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.orange[800],
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: 8),
-                      Text(
-                        'OR',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Subscribe now for unlimited access',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[300],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                            ),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                  color: Colors.grey[800],
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => SubscriptionsPage(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                            ),
-                            child: Text(
-                              'Subscribe',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              _submitWithCoins();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                            ),
-                            child: Text(
-                              'Use Coins',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      }
+      _submitWithCoins();
     }
   }
 
