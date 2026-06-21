@@ -35,7 +35,12 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   profileImage: { type: Buffer }, // Store image as binary
-  chatEncryptionPublicKey: { type: String, default: null },
+  chatEncryptionPublicKey: { type: String, default: null }, // Deprecated: superseded by chatEncryptionDevices (multi-device support)
+  chatEncryptionDevices: [{
+    deviceId: { type: String, required: true },
+    publicKey: { type: String, required: true },
+    updatedAt: { type: Date, default: Date.now },
+  }],
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: true },

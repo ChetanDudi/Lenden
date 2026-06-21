@@ -69,12 +69,14 @@ module.exports = (io) => {
                 }
 
                 if (usingEncryptedPayloads) {
-                    if (!senderPublicKey || sender.chatEncryptionPublicKey !== senderPublicKey) {
+                    const isRegisteredDeviceKey = (sender.chatEncryptionDevices || [])
+                        .some(d => d.publicKey === senderPublicKey);
+                    if (!senderPublicKey || !isRegisteredDeviceKey) {
                         socket.emit('createMessageError', { ...data, error: 'Encrypted chat key mismatch. Please refresh and try again.' });
                         return;
                     }
                 }
-                
+
                 const subscription = await Subscription.findOne({ user: senderId, status: 'active' });
                 const isSubscribed = subscription && subscription.subscribed && subscription.endDate >= new Date();
 
@@ -195,8 +197,10 @@ module.exports = (io) => {
                     return;
                 }
 
-                const sender = await User.findById(userId).select('chatEncryptionPublicKey');
-                if (usingEncryptedPayloads && (!senderPublicKey || sender?.chatEncryptionPublicKey !== senderPublicKey)) {
+                const sender = await User.findById(userId).select('chatEncryptionDevices');
+                const isRegisteredDeviceKey = (sender?.chatEncryptionDevices || [])
+                    .some(d => d.publicKey === senderPublicKey);
+                if (usingEncryptedPayloads && (!senderPublicKey || !isRegisteredDeviceKey)) {
                     socket.emit('editMessageError', { messageId, error: 'Encrypted chat key mismatch. Please refresh and try again.' });
                     return;
                 }

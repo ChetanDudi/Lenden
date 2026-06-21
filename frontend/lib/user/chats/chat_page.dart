@@ -299,20 +299,28 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     await _fetchOtherUserDetails();
-    final otherUserPublicKey =
-        _otherUser?['chatEncryptionPublicKey']?.toString();
-    if (otherUserPublicKey == null || otherUserPublicKey.isEmpty) {
+    final otherUserPublicKeys = ((_otherUser?['chatEncryptionDevices'] as List?)
+            ?.whereType<Map>()
+            .map((d) => d['publicKey']?.toString() ?? '')
+            .where((k) => k.isNotEmpty)
+            .toSet()
+            .toList()) ??
+        [];
+    if (otherUserPublicKeys.isEmpty) {
       _showEncryptionUnavailableMessage();
       return;
     }
+    final ownPublicKeys =
+        await ChatEncryptionService.fetchUserPublicKeys(_currentUserId!);
 
     final encryptedEnvelope = await ChatEncryptionService.buildEncryptedEnvelope(
       senderId: _currentUserId!,
       plaintext: _messageController.text.trim(),
       recipientIds: [_currentUserId!, widget.otherUserId],
       publicKeysByUserId: {
-        _currentUserId!: _currentUserPublicKey ?? '',
-        widget.otherUserId: otherUserPublicKey,
+        _currentUserId!:
+            ownPublicKeys.isNotEmpty ? ownPublicKeys : [_currentUserPublicKey ?? ''],
+        widget.otherUserId: otherUserPublicKeys,
       },
     );
 
@@ -337,20 +345,28 @@ class _ChatPageState extends State<ChatPage> {
     if (_currentUserId == null) return;
 
     await _fetchOtherUserDetails();
-    final otherUserPublicKey =
-        _otherUser?['chatEncryptionPublicKey']?.toString();
-    if (otherUserPublicKey == null || otherUserPublicKey.isEmpty) {
+    final otherUserPublicKeys = ((_otherUser?['chatEncryptionDevices'] as List?)
+            ?.whereType<Map>()
+            .map((d) => d['publicKey']?.toString() ?? '')
+            .where((k) => k.isNotEmpty)
+            .toSet()
+            .toList()) ??
+        [];
+    if (otherUserPublicKeys.isEmpty) {
       _showEncryptionUnavailableMessage();
       return;
     }
+    final ownPublicKeys =
+        await ChatEncryptionService.fetchUserPublicKeys(_currentUserId!);
 
     final encryptedEnvelope = await ChatEncryptionService.buildEncryptedEnvelope(
       senderId: _currentUserId!,
       plaintext: _messageController.text.trim(),
       recipientIds: [_currentUserId!, widget.otherUserId],
       publicKeysByUserId: {
-        _currentUserId!: _currentUserPublicKey ?? '',
-        widget.otherUserId: otherUserPublicKey,
+        _currentUserId!:
+            ownPublicKeys.isNotEmpty ? ownPublicKeys : [_currentUserPublicKey ?? ''],
+        widget.otherUserId: otherUserPublicKeys,
       },
     );
 

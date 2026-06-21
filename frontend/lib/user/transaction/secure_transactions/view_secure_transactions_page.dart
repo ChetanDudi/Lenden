@@ -2124,7 +2124,12 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
           ? Center(child: CircularProgressIndicator())
           : error != null
               ? _buildErrorState(error!, fetchTransactions)
-              : Column(
+              : RefreshIndicator(
+                  onRefresh: fetchTransactions,
+                  color: AppColors.cyan,
+                  child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -2225,13 +2230,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       ),
                     ),
                     SizedBox(height: 8),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: fetchTransactions,
-                        color: AppColors.cyan,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
+                    Column(
+                      children: [
                           ..._buildFilteredTransactionCards(
                               limit: showAllTransactions ? null : 3),
                           if (!showAllTransactions && totalCount > 3)
@@ -2279,9 +2279,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                             ),
                         ],
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
       floatingActionButton: Container(
         decoration: const BoxDecoration(

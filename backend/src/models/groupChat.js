@@ -47,6 +47,14 @@ const groupChatSchema = new mongoose.Schema({
         ref: 'GroupChat',
         default: null,
     },
+    mentions: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    }],
+    mentionsAll: {
+        type: Boolean,
+        default: false,
+    },
     reactions: [{
         emoji: String,
         userId: {

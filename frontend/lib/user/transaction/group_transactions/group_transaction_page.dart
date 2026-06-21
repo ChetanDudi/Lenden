@@ -33,7 +33,6 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   String? error;
   bool loading = false;
   String? memberAddError;
-  int? _dailyGroupRemaining;
 
   // State for group details
   Map<String, dynamic>? group; // Real group data
@@ -269,6 +268,170 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     }
   }
 
+  void _showCreateGroupFiltersSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.filter_list, color: AppColors.cyan),
+                          const SizedBox(width: 8),
+                          const Text('Filters',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text(
+                          'Show Favourites Only',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.cyan),
+                        ),
+                        value: _showFavouritesOnly,
+                        activeColor: AppColors.cyan,
+                        onChanged: (value) {
+                          setState(() => _showFavouritesOnly = value);
+                          setSheetState(() {});
+                          _filterAndSearchGroups();
+                        },
+                      ),
+                      const Divider(),
+                      _filterDropdownRow<String>(
+                        label: 'Group',
+                        value: groupFilter,
+                        items: const {
+                          'all': 'All',
+                          'created': 'Created by Me',
+                          'member': 'Member',
+                        },
+                        onChanged: (val) {
+                          setState(() => groupFilter = val);
+                          setSheetState(() {});
+                          _filterAndSearchGroups();
+                        },
+                      ),
+                      _filterDropdownRow<String>(
+                        label: 'Sort',
+                        value: groupSort,
+                        items: const {
+                          'newest': 'Newest',
+                          'oldest': 'Oldest',
+                          'name_az': 'Name A-Z',
+                          'name_za': 'Name Z-A',
+                          'members_high': 'Members High-Low',
+                          'members_low': 'Members Low-High',
+                        },
+                        onChanged: (val) {
+                          setState(() => groupSort = val);
+                          setSheetState(() {});
+                          _filterAndSearchGroups();
+                        },
+                      ),
+                      _filterDropdownRow<String>(
+                        label: 'Members',
+                        value: memberCountFilter,
+                        items: const {
+                          'all': 'All Members',
+                          '2-5': '2-5',
+                          '6-10': '6-10',
+                          '10+': '10+',
+                        },
+                        onChanged: (val) {
+                          setState(() => memberCountFilter = val);
+                          setSheetState(() {});
+                          _filterAndSearchGroups();
+                        },
+                      ),
+                      _filterDropdownRow<String>(
+                        label: 'Created',
+                        value: dateFilter,
+                        items: const {
+                          'all': 'All Dates',
+                          '7days': 'Last 7 Days',
+                          '30days': 'Last 30 Days',
+                          'custom': 'Custom',
+                        },
+                        onChanged: (val) async {
+                          setState(() => dateFilter = val);
+                          setSheetState(() {});
+                          if (val == 'custom') {
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                customStartDate = picked.start;
+                                customEndDate = picked.end;
+                              });
+                            }
+                          }
+                          _filterAndSearchGroups();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _filterDropdownRow<T>({
+    required String label,
+    required T value,
+    required Map<T, String> items,
+    required void Function(T) onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          DropdownButton<T>(
+            value: value,
+            borderRadius: BorderRadius.circular(16),
+            style: const TextStyle(
+                color: AppColors.cyan, fontWeight: FontWeight.bold),
+            underline: Container(),
+            items: items.entries
+                .map((e) =>
+                    DropdownMenuItem(value: e.key, child: Text(e.value)))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) onChanged(val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _filterAndSearchGroups() {
     final session = Provider.of<SessionProvider>(context, listen: false);
     final myEmail = session.user?['email'] ?? '';
@@ -502,22 +665,35 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             ),
           ),
           Positioned(
-            top: 40,
-            left: 16,
-            right: 16,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Text(
-                group == null
-                    ? 'Group Transactions'
-                    : 'Group: ${group?['title'] ?? ''}',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
-                ),
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    onPressed: () => Navigator.pushReplacementNamed(
+                        context, '/user/dashboard'),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Text(
+                        group == null
+                            ? 'Group Transactions'
+                            : 'Group: ${group?['title'] ?? ''}',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                          shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -592,59 +768,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                           : Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Search bar at the top
-                                Container(
-                                  padding:
-                                      const EdgeInsets.all(2), // border width
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Colors.orange,
-                                        Colors.white,
-                                        Colors.green
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  child: TextField(
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Search by group name or creator email...',
-                                      prefixIcon: Icon(Icons.search,
-                                          color: AppColors.cyan),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                      contentPadding: EdgeInsets.symmetric(
-                                          vertical: 0, horizontal: 16),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                    ),
-                                    onChanged: (val) {
-                                      groupSearchQuery = val;
-                                      _filterAndSearchGroups();
-                                    },
-                                  ),
-                                ),
-                                SizedBox(height: 16),
-
-                                // Filters in a scrollable row below search bar
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      Container(
+                                // Search bar + filters menu at the top
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(
+                                            2), // border width
                                         decoration: BoxDecoration(
                                           gradient: const LinearGradient(
                                             colors: [
@@ -658,291 +789,45 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                           borderRadius:
                                               BorderRadius.circular(18),
                                         ),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: IconButton(
-                                            icon: Icon(
-                                              _showFavouritesOnly
-                                                  ? Icons.star
-                                                  : Icons.star_border,
-                                              color: _showFavouritesOnly
-                                                  ? Colors.amber
-                                                  : AppColors.cyan,
+                                        child: TextField(
+                                          decoration: InputDecoration(
+                                            hintText:
+                                                'Search by group name or creator email...',
+                                            prefixIcon: Icon(Icons.search,
+                                                color: AppColors.cyan),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal: 16),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              borderSide: BorderSide.none,
                                             ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _showFavouritesOnly =
-                                                    !_showFavouritesOnly;
-                                              });
-                                              _filterAndSearchGroups();
-                                            },
-                                            tooltip: 'Show Favourites Only',
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              borderSide: BorderSide.none,
+                                            ),
                                           ),
+                                          onChanged: (val) {
+                                            groupSearchQuery = val;
+                                            _filterAndSearchGroups();
+                                          },
                                         ),
                                       ),
-                                      SizedBox(width: 12),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Colors.orange,
-                                              Colors.white,
-                                              Colors.green
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: DropdownButton<String>(
-                                            value: groupFilter,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            style: const TextStyle(
-                                                color: AppColors.cyan,
-                                                fontWeight: FontWeight.bold),
-                                            underline: Container(),
-                                            items: const [
-                                              DropdownMenuItem(
-                                                  value: 'all',
-                                                  child: Text('All')),
-                                              DropdownMenuItem(
-                                                  value: 'created',
-                                                  child: Text('Created by Me')),
-                                              DropdownMenuItem(
-                                                  value: 'member',
-                                                  child: Text('Member')),
-                                            ],
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                setState(() {
-                                                  groupFilter = val;
-                                                });
-                                                _filterAndSearchGroups();
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Colors.orange,
-                                              Colors.white,
-                                              Colors.green
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: DropdownButton<String>(
-                                            value: groupSort,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            style: const TextStyle(
-                                                color: AppColors.cyan,
-                                                fontWeight: FontWeight.bold),
-                                            underline: Container(),
-                                            items: const [
-                                              DropdownMenuItem(
-                                                  value: 'newest',
-                                                  child: Text('Newest')),
-                                              DropdownMenuItem(
-                                                  value: 'oldest',
-                                                  child: Text('Oldest')),
-                                              DropdownMenuItem(
-                                                  value: 'name_az',
-                                                  child: Text('Name A-Z')),
-                                              DropdownMenuItem(
-                                                  value: 'name_za',
-                                                  child: Text('Name Z-A')),
-                                              DropdownMenuItem(
-                                                  value: 'members_high',
-                                                  child:
-                                                      Text('Members High-Low')),
-                                              DropdownMenuItem(
-                                                  value: 'members_low',
-                                                  child:
-                                                      Text('Members Low-High')),
-                                            ],
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                setState(() {
-                                                  groupSort = val;
-                                                });
-                                                _filterAndSearchGroups();
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Colors.orange,
-                                              Colors.white,
-                                              Colors.green
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: DropdownButton<String>(
-                                            value: memberCountFilter,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            style: const TextStyle(
-                                                color: AppColors.cyan,
-                                                fontWeight: FontWeight.bold),
-                                            underline: Container(),
-                                            items: const [
-                                              DropdownMenuItem(
-                                                  value: 'all',
-                                                  child: Text('All Members')),
-                                              DropdownMenuItem(
-                                                  value: '2-5',
-                                                  child: Text('2-5')),
-                                              DropdownMenuItem(
-                                                  value: '6-10',
-                                                  child: Text('6-10')),
-                                              DropdownMenuItem(
-                                                  value: '10+',
-                                                  child: Text('10+'))
-                                            ],
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                setState(() {
-                                                  memberCountFilter = val;
-                                                });
-                                                _filterAndSearchGroups();
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Colors.orange,
-                                              Colors.white,
-                                              Colors.green
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: DropdownButton<String>(
-                                            value: dateFilter,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            style: const TextStyle(
-                                                color: AppColors.cyan,
-                                                fontWeight: FontWeight.bold),
-                                            underline: Container(),
-                                            items: const [
-                                              DropdownMenuItem(
-                                                  value: 'all',
-                                                  child: Text('All Dates')),
-                                              DropdownMenuItem(
-                                                  value: '7days',
-                                                  child: Text('Last 7 Days')),
-                                              DropdownMenuItem(
-                                                  value: '30days',
-                                                  child: Text('Last 30 Days')),
-                                              DropdownMenuItem(
-                                                  value: 'custom',
-                                                  child: Text('Custom'))
-                                            ],
-                                            onChanged: (val) async {
-                                              if (val != null) {
-                                                setState(() {
-                                                  dateFilter = val;
-                                                });
-                                                if (val == 'custom') {
-                                                  final picked =
-                                                      await showDateRangePicker(
-                                                    context: context,
-                                                    firstDate: DateTime(2020),
-                                                    lastDate: DateTime.now(),
-                                                  );
-                                                  if (picked != null) {
-                                                    setState(() {
-                                                      customStartDate =
-                                                          picked.start;
-                                                      customEndDate =
-                                                          picked.end;
-                                                    });
-                                                  }
-                                                }
-                                                _filterAndSearchGroups();
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: 16),
-                                Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(
-                                          3), // border width
+                                    ),
+                                    SizedBox(width: 12),
+                                    Container(
                                       decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
                                         gradient: const LinearGradient(
                                           colors: [
                                             Colors.orange,
@@ -952,89 +837,23 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         ),
-                                        borderRadius: BorderRadius.circular(21),
                                       ),
+                                      padding: const EdgeInsets.all(2),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 16, horizontal: 20),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(18),
+                                          shape: BoxShape.circle,
                                         ),
-                                        child: Consumer<SessionProvider>(
-                                          builder: (context, session, child) {
-                                            final bool dailyLimitReached =
-                                                !session.isSubscribed &&
-                                                    _dailyGroupRemaining !=
-                                                        null &&
-                                                    _dailyGroupRemaining! <= 0;
-                                            // null = still loading → optimistically enabled
-                                            final freeRemaining =
-                                                session.freeGroupsRemaining;
-                                            final bool canCreate = session
-                                                    .isSubscribed ||
-                                                (!dailyLimitReached &&
-                                                    (freeRemaining == null ||
-                                                        freeRemaining > 0)) ||
-                                                (session.lenDenCoins ?? 0) >=
-                                                    20;
-                                            return Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                if (!session.isSubscribed &&
-                                                    (session.freeGroupsRemaining ??
-                                                            0) >
-                                                        0)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            bottom: 8.0),
-                                                    child: Text(
-                                                      '${session.freeGroupsRemaining} free group creations remaining.',
-                                                      style: TextStyle(
-                                                          color: Colors.green),
-                                                    ),
-                                                  ),
-                                                ElevatedButton.icon(
-                                                  onPressed: canCreate
-                                                      ? _showCreateGroup
-                                                      : null,
-                                                  icon:
-                                                      Icon(Icons.add, size: 28),
-                                                  label: Text(
-                                                      'Create New Group',
-                                                      style: TextStyle(
-                                                          fontSize: 18)),
-                                                  style:
-                                                      ElevatedButton.styleFrom(
-                                                    backgroundColor: canCreate
-                                                        ? AppColors.cyan
-                                                        : Colors.grey,
-                                                    foregroundColor:
-                                                        Colors.white,
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            horizontal: 24,
-                                                            vertical: 12),
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        12)),
-                                                    elevation: 4,
-                                                  ),
-                                                ),
-                                              ],
-                                            );
-                                          },
+                                        child: IconButton(
+                                          icon: Icon(Icons.more_vert,
+                                              color: AppColors.cyan),
+                                          tooltip: 'Filters',
+                                          onPressed: _showCreateGroupFiltersSheet,
                                         ),
                                       ),
                                     ),
-                                  ),
+                                  ],
+                                ),
                                 SizedBox(height: 20),
                                 if (_showFavouritesOnly &&
                                     filteredGroups.isEmpty)
@@ -1239,7 +1058,25 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                       scrollDirection: Axis.horizontal,
                                                       child: Row(
                                                         children: [
-                                                          Icon(Icons.person, size: 18, color: Colors.grey),
+                                                          ClipOval(
+                                                            child: (g['creator'] is Map &&
+                                                                    (g['creator']['_id'] ?? '')
+                                                                        .toString()
+                                                                        .isNotEmpty)
+                                                                ? Image.network(
+                                                                    '${ApiConfig.baseUrl}/api/users/${g['creator']['_id']}/profile-image',
+                                                                    width: 18,
+                                                                    height: 18,
+                                                                    fit: BoxFit.cover,
+                                                                    errorBuilder: (context,
+                                                                            error, stackTrace) =>
+                                                                        Icon(Icons.person,
+                                                                            size: 18,
+                                                                            color: Colors.grey),
+                                                                  )
+                                                                : Icon(Icons.person,
+                                                                    size: 18, color: Colors.grey),
+                                                          ),
                                                           SizedBox(width: 4),
                                                           Text(
                                                             'Creator: ${_emailOf(g['creator'])}',
@@ -1326,18 +1163,24 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                             ),
             ),
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: SafeArea(
-              child: IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/user/dashboard'),
-              ),
-            ),
-          ),
         ],
+      ),
+      floatingActionButton: Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Colors.orange, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: FloatingActionButton(
+          onPressed: _showCreateGroup,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          tooltip: 'Create New Group',
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
     );
   }

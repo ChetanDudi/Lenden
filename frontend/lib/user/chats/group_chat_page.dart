@@ -48,11 +48,13 @@ class _GroupChatPageState extends State<GroupChatPage> {
   late IO.Socket socket;
   bool _isActiveMember = true;
   String? _currentUserPublicKey;
-  final Map<String, String> _memberPublicKeys = {};
+  final Map<String, List<String>> _memberPublicKeys = {};
   bool _encryptionReady = false;
   String? _encryptionError;
   String? _groupImageUrl;
   bool _isUpdatingGroupImage = false;
+  final Set<String> _pendingMentionIds = {};
+  bool _pendingMentionAll = false;
 
   void _showEncryptionUnavailableMessage() {
     if (!mounted) return;
@@ -95,7 +97,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         setState(() {
-          _groupImageUrl = '${data['groupImageUrl']}?t=${DateTime.now().millisecondsSinceEpoch}';
+          _groupImageUrl = data['groupImageUrl']?.toString();
         });
         showSnack(context, 'Group photo updated.');
       } else {
@@ -179,7 +181,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       final identity =
           await ChatEncryptionService.ensureIdentity(_currentUserId!);
       _currentUserPublicKey = identity['publicKey'];
-      _memberPublicKeys[_currentUserId!] = _currentUserPublicKey!;
+      _memberPublicKeys[_currentUserId!] = [_currentUserPublicKey!];
       await _loadMemberPublicKeys();
       await _fetchMessages();
       await _fetchDailyMessageLimit();
@@ -222,6 +224,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Future<void> _loadMemberPublicKeys({bool forceRefresh = false}) async {
     final memberIds = <String>{};
+    if (_currentUserId != null) memberIds.add(_currentUserId!);
     for (final member in widget.members) {
       if (member is Map && member['leftAt'] != null) continue;
 
@@ -234,9 +237,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
     for (final memberId in memberIds) {
       if (!forceRefresh && _memberPublicKeys.containsKey(memberId)) continue;
-      final publicKey = await ChatEncryptionService.fetchUserPublicKey(memberId);
-      if (publicKey != null && publicKey.isNotEmpty) {
-        _memberPublicKeys[memberId] = publicKey;
+      final publicKeys = await ChatEncryptionService.fetchUserPublicKeys(memberId);
+      if (publicKeys.isNotEmpty) {
+        _memberPublicKeys[memberId] = publicKeys;
       }
     }
   }
@@ -296,6 +299,22 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   Provider.of<SessionProvider>(context, listen: false);
               session.loadFreebieCounts();
               _fetchDailyMessageLimit();
+            }
+            final senderId = chat['senderId'] is Map
+                ? chat['senderId']['_id']?.toString()
+                : null;
+            final mentionsList = (chat['mentions'] as List?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                [];
+            final isMentioned = senderId != _currentUserId &&
+                (chat['mentionsAll'] == true ||
+                    mentionsList.contains(_currentUserId));
+            if (isMentioned && mounted) {
+              final senderName = chat['senderId'] is Map
+                  ? (chat['senderId']['name'] ?? 'Someone').toString()
+                  : 'Someone';
+              showSnack(context, '$senderName mentioned you in the group');
             }
           }
         }
@@ -458,12 +477,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
 
     final missingMembers = activeRecipientIds
-        .where((id) => (_memberPublicKeys[id] ?? '').isEmpty)
+        .where((id) => (_memberPublicKeys[id] ?? const <String>[]).isEmpty)
         .toList();
     if (missingMembers.isNotEmpty) {
       await _loadMemberPublicKeys();
       final stillMissingMembers = activeRecipientIds
-          .where((id) => (_memberPublicKeys[id] ?? '').isEmpty)
+          .where((id) => (_memberPublicKeys[id] ?? const <String>[]).isEmpty)
           .toList();
       if (stillMissingMembers.isNotEmpty) {
         _showEncryptionUnavailableMessage();
@@ -485,11 +504,15 @@ class _GroupChatPageState extends State<GroupChatPage> {
       'encryptionVersion': encryptedEnvelope['encryptionVersion'],
       'encryptedPayloads': encryptedEnvelope['encryptedPayloads'],
       'parentMessageId': _replyingTo?['_id'],
+      'mentions': _pendingMentionAll ? [] : _pendingMentionIds.toList(),
+      'mentionsAll': _pendingMentionAll,
     });
 
     _messageController.clear();
     setState(() {
       _replyingTo = null;
+      _pendingMentionIds.clear();
+      _pendingMentionAll = false;
     });
   }
 
@@ -508,12 +531,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
 
     final stillMissingMembers = activeRecipientIds
-        .where((id) => (_memberPublicKeys[id] ?? '').isEmpty)
+        .where((id) => (_memberPublicKeys[id] ?? const <String>[]).isEmpty)
         .toList();
     if (stillMissingMembers.isNotEmpty) {
       await _loadMemberPublicKeys();
       final unresolvedMembers = activeRecipientIds
-          .where((id) => (_memberPublicKeys[id] ?? '').isEmpty)
+          .where((id) => (_memberPublicKeys[id] ?? const <String>[]).isEmpty)
           .toList();
       if (unresolvedMembers.isNotEmpty) {
         _showEncryptionUnavailableMessage();
@@ -534,11 +557,17 @@ class _GroupChatPageState extends State<GroupChatPage> {
       'senderPublicKey': encryptedEnvelope['senderPublicKey'],
       'encryptionVersion': encryptedEnvelope['encryptionVersion'],
       'encryptedPayloads': encryptedEnvelope['encryptedPayloads'],
+      if (_pendingMentionAll || _pendingMentionIds.isNotEmpty) ...{
+        'mentions': _pendingMentionAll ? [] : _pendingMentionIds.toList(),
+        'mentionsAll': _pendingMentionAll,
+      },
     };
 
     socket.emit('editGroupMessage', message);
 
     _messageController.clear();
+    _pendingMentionIds.clear();
+    _pendingMentionAll = false;
     setState(() {
       _editingMessage = null;
     });
@@ -813,6 +842,30 @@ class _GroupChatPageState extends State<GroupChatPage> {
                           onPressed: selected.isEmpty
                               ? null
                               : () {
+                                  setState(() {
+                                    if (selected.contains('all')) {
+                                      _pendingMentionAll = true;
+                                      _pendingMentionIds.clear();
+                                    } else {
+                                      for (final key in selected) {
+                                        final member = activeMembers
+                                            .firstWhere(
+                                              (m) =>
+                                                  (_extractMemberId(m) ??
+                                                      _memberDisplayName(
+                                                          m)) ==
+                                                  key,
+                                              orElse: () => null,
+                                            );
+                                        final id = member != null
+                                            ? _extractMemberId(member)
+                                            : null;
+                                        if (id != null && id.isNotEmpty) {
+                                          _pendingMentionIds.add(id);
+                                        }
+                                      }
+                                    }
+                                  });
                                   String mentionText;
                                   if (selected.contains('all')) {
                                     mentionText = '@All ';
@@ -1569,6 +1622,13 @@ class _GroupChatPageState extends State<GroupChatPage> {
     final senderId = message['senderId']?['_id'] ?? 'unknown';
 
     final senderColor = _avatarColorFor(senderId);
+    final mentionsList = (message['mentions'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final isMentionedHere = !isMe &&
+        (message['mentionsAll'] == true ||
+            mentionsList.contains(_currentUserId));
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
@@ -1664,7 +1724,11 @@ class _GroupChatPageState extends State<GroupChatPage> {
                             border: isMe
                                 ? null
                                 : Border.all(
-                                    color: senderColor.withValues(alpha: 0.5)),
+                                    color: isMentionedHere
+                                        ? Colors.amber
+                                        : senderColor.withValues(alpha: 0.5),
+                                    width: isMentionedHere ? 2 : 1,
+                                  ),
                             borderRadius: BorderRadius.only(
                               topLeft: const Radius.circular(18),
                               topRight: const Radius.circular(18),

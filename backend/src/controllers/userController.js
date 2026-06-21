@@ -666,7 +666,7 @@ exports.recoverAccount = async (req, res) => {
 // Get user by ID
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('name email gender chatEncryptionPublicKey');
+    const user = await User.findById(req.params.id).select('name email gender chatEncryptionDevices');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -678,25 +678,35 @@ exports.getUserById = async (req, res) => {
 
 exports.updateChatEncryptionPublicKey = async (req, res) => {
   try {
-    const { chatEncryptionPublicKey } = req.body || {};
+    const { chatEncryptionPublicKey, deviceId } = req.body || {};
 
     if (!chatEncryptionPublicKey || typeof chatEncryptionPublicKey !== 'string') {
       return res.status(400).json({ message: 'chatEncryptionPublicKey is required' });
     }
+    if (!deviceId || typeof deviceId !== 'string') {
+      return res.status(400).json({ message: 'deviceId is required' });
+    }
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { chatEncryptionPublicKey: chatEncryptionPublicKey.trim() },
-      { new: true }
-    ).select('chatEncryptionPublicKey');
-
+    const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const trimmedKey = chatEncryptionPublicKey.trim();
+    const existingDevice = user.chatEncryptionDevices.find((d) => d.deviceId === deviceId);
+    if (existingDevice) {
+      existingDevice.publicKey = trimmedKey;
+      existingDevice.updatedAt = new Date();
+    } else {
+      user.chatEncryptionDevices.push({ deviceId, publicKey: trimmedKey, updatedAt: new Date() });
+    }
+    // Deprecated field kept roughly in sync for any stale readers; not used for encryption anymore.
+    user.chatEncryptionPublicKey = trimmedKey;
+    await user.save();
+
     res.json({
       message: 'Chat encryption public key updated successfully',
-      chatEncryptionPublicKey: user.chatEncryptionPublicKey,
+      chatEncryptionDevices: user.chatEncryptionDevices,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

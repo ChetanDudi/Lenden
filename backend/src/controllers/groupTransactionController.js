@@ -900,7 +900,7 @@ exports.getUserGroups = async (req, res) => {
           title: obj.title,
           description: obj.description || '',
           groupImageUrl: obj.groupImage
-            ? `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image`
+            ? `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image?v=${new Date(obj.updatedAt).getTime()}`
             : null,
           creator: obj.creator
             ? { _id: obj.creator._id, email: obj.creator.email }
@@ -1092,7 +1092,7 @@ exports.uploadGroupImage = async (req, res) => {
     await group.save();
 
     res.json({
-      groupImageUrl: `${req.protocol}://${req.get('host')}/api/group-transactions/${group._id}/image`,
+      groupImageUrl: `${req.protocol}://${req.get('host')}/api/group-transactions/${group._id}/image?v=${group.updatedAt.getTime()}`,
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

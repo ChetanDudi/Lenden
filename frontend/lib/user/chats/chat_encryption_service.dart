@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../utils/api_client.dart';
@@ -12,12 +13,27 @@ class ChatEncryptionService {
       Hkdf(hmac: Hmac.sha256(), outputLength: 32);
   static const String _keyNamespace = 'chat_identity';
   static const String _hkdfNonce = 'LenDen-E2EE';
+  static const String _deviceIdStorageKey = 'chat_identity:device_id';
 
   static String _privateKeyStorageKey(String userId) =>
       '$_keyNamespace:${userId}:private';
 
   static String _publicKeyStorageKey(String userId) =>
       '$_keyNamespace:${userId}:public';
+
+  /// Stable per-installation device identifier, independent of which user
+  /// account is logged in, so multiple accounts tested on one device don't
+  /// collide and one user's multiple devices stay distinguishable.
+  static Future<String> getDeviceId() async {
+    var deviceId = await _storage.read(key: _deviceIdStorageKey);
+    if (deviceId == null || deviceId.isEmpty) {
+      final random = Random.secure();
+      final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+      deviceId = base64UrlEncode(bytes);
+      await _storage.write(key: _deviceIdStorageKey, value: deviceId);
+    }
+    return deviceId;
+  }
 
   static Future<Map<String, String>> ensureIdentity(String userId) async {
     var privateKey = await _storage.read(key: _privateKeyStorageKey(userId));
@@ -47,23 +63,31 @@ class ChatEncryptionService {
     };
   }
 
-  static Future<String?> fetchUserPublicKey(String userId) async {
+  /// Returns every public key registered for [userId] across all of their
+  /// devices, so a message can be encrypted for each one and decrypted on
+  /// whichever device the recipient is currently using.
+  static Future<List<String>> fetchUserPublicKeys(String userId) async {
     final response = await ApiClient.get('/api/users/$userId');
-    if (response.statusCode != 200) return null;
+    if (response.statusCode != 200) return [];
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final publicKey = body['chatEncryptionPublicKey'];
-    if (publicKey is String && publicKey.isNotEmpty) {
-      return publicKey;
+    final devices = body['chatEncryptionDevices'];
+    if (devices is List) {
+      return devices
+          .whereType<Map>()
+          .map((d) => d['publicKey']?.toString() ?? '')
+          .where((k) => k.isNotEmpty)
+          .toSet()
+          .toList();
     }
-    return null;
+    return [];
   }
 
   static Future<Map<String, dynamic>> buildEncryptedEnvelope({
     required String senderId,
     required String plaintext,
     required Iterable<String> recipientIds,
-    required Map<String, String> publicKeysByUserId,
+    required Map<String, List<String>> publicKeysByUserId,
   }) async {
     final normalizedMessage = plaintext.trim();
     if (normalizedMessage.isEmpty) {
@@ -82,31 +106,33 @@ class ChatEncryptionService {
     final encryptedPayloads = <Map<String, dynamic>>[];
 
     for (final recipientUserId in uniqueRecipientIds) {
-      final recipientPublicKey = publicKeysByUserId[recipientUserId];
-      if (recipientPublicKey == null || recipientPublicKey.isEmpty) {
+      final recipientPublicKeys = publicKeysByUserId[recipientUserId];
+      if (recipientPublicKeys == null || recipientPublicKeys.isEmpty) {
         throw Exception(
             'Encrypted chat is not available for one of the participants yet.');
       }
 
-      final aesKey = await _deriveSharedAesKey(
-        localKeyPair: senderKeyPair,
-        remotePublicKeyBase64: recipientPublicKey,
-        info: 'lenden-chat-v1',
-      );
+      for (final recipientPublicKey in recipientPublicKeys) {
+        final aesKey = await _deriveSharedAesKey(
+          localKeyPair: senderKeyPair,
+          remotePublicKeyBase64: recipientPublicKey,
+          info: 'lenden-chat-v1',
+        );
 
-      final nonce = _aesGcm.newNonce();
-      final secretBox = await _aesGcm.encrypt(
-        utf8.encode(normalizedMessage),
-        secretKey: aesKey,
-        nonce: nonce,
-      );
+        final nonce = _aesGcm.newNonce();
+        final secretBox = await _aesGcm.encrypt(
+          utf8.encode(normalizedMessage),
+          secretKey: aesKey,
+          nonce: nonce,
+        );
 
-      encryptedPayloads.add({
-        'recipientUserId': recipientUserId,
-        'nonce': base64Encode(secretBox.nonce),
-        'cipherText': base64Encode(secretBox.cipherText),
-        'mac': base64Encode(secretBox.mac.bytes),
-      });
+        encryptedPayloads.add({
+          'recipientUserId': recipientUserId,
+          'nonce': base64Encode(secretBox.nonce),
+          'cipherText': base64Encode(secretBox.cipherText),
+          'mac': base64Encode(secretBox.mac.bytes),
+        });
+      }
     }
 
     return {
@@ -151,9 +177,10 @@ class ChatEncryptionService {
   }
 
   static Future<void> _registerPublicKey(String publicKey) async {
+    final deviceId = await getDeviceId();
     final response = await ApiClient.put(
       '/api/users/me/chat-public-key',
-      body: {'chatEncryptionPublicKey': publicKey},
+      body: {'chatEncryptionPublicKey': publicKey, 'deviceId': deviceId},
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -206,40 +233,49 @@ class ChatEncryptionService {
     required String senderPublicKeyBase64,
     required List<dynamic> encryptedPayloads,
   }) async {
-    dynamic payload;
-    for (final item in encryptedPayloads) {
-      if (item is Map && item['recipientUserId']?.toString() == currentUserId) {
-        payload = item;
-        break;
-      }
-    }
+    final matchingPayloads = encryptedPayloads
+        .whereType<Map>()
+        .where((item) => item['recipientUserId']?.toString() == currentUserId)
+        .toList();
 
-    if (payload is! Map) {
+    if (matchingPayloads.isEmpty) {
       return '[Encrypted message unavailable]';
     }
 
+    SimpleKeyPairData? localKeyPair;
     try {
-      final localKeyPair = await _loadKeyPair(currentUserId);
-      final aesKey = await _deriveSharedAesKey(
-        localKeyPair: localKeyPair,
-        remotePublicKeyBase64: senderPublicKeyBase64,
-        info: 'lenden-chat-v1',
-      );
-
-      final secretBox = SecretBox(
-        base64Decode(payload['cipherText'].toString()),
-        nonce: base64Decode(payload['nonce'].toString()),
-        mac: Mac(base64Decode(payload['mac'].toString())),
-      );
-
-      final clearBytes = await _aesGcm.decrypt(
-        secretBox,
-        secretKey: aesKey,
-      );
-
-      return utf8.decode(clearBytes);
+      localKeyPair = await _loadKeyPair(currentUserId);
     } catch (_) {
       return '[Encrypted message unavailable on this device]';
     }
+
+    final aesKey = await _deriveSharedAesKey(
+      localKeyPair: localKeyPair,
+      remotePublicKeyBase64: senderPublicKeyBase64,
+      info: 'lenden-chat-v1',
+    );
+
+    // The sender may have encrypted one payload per device key this user has
+    // registered; try each until the one matching this device's key succeeds.
+    for (final payload in matchingPayloads) {
+      try {
+        final secretBox = SecretBox(
+          base64Decode(payload['cipherText'].toString()),
+          nonce: base64Decode(payload['nonce'].toString()),
+          mac: Mac(base64Decode(payload['mac'].toString())),
+        );
+
+        final clearBytes = await _aesGcm.decrypt(
+          secretBox,
+          secretKey: aesKey,
+        );
+
+        return utf8.decode(clearBytes);
+      } catch (_) {
+        continue;
+      }
+    }
+
+    return '[Encrypted message unavailable on this device]';
   }
 }

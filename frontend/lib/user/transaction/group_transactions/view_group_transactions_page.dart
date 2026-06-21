@@ -385,22 +385,37 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     );
   }
 
-  Widget _summaryStatChip(String label, String value) {
+  Widget _summaryStatChip(String label, String value,
+      {required Color color, required IconData icon}) {
     return Container(
       margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11),
+          Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 11),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -456,6 +471,85 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       setState(() => selectedGroupFilter = newValue);
       _fetchUserGroups();
     }
+  }
+
+  void _showGroupFiltersSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.filter_list, color: AppColors.cyan),
+                        const SizedBox(width: 8),
+                        const Text('Filters',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    for (final option in const [
+                      {'value': 'All Groups', 'icon': Icons.group},
+                      {'value': 'Joined Groups', 'icon': Icons.group_add},
+                      {'value': 'Left Groups', 'icon': Icons.group_remove},
+                    ])
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        value: option['value'] as String,
+                        groupValue: selectedGroupFilter,
+                        activeColor: AppColors.cyan,
+                        title: Row(
+                          children: [
+                            Icon(option['icon'] as IconData,
+                                color: AppColors.cyan, size: 18),
+                            const SizedBox(width: 8),
+                            Text(option['value'] as String),
+                          ],
+                        ),
+                        onChanged: (value) {
+                          _onGroupFilterChanged(value);
+                          setSheetState(() {});
+                        },
+                      ),
+                    const Divider(),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Show Favourites Only',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.cyan,
+                        ),
+                      ),
+                      value: _showFavouritesOnly,
+                      activeColor: AppColors.cyan,
+                      onChanged: (bool value) {
+                        setState(() => _showFavouritesOnly = value);
+                        setSheetState(() {});
+                        _fetchUserGroups();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // Total pending balance across displayed groups using server-computed field
@@ -1061,8 +1155,19 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         child: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
-          title: const Text('Group Transactions',
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const Text('Group Transactions',
+                  style: TextStyle(
+                      color: Colors.black, fontWeight: FontWeight.bold)),
+            ],
+          ),
           iconTheme: const IconThemeData(color: Colors.black),
           flexibleSpace: ClipPath(
             clipper: const TopWaveClipper(),
@@ -1290,10 +1395,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                     ),
                                     SizedBox(width: 12),
 
-                                    // Groups Filter Dropdown
+                                    // Filters menu (group filter + favourites)
                                     Container(
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
+                                        shape: BoxShape.circle,
                                         gradient: LinearGradient(
                                           colors: [
                                             AppColors.cyan,
@@ -1316,110 +1421,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                           ),
                                         ],
                                       ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          value: selectedGroupFilter,
-                                          onChanged: _onGroupFilterChanged,
-                                          icon: Icon(Icons.arrow_drop_down,
-                                              color: Colors.white),
-                                          dropdownColor: AppColors.cyan,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                          items: [
-                                            DropdownMenuItem(
-                                              value: 'All Groups',
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.group,
-                                                      color: Colors.white,
-                                                      size: 18),
-                                                  SizedBox(width: 8),
-                                                  Text('All Groups'),
-                                                ],
-                                              ),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: 'Joined Groups',
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.group_add,
-                                                      color: Colors.white,
-                                                      size: 18),
-                                                  SizedBox(width: 8),
-                                                  Text('Joined Groups'),
-                                                ],
-                                              ),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: 'Left Groups',
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.group_remove,
-                                                      color: Colors.white,
-                                                      size: 18),
-                                                  SizedBox(width: 8),
-                                                  Text('Left Groups'),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.more_vert,
+                                            color: Colors.white),
+                                        tooltip: 'Filters',
+                                        onPressed: _showGroupFiltersSheet,
                                       ),
                                     ),
                                   ],
-                                ),
-                                Container(
-                                  margin: const EdgeInsets.only(top: 8.0),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFFF9933),
-                                        Color(0xFFFFFFFF),
-                                        Color(0xFF138808)
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 0.5),
-                                        spreadRadius: 1,
-                                        blurRadius: 3,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Container(
-                                    margin: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    child: SwitchListTile(
-                                      title: const Text(
-                                        'Show Favourites Only',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.cyan,
-                                        ),
-                                      ),
-                                      value: _showFavouritesOnly,
-                                      onChanged: (bool value) {
-                                        setState(() => _showFavouritesOnly = value);
-                                        _fetchUserGroups();
-                                      },
-                                      activeColor: AppColors.cyan,
-                                    ),
-                                  ),
                                 ),
                               ],
                             ),
@@ -1430,7 +1439,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             margin: EdgeInsets.all(16),
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
+                              gradient: const LinearGradient(
                                 colors: [AppColors.cyan, Color(0xFF48CAE4)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -1438,8 +1447,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 8,
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 10,
                                   offset: Offset(0, 4),
                                 ),
                               ],
@@ -1448,9 +1457,18 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.account_balance_wallet,
-                                        color: Colors.white, size: 24),
-                                    SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF9933),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                          Icons.account_balance_wallet,
+                                          color: Colors.white,
+                                          size: 18),
+                                    ),
+                                    SizedBox(width: 10),
                                     Text(
                                       'Total Summary',
                                       style: TextStyle(
@@ -1461,15 +1479,29 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 12),
+                                SizedBox(height: 14),
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
                                     children: [
-                                      _summaryStatChip('Total Groups', '${userGroups.length}'),
-                                      _summaryStatChip('Created', '$createdGroupsCount'),
-                                      _summaryStatChip('Expenses', '${_calculateTotalExpenses()}'),
-                                      _summaryStatChip('Pending', _formatDisplayAmountFromInr(_calculateTotalPendingBalance())),
+                                      _summaryStatChip('Total Groups',
+                                          '${userGroups.length}',
+                                          color: const Color(0xFFFF9933),
+                                          icon: Icons.groups_rounded),
+                                      _summaryStatChip(
+                                          'Created', '$createdGroupsCount',
+                                          color: const Color(0xFFFF9933),
+                                          icon: Icons.add_circle_rounded),
+                                      _summaryStatChip('Expenses',
+                                          '${_calculateTotalExpenses()}',
+                                          color: const Color(0xFFFF9933),
+                                          icon: Icons.receipt_long_rounded),
+                                      _summaryStatChip(
+                                          'Pending',
+                                          _formatDisplayAmountFromInr(
+                                              _calculateTotalPendingBalance()),
+                                          color: const Color(0xFFFF9933),
+                                          icon: Icons.hourglass_bottom_rounded),
                                     ],
                                   ),
                                 ),

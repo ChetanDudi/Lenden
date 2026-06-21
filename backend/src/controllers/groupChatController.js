@@ -33,6 +33,8 @@ module.exports = (io) => {
                     encryptedPayloads,
                     senderPublicKey,
                     encryptionVersion,
+                    mentions,
+                    mentionsAll,
                 } = data;
                 const decodedMessage = typeof message === 'string'
                     ? decodeChatMessage(message)
@@ -57,7 +59,9 @@ module.exports = (io) => {
                 }
 
                 if (usingEncryptedPayloads) {
-                    if (!senderPublicKey || sender.chatEncryptionPublicKey !== senderPublicKey) {
+                    const isRegisteredDeviceKey = (sender.chatEncryptionDevices || [])
+                        .some(d => d.publicKey === senderPublicKey);
+                    if (!senderPublicKey || !isRegisteredDeviceKey) {
                         socket.emit('createGroupMessageError', { ...data, error: 'Encrypted chat key mismatch. Please refresh and try again.' });
                         return;
                     }
@@ -69,13 +73,20 @@ module.exports = (io) => {
                 );
 
                 if (!isActiveMember) {
-                    socket.emit('createGroupMessageError', { 
-                        ...data, 
-                        error: 'You are no longer an active member of this group. Chat is disabled.' 
+                    socket.emit('createGroupMessageError', {
+                        ...data,
+                        error: 'You are no longer an active member of this group. Chat is disabled.'
                     });
                     return;
                 }
-                
+
+                const activeMemberIds = groupTransaction.members
+                    .filter(member => !member.leftAt)
+                    .map(member => member.user.toString());
+                const validMentions = Array.isArray(mentions)
+                    ? mentions.filter(id => activeMemberIds.includes(String(id)))
+                    : [];
+
                 const subscription = await Subscription.findOne({ user: senderId, status: 'active' });
                 const isSubscribed = subscription && subscription.subscribed && subscription.endDate >= new Date();
 
@@ -144,6 +155,8 @@ module.exports = (io) => {
                     encryptionVersion: usingEncryptedPayloads ? (Number(encryptionVersion) || 1) : 0,
                     encryptedPayloads: usingEncryptedPayloads ? encryptedPayloads : [],
                     parentMessageId,
+                    mentions: validMentions,
+                    mentionsAll: mentionsAll === true,
                 });
 
                 await chat.save();
@@ -181,6 +194,8 @@ module.exports = (io) => {
                     encryptedPayloads,
                     senderPublicKey,
                     encryptionVersion,
+                    mentions,
+                    mentionsAll,
                 } = data;
                 const decodedMessage = typeof message === 'string'
                     ? decodeChatMessage(message)
@@ -202,8 +217,10 @@ module.exports = (io) => {
                     return;
                 }
 
-                const sender = await User.findById(userId).select('chatEncryptionPublicKey');
-                if (usingEncryptedPayloads && (!senderPublicKey || sender?.chatEncryptionPublicKey !== senderPublicKey)) {
+                const sender = await User.findById(userId).select('chatEncryptionDevices');
+                const isRegisteredDeviceKey = (sender?.chatEncryptionDevices || [])
+                    .some(d => d.publicKey === senderPublicKey);
+                if (usingEncryptedPayloads && (!senderPublicKey || !isRegisteredDeviceKey)) {
                     socket.emit('editGroupMessageError', { ...data, error: 'Encrypted chat key mismatch. Please refresh and try again.' });
                     return;
                 }
@@ -241,6 +258,13 @@ module.exports = (io) => {
                 chat.encryptionVersion = usingEncryptedPayloads ? (Number(encryptionVersion) || 1) : 0;
                 chat.encryptedPayloads = usingEncryptedPayloads ? encryptedPayloads : [];
                 chat.isEdited = true;
+                if (Array.isArray(mentions) && groupTransaction) {
+                    const activeMemberIds = groupTransaction.members
+                        .filter(member => !member.leftAt)
+                        .map(member => member.user.toString());
+                    chat.mentions = mentions.filter(id => activeMemberIds.includes(String(id)));
+                    chat.mentionsAll = mentionsAll === true;
+                }
                 await chat.save();
 
                 const updatedChat = await GroupChat.findById(chat._id)
