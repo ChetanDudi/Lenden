@@ -666,7 +666,7 @@ exports.recoverAccount = async (req, res) => {
 // Get user by ID
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('name email chatEncryptionPublicKey');
+    const user = await User.findById(req.params.id).select('name email gender chatEncryptionPublicKey');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

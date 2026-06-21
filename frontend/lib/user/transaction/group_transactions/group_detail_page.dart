@@ -777,15 +777,23 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         CircleAvatar(
                           radius: 26,
                           backgroundColor: _groupColor,
-                          child: Text(
-                            title.isNotEmpty
-                                ? title[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                                fontSize: 24,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
+                          backgroundImage: (_group['groupImageUrl'] != null &&
+                                  _group['groupImageUrl'].toString().isNotEmpty)
+                              ? NetworkImage(
+                                  _group['groupImageUrl'].toString())
+                              : null,
+                          child: (_group['groupImageUrl'] != null &&
+                                  _group['groupImageUrl'].toString().isNotEmpty)
+                              ? null
+                              : Text(
+                                  title.isNotEmpty
+                                      ? title[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                      fontSize: 24,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

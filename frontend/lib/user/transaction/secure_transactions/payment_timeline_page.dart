@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/wave_widget.dart';
 
 class PaymentTimelinePage extends StatelessWidget {
   final Map<String, dynamic> transaction;
@@ -133,11 +134,28 @@ class PaymentTimelinePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        backgroundColor: Colors.cyan,
-        foregroundColor: Colors.white,
-        title: const Text('Payment Timeline',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(140),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Payment Timeline',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: 140,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.cyan, Color(0xFF00ACC1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),

@@ -10,7 +10,7 @@ import '../../../utils/display_currency_helper.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-import '../../chats/group_chat_page.dart' hide TopWaveClipper;
+import '../../chats/group_chat_page.dart';
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
@@ -1140,7 +1140,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     )
                   : RefreshIndicator(
                       onRefresh: _fetchUserGroups,
-                      child: Column(
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
                         children: [
                           // Search and Filter Row
                           Padding(
@@ -1475,38 +1477,40 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             ),
                           ),
                           // Groups List
-                          Expanded(
-                            child:
-                                userGroups.isEmpty &&
-                                        _searchController.text.isNotEmpty
-                                    ? Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.search_off,
-                                                size: 64, color: Colors.grey),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              'No Groups Found',
-                                              style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              'Try adjusting your search terms.',
-                                              style: TextStyle(
-                                                  color: Colors.grey[600]),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : ListView.builder(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 16),
-                                        itemCount: userGroups.length,
-                                        itemBuilder: (context, index) {
+                          userGroups.isEmpty &&
+                                  _searchController.text.isNotEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 60),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.search_off,
+                                          size: 64, color: Colors.grey),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'No Groups Found',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Try adjusting your search terms.',
+                                        style: TextStyle(
+                                            color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics:
+                                      const NeverScrollableScrollPhysics(),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  itemCount: userGroups.length,
+                                  itemBuilder: (context, index) {
                                           final group = userGroups[index];
                                           final expenses =
                                               group['expenses'] ?? [];
@@ -1555,14 +1559,30 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                   leading: CircleAvatar(
                                                     backgroundColor:
                                                         AppColors.cyan,
-                                                    child: Text(
-                                                      (group['title'] ?? 'G')[0]
-                                                          .toUpperCase(),
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                    ),
+                                                    backgroundImage: (group[
+                                                                    'groupImageUrl'] !=
+                                                                null &&
+                                                            group['groupImageUrl']
+                                                                .toString()
+                                                                .isNotEmpty)
+                                                        ? NetworkImage(group[
+                                                                'groupImageUrl']
+                                                            .toString())
+                                                        : null,
+                                                    child: (group['groupImageUrl'] !=
+                                                                null &&
+                                                            group['groupImageUrl']
+                                                                .toString()
+                                                                .isNotEmpty)
+                                                        ? null
+                                                        : Text(
+                                                            (group['title'] ?? 'G')[0]
+                                                                .toUpperCase(),
+                                                            style: TextStyle(
+                                                                color: Colors.white,
+                                                                fontWeight:
+                                                                    FontWeight.bold),
+                                                          ),
                                                   ),
                                                   title: Row(
                                                     children: [
@@ -1577,6 +1597,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                           overflow: TextOverflow.ellipsis,
                                                         ),
                                                       ),
+                                                      const SizedBox(width: 14),
                                                       IconButton(
                                                         padding: EdgeInsets.zero,
                                                         constraints: BoxConstraints(minWidth: 32, minHeight: 32),
@@ -1593,6 +1614,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                             _toggleFavourite(
                                                                 group['_id']),
                                                       ),
+                                                      const SizedBox(width: 14),
                                                       IconButton(
                                                         padding: EdgeInsets.zero,
                                                         constraints: BoxConstraints(minWidth: 32, minHeight: 32),
@@ -1612,6 +1634,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                 members: group[
                                                                         'members'] ??
                                                                     [],
+                                                                groupImageUrl: group[
+                                                                        'groupImageUrl']
+                                                                    ?.toString(),
                                                               ),
                                                             ),
                                                           );
@@ -2034,8 +2059,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                           );
                                         },
                                       ),
-                          ),
                         ],
+                      ),
                       ),
                     ),
       floatingActionButton: Container(

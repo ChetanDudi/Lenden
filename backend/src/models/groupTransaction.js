@@ -39,6 +39,8 @@ const groupTransactionSchema = new mongoose.Schema({
     createdAt: { type: Date, default: null },
   },
   isActive: { type: Boolean, default: true },
+  groupImage: { type: Buffer, default: null },
+  groupImageMimeType: { type: String, default: '' },
   memberPayments: [{
     from: { type: String, required: true },   // payer email
     to: { type: String, required: true },     // receiver email

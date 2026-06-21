@@ -855,7 +855,7 @@ exports.getUserGroups = async (req, res) => {
     }
 
     let groups = await GroupTransaction.find(baseQuery)
-      .populate('members.user', 'email')
+      .populate('members.user', 'email name')
       .populate('creator', 'email')
       .sort({ createdAt: -1 });
 
@@ -899,6 +899,9 @@ exports.getUserGroups = async (req, res) => {
           _id: obj._id,
           title: obj.title,
           description: obj.description || '',
+          groupImageUrl: obj.groupImage
+            ? `${req.protocol}://${req.get('host')}/api/group-transactions/${obj._id}/image`
+            : null,
           creator: obj.creator
             ? { _id: obj.creator._id, email: obj.creator.email }
             : null,
@@ -908,6 +911,7 @@ exports.getUserGroups = async (req, res) => {
                 return {
                   _id: m.user._id,
                   email: m.user.email,
+                  name: m.user.name || '',
                   joinedAt: m.joinedAt,
                   leftAt: m.leftAt,
                 };
@@ -1065,6 +1069,66 @@ exports.updateGroupColor = async (req, res) => {
     groupObj.expenses = processedExpenses;
     
     res.json({ group: groupObj });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.uploadGroupImage = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'No image file provided' });
+
+    const group = await GroupTransaction.findById(groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const userId = req.user._id;
+    if (!group.members.some(m => m.user.toString() === userId.toString() && !m.leftAt)) {
+      return res.status(403).json({ error: 'Not an active group member' });
+    }
+
+    group.groupImage = req.file.buffer;
+    group.groupImageMimeType = req.file.mimetype || 'image/jpeg';
+    await group.save();
+
+    res.json({
+      groupImageUrl: `${req.protocol}://${req.get('host')}/api/group-transactions/${group._id}/image`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.getGroupImage = async (req, res) => {
+  try {
+    const group = await GroupTransaction.findById(req.params.groupId).select(
+      'groupImage groupImageMimeType'
+    );
+    if (!group || !group.groupImage) {
+      return res.status(404).send('Not found');
+    }
+    res.set('Content-Type', group.groupImageMimeType || 'image/jpeg');
+    res.send(group.groupImage);
+  } catch (err) {
+    res.status(500).send('Error');
+  }
+};
+
+exports.removeGroupImage = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const group = await GroupTransaction.findById(groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const userId = req.user._id;
+    if (!group.members.some(m => m.user.toString() === userId.toString() && !m.leftAt)) {
+      return res.status(403).json({ error: 'Not an active group member' });
+    }
+
+    group.groupImage = null;
+    group.groupImageMimeType = '';
+    await group.save();
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

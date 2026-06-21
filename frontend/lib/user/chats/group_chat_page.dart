@@ -7,6 +7,8 @@ import '../../api_config.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/stylish_dialog.dart';
 import '../../widgets/wave_widget.dart';
@@ -17,12 +19,14 @@ class GroupChatPage extends StatefulWidget {
   final String groupTransactionId;
   final String groupTitle;
   final List<dynamic> members;
+  final String? groupImageUrl;
 
   const GroupChatPage({
     Key? key,
     required this.groupTransactionId,
     required this.groupTitle,
     required this.members,
+    this.groupImageUrl,
   }) : super(key: key);
 
   @override
@@ -42,12 +46,13 @@ class _GroupChatPageState extends State<GroupChatPage> {
   dynamic _replyingTo;
   dynamic _editingMessage;
   late IO.Socket socket;
-  Map<String, Color> _userColors = {};
   bool _isActiveMember = true;
   String? _currentUserPublicKey;
   final Map<String, String> _memberPublicKeys = {};
   bool _encryptionReady = false;
   String? _encryptionError;
+  String? _groupImageUrl;
+  bool _isUpdatingGroupImage = false;
 
   void _showEncryptionUnavailableMessage() {
     if (!mounted) return;
@@ -59,16 +64,110 @@ class _GroupChatPageState extends State<GroupChatPage> {
     super.initState();
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     _currentUserId = user?['_id'];
-
-    for (var i = 0; i < widget.members.length; i++) {
-      final member = widget.members[i];
-      final memberId = _extractMemberId(member);
-      if (memberId != null && !_userColors.containsKey(memberId)) {
-        _userColors[memberId] = _getNoteColor(i);
-      }
-    }
-
+    _groupImageUrl = widget.groupImageUrl;
     _initializeEncryptedChat();
+  }
+
+  Future<void> _pickAndUploadGroupImage() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+
+      setState(() => _isUpdatingGroupImage = true);
+      final res = await ApiClient.putMultipart(
+        '/api/group-transactions/${widget.groupTransactionId}/image',
+        files: [
+          ApiMultipartFile(
+            field: 'groupImage',
+            filename: 'group.jpg',
+            path: image.path,
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        ],
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _groupImageUrl = '${data['groupImageUrl']}?t=${DateTime.now().millisecondsSinceEpoch}';
+        });
+        showSnack(context, 'Group photo updated.');
+      } else {
+        showSnack(context, 'Could not update group photo.', isError: true);
+      }
+    } catch (_) {
+      if (mounted) {
+        showSnack(context, 'Could not update group photo.', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _isUpdatingGroupImage = false);
+    }
+  }
+
+  Future<void> _removeGroupImage() async {
+    setState(() => _isUpdatingGroupImage = true);
+    try {
+      final res = await ApiClient.delete(
+          '/api/group-transactions/${widget.groupTransactionId}/image');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() => _groupImageUrl = null);
+        showSnack(context, 'Group photo removed.');
+      } else {
+        showSnack(context, 'Could not remove group photo.', isError: true);
+      }
+    } catch (_) {
+      if (mounted) {
+        showSnack(context, 'Could not remove group photo.', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _isUpdatingGroupImage = false);
+    }
+  }
+
+  void _showGroupPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (bc) => SafeArea(
+        child: Container(
+          margin: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined,
+                    color: AppColors.cyan),
+                title: const Text('Change Group Photo'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickAndUploadGroupImage();
+                },
+              ),
+              if (_groupImageUrl != null)
+                ListTile(
+                  leading:
+                      const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Remove Group Photo'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _removeGroupImage();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _initializeEncryptedChat() async {
@@ -121,7 +220,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     return null;
   }
 
-  Future<void> _loadMemberPublicKeys() async {
+  Future<void> _loadMemberPublicKeys({bool forceRefresh = false}) async {
     final memberIds = <String>{};
     for (final member in widget.members) {
       if (member is Map && member['leftAt'] != null) continue;
@@ -134,7 +233,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
 
     for (final memberId in memberIds) {
-      if (_memberPublicKeys.containsKey(memberId)) continue;
+      if (!forceRefresh && _memberPublicKeys.containsKey(memberId)) continue;
       final publicKey = await ChatEncryptionService.fetchUserPublicKey(memberId);
       if (publicKey != null && publicKey.isNotEmpty) {
         _memberPublicKeys[memberId] = publicKey;
@@ -158,29 +257,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
         }
       }
     } catch (_) {}
-  }
-
-  Color _getUserColor(String userId) {
-    if (!_userColors.containsKey(userId)) {
-      _userColors[userId] = _getNoteColor(_userColors.length);
-    }
-    return _userColors[userId]!;
-  }
-
-  Color _getNoteColor(int index) {
-    final colors = [
-      Color(0xFFFFF4E6), // Cream
-      Color(0xFFE8F5E9), // Light green
-      Color(0xFFFCE4EC), // Light pink
-      Color(0xFFE3F2FD), // Light blue
-      Color(0xFFFFF9C4), // Light yellow
-      Color(0xFFF3E5F5), // Light purple
-      Color(0xFFE0F2F1), // Light teal
-      Color(0xFFFFF3E0), // Light orange
-      Color(0xFFF1F8E9), // Light lime
-      Color(0xFFE8EAF6), // Light indigo
-    ];
-    return colors[index % colors.length];
   }
 
   void _initSocket() {
@@ -371,7 +447,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       return;
     }
 
-    await _loadMemberPublicKeys();
+    await _loadMemberPublicKeys(forceRefresh: true);
     final activeRecipientIds = <String>{_currentUserId!};
     for (final member in widget.members) {
       if (member is Map && member['leftAt'] != null) continue;
@@ -421,7 +497,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     if (_messageController.text.trim().isEmpty) return;
     if (_currentUserId == null) return;
 
-    await _loadMemberPublicKeys();
+    await _loadMemberPublicKeys(forceRefresh: true);
     final activeRecipientIds = <String>{_currentUserId!};
     for (final member in widget.members) {
       if (member is Map && member['leftAt'] != null) continue;
@@ -497,42 +573,43 @@ class _GroupChatPageState extends State<GroupChatPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header with tricolor border
+                  // Header
                   Container(
                     padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.cyan, Color(0xFF0077B6)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(22),
                         topRight: Radius.circular(22),
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.group, color: Colors.black87, size: 28),
-                        SizedBox(width: 12),
-                        Text(
+                        const Icon(Icons.groups_rounded,
+                            color: Colors.white, size: 28),
+                        const SizedBox(width: 12),
+                        const Text(
                           'Group Members',
                           style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
                           ),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         IconButton(
                           icon: Container(
-                            padding: EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(Icons.close,
-                                color: Colors.black87, size: 20),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 20),
                           ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
@@ -540,7 +617,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                     ),
                   ),
 
-                  // Members list with tricolor borders
+                  // Members list
                   Container(
                     constraints: BoxConstraints(maxHeight: 400),
                     child: ListView.builder(
@@ -549,97 +626,49 @@ class _GroupChatPageState extends State<GroupChatPage> {
                       itemBuilder: (context, index) {
                         final member = widget.members[index];
                         final memberId = _extractMemberId(member);
-                        final messageCount = _messageCounts[memberId] ?? 0;
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Colors.orange,
-                                Colors.white,
-                                Colors.green
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                        final displayName = _memberDisplayName(member);
+                        final hasLeft = member['leftAt'] != null;
+                        final avatarColor =
+                            _avatarColorFor(memberId ?? displayName);
+                        return _buildTricolorMemberBox(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            leading: _buildUserAvatar(
+                              userId: memberId,
+                              label: displayName,
+                              fallbackColor: avatarColor,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                            title: _buildHorizontalScrollText(
+                              displayName,
+                              const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
                               ),
-                            ],
-                          ),
-                          child: Container(
-                            margin: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: _getNoteColor(
-                                  index + 1), // Unique color for each member
-                              borderRadius: BorderRadius.circular(18),
                             ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    _getUserColor(memberId ?? member['email'])
-                                        .withValues(alpha: 0.8),
-                                child: Text(
-                                  (member['email'] ?? 'U')[0].toUpperCase(),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                            subtitle: const Text(
+                              'Member',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
                               ),
-                              title: Text(
-                                member['email'] ?? 'Unknown',
+                            ),
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (hasLeft ? Colors.red : Colors.green)
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                hasLeft ? 'Left' : 'Active',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: hasLeft ? Colors.red : Colors.green,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              subtitle: Text(
-                                'Total messages (lifetime): $messageCount',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                              trailing: member['leftAt'] != null
-                                  ? Container(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'Left',
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'Active',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
                             ),
                           ),
                         );
@@ -677,6 +706,190 @@ class _GroupChatPageState extends State<GroupChatPage> {
     setState(() {
       _showEmojiPicker = !_showEmojiPicker;
     });
+  }
+
+  void _showMentionPicker() {
+    final activeMembers = widget.members.where((m) {
+      if (m is! Map) return true;
+      if (m['leftAt'] != null) return false;
+      final memberId = _extractMemberId(m);
+      return memberId != _currentUserId;
+    }).toList();
+
+    final Set<String> selected = {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bc) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Container(
+                margin: const EdgeInsets.all(8.0),
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.65),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18.0),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.alternate_email, color: AppColors.cyan),
+                          SizedBox(width: 8),
+                          Text('Tag Members',
+                              style: TextStyle(
+                                  fontSize: 17, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                    ),
+                    CheckboxListTile(
+                      value: selected.contains('all'),
+                      secondary: const CircleAvatar(
+                        backgroundColor: AppColors.cyan,
+                        child:
+                            Icon(Icons.groups, color: Colors.white, size: 18),
+                      ),
+                      title: const Text('All',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      activeColor: AppColors.cyan,
+                      onChanged: (v) {
+                        setSheetState(() {
+                          selected.clear();
+                          if (v == true) selected.add('all');
+                        });
+                      },
+                    ),
+                    const Divider(height: 1),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: activeMembers.length,
+                        itemBuilder: (context, index) {
+                          final member = activeMembers[index];
+                          final memberId = _extractMemberId(member);
+                          final displayName = _memberDisplayName(member);
+                          final key = memberId ?? displayName;
+                          final avatarColor = _avatarColorFor(key);
+                          final allSelected = selected.contains('all');
+                          return CheckboxListTile(
+                            value: allSelected || selected.contains(key),
+                            enabled: !allSelected,
+                            activeColor: AppColors.cyan,
+                            secondary: _buildUserAvatar(
+                              userId: memberId,
+                              label: displayName,
+                              fallbackColor: avatarColor,
+                              radius: 16,
+                            ),
+                            title: _buildHorizontalScrollText(
+                              displayName,
+                              const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            onChanged: (v) {
+                              setSheetState(() {
+                                if (v == true) {
+                                  selected.add(key);
+                                } else {
+                                  selected.remove(key);
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: selected.isEmpty
+                              ? null
+                              : () {
+                                  String mentionText;
+                                  if (selected.contains('all')) {
+                                    mentionText = '@All ';
+                                  } else {
+                                    mentionText = selected.map((key) {
+                                      final member = activeMembers.firstWhere(
+                                        (m) =>
+                                            (_extractMemberId(m) ??
+                                                _memberDisplayName(m)) ==
+                                            key,
+                                      );
+                                      return '@${_memberDisplayName(member)} ';
+                                    }).join();
+                                  }
+                                  final current = _messageController.text;
+                                  final separator =
+                                      current.isEmpty || current.endsWith(' ')
+                                          ? ''
+                                          : ' ';
+                                  _messageController.text =
+                                      '$current$separator$mentionText';
+                                  _messageController.selection =
+                                      TextSelection.collapsed(
+                                          offset:
+                                              _messageController.text.length);
+                                  Navigator.of(context).pop();
+                                  _messageFocusNode.requestFocus();
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.cyan,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          child: const Text('Insert Tags'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<InlineSpan> _buildMentionSpans(String text, bool isMe) {
+    final names = <String>{
+      'All',
+      ...widget.members.map((m) => _memberDisplayName(m)),
+    }.where((n) => n.trim().isNotEmpty).toList();
+    if (names.isEmpty) return [TextSpan(text: text)];
+
+    names.sort((a, b) => b.length.compareTo(a.length));
+    final pattern =
+        RegExp('@(${names.map(RegExp.escape).join('|')})(?!\\w)');
+    final spans = <InlineSpan>[];
+    int last = 0;
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > last) {
+        spans.add(TextSpan(text: text.substring(last, match.start)));
+      }
+      spans.add(TextSpan(
+        text: match.group(0),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: isMe ? Colors.white : AppColors.cyan,
+        ),
+      ));
+      last = match.end;
+    }
+    if (last < text.length) {
+      spans.add(TextSpan(text: text.substring(last)));
+    }
+    return spans;
   }
 
   void _deleteMessage(String messageId, bool forEveryone) {
@@ -819,6 +1032,239 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
+  static const List<Color> _avatarPalette = [
+    Color(0xFFFFA726),
+    Color(0xFF66BB6A),
+    Color(0xFFEC407A),
+    Color(0xFF42A5F5),
+    Color(0xFFAB47BC),
+    Color(0xFF26A69A),
+    Color(0xFFFF7043),
+    Color(0xFF9CCC65),
+    Color(0xFF5C6BC0),
+    Color(0xFF8D6E63),
+  ];
+
+  Color _avatarColorFor(String userId) {
+    final hash = userId.hashCode.abs();
+    return _avatarPalette[hash % _avatarPalette.length];
+  }
+
+  Widget _buildGroupMessageStatsChip() {
+    final total = _messageCounts.values.fold<int>(0, (a, b) => a + b);
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: _showGroupMessageCounts,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.forum_outlined, size: 16, color: Colors.black87),
+            const SizedBox(width: 6),
+            Text(
+              '$total',
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _memberDisplayName(dynamic member) {
+    if (member is Map) {
+      final name = (member['name'] ?? '').toString().trim();
+      if (name.isNotEmpty) return name;
+      final email = (member['email'] ?? '').toString().trim();
+      if (email.isNotEmpty) return email;
+    }
+    return 'Unknown';
+  }
+
+  Widget _buildUserAvatar({
+    required String? userId,
+    required String label,
+    required Color fallbackColor,
+    double radius = 16,
+  }) {
+    final fallback = CircleAvatar(
+      radius: radius,
+      backgroundColor: fallbackColor,
+      child: Text(
+        label.isNotEmpty ? label[0].toUpperCase() : '?',
+        style: TextStyle(
+          fontSize: radius * 0.68,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+        ),
+      ),
+    );
+    if (userId == null || userId.isEmpty) return fallback;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.white,
+      child: ClipOval(
+        child: Image.network(
+          '${ApiConfig.baseUrl}/api/users/$userId/profile-image',
+          width: radius * 2,
+          height: radius * 2,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallback,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTricolorMemberBox({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Colors.orange, Colors.white, Colors.green],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildHorizontalScrollText(String text, TextStyle style) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Text(text, style: style),
+    );
+  }
+
+  void _showGroupMessageCounts() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                colors: [AppColors.cyan, Color(0xFF0077B6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF9F6),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.forum_outlined,
+                            color: AppColors.cyan),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildHorizontalScrollText(
+                            'Total messages (lifetime)',
+                            const TextStyle(
+                                fontSize: 17, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 360),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: widget.members.length,
+                      itemBuilder: (context, index) {
+                        final member = widget.members[index];
+                        final memberId = _extractMemberId(member);
+                        final displayName = _memberDisplayName(member);
+                        final messageCount = _messageCounts[memberId] ?? 0;
+                        final avatarColor =
+                            _avatarColorFor(memberId ?? displayName);
+                        return _buildTricolorMemberBox(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
+                            leading: _buildUserAvatar(
+                              userId: memberId,
+                              label: displayName,
+                              fallbackColor: avatarColor,
+                            ),
+                            title: _buildHorizontalScrollText(
+                              displayName,
+                              const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
+                            trailing: Text(
+                              '$messageCount',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.cyan,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close',
+                          style: TextStyle(
+                              color: AppColors.cyan,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -870,30 +1316,131 @@ class _GroupChatPageState extends State<GroupChatPage> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          titleSpacing: 0,
+          title: Row(
             children: [
-              Text(widget.groupTitle,
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
-              Consumer<SessionProvider>(
-                builder: (context, session, child) {
-                  if (session.isSubscribed) {
-                    return SizedBox.shrink();
-                  }
-                  return Text(
-                    'Daily message limit: 3',
-                    style: TextStyle(fontSize: 12, color: Colors.white70),
-                  );
-                },
+              GestureDetector(
+                onTap: _showGroupPhotoOptions,
+                child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.14),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: _groupImageUrl != null
+                          ? Image.network(
+                              _groupImageUrl!,
+                              width: 42,
+                              height: 42,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.groups_rounded,
+                                      color: AppColors.cyan, size: 24),
+                            )
+                          : const Icon(Icons.groups_rounded,
+                              color: AppColors.cyan, size: 24),
+                    ),
+                  ),
+                  if (_isUpdatingGroupImage)
+                    const Positioned.fill(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  Positioned(
+                    top: -2,
+                    left: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppColors.cyan,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt,
+                          color: Colors.white, size: 10),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Text(
+                        '${widget.members.length}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.groupTitle,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16)),
+                    Consumer<SessionProvider>(
+                      builder: (context, session, child) {
+                        if (session.isSubscribed) {
+                          return SizedBox.shrink();
+                        }
+                        return const Text(
+                          'Daily message limit: 3',
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w600),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
           actions: [
+            _buildGroupMessageStatsChip(),
+            const SizedBox(width: 4),
             IconButton(
-              icon: Icon(Icons.more_vert, color: Colors.black),
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.15)),
+                ),
+                child: const Icon(Icons.group_outlined,
+                    color: Colors.black87, size: 20),
+              ),
               onPressed: _showMembersDialog,
-            )
+            ),
+            const SizedBox(width: 6),
           ],
         ),
         body: Stack(
@@ -1021,37 +1568,40 @@ class _GroupChatPageState extends State<GroupChatPage> {
     final senderName = message['senderId']?['name'] ?? 'Unknown';
     final senderId = message['senderId']?['_id'] ?? 'unknown';
 
+    final senderColor = _avatarColorFor(senderId);
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
       child: Column(
         crossAxisAlignment:
             isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          if (!isMe)
-            Padding(
-              padding: const EdgeInsets.only(left: 12.0, bottom: 4.0),
-              child: Text(
-                senderName,
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ),
           if (message['parentMessageId'] != null)
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               margin: const EdgeInsets.only(bottom: 4),
+              constraints: const BoxConstraints(maxWidth: 260),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.cyan.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+                border: const Border(
+                    left: BorderSide(color: AppColors.cyan, width: 3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                       'Replying to ${message['parentMessageId']?['senderId']?['name'] ?? ''}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.black54)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: AppColors.cyan)),
                   Text(message['parentMessageId']?['message'] ?? '',
-                      style: TextStyle(color: Colors.black54)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54)),
                 ],
               ),
             ),
@@ -1060,96 +1610,155 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (!isMe)
+              if (!isMe) ...[
+                _buildUserAvatar(
+                  userId: senderId == 'unknown' ? null : senderId.toString(),
+                  label: senderName,
+                  fallbackColor: senderColor,
+                  radius: 14,
+                ),
+                const SizedBox(width: 6),
                 IconButton(
-                  icon: Icon(Icons.more_vert, color: Colors.grey),
+                  icon: const Icon(Icons.more_vert,
+                      color: Colors.grey, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => _showContextMenu(context, message, isMe),
                 ),
+              ],
               Flexible(
-                child: Stack(
-                  clipBehavior: Clip.none,
+                child: Column(
+                  crossAxisAlignment: isMe
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(17),
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    if (!isMe)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 2),
+                        child: Text(
+                          senderName,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: senderColor),
                         ),
                       ),
-                      child: Container(
-                        padding: EdgeInsets.fromLTRB(
-                            12, 10, 12, hasReactions ? 25 : 10),
-                        decoration: BoxDecoration(
-                          color: isMe
-                              ? const Color(0xFFE8F5E9)
-                              : _getUserColor(senderId),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: isMe
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              message['message'],
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 16),
-                            ),
-                            SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(formattedTimestamp,
-                                    style: TextStyle(
-                                        fontSize: 10, color: Colors.black54)),
-                                if (message['isEdited'] == true)
-                                  Text(' (edited)',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.black54)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (hasReactions)
-                      Positioned(
-                        bottom: -12,
-                        right: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 3, horizontal: 6),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.fromLTRB(
+                              14, 10, 14, hasReactions ? 22 : 10),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
+                            gradient: isMe
+                                ? const LinearGradient(
+                                    colors: [
+                                      AppColors.cyan,
+                                      Color(0xFF0096C7)
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: isMe ? null : Colors.white,
+                            border: isMe
+                                ? null
+                                : Border.all(
+                                    color: senderColor.withValues(alpha: 0.5)),
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(18),
+                              topRight: const Radius.circular(18),
+                              bottomLeft: Radius.circular(isMe ? 18 : 4),
+                              bottomRight: Radius.circular(isMe ? 4 : 18),
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1))
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
                             ],
                           ),
-                          child: Wrap(
-                            spacing: 5,
-                            children:
-                                message['reactions'].map<Widget>((reaction) {
-                              return Text(reaction['emoji'],
-                                  style: TextStyle(fontSize: 14));
-                            }).toList(),
+                          child: Column(
+                            crossAxisAlignment: isMe
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            children: [
+                              Text.rich(
+                                TextSpan(
+                                  children: _buildMentionSpans(
+                                      message['message'].toString(), isMe),
+                                  style: TextStyle(
+                                      color: isMe
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: 15.5,
+                                      height: 1.3),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(formattedTimestamp,
+                                      style: TextStyle(
+                                          fontSize: 10.5,
+                                          color: isMe
+                                              ? Colors.white70
+                                              : Colors.black45,
+                                          fontWeight: FontWeight.w500)),
+                                  if (message['isEdited'] == true)
+                                    Text(' · edited',
+                                        style: TextStyle(
+                                            fontSize: 10.5,
+                                            fontStyle: FontStyle.italic,
+                                            color: isMe
+                                                ? Colors.white70
+                                                : Colors.black45)),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+                        if (hasReactions)
+                          Positioned(
+                            bottom: -12,
+                            right: 10,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 3, horizontal: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.15),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 1))
+                                ],
+                              ),
+                              child: Wrap(
+                                spacing: 5,
+                                children: message['reactions']
+                                    .map<Widget>((reaction) {
+                                  return Text(reaction['emoji'],
+                                      style: TextStyle(fontSize: 14));
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
               if (isMe)
                 IconButton(
-                  icon: Icon(Icons.more_vert, color: Colors.grey),
+                  icon: const Icon(Icons.more_vert,
+                      color: Colors.grey, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => _showContextMenu(context, message, isMe),
                 ),
             ],
@@ -1161,62 +1770,68 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Widget _buildMessageInput() {
     return Container(
-      padding: const EdgeInsets.all(2),
+      margin: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(27),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFD9ECF2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      margin: EdgeInsets.all(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                  _showEmojiPicker
-                      ? Icons.close
-                      : Icons.emoji_emotions_outlined,
-                  color: Colors.grey),
-              onPressed: _onEmojiIconPressed,
-            ),
-            Expanded(
-              child: TextField(
-                focusNode: _messageFocusNode,
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: 'Type a message',
-                  border: InputBorder.none,
-                ),
-                onTap: () {
-                  if (_showEmojiPicker) {
-                    setState(() {
-                      _showEmojiPicker = false;
-                    });
-                  }
-                },
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+                _showEmojiPicker
+                    ? Icons.close
+                    : Icons.emoji_emotions_outlined,
+                color: AppColors.cyan),
+            onPressed: _onEmojiIconPressed,
+          ),
+          IconButton(
+            icon: const Icon(Icons.alternate_email, color: AppColors.cyan),
+            tooltip: 'Tag members',
+            onPressed: _showMentionPicker,
+          ),
+          Expanded(
+            child: TextField(
+              focusNode: _messageFocusNode,
+              controller: _messageController,
+              decoration: InputDecoration(
+                hintText: 'Type a message',
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                border: InputBorder.none,
               ),
+              onTap: () {
+                if (_showEmojiPicker) {
+                  setState(() {
+                    _showEmojiPicker = false;
+                  });
+                }
+              },
             ),
-            IconButton(
-              icon: Icon(Icons.send, color: Colors.blue),
-              onPressed: _sendMessage,
+          ),
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppColors.cyan, Color(0xFF0096C7)],
+                ),
+              ),
+              child: const Icon(Icons.send_rounded,
+                  color: Colors.white, size: 18),
             ),
-          ],
-        ),
+            onPressed: _sendMessage,
+          ),
+        ],
       ),
     );
   }
@@ -1228,18 +1843,19 @@ class _GroupChatPageState extends State<GroupChatPage> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFE3F2FD),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        color: const Color(0xFFEAF7FB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.timer, size: 16, color: Colors.blue),
+          const Icon(Icons.timer_outlined, size: 16, color: AppColors.cyan),
           const SizedBox(width: 6),
           Text(
             'Daily: $_dailyMessageUsed/$_dailyMessageLimit',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                fontWeight: FontWeight.w700, color: Color(0xFF086788)),
           ),
         ],
       ),
@@ -1260,8 +1876,14 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Widget _buildReplyingToBanner() {
     return Container(
-      padding: EdgeInsets.all(8),
-      color: Colors.grey[200],
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7FB),
+        borderRadius: BorderRadius.circular(14),
+        border: const Border(
+            left: BorderSide(color: AppColors.cyan, width: 4)),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -1270,14 +1892,20 @@ class _GroupChatPageState extends State<GroupChatPage> {
               children: [
                 Text(
                     'Replying to ${(_replyingTo['senderId'] is Map ? _replyingTo['senderId']['name'] : '')}',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: AppColors.cyan)),
+                const SizedBox(height: 2),
                 Text(_replyingTo['message'],
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54)),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 18),
             onPressed: () {
               setState(() {
                 _replyingTo = null;
@@ -1291,23 +1919,35 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Widget _buildEditingBanner() {
     return Container(
-      padding: EdgeInsets.all(8),
-      color: Colors.grey[200],
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(14),
+        border: const Border(
+            left: BorderSide(color: Color(0xFFF59E0B), width: 4)),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Editing message',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Editing message',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: Color(0xFFB45309))),
+                const SizedBox(height: 2),
                 Text(_editingMessage['message'],
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54)),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 18),
             onPressed: () {
               setState(() {
                 _editingMessage = null;

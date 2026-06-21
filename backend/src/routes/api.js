@@ -293,6 +293,9 @@ module.exports = (io) => {
   router.get('/group-transactions/user-groups', auth, groupTransactionController.getUserGroups);
   // New: Update group color
   router.put('/group-transactions/:groupId/color', auth, groupTransactionController.updateGroupColor);
+  router.put('/group-transactions/:groupId/image', auth, upload.single('groupImage'), groupTransactionController.uploadGroupImage);
+  router.get('/group-transactions/:groupId/image', groupTransactionController.getGroupImage);
+  router.delete('/group-transactions/:groupId/image', auth, groupTransactionController.removeGroupImage);
   // New: Delete group (creator only)
   router.delete('/group-transactions/:groupId', auth, groupTransactionController.deleteGroup);
   // New: Leave group (members only)

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../utils/api_client.dart';
+import '../../../api_config.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -496,6 +497,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                           widget.userEmail.toLowerCase();
                       final isGroupCreator = email.toLowerCase() ==
                           widget.creatorEmail.toLowerCase();
+                      final memberId = (m['_id'] ?? '').toString();
 
                       return _tricolorBorderBox(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -527,14 +529,38 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                         backgroundColor: isLeft
                                             ? Colors.grey[400]
                                             : _avatarColor(email),
-                                        child: Text(
-                                          email.isNotEmpty
-                                              ? email[0].toUpperCase()
-                                              : '?',
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
+                                        child: ClipOval(
+                                          child: memberId.isNotEmpty
+                                              ? Image.network(
+                                                  '${ApiConfig.baseUrl}/api/users/$memberId/profile-image',
+                                                  width: 44,
+                                                  height: 44,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context,
+                                                          error,
+                                                          stackTrace) =>
+                                                      Text(
+                                                    email.isNotEmpty
+                                                        ? email[0]
+                                                            .toUpperCase()
+                                                        : '?',
+                                                    style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                                  ),
+                                                )
+                                              : Text(
+                                                  email.isNotEmpty
+                                                      ? email[0].toUpperCase()
+                                                      : '?',
+                                                  style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16),
+                                                ),
                                         ),
                                       ),
                                     ),

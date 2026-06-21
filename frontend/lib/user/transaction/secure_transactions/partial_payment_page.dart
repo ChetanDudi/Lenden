@@ -7,6 +7,7 @@ import '../../../widgets/app_colors.dart';
 import '../../../utils/api_client.dart';
 import '../../../session.dart';
 import '../../../otp_input.dart';
+import '../../../widgets/wave_widget.dart';
 
 class PartialPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -501,14 +502,31 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6FA),
-      appBar: AppBar(
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
-        title: const Text('Partial Payment',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context, false),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(140),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Partial Payment',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: 140,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.purple, Color(0xFF7B1FA2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
       body: SingleChildScrollView(

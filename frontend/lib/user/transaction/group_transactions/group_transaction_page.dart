@@ -7,6 +7,7 @@ import '../../../utils/api_client.dart';
 import 'group_detail_page.dart';
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
+import '../../../api_config.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -1161,15 +1162,46 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           backgroundColor:
                                                               groupColor,
                                                           radius: 22,
-                                                          child: Text(
-                                                              avatarText,
-                                                              style: TextStyle(
-                                                                  fontSize: 22,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold)),
+                                                          child: ClipOval(
+                                                            child: (g['groupImageUrl'] !=
+                                                                        null &&
+                                                                    g['groupImageUrl']
+                                                                        .toString()
+                                                                        .isNotEmpty)
+                                                                ? Image.network(
+                                                                    g['groupImageUrl']
+                                                                        .toString(),
+                                                                    width: 44,
+                                                                    height: 44,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    errorBuilder: (context,
+                                                                            error,
+                                                                            stackTrace) =>
+                                                                        Text(
+                                                                      avatarText,
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              22,
+                                                                          color: Colors
+                                                                              .white,
+                                                                          fontWeight:
+                                                                              FontWeight
+                                                                                  .bold),
+                                                                    ),
+                                                                  )
+                                                                : Text(
+                                                                    avatarText,
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            22,
+                                                                        color: Colors
+                                                                            .white,
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .bold),
+                                                                  ),
+                                                          ),
                                                         ),
                                                         SizedBox(width: 14),
                                                         Expanded(
@@ -1229,26 +1261,42 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                             style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                                                           ),
                                                           SizedBox(width: 10),
-                                                          ...((g['members'] as List).map((m) => GestureDetector(
+                                                          ...((g['members'] as List).map((m) {
+                                                            final memberId = m is Map ? (m['_id'] ?? '').toString() : '';
+                                                            final memberEmail = _emailOf(m);
+                                                            final fallbackLetter = memberEmail.isNotEmpty && memberEmail != '-'
+                                                                ? memberEmail[0].toUpperCase()
+                                                                : '?';
+                                                            final bgColor = Colors.primaries[
+                                                                (memberEmail.hashCode.abs()) % Colors.primaries.length].shade200;
+                                                            return GestureDetector(
                                                             onTap: () => _showMemberDetails(m),
                                                             child: Padding(
                                                               padding: const EdgeInsets.symmetric(horizontal: 2),
                                                               child: CircleAvatar(
                                                                 radius: 13,
-                                                                backgroundColor: Colors
-                                                                    .primaries[
-                                                                      (_emailOf(m).hashCode.abs()) %
-                                                                          Colors.primaries.length
-                                                                    ].shade200,
-                                                                child: Text(
-                                                                  _emailOf(m).isNotEmpty && _emailOf(m) != '-'
-                                                                      ? _emailOf(m)[0].toUpperCase()
-                                                                      : '?',
-                                                                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                                                                backgroundColor: bgColor,
+                                                                child: ClipOval(
+                                                                  child: memberId.isNotEmpty
+                                                                      ? Image.network(
+                                                                          '${ApiConfig.baseUrl}/api/users/$memberId/profile-image',
+                                                                          width: 26,
+                                                                          height: 26,
+                                                                          fit: BoxFit.cover,
+                                                                          errorBuilder: (context, error, stackTrace) => Text(
+                                                                            fallbackLetter,
+                                                                            style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                                                                          ),
+                                                                        )
+                                                                      : Text(
+                                                                          fallbackLetter,
+                                                                          style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                                                                        ),
                                                                 ),
                                                               ),
                                                             ),
-                                                          ))),
+                                                          );
+                                                          })),
                                                         ],
                                                       ),
                                                     ),

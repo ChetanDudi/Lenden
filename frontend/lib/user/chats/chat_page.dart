@@ -298,41 +298,11 @@ class _ChatPageState extends State<ChatPage> {
       return;
     }
 
+    await _fetchOtherUserDetails();
     final otherUserPublicKey =
         _otherUser?['chatEncryptionPublicKey']?.toString();
     if (otherUserPublicKey == null || otherUserPublicKey.isEmpty) {
-      await _fetchOtherUserDetails();
-      final refreshedPublicKey =
-          _otherUser?['chatEncryptionPublicKey']?.toString();
-      if (refreshedPublicKey == null || refreshedPublicKey.isEmpty) {
-        _showEncryptionUnavailableMessage();
-        return;
-      }
-      final encryptedEnvelope =
-          await ChatEncryptionService.buildEncryptedEnvelope(
-        senderId: _currentUserId!,
-        plaintext: _messageController.text.trim(),
-        recipientIds: [_currentUserId!, widget.otherUserId],
-        publicKeysByUserId: {
-          _currentUserId!: _currentUserPublicKey ?? '',
-          widget.otherUserId: refreshedPublicKey,
-        },
-      );
-
-      socket.emit('createMessage', {
-        'transactionId': widget.transactionId,
-        'senderId': _currentUserId,
-        'receiverId': widget.otherUserId,
-        'senderPublicKey': encryptedEnvelope['senderPublicKey'],
-        'encryptionVersion': encryptedEnvelope['encryptionVersion'],
-        'encryptedPayloads': encryptedEnvelope['encryptedPayloads'],
-        'parentMessageId': _replyingTo?['_id'],
-      });
-
-      _messageController.clear();
-      setState(() {
-        _replyingTo = null;
-      });
+      _showEncryptionUnavailableMessage();
       return;
     }
 
@@ -364,44 +334,13 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _editMessage() async {
     if (_messageController.text.trim().isEmpty) return;
+    if (_currentUserId == null) return;
+
+    await _fetchOtherUserDetails();
     final otherUserPublicKey =
         _otherUser?['chatEncryptionPublicKey']?.toString();
-    if (_currentUserId == null ||
-        otherUserPublicKey == null ||
-        otherUserPublicKey.isEmpty) {
-      await _fetchOtherUserDetails();
-      final refreshedPublicKey =
-          _otherUser?['chatEncryptionPublicKey']?.toString();
-      if (refreshedPublicKey == null || refreshedPublicKey.isEmpty) {
-        _showEncryptionUnavailableMessage();
-        return;
-      }
-
-      final encryptedEnvelope =
-          await ChatEncryptionService.buildEncryptedEnvelope(
-        senderId: _currentUserId!,
-        plaintext: _messageController.text.trim(),
-        recipientIds: [_currentUserId!, widget.otherUserId],
-        publicKeysByUserId: {
-          _currentUserId!: _currentUserPublicKey ?? '',
-          widget.otherUserId: refreshedPublicKey,
-        },
-      );
-
-      final message = {
-        'messageId': _editingMessage['_id'],
-        'userId': _currentUserId,
-        'senderPublicKey': encryptedEnvelope['senderPublicKey'],
-        'encryptionVersion': encryptedEnvelope['encryptionVersion'],
-        'encryptedPayloads': encryptedEnvelope['encryptedPayloads'],
-      };
-
-      socket.emit('editMessage', message);
-
-      _messageController.clear();
-      setState(() {
-        _editingMessage = null;
-      });
+    if (otherUserPublicKey == null || otherUserPublicKey.isEmpty) {
+      _showEncryptionUnavailableMessage();
       return;
     }
 
@@ -672,85 +611,81 @@ class _ChatPageState extends State<ChatPage> {
       builder: (context) {
         return Dialog(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
+                colors: [AppColors.cyan, Color(0xFF0077B6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
             child: Container(
-              margin: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Total messages (lifetime)',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                    child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCE4EC),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('You:',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              Text('$currentUserMessageCount',
-                                  style: TextStyle(fontSize: 16)),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCE4EC),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('${_otherUser!['name']}:',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              Text('$otherUserMessageCount',
-                                  style: TextStyle(fontSize: 16)),
-                            ],
+                        const Icon(Icons.forum_outlined, color: AppColors.cyan),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: const Text(
+                              'Total messages (lifetime)',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Close'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                    child: Column(
+                      children: [
+                        _buildCountRow(
+                          'You',
+                          currentUserMessageCount,
+                          userId: _currentUserId,
+                          gender: Provider.of<SessionProvider>(context,
+                                  listen: false)
+                              .user?['gender']
+                              ?.toString(),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildCountRow(
+                          _otherUser!['name'] ?? 'User',
+                          otherUserMessageCount,
+                          userId: widget.otherUserId,
+                          gender: _otherUser?['gender']?.toString(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close',
+                          style: TextStyle(
+                              color: AppColors.cyan,
+                              fontWeight: FontWeight.w700)),
+                    ),
                   ),
                 ],
               ),
@@ -758,6 +693,108 @@ class _ChatPageState extends State<ChatPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCountRow(String label, int count,
+      {String? userId, String? gender}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7FB),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: AppColors.cyan.withValues(alpha: 0.18),
+            child: ClipOval(
+              child: _buildUserNetworkAvatar(
+                userId: userId,
+                gender: gender,
+                size: 28,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Text(label,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text('$count',
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.cyan)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtherUserAvatar() {
+    return _buildUserNetworkAvatar(
+      userId: _otherUser?['_id']?.toString(),
+      gender: _otherUser?['gender']?.toString(),
+      size: 40,
+    );
+  }
+
+  Widget _buildUserNetworkAvatar({
+    required String? userId,
+    String? gender,
+    double size = 40,
+  }) {
+    final fallbackAsset =
+        'assets/${gender == 'Male' ? 'Male' : gender == 'Female' ? 'Female' : 'Other'}.png';
+    if (userId == null || userId.isEmpty) {
+      return Image.asset(fallbackAsset, width: size, height: size, fit: BoxFit.cover);
+    }
+    return Image.network(
+      '${ApiConfig.baseUrl}/api/users/$userId/profile-image',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          Image.asset(fallbackAsset, width: size, height: size, fit: BoxFit.cover),
+    );
+  }
+
+  Widget _buildMessageCountChip() {
+    final myCount = _messageCounts[_currentUserId] ?? 0;
+    final otherCount = _messageCounts[widget.otherUserId] ?? 0;
+    final total = myCount + otherCount;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: _showMessageCounts,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.forum_outlined, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              '$total',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -824,70 +861,76 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
             title: _otherUser == null
-                ? Text('Chat')
+                ? const Text('Chat',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold))
                 : Row(
                     children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: ClipOval(
-                          child: (_otherUser!['profileImage'] != null)
-                              ? Image.network(
-                                  '${ApiConfig.baseUrl}/api/users/${_otherUser!['_id']}/profile-image',
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    final gender =
-                                        _otherUser?['gender'] ?? 'Other';
-                                    if (gender == 'Male') {
-                                      return Image.asset('assets/Male.png');
-                                    } else if (gender == 'Female') {
-                                      return Image.asset('assets/Female.png');
-                                    } else {
-                                      return Image.asset('assets/Other.png');
-                                    }
-                                  },
-                                )
-                              : Image.asset(
-                                  'assets/${_otherUser?['gender'] == 'Male' ? 'Male' : _otherUser?['gender'] == 'Female' ? 'Female' : 'Other'}.png',
-                                ),
+                      Container(
+                        padding: const EdgeInsets.all(2.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 21,
+                          backgroundColor: Colors.white,
+                          child: ClipOval(child: _buildOtherUserAvatar()),
                         ),
                       ),
-                      SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_otherUser!['name'] ?? 'User'),
-                          Consumer<SessionProvider>(
-                            builder: (context, session, child) {
-                              if (session.isSubscribed) {
-                                return SizedBox.shrink();
-                              }
-                              return Text(
-                                'Daily message limit: 3',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.white70),
-                              );
-                            },
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _otherUser!['name'] ?? 'User',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Consumer<SessionProvider>(
+                              builder: (context, session, child) {
+                                if (session.isSubscribed) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.timer_outlined,
+                                        size: 12, color: Colors.white70),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Daily message limit: 3',
+                                      style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: Colors.white70,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
             actions: [
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'message_count') {
-                    _showMessageCounts();
-                  }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'message_count',
-                    child: Text('Message Count'),
-                  ),
-                ],
-              ),
+              _buildMessageCountChip(),
+              const SizedBox(width: 8),
             ],
           ),
         ),
@@ -939,28 +982,37 @@ class _ChatPageState extends State<ChatPage> {
         message['reactions'] != null && message['reactions'].isNotEmpty;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
       child: Column(
         crossAxisAlignment:
             isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           if (message['parentMessageId'] != null)
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               margin: const EdgeInsets.only(bottom: 4),
+              constraints: const BoxConstraints(maxWidth: 260),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.cyan.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+                border: const Border(
+                    left: BorderSide(color: AppColors.cyan, width: 3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                       'Replying to ${message['parentMessageId']['senderId']['name']}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.black54)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: AppColors.cyan)),
                   Text(message['parentMessageId']['message'],
-                      style: TextStyle(color: Colors.black54)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54)),
                 ],
               ),
             ),
@@ -971,7 +1023,10 @@ class _ChatPageState extends State<ChatPage> {
             children: [
               if (!isMe)
                 IconButton(
-                  icon: Icon(Icons.more_vert, color: Colors.grey),
+                  icon: const Icon(Icons.more_vert,
+                      color: Colors.grey, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => _showContextMenu(context, message, isMe),
                 ),
               Flexible(
@@ -979,49 +1034,65 @@ class _ChatPageState extends State<ChatPage> {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(2),
+                      padding: EdgeInsets.fromLTRB(
+                          14, 10, 14, hasReactions ? 22 : 10),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(17),
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                        gradient: isMe
+                            ? const LinearGradient(
+                                colors: [AppColors.cyan, Color(0xFF0096C7)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: isMe ? null : Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(18),
+                          topRight: const Radius.circular(18),
+                          bottomLeft: Radius.circular(isMe ? 18 : 4),
+                          bottomRight: Radius.circular(isMe ? 4 : 18),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.07),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: Container(
-                        padding: EdgeInsets.fromLTRB(
-                            12, 10, 12, hasReactions ? 25 : 10),
-                        decoration: BoxDecoration(
-                          color: isMe ? Color(0xFFE8F5E9) : Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: isMe
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              message['message'],
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 16),
-                            ),
-                            SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(formattedTimestamp,
+                      child: Column(
+                        crossAxisAlignment: isMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            message['message'],
+                            style: TextStyle(
+                                color: isMe ? Colors.white : Colors.black87,
+                                fontSize: 15.5,
+                                height: 1.3),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(formattedTimestamp,
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: isMe
+                                          ? Colors.white70
+                                          : Colors.black45,
+                                      fontWeight: FontWeight.w500)),
+                              if (message['isEdited'] == true)
+                                Text(' · edited',
                                     style: TextStyle(
-                                        fontSize: 10, color: Colors.black54)),
-                                if (message['isEdited'] == true)
-                                  Text(' (edited)',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.black54)),
-                              ],
-                            ),
-                          ],
-                        ),
+                                        fontSize: 10.5,
+                                        fontStyle: FontStyle.italic,
+                                        color: isMe
+                                            ? Colors.white70
+                                            : Colors.black45)),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     if (hasReactions)
@@ -1056,7 +1127,10 @@ class _ChatPageState extends State<ChatPage> {
               ),
               if (isMe)
                 IconButton(
-                  icon: Icon(Icons.more_vert, color: Colors.grey),
+                  icon: const Icon(Icons.more_vert,
+                      color: Colors.grey, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   onPressed: () => _showContextMenu(context, message, isMe),
                 ),
             ],
@@ -1068,62 +1142,63 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessageInput() {
     return Container(
-      padding: const EdgeInsets.all(2),
+      margin: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(27),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFD9ECF2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      margin: EdgeInsets.all(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                  _showEmojiPicker
-                      ? Icons.close
-                      : Icons.emoji_emotions_outlined,
-                  color: Colors.grey),
-              onPressed: _onEmojiIconPressed,
-            ),
-            Expanded(
-              child: TextField(
-                focusNode: _messageFocusNode,
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: 'Type a message',
-                  border: InputBorder.none,
-                ),
-                onTap: () {
-                  if (_showEmojiPicker) {
-                    setState(() {
-                      _showEmojiPicker = false;
-                    });
-                  }
-                },
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+                _showEmojiPicker
+                    ? Icons.close
+                    : Icons.emoji_emotions_outlined,
+                color: AppColors.cyan),
+            onPressed: _onEmojiIconPressed,
+          ),
+          Expanded(
+            child: TextField(
+              focusNode: _messageFocusNode,
+              controller: _messageController,
+              decoration: InputDecoration(
+                hintText: 'Type a message',
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                border: InputBorder.none,
               ),
+              onTap: () {
+                if (_showEmojiPicker) {
+                  setState(() {
+                    _showEmojiPicker = false;
+                  });
+                }
+              },
             ),
-            IconButton(
-              icon: Icon(Icons.send, color: Colors.blue),
-              onPressed: _sendMessage,
+          ),
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppColors.cyan, Color(0xFF0096C7)],
+                ),
+              ),
+              child: const Icon(Icons.send_rounded,
+                  color: Colors.white, size: 18),
             ),
-          ],
-        ),
+            onPressed: _sendMessage,
+          ),
+        ],
       ),
     );
   }
@@ -1135,18 +1210,19 @@ class _ChatPageState extends State<ChatPage> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFE3F2FD),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        color: const Color(0xFFEAF7FB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.timer, size: 16, color: Colors.blue),
+          const Icon(Icons.timer_outlined, size: 16, color: AppColors.cyan),
           const SizedBox(width: 6),
           Text(
             'Daily: $_dailyMessageUsed/$_dailyMessageLimit',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                fontWeight: FontWeight.w700, color: Color(0xFF086788)),
           ),
         ],
       ),
@@ -1167,8 +1243,14 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildReplyingToBanner() {
     return Container(
-      padding: EdgeInsets.all(8),
-      color: Colors.grey[200],
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7FB),
+        borderRadius: BorderRadius.circular(14),
+        border: const Border(
+            left: BorderSide(color: AppColors.cyan, width: 4)),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -1177,14 +1259,20 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 Text(
                     'Replying to ${(_replyingTo['senderId'] is Map ? _replyingTo['senderId']['name'] : '')}',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: AppColors.cyan)),
+                const SizedBox(height: 2),
                 Text(_replyingTo['message'],
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54)),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 18),
             onPressed: () {
               setState(() {
                 _replyingTo = null;
@@ -1198,23 +1286,35 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildEditingBanner() {
     return Container(
-      padding: EdgeInsets.all(8),
-      color: Colors.grey[200],
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(14),
+        border: const Border(
+            left: BorderSide(color: Color(0xFFF59E0B), width: 4)),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Editing message',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Editing message',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: Color(0xFFB45309))),
+                const SizedBox(height: 2),
                 Text(_editingMessage['message'],
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54)),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 18),
             onPressed: () {
               setState(() {
                 _editingMessage = null;

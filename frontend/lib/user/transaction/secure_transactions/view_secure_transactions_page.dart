@@ -58,6 +58,75 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   double? _searchAmount;
   String _sortBy = 'Created'; // 'Created', 'Transaction Date', 'Amount', 'Status'
   bool _sortAsc = false;
+  final Map<String, Future<Map<String, dynamic>?>> _profileCache = {};
+
+  Future<Map<String, dynamic>?> _getCounterpartyProfile(String email) {
+    if (email.isEmpty) return Future.value(null);
+    return _profileCache.putIfAbsent(email, () async {
+      try {
+        final res = await ApiClient.get(
+            '/api/users/profile-by-email?email=${Uri.encodeComponent(email)}');
+        if (res.statusCode == 200) return jsonDecode(res.body);
+      } catch (_) {}
+      return null;
+    });
+  }
+
+  Widget _counterpartyAvatar(String email, {double radius = 18}) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _getCounterpartyProfile(email),
+      builder: (context, snapshot) {
+        final profile = snapshot.data;
+        ImageProvider? imageProvider;
+        if (profile != null &&
+            profile['deactivatedAccount'] != true &&
+            profile['profileIsPrivate'] != true) {
+          dynamic imgUrl = profile['profileImage'];
+          if (imgUrl is Map) imgUrl = imgUrl['url'];
+          if (imgUrl is String && imgUrl.isNotEmpty && imgUrl != 'null') {
+            imageProvider = NetworkImage(imgUrl);
+          } else {
+            final gender = (profile['gender'] ?? 'Other').toString();
+            imageProvider = AssetImage(gender == 'Male'
+                ? 'assets/Male.png'
+                : gender == 'Female'
+                    ? 'assets/Female.png'
+                    : 'assets/Other.png');
+          }
+        }
+        return CircleAvatar(
+          radius: radius,
+          backgroundColor: Colors.teal.shade100,
+          backgroundImage: imageProvider,
+          child: imageProvider == null
+              ? Icon(Icons.person, color: Colors.teal, size: radius * 1.2)
+              : null,
+        );
+      },
+    );
+  }
+
+  Widget _currentUserAvatar({double radius = 18}) {
+    final user = Provider.of<SessionProvider>(context, listen: false).user;
+    final imgUrl = user?['profileImage'];
+    ImageProvider? imageProvider;
+    if (imgUrl is String && imgUrl.isNotEmpty && imgUrl != 'null') {
+      imageProvider = NetworkImage(imgUrl);
+    } else {
+      final gender = (user?['gender'] ?? 'Other').toString();
+      imageProvider = AssetImage(gender == 'Male'
+          ? 'assets/Male.png'
+          : gender == 'Female'
+              ? 'assets/Female.png'
+              : 'assets/Other.png');
+    }
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.teal.shade100,
+      backgroundImage: imageProvider,
+    );
+  }
+
   String interestTypeFilter = 'All'; // 'All', 'simple', 'compound'
   String globalSearch = '';
   final TextEditingController _globalSearchController = TextEditingController();
@@ -523,11 +592,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                           ),
                         ],
                         SizedBox(width: 10),
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.teal.shade100,
-                          child: Icon(Icons.person, color: Colors.teal, size: 22),
-                        ),
+                        _currentUserAvatar(radius: 18),
                         SizedBox(width: 10),
                         Text(
                           isLending
@@ -544,11 +609,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     // Counterparty info (always visible)
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Colors.teal.shade100,
-                          child: Icon(Icons.person_outline, color: Colors.teal, size: 16),
-                        ),
+                        _counterpartyAvatar(counterpartyEmail?.toString() ?? '',
+                            radius: 14),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text('Counterparty: $counterpartyEmail',

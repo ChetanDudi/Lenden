@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/wave_widget.dart';
 
 class RepaymentSchedulePage extends StatelessWidget {
   final Map<String, dynamic> transaction;
@@ -54,11 +55,28 @@ class RepaymentSchedulePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        backgroundColor: Colors.brown,
-        foregroundColor: Colors.white,
-        title: const Text('Repayment Schedule',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(140),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Repayment Schedule',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: 140,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.brown, Color(0xFF5D4037)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/wave_widget.dart';
 
 class PartialPaymentHistoryPage extends StatelessWidget {
   final Map<String, dynamic> transaction;
@@ -50,11 +51,28 @@ class PartialPaymentHistoryPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
-        title: const Text('Payment History',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(140),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Payment History',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: 140,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.purple, Color(0xFF7B1FA2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: partialPayments.isEmpty
           ? const Center(
