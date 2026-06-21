@@ -34,6 +34,19 @@ import '../scanner/qr_scanner_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
 
+enum _QuickActionsViewStyle {
+  grid,
+  orbit,
+  verticalOrbit,
+  galaxy,
+  zigzag,
+  star,
+  spiral,
+  wave,
+  circle,
+  list,
+}
+
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
 
@@ -58,6 +71,17 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   bool _hasRatedApp = false;
   bool _ratingDialogShown = false;
   bool _useCompactTransactionOptions = true;
+  _QuickActionsViewStyle _quickActionsViewStyle = _QuickActionsViewStyle.grid;
+  AnimationController? _quickActionsRotationController;
+
+  static const Set<_QuickActionsViewStyle> _animatedQuickActionStyles = {
+    _QuickActionsViewStyle.orbit,
+    _QuickActionsViewStyle.verticalOrbit,
+    _QuickActionsViewStyle.galaxy,
+    _QuickActionsViewStyle.star,
+    _QuickActionsViewStyle.spiral,
+    _QuickActionsViewStyle.wave,
+  };
   final TextEditingController _searchController = TextEditingController();
   final Map<String, GlobalKey> _sectionKeys = {
     'quick_transactions': GlobalKey(),
@@ -141,6 +165,10 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     _fetchFriends();
     _fetchUnreadUpdatesCount();
     _checkAndShowRatingDialog();
+    _quickActionsRotationController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final session = Provider.of<SessionProvider>(context, listen: false);
@@ -156,6 +184,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     _scrollController.dispose();
     _searchController.dispose();
     _adTimer?.cancel();
+    _quickActionsRotationController?.dispose();
     super.dispose();
   }
 
@@ -1004,169 +1033,120 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Search Bar with tricolor border
-                    Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(27),
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.search,
-                              color: Colors.grey[600],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                onSubmitted: _performSearch,
-                                decoration: InputDecoration(
-                                  hintText: 'Search sections...',
-                                  hintStyle: TextStyle(color: Colors.grey[400]),
-                                  border: InputBorder.none,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                style: TextStyle(fontSize: context.sp(15)),
-                              ),
-                            ),
-                            if (_searchController.text.isNotEmpty)
-                              IconButton(
-                                icon: Icon(Icons.clear,
-                                    color: Colors.grey[600], size: 20),
-                                onPressed: () {
-                                  setState(() {
-                                    _searchController.clear();
-                                  });
-                                },
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Quick Actions Grid
+                    // Search Bar with tricolor border + view menu
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      child: Column(
+                      child: Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildQuickActionItem(
-                                icon: _carouselItems[0]['icon'] as IconData,
-                                label: _carouselItems[0]['label'] as String,
-                                color: _carouselItems[0]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[0]['action'] as String),
-                                index: 0,
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(27),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Colors.orange,
+                                    Colors.white,
+                                    Colors.green
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              _buildQuickActionItem(
-                                icon: _carouselItems[1]['icon'] as IconData,
-                                label: _carouselItems[1]['label'] as String,
-                                color: _carouselItems[1]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[1]['action'] as String),
-                                index: 1,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search,
+                                      color: Colors.grey[600],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _searchController,
+                                        onSubmitted: _performSearch,
+                                        decoration: InputDecoration(
+                                          hintText: 'Search sections...',
+                                          hintStyle: TextStyle(
+                                              color: Colors.grey[400]),
+                                          border: InputBorder.none,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  vertical: 8),
+                                        ),
+                                        style:
+                                            TextStyle(fontSize: context.sp(15)),
+                                      ),
+                                    ),
+                                    if (_searchController.text.isNotEmpty)
+                                      IconButton(
+                                        icon: Icon(Icons.clear,
+                                            color: Colors.grey[600], size: 20),
+                                        onPressed: () {
+                                          setState(() {
+                                            _searchController.clear();
+                                          });
+                                        },
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                  ],
+                                ),
                               ),
-                              _buildQuickActionItem(
-                                icon: _carouselItems[2]['icon'] as IconData,
-                                label: _carouselItems[2]['label'] as String,
-                                color: _carouselItems[2]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[2]['action'] as String),
-                                index: 2,
-                              ),
-                            ],
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildQuickActionItem(
-                                icon: _carouselItems[3]['icon'] as IconData,
-                                label: _carouselItems[3]['label'] as String,
-                                color: _carouselItems[3]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[3]['action'] as String),
-                                index: 3,
+                          const SizedBox(width: 10),
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.orange,
+                                  Colors.white,
+                                  Colors.green
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              _buildQuickActionItem(
-                                icon: _carouselItems[4]['icon'] as IconData,
-                                label: _carouselItems[4]['label'] as String,
-                                color: _carouselItems[4]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[4]['action'] as String),
-                                index: 4,
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
                               ),
-                              _buildQuickActionItem(
-                                icon: _carouselItems[5]['icon'] as IconData,
-                                label: _carouselItems[5]['label'] as String,
-                                color: _carouselItems[5]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[5]['action'] as String),
-                                index: 5,
+                              child: IconButton(
+                                icon: Icon(Icons.more_vert,
+                                    color: Color(0xFF00B4D8)),
+                                tooltip: 'Quick Actions View',
+                                onPressed: _showQuickActionsViewMenu,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildQuickActionItem(
-                                icon: _carouselItems[6]['icon'] as IconData,
-                                label: _carouselItems[6]['label'] as String,
-                                color: _carouselItems[6]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[6]['action'] as String),
-                                index: 6,
-                              ),
-                              _buildQuickActionItem(
-                                icon: _carouselItems[7]['icon'] as IconData,
-                                label: _carouselItems[7]['label'] as String,
-                                color: _carouselItems[7]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[7]['action'] as String),
-                                index: 7,
-                              ),
-                              _buildQuickActionItem(
-                                icon: _carouselItems[8]['icon'] as IconData,
-                                label: _carouselItems[8]['label'] as String,
-                                color: _carouselItems[8]['color'] as Color,
-                                onTap: () => _handleCarouselAction(
-                                    _carouselItems[8]['action'] as String),
-                                index: 8,
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
+                    ),
+
+                    // Quick Actions — selectable view style
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: _buildQuickActionsView(),
                     ),
 
                     const SizedBox(height: 16),
@@ -1452,6 +1432,595 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ],
         ),
       ),
+    );
+  }
+
+  static const List<Map<String, dynamic>> _quickActionsViewOptions = [
+    {
+      'style': _QuickActionsViewStyle.grid,
+      'label': 'Grid',
+      'icon': Icons.grid_view_rounded,
+    },
+    {
+      'style': _QuickActionsViewStyle.orbit,
+      'label': 'Orbit',
+      'icon': Icons.circle_outlined,
+    },
+    {
+      'style': _QuickActionsViewStyle.verticalOrbit,
+      'label': 'Vertical Orbit',
+      'icon': Icons.swap_vert_circle_outlined,
+    },
+    {
+      'style': _QuickActionsViewStyle.galaxy,
+      'label': 'Galaxy',
+      'icon': Icons.blur_circular,
+    },
+    {
+      'style': _QuickActionsViewStyle.zigzag,
+      'label': 'Zig Zag',
+      'icon': Icons.show_chart_rounded,
+    },
+    {
+      'style': _QuickActionsViewStyle.star,
+      'label': 'Star',
+      'icon': Icons.star_rate_rounded,
+    },
+    {
+      'style': _QuickActionsViewStyle.spiral,
+      'label': 'Spiral',
+      'icon': Icons.cyclone_rounded,
+    },
+    {
+      'style': _QuickActionsViewStyle.wave,
+      'label': 'Wave',
+      'icon': Icons.waves_rounded,
+    },
+    {
+      'style': _QuickActionsViewStyle.circle,
+      'label': 'Circle',
+      'icon': Icons.radio_button_unchecked,
+    },
+    {
+      'style': _QuickActionsViewStyle.list,
+      'label': 'List',
+      'icon': Icons.view_list_rounded,
+    },
+  ];
+
+  void _setQuickActionsViewStyle(_QuickActionsViewStyle style) {
+    setState(() => _quickActionsViewStyle = style);
+    if (_animatedQuickActionStyles.contains(style)) {
+      _quickActionsRotationController?.repeat();
+    } else {
+      _quickActionsRotationController?.stop();
+    }
+  }
+
+  void _showQuickActionsViewMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              gradient: const LinearGradient(
+                colors: [Colors.orange, Colors.white, Colors.green],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: const EdgeInsets.all(3),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(23),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF00B4D8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.dashboard_customize,
+                            color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text('Quick Actions View',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choose how the 9 quick actions are displayed.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _quickActionsViewOptions.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.9,
+                    ),
+                    itemBuilder: (context, i) {
+                      final option = _quickActionsViewOptions[i];
+                      final style =
+                          option['style'] as _QuickActionsViewStyle;
+                      final selected = style == _quickActionsViewStyle;
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          _setQuickActionsViewStyle(style);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: selected
+                                ? const LinearGradient(
+                                    colors: [
+                                      Colors.orange,
+                                      Colors.white,
+                                      Colors.green
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            border: selected
+                                ? null
+                                : Border.all(color: Colors.grey[300]!),
+                          ),
+                          padding: EdgeInsets.all(selected ? 2 : 0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? const Color(0xFFE0F7FA)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(option['icon'] as IconData,
+                                    color: selected
+                                        ? const Color(0xFF00B4D8)
+                                        : Colors.grey[600],
+                                    size: 26),
+                                const SizedBox(height: 6),
+                                Text(
+                                  option['label'] as String,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: selected
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                    color: selected
+                                        ? const Color(0xFF00B4D8)
+                                        : Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActionsView() {
+    switch (_quickActionsViewStyle) {
+      case _QuickActionsViewStyle.orbit:
+        return _buildOrbitQuickActions();
+      case _QuickActionsViewStyle.verticalOrbit:
+        return _buildVerticalOrbitQuickActions();
+      case _QuickActionsViewStyle.galaxy:
+        return _buildGalaxyQuickActions();
+      case _QuickActionsViewStyle.zigzag:
+        return _buildZigZagQuickActions();
+      case _QuickActionsViewStyle.star:
+        return _buildStarQuickActions();
+      case _QuickActionsViewStyle.spiral:
+        return _buildSpiralQuickActions();
+      case _QuickActionsViewStyle.wave:
+        return _buildWaveQuickActions();
+      case _QuickActionsViewStyle.circle:
+        return _buildCircleQuickActions();
+      case _QuickActionsViewStyle.list:
+        return _buildListQuickActions();
+      case _QuickActionsViewStyle.grid:
+        return _buildGridQuickActions();
+    }
+  }
+
+  Widget _buildGridQuickActions() {
+    return Column(
+      children: [
+        for (int row = 0; row < 3; row++) ...[
+          if (row > 0) const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(3, (col) {
+              final index = row * 3 + col;
+              final item = _carouselItems[index];
+              return _buildQuickActionItem(
+                icon: item['icon'] as IconData,
+                label: item['label'] as String,
+                color: item['color'] as Color,
+                onTap: () => _handleCarouselAction(item['action'] as String),
+                index: index,
+              );
+            }),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildOrbitQuickActions() {
+    return SizedBox(
+      height: 150,
+      child: AnimatedBuilder(
+        animation: _quickActionsRotationController!,
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: List.generate(_carouselItems.length, (index) {
+              final item = _carouselItems[index];
+              final angle = (index / _carouselItems.length) * 2 * pi +
+                  (_quickActionsRotationController!.value * 2 * pi);
+              final x = cos(angle) * 130;
+              final y = sin(angle) * 45;
+              final scale = 0.7 + (sin(angle) + 1) / 2 * 0.5;
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..translate(x, y)
+                  ..scale(scale),
+                alignment: Alignment.center,
+                child: Opacity(
+                  opacity: (sin(angle) + 1) / 2 * 0.8 + 0.2,
+                  child: _buildQuickActionItem(
+                    icon: item['icon'] as IconData,
+                    label: item['label'] as String,
+                    color: item['color'] as Color,
+                    onTap: () =>
+                        _handleCarouselAction(item['action'] as String),
+                    index: index,
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildVerticalOrbitQuickActions() {
+    return SizedBox(
+      height: 220,
+      child: AnimatedBuilder(
+        animation: _quickActionsRotationController!,
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: List.generate(_carouselItems.length, (index) {
+              final item = _carouselItems[index];
+              final angle = (index / _carouselItems.length) * 2 * pi +
+                  (_quickActionsRotationController!.value * 2 * pi);
+              final x = cos(angle) * 45;
+              final y = sin(angle) * 95;
+              final scale = 0.7 + (cos(angle) + 1) / 2 * 0.5;
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..translate(x, y)
+                  ..scale(scale),
+                alignment: Alignment.center,
+                child: Opacity(
+                  opacity: (cos(angle) + 1) / 2 * 0.8 + 0.2,
+                  child: _buildQuickActionItem(
+                    icon: item['icon'] as IconData,
+                    label: item['label'] as String,
+                    color: item['color'] as Color,
+                    onTap: () =>
+                        _handleCarouselAction(item['action'] as String),
+                    index: index,
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGalaxyQuickActions() {
+    const ringRadii = [45.0, 85.0, 125.0];
+    const ringSpeeds = [1.0, -0.7, 0.5];
+    return SizedBox(
+      height: 270,
+      child: AnimatedBuilder(
+        animation: _quickActionsRotationController!,
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: List.generate(_carouselItems.length, (index) {
+              final item = _carouselItems[index];
+              final ring = index ~/ 3;
+              final posInRing = index % 3;
+              final angle = (posInRing / 3) * 2 * pi +
+                  (_quickActionsRotationController!.value *
+                      2 *
+                      pi *
+                      ringSpeeds[ring]);
+              final radius = ringRadii[ring];
+              final x = cos(angle) * radius;
+              final y = sin(angle) * radius * 0.55;
+              final scale = 0.65 + (sin(angle) + 1) / 2 * 0.35;
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..translate(x, y)
+                  ..scale(scale),
+                alignment: Alignment.center,
+                child: Opacity(
+                  opacity: (sin(angle) + 1) / 2 * 0.7 + 0.3,
+                  child: _buildQuickActionItem(
+                    icon: item['icon'] as IconData,
+                    label: item['label'] as String,
+                    color: item['color'] as Color,
+                    onTap: () =>
+                        _handleCarouselAction(item['action'] as String),
+                    index: index,
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildZigZagQuickActions() {
+    return SizedBox(
+      height: 140,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(_carouselItems.length, (index) {
+            final item = _carouselItems[index];
+            final offsetUp = index.isEven;
+            return Padding(
+              padding: EdgeInsets.only(
+                right: 18,
+                top: offsetUp ? 0 : 40,
+                bottom: offsetUp ? 40 : 0,
+              ),
+              child: _buildQuickActionItem(
+                icon: item['icon'] as IconData,
+                label: item['label'] as String,
+                color: item['color'] as Color,
+                onTap: () => _handleCarouselAction(item['action'] as String),
+                index: index,
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStarQuickActions() {
+    return SizedBox(
+      height: 240,
+      child: AnimatedBuilder(
+        animation: _quickActionsRotationController!,
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: List.generate(_carouselItems.length, (index) {
+              final item = _carouselItems[index];
+              final baseAngle = (index / _carouselItems.length) * 2 * pi;
+              final angle = baseAngle +
+                  (_quickActionsRotationController!.value * 2 * pi * 0.3);
+              final radius = index.isEven ? 130.0 : 75.0;
+              final x = cos(angle) * radius;
+              final y = sin(angle) * radius;
+
+              return Transform.translate(
+                offset: Offset(x, y),
+                child: _buildQuickActionItem(
+                  icon: item['icon'] as IconData,
+                  label: item['label'] as String,
+                  color: item['color'] as Color,
+                  onTap: () =>
+                      _handleCarouselAction(item['action'] as String),
+                  index: index,
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSpiralQuickActions() {
+    return SizedBox(
+      height: 260,
+      child: AnimatedBuilder(
+        animation: _quickActionsRotationController!,
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: List.generate(_carouselItems.length, (index) {
+              final item = _carouselItems[index];
+              final radius = 18.0 + index * 14.0;
+              final angle = index * (2 * pi / 3.6) +
+                  (_quickActionsRotationController!.value * 2 * pi * 0.4);
+              final x = cos(angle) * radius;
+              final y = sin(angle) * radius;
+              final scale = 0.6 + (index / _carouselItems.length) * 0.5;
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..translate(x, y)
+                  ..scale(scale),
+                alignment: Alignment.center,
+                child: _buildQuickActionItem(
+                  icon: item['icon'] as IconData,
+                  label: item['label'] as String,
+                  color: item['color'] as Color,
+                  onTap: () =>
+                      _handleCarouselAction(item['action'] as String),
+                  index: index,
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildWaveQuickActions() {
+    return SizedBox(
+      height: 150,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final spacing = constraints.maxWidth / _carouselItems.length;
+          return AnimatedBuilder(
+            animation: _quickActionsRotationController!,
+            builder: (context, child) {
+              return Stack(
+                children: List.generate(_carouselItems.length, (index) {
+                  final item = _carouselItems[index];
+                  final phase = _quickActionsRotationController!.value * 2 * pi;
+                  final y = sin(index * 0.9 + phase) * 24;
+                  return Positioned(
+                    left: spacing * index + spacing / 2 - 32,
+                    top: 50 + y,
+                    child: _buildQuickActionItem(
+                      icon: item['icon'] as IconData,
+                      label: item['label'] as String,
+                      color: item['color'] as Color,
+                      onTap: () =>
+                          _handleCarouselAction(item['action'] as String),
+                      index: index,
+                    ),
+                  );
+                }),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCircleQuickActions() {
+    return SizedBox(
+      height: 230,
+      child: Stack(
+        alignment: Alignment.center,
+        children: List.generate(_carouselItems.length, (index) {
+          final item = _carouselItems[index];
+          final angle = (index / _carouselItems.length) * 2 * pi - pi / 2;
+          final x = cos(angle) * 110;
+          final y = sin(angle) * 110;
+          return Transform.translate(
+            offset: Offset(x, y),
+            child: _buildQuickActionItem(
+              icon: item['icon'] as IconData,
+              label: item['label'] as String,
+              color: item['color'] as Color,
+              onTap: () => _handleCarouselAction(item['action'] as String),
+              index: index,
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildListQuickActions() {
+    return Column(
+      children: List.generate(_carouselItems.length, (index) {
+        final item = _carouselItems[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: GestureDetector(
+            onTap: () => _handleCarouselAction(item['action'] as String),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey[200]!),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (item['color'] as Color).withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(item['icon'] as IconData,
+                        color: item['color'] as Color, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      item['label'] as String,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey[400]),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 
