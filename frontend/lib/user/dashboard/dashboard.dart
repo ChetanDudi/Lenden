@@ -692,16 +692,15 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 ),
                 _buildFavouriteItem(
                   context,
-                  icon: Icons.person,
-                  text: 'Transaction',
+                  icon: Icons.shield,
+                  text: 'Secure',
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => UserTransactionsPage(),
-                        settings: RouteSettings(
-                          arguments: {'showFavouritesOnly': true},
+                        builder: (_) => UserTransactionsPage(
+                          initialShowFavouritesOnly: true,
                         ),
                       ),
                     );
@@ -716,7 +715,25 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => GroupTransactionPage(),
+                        builder: (_) => GroupTransactionPage(
+                          initialShowFavouritesOnly: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _buildFavouriteItem(
+                  context,
+                  icon: Icons.bolt,
+                  text: 'Quick',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => QuickTransactionsPage(
+                          initialShowFavouritesOnly: true,
+                        ),
                       ),
                     );
                   },

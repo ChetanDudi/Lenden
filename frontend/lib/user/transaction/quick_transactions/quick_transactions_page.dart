@@ -23,11 +23,13 @@ import './quick_transaction_detail_page.dart';
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
   final bool openCreateOnLoad;
+  final bool initialShowFavouritesOnly;
 
   const QuickTransactionsPage({
     Key? key,
     this.prefillCounterpartyEmail,
     this.openCreateOnLoad = false,
+    this.initialShowFavouritesOnly = false,
   }) : super(key: key);
   @override
   State<QuickTransactionsPage> createState() => _QuickTransactionsPageState();
@@ -60,6 +62,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   @override
   void initState() {
     super.initState();
+    _showFavouritesOnly = widget.initialShowFavouritesOnly;
     fetchQuickTransactions();
     _loadBlockedUsers();
     _loadDailyLimits();
@@ -2142,11 +2145,16 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.receipt_long,
+                                      Icon(
+                                          _showFavouritesOnly
+                                              ? Icons.star_border_rounded
+                                              : Icons.receipt_long,
                                           size: 80, color: Colors.grey[400]),
                                       const SizedBox(height: 20),
                                       Text(
-                                        searchQuery.isNotEmpty ||
+                                        _showFavouritesOnly
+                                            ? 'No favourite transactions found'
+                                            : searchQuery.isNotEmpty ||
                                                 filterBy != 'all' ||
                                                 _roleFilter != 'all' ||
                                                 _dateFilter != 'all' ||
@@ -2160,7 +2168,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        searchQuery.isNotEmpty ||
+                                        _showFavouritesOnly
+                                            ? 'Mark a transaction as favourite to see it here.'
+                                            : searchQuery.isNotEmpty ||
                                                 filterBy != 'all' ||
                                                 _roleFilter != 'all' ||
                                                 _dateFilter != 'all' ||

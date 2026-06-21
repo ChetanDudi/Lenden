@@ -17,9 +17,13 @@ String _emailOf(dynamic field) {
 
 class GroupTransactionPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
+  final bool initialShowFavouritesOnly;
 
-  const GroupTransactionPage({Key? key, this.prefillMemberEmails})
-      : super(key: key);
+  const GroupTransactionPage({
+    Key? key,
+    this.prefillMemberEmails,
+    this.initialShowFavouritesOnly = false,
+  }) : super(key: key);
   @override
   State<GroupTransactionPage> createState() => _GroupTransactionPageState();
 }
@@ -81,6 +85,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   @override
   void initState() {
     super.initState();
+    _showFavouritesOnly = widget.initialShowFavouritesOnly;
     if (widget.prefillMemberEmails != null &&
         widget.prefillMemberEmails!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

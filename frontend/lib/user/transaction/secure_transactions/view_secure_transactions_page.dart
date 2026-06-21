@@ -2008,10 +2008,17 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
+            Icon(
+                showFavouritesOnly
+                    ? Icons.star_border_rounded
+                    : Icons.receipt_long,
+                size: 80,
+                color: Colors.grey[400]),
             const SizedBox(height: 20),
             Text(
-              'No transactions found',
+              showFavouritesOnly
+                  ? 'No favourite transactions found'
+                  : 'No transactions found',
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -2019,7 +2026,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Try adjusting your search or filters',
+              showFavouritesOnly
+                  ? 'Mark a transaction as favourite to see it here.'
+                  : 'Try adjusting your search or filters',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey[500]),
             ),
