@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class AdminContentAnalyticsPage extends StatefulWidget {
   const AdminContentAnalyticsPage({super.key});
@@ -74,7 +75,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 165,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

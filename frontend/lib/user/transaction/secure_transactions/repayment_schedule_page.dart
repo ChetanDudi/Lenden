@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../utils/responsive.dart';
 
 class RepaymentSchedulePage extends StatelessWidget {
   final Map<String, dynamic> transaction;
@@ -55,30 +56,37 @@ class RepaymentSchedulePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(140),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text('Repayment Schedule',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          flexibleSpace: ClipPath(
-            clipper: const TopWaveClipper(),
-            child: Container(
-              height: 140,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.brown, Color(0xFF5D4037)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Repayment Schedule',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: const TopWaveClipper(),
+              child: Container(
+                height: context.sh(156),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.brown, Color(0xFF5D4037)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
+          Padding(
+            padding: EdgeInsets.only(top: context.sh(90)),
+            child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,6 +228,9 @@ class RepaymentSchedulePage extends StatelessWidget {
             }),
           ],
         ),
+      ),
+          ),
+        ],
       ),
     );
   }

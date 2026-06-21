@@ -14,6 +14,7 @@ import '../../chats/group_chat_page.dart';
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../utils/responsive.dart';
 
 class ViewGroupTransactionsPage extends StatefulWidget {
   const ViewGroupTransactionsPage({super.key});
@@ -1151,7 +1152,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(140),
+        preferredSize: Size.fromHeight(context.sh(156)),
         child: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -1172,7 +1173,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
           flexibleSpace: ClipPath(
             clipper: const TopWaveClipper(),
             child: Container(
-              height: 140,
+              height: context.sh(156),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.cyan, Color(0xFF48CAE4)],

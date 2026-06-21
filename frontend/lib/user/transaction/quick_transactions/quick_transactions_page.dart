@@ -19,6 +19,7 @@ import '../analytics_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import './create_edit_quick_transaction_page.dart';
 import './quick_transaction_detail_page.dart';
+import '../../../utils/responsive.dart';
 
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
@@ -1634,7 +1635,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               color: AppColors.cyan,
               child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(top: 90, bottom: MediaQuery.of(context).padding.bottom + 110),
+              padding: EdgeInsets.only(top: 80, bottom: MediaQuery.of(context).padding.bottom + 110),
               child: Column(
                 children: [
                   Consumer<SessionProvider>(
@@ -2322,7 +2323,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 90, // Reduced from 180 to 90
+                height: context.sh(78),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -2354,16 +2355,21 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                     ),
                     Expanded(
                       child: Center(
-                        child: Text(
-                          'Quick Transactions',
-                          style: TextStyle(
-                            fontSize: 22, // Reduced font size for smaller wave
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            letterSpacing: 1.2,
-                            shadows: [
-                              Shadow(color: Colors.black26, blurRadius: 4)
-                            ],
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Text(
+                            'Quick Transactions',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              letterSpacing: 1.2,
+                              shadows: [
+                                Shadow(color: Colors.black26, blurRadius: 4)
+                              ],
+                            ),
                           ),
                         ),
                       ),

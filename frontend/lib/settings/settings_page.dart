@@ -32,7 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: transparentAppBar(context, title: 'Settings'),
       body: Stack(
         children: [
-          cyanWaveHeader(height: context.sh(110)),
+          cyanWaveHeader(height: context.sh(156)),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),

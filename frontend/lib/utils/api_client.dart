@@ -112,8 +112,12 @@ class ApiClient {
       return resp;
     }
 
-    // If unauthorized, try refresh and retry once
-    if (resp.statusCode == 401) {
+    // If unauthorized, try refresh and retry once.
+    // Only do this when the request actually carried a session token — if
+    // there was no token (e.g. a login attempt with a wrong password), a 401
+    // is the endpoint rejecting the credentials, not an expired session, so
+    // skip the refresh/redirect-to-login flow and let the real error through.
+    if (resp.statusCode == 401 && token != null) {
       final refreshed = await _refreshTokens();
       if (refreshed) {
         token = await _getAccessToken();

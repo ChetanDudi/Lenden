@@ -11,9 +11,10 @@ import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
-import 'secure_transaction_page.dart' hide TopWaveClipper;
+import 'create_secure_transaction_page.dart' hide TopWaveClipper;
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../utils/responsive.dart';
 
 class UserTransactionsPage extends StatefulWidget {
   final String initialFilter;
@@ -2106,30 +2107,37 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     }
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(140),
-        child: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          title: Text('Your Transactions ($totalTransactions)',
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-          iconTheme: const IconThemeData(color: Colors.black),
-          flexibleSpace: ClipPath(
-            clipper: const TopWaveClipper(),
-            child: Container(
-              height: 140,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: Text('Your Transactions ($totalTransactions)',
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: const TopWaveClipper(),
+              child: Container(
+                height: context.sh(156),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      body: loading
+          Padding(
+            padding: EdgeInsets.only(top: context.sh(90)),
+            child: loading
           ? Center(child: CircularProgressIndicator())
           : error != null
               ? _buildErrorState(error!, fetchTransactions)
@@ -2292,6 +2300,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     ),
                   ),
                 ),
+          ),
+        ],
+      ),
       floatingActionButton: Container(
         decoration: const BoxDecoration(
           shape: BoxShape.circle,

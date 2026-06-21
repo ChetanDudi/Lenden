@@ -347,7 +347,7 @@ class HomePage extends StatelessWidget {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 120,
+                height: context.sh(78),
                 color: AppColors.cyan,
               ),
             ),

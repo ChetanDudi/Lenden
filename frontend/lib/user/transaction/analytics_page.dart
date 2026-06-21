@@ -10,6 +10,7 @@ import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'quick_transactions/quick_transactions_page.dart';
 import 'secure_transactions/view_secure_transactions_page.dart';
+import '../../utils/responsive.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final List<dynamic>? transactions;
@@ -1394,7 +1395,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 150,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -1407,7 +1408,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(top: 40),
+              padding: EdgeInsets.only(top: context.sh(45)),
               child: _buildBody(),
             ),
           ),

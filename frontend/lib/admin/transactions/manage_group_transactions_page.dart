@@ -7,6 +7,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class ManageGroupTransactionsPage extends StatefulWidget {
   const ManageGroupTransactionsPage({super.key});
@@ -803,7 +804,7 @@ class _ManageGroupTransactionsPageState
             right: 0,
             child: ClipPath(
               clipper: TopWaveClipper(),
-              child: Container(height: 60, color: AppColors.cyan),
+              child: Container(height: context.sh(156), color: AppColors.cyan),
             ),
           ),
           SafeArea(

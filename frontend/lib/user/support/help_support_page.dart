@@ -355,13 +355,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
               clipper: _HelpWaveClipper(),
               child: Container(
                 height: 115,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_blue, _cyan],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+                color: _cyan,
               ),
             ),
           ),

@@ -13,6 +13,7 @@ import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/responsive.dart';
 
 class UserManagementPage extends StatefulWidget {
   final String initialStatusFilter;
@@ -1183,7 +1184,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 60,
+                height: context.sh(156),
                 color: AppColors.cyan,
               ),
             ),

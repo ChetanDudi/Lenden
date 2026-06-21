@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
 import '../../utils/api_client.dart';
-import '../transaction/secure_transactions/secure_transaction_page.dart';
+import '../transaction/secure_transactions/create_secure_transaction_page.dart';
 import '../transaction/secure_transactions/view_secure_transactions_page.dart';
 import '../transaction/analytics_page.dart';
 import '../digitise/gift_card_page.dart';

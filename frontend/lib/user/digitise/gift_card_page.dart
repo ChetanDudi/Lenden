@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
 import '../../widgets/app_widgets.dart';
+import '../../utils/responsive.dart';
 
 class GiftCardPage extends StatefulWidget {
   const GiftCardPage({Key? key}) : super(key: key);
@@ -387,7 +388,7 @@ class _GiftCardPageState extends State<GiftCardPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 140,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

@@ -7,6 +7,7 @@ import '../connections/friends_page.dart';
 import '../digitise/offers_page.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/responsive.dart';
 
 class UserNotificationsPage extends StatefulWidget {
   const UserNotificationsPage({Key? key}) : super(key: key);
@@ -197,7 +198,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 132,
+                height: context.sh(78),
                 color: AppColors.cyan,
               ),
             ),

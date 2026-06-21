@@ -4,6 +4,7 @@ import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/responsive.dart';
 
 class ManageContactPage extends StatefulWidget {
   const ManageContactPage({super.key});
@@ -247,7 +248,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 140,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

@@ -5,6 +5,7 @@ import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../utils/responsive.dart';
 
 class AdminNotificationsPage extends StatefulWidget {
   const AdminNotificationsPage({Key? key}) : super(key: key);
@@ -456,7 +457,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 132,
+                height: context.sh(156),
                 color: AppColors.cyan,
               ),
             ),

@@ -4,6 +4,7 @@ import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class ManageCurrencyConversionsPage extends StatefulWidget {
   const ManageCurrencyConversionsPage({super.key});
@@ -255,7 +256,7 @@ class _ManageCurrencyConversionsPageState
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 170,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF67D5EB)],

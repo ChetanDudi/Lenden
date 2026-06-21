@@ -8,6 +8,7 @@ import '../../../utils/api_client.dart';
 import '../../../session.dart';
 import '../../../otp_input.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../utils/responsive.dart';
 
 class PartialPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -502,34 +503,41 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6FA),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(140),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: const Text('Partial Payment',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          flexibleSpace: ClipPath(
-            clipper: const TopWaveClipper(),
-            child: Container(
-              height: 140,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.purple, Color(0xFF7B1FA2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Partial Payment',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context, false),
+        ),
+      ),
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: const TopWaveClipper(),
+              child: Container(
+                height: context.sh(156),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.purple, Color(0xFF7B1FA2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
+          Padding(
+            padding: EdgeInsets.only(top: context.sh(90)),
+            child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -704,6 +712,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                 ]),
           ],
         ),
+      ),
+          ),
+        ],
       ),
     );
   }

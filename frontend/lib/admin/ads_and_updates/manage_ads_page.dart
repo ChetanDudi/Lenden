@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class ManageAdsPage extends StatefulWidget {
   const ManageAdsPage({super.key});
@@ -576,7 +577,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 165,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

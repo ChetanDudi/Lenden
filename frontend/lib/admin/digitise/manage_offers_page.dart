@@ -4,6 +4,7 @@ import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class ManageOffersPage extends StatefulWidget {
   const ManageOffersPage({super.key});
@@ -1295,7 +1296,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 140,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

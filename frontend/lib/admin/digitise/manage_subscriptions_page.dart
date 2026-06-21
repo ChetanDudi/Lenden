@@ -4,6 +4,7 @@ import '../../widgets/app_widgets.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
+import '../../utils/responsive.dart';
 
 class AdminFeaturesPage extends StatefulWidget {
   @override
@@ -59,7 +60,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 150,
+                height: context.sh(156),
                 color: AppColors.cyan,
               ),
             ),

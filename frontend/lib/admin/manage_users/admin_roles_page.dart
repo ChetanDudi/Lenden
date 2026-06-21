@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class AdminRolesPage extends StatefulWidget {
   const AdminRolesPage({super.key});
@@ -264,7 +265,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 165,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../api_config.dart';
 import '../otp_input.dart';
 import '../utils/api_client.dart';
+import '../utils/responsive.dart';
 
 class UserForgotPasswordPage extends StatefulWidget {
   final String? prefillEmail;
@@ -271,7 +272,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 120,
+                height: context.sh(78),
                 color: AppColors.cyan,
                 child: SafeArea(
                   bottom: false,

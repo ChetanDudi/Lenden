@@ -5,6 +5,7 @@ import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
+import '../../utils/responsive.dart';
 
 class CounterpartiesPage extends StatefulWidget {
   const CounterpartiesPage({super.key});
@@ -342,7 +343,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 140,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

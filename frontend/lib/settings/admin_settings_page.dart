@@ -13,6 +13,7 @@ import '../admin/audit/audit_logs_page.dart';
 import 'admin_backup_restore_page.dart';
 import 'admin_data_export_page.dart';
 import 'admin_system_maintenance_page.dart';
+import '../utils/responsive.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -32,7 +33,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       appBar: transparentAppBar(context, title: 'Admin Settings'),
       body: Stack(
         children: [
-          cyanWaveHeader(),
+          cyanWaveHeader(height: context.sh(78)),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),

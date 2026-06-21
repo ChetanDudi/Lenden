@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/responsive.dart';
 
 class LenDenCoinsPage extends StatefulWidget {
   final int coins;
@@ -94,7 +95,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 160,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -107,7 +108,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 36, 20, 28),
+              padding: EdgeInsets.fromLTRB(20, context.sh(70), 20, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

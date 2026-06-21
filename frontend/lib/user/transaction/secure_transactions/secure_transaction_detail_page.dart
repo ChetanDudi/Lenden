@@ -21,6 +21,7 @@ import 'partial_payment_history_page.dart';
 import 'payment_timeline_page.dart';
 import 'repayment_schedule_page.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../utils/responsive.dart';
 
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -879,36 +880,43 @@ class _SecureTransactionDetailPageState
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(140),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            title: const Text('Transaction Detail',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(_needsRefresh),
-            ),
-            flexibleSpace: ClipPath(
-              clipper: const TopWaveClipper(),
-              child: Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isLending
-                        ? [Colors.teal, Colors.teal.shade700]
-                        : [Colors.orange, Colors.orange.shade700],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Transaction Detail',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(_needsRefresh),
+          ),
+        ),
+        body: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ClipPath(
+                clipper: const TopWaveClipper(),
+                child: Container(
+                  height: context.sh(156),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isLending
+                          ? [Colors.teal, Colors.teal.shade700]
+                          : [Colors.orange, Colors.orange.shade700],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-        body: SingleChildScrollView(
+            Padding(
+              padding: EdgeInsets.only(top: context.sh(90)),
+              child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1789,6 +1797,9 @@ class _SecureTransactionDetailPageState
               const SizedBox(height: 24),
             ],
           ),
+        ),
+            ),
+          ],
         ),
       ),
     );

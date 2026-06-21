@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import '../../utils/api_client.dart';
 import '../../utils/http_interceptor.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class ManageTransactionsPage extends StatefulWidget {
   const ManageTransactionsPage({super.key});
@@ -1505,7 +1506,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 60,
+                height: context.sh(156),
                 color: AppColors.cyan,
               ),
             ),

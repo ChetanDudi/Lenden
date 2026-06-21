@@ -8,6 +8,7 @@ import 'group_detail_page.dart';
 import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../api_config.dart';
+import '../../../utils/responsive.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -658,7 +659,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 100,
+                height: context.sh(78),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -703,9 +704,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(
-                top:
-                    180), // Add top padding to move content below the wavy header
+            padding: EdgeInsets.only(top: 80),
             child: SingleChildScrollView(
               padding: EdgeInsets.all(16),
               child: groupsLoading

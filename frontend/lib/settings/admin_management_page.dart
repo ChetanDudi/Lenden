@@ -7,6 +7,7 @@ import 'dart:math';
 import '../utils/api_client.dart';
 import '../session.dart';
 import '../admin/widgets/top_wave_clipper.dart';
+import '../utils/responsive.dart';
 
 class AdminManagementPage extends StatefulWidget {
   const AdminManagementPage({Key? key}) : super(key: key);
@@ -978,7 +979,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 220, // Increased height for wave
+                height: context.sh(78),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -996,19 +997,19 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               // Header with extra padding
               SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: Colors.white, size: 28),
+                            color: Colors.white, size: 24),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
                         'Manage Admins',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 28,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

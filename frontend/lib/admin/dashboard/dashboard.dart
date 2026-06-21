@@ -26,6 +26,7 @@ import '../ads_and_updates/manage_updates_page.dart';
 import '../ads_and_updates/manage_ads_page.dart';
 import '../audit/audit_logs_page.dart';
 import '../support/contact_messages_page.dart';
+import '../../utils/responsive.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -917,7 +918,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: ClipPath(
                 clipper: TopWaveClipper(),
                 child: Container(
-                  height: 60,
+                  height: context.sh(78),
                   color: AppColors.cyan,
                 ),
               ),

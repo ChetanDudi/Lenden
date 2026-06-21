@@ -341,13 +341,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               clipper: _WaveClipper(),
               child: Container(
                 height: 75,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_blue, _cyan],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+                color: _cyan,
               ),
             ),
           ),

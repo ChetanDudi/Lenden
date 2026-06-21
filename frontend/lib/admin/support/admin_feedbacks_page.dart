@@ -5,6 +5,7 @@ import '../../profile/profile_page.dart' hide TopWaveClipper;
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
+import '../../utils/responsive.dart';
 
 class AdminFeedbacksPage extends StatefulWidget {
   const AdminFeedbacksPage({Key? key}) : super(key: key);
@@ -371,7 +372,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 140,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

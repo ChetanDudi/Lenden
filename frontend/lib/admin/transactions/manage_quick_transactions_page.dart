@@ -6,6 +6,7 @@ import '../../widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
+import '../../utils/responsive.dart';
 
 class ManageQuickTransactionsPage extends StatefulWidget {
   const ManageQuickTransactionsPage({super.key});
@@ -434,7 +435,7 @@ class _ManageQuickTransactionsPageState
             right: 0,
             child: ClipPath(
               clipper: TopWaveClipper(),
-              child: Container(height: 60, color: AppColors.cyan),
+              child: Container(height: context.sh(156), color: AppColors.cyan),
             ),
           ),
           SafeArea(

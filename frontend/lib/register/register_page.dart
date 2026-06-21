@@ -398,7 +398,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: context.sh(110),
+                height: context.sh(78),
                 color: AppColors.cyan,
                 child: SafeArea(
                   bottom: false,

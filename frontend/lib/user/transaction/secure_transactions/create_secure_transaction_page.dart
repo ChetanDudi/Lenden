@@ -19,6 +19,7 @@ import 'view_secure_transactions_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../utils/responsive.dart';
 
 class TopWaveClipper extends CustomClipper<Path> {
   @override
@@ -2701,16 +2702,7 @@ class _TransactionPageState extends State<TransactionPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              Navigator.pushReplacementNamed(context, '/user/dashboard');
-            }
-          },
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: Stack(
         children: [
@@ -2722,7 +2714,7 @@ class _TransactionPageState extends State<TransactionPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 180,
+                height: context.sh(78),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -2734,21 +2726,48 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
           ),
           Positioned(
-            top: 40,
+            top: 0,
             left: 0,
             right: 0,
-            child: Center(
+            child: SafeArea(
               child: Column(
                 children: [
-                  Text(
-                    'New Secure Transaction',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
-                    ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            Navigator.pushReplacementNamed(
+                                context, '/user/dashboard');
+                          }
+                        },
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Text(
+                              'Create Secure Transaction',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                                shadows: [
+                                  Shadow(color: Colors.black26, blurRadius: 4)
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
                   ),
                   Consumer<SessionProvider>(
                     builder: (context, session, child) {
@@ -2817,7 +2836,7 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(top: 120),
+            padding: EdgeInsets.only(top: 80),
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               child: Form(

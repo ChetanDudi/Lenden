@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../utils/responsive.dart';
 
 // Model for Gift Card
 class GiftCard {
@@ -888,7 +889,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 150,
+                height: context.sh(156),
                 color: AppColors.cyan,
               ),
             ),

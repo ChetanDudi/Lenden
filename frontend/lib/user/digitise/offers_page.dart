@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/responsive.dart';
 
 class UserOffersPage extends StatefulWidget {
   const UserOffersPage({super.key});
@@ -321,10 +322,10 @@ class _UserOffersPageState extends State<UserOffersPage>
             child: ClipPath(
               clipper: _TopWaveClipper(),
               child: Container(
-                height: 160,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
+                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

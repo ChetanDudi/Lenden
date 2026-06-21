@@ -11,6 +11,7 @@ import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/display_currency_helper.dart';
 import '../../widgets/payment_success_page.dart';
+import '../../utils/responsive.dart';
 
 // Models
 class SubscriptionPlan {
@@ -578,7 +579,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 child: ClipPath(
                   clipper: TopWaveClipper(),
                   child: Container(
-                    height: 150,
+                    height: context.sh(156),
                     color: AppColors.cyan,
                   ),
                 ),
@@ -597,7 +598,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               ),
               SafeArea(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: EdgeInsets.fromLTRB(20, context.sh(45), 20, 20),
                   child: Column(
                     children: [
                       if (session.subscriptionHistory != null &&

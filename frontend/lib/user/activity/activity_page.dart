@@ -6,6 +6,7 @@ import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:elegant_notification/elegant_notification.dart';
+import '../../utils/responsive.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -581,7 +582,7 @@ class _ActivityPageState extends State<ActivityPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: 140,
+                height: context.sh(156),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
@@ -594,7 +595,7 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(top: 48),
+              padding: EdgeInsets.only(top: context.sh(35)),
               child: RefreshIndicator(
                 onRefresh: () async {
                   await fetchActivities(refresh: true);
