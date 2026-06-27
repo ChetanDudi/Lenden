@@ -19,7 +19,10 @@ import '../analytics_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import './create_edit_quick_transaction_page.dart';
 import './quick_transaction_detail_page.dart';
+import './recurring_templates_page.dart';
 import '../../../utils/responsive.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
@@ -128,7 +131,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
         _displayCurrencyError =
-            'Currency conversion options are not available right now.';
+            AppLocalizations.of(context).t('currency_conversion_unavailable');
       });
     }
   }
@@ -206,9 +209,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   List<Map<String, String>> _counterpartyOptions() {
+    final t = AppLocalizations.of(context).t;
     final seen = <String>{};
     final options = <Map<String, String>>[
-      {'email': 'all', 'label': 'All People'}
+      {'email': 'all', 'label': t('all_people_label')}
     ];
     for (final transaction in transactions) {
       final counterparty = _counterpartyForViewer(transaction);
@@ -225,6 +229,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   Widget _buildErrorState(String message, VoidCallback onRetry) {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -243,7 +248,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               ),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -253,11 +258,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                       child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
                     ),
                     const SizedBox(height: 16),
-                    Text('Oops! Something went wrong',
+                    Text(t('oops_something_went_wrong'),
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
                         textAlign: TextAlign.center),
                     const SizedBox(height: 8),
-                    Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
                   ],
                 ),
               ),
@@ -276,7 +281,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               child: ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
@@ -339,6 +344,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
   String _topQuickCounterpartyName(
       List<Map<String, dynamic>> transactionsList) {
+    final t = AppLocalizations.of(context).t;
     final totals = <String, double>{};
     final names = <String, String>{};
     final currentEmail = _currentUserEmail();
@@ -359,7 +365,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       names[email] = name;
     }
 
-    if (totals.isEmpty) return 'No counterparty';
+    if (totals.isEmpty) return t('no_counterparty_label');
     final topEntry = totals.entries.reduce(
       (a, b) => a.value >= b.value ? a : b,
     );
@@ -399,7 +405,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
         ),
         child: DropdownButtonHideUnderline(
@@ -413,7 +419,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                     value: currency['code'],
                     child: Text(
                       '${currency['symbol']} ${currency['code']}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                   ),
                 )
@@ -462,8 +470,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     if (!session.isSubscribed && transaction == null &&
         dailyQuickRemaining != null && dailyQuickRemaining <= 0) {
       showDailyLimitDialog(context,
-          message:
-              'You\'ve reached today\'s limit of 3 quick transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+          message: AppLocalizations.of(context).t('daily_quick_transactions_limit_reached_message'));
       return;
     }
 
@@ -485,7 +492,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       }
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,
-        featureName: 'quick transaction',
+        featureName: AppLocalizations.of(context).t('quick_transaction_feature_name'),
         coinCost: coinCost,
         currentCoins: coins,
       );
@@ -507,6 +514,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ),
     );
 
+    if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     if (result is String) {
       if (result.toLowerCase().contains('blocked')) {
         showBlockedUserDialog(context, message: result);
@@ -517,7 +526,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         return;
       }
       ElegantNotification.error(
-        title: Text("Error"),
+        title: Text(t('error')),
         description: Text(result),
       ).show(context);
     } else if (result is Map<String, dynamic>) {
@@ -531,18 +540,18 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       final recipient = (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '').toString();
       final role = (txn['role'] ?? '').toString();
       final extraDetails = <String, String>{
-        if (role.isNotEmpty) 'Role': role,
-        if (giftCardAwarded == true && awardedCard != null) 'Bonus': '🎉 Gift card won!',
+        if (role.isNotEmpty) t('role_label_colon'): role,
+        if (giftCardAwarded == true && awardedCard != null) t('bonus_label_colon'): t('gift_card_won_emoji'),
       };
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
-            title: transaction != null ? 'Transaction Updated!' : 'Transaction Created!',
+            title: transaction != null ? t('transaction_updated_exclaim') : t('transaction_created_exclaim'),
             amount: amt,
             recipientName: recipient.isNotEmpty ? recipient : null,
-            transactionType: 'Quick Transaction',
+            transactionType: t('quick_transaction_feature_name'),
             extraDetails: extraDetails,
           ),
         ),
@@ -552,12 +561,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             ElegantNotification.success(
-              title: Text("Congratulations!"),
-              description: Text("You've won a gift card!"),
+              title: Text(t('congratulations_title')),
+              description: Text(t('won_gift_card_message')),
               action: GestureDetector(
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => GiftCardPage())),
-                child: Text('View', style: TextStyle(color: Colors.blue)),
+                child: Text(t('view_label'), style: TextStyle(color: Colors.blue)),
               ),
             ).show(context);
           }
@@ -665,39 +674,41 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   String _filterSummaryLabel() {
+    final t = AppLocalizations.of(context).t;
     final labels = <String>[];
-    if (filterBy == 'cleared') labels.add('Cleared');
-    if (filterBy == 'not_cleared') labels.add('Pending');
-    if (_dateFilter == 'today') labels.add('Today');
-    if (_dateFilter == 'week') labels.add('This Week');
-    if (_dateFilter == 'month') labels.add('This Month');
+    if (filterBy == 'cleared') labels.add(t('cleared'));
+    if (filterBy == 'not_cleared') labels.add(t('pending_label'));
+    if (_dateFilter == 'today') labels.add(t('today'));
+    if (_dateFilter == 'week') labels.add(t('this_week'));
+    if (_dateFilter == 'month') labels.add(t('this_month'));
     if (_selectedCounterparty != 'all') {
       final match = _counterpartyOptions().firstWhere(
         (item) => item['email'] == _selectedCounterparty,
-        orElse: () => {'label': 'Person'},
+        orElse: () => {'label': t('person_label')},
       );
-      labels.add(match['label'] ?? 'Person');
+      labels.add(match['label'] ?? t('person_label'));
     }
-    if (labels.isEmpty) return 'Filter';
+    if (labels.isEmpty) return t('filter');
     if (labels.length == 1) return labels.first;
     return '${labels.first} +${labels.length - 1}';
   }
 
   String _sortSummaryLabel() {
+    final t = AppLocalizations.of(context).t;
     switch (sortBy) {
       case 'created_asc':
-        return 'Oldest';
+        return t('oldest_label');
       case 'updated_desc':
-        return 'Updated';
+        return t('updated');
       case 'updated_asc':
-        return 'Old Updated';
+        return t('old_updated_label');
       case 'amount_asc':
-        return 'Amt Low';
+        return t('amt_low_label');
       case 'amount_desc':
-        return 'Amt High';
+        return t('amt_high_label');
       case 'created_desc':
       default:
-        return 'Newest';
+        return t('newest_label');
     }
   }
 
@@ -764,13 +775,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         });
       } else {
         setState(() {
-          error = 'Failed to load quick transactions';
+          error = AppLocalizations.of(context).t('failed_to_load_transactions');
           loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        error = 'Failed to load quick transactions';
+        error = AppLocalizations.of(context).t('failed_to_load_transactions');
         loading = false;
       });
     }
@@ -778,6 +789,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
   Future<void> createOrEditQuickTransaction(
       {Map<String, dynamic>? transaction}) async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (_blockedEmails.isEmpty) {
       await _loadBlockedUsers();
@@ -795,8 +807,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     if (!session.isSubscribed && transaction == null &&
         dailyQuickRemaining != null && dailyQuickRemaining <= 0) {
       showDailyLimitDialog(context,
-          message:
-              'You\'ve reached today\'s limit of 3 quick transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+          message: t('daily_quick_transactions_limit_reached_message'));
       return;
     }
 
@@ -818,7 +829,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       }
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,
-        featureName: 'quick transaction',
+        featureName: t('quick_transaction_feature_name'),
         coinCost: coinCost,
         currentCoins: coins,
       );
@@ -841,7 +852,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
     if (result is String) {
       ElegantNotification.error(
-        title: Text("Error"),
+        title: Text(t('error')),
         description: Text(result),
       ).show(context);
     } else if (result is Map<String, dynamic>) {
@@ -855,18 +866,18 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       final recipient = (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '').toString();
       final role = (txn['role'] ?? '').toString();
       final extraDetails = <String, String>{
-        if (role.isNotEmpty) 'Role': role,
-        if (giftCardAwarded == true && awardedCard != null) 'Bonus': '🎉 Gift card won!',
+        if (role.isNotEmpty) t('role_label_colon'): role,
+        if (giftCardAwarded == true && awardedCard != null) t('bonus_label_colon'): t('gift_card_won_emoji'),
       };
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
-            title: transaction != null ? 'Transaction Updated!' : 'Transaction Created!',
+            title: transaction != null ? t('transaction_updated_exclaim') : t('transaction_created_exclaim'),
             amount: amt,
             recipientName: recipient.isNotEmpty ? recipient : null,
-            transactionType: 'Quick Transaction',
+            transactionType: t('quick_transaction_feature_name'),
             extraDetails: extraDetails,
           ),
         ),
@@ -876,12 +887,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             ElegantNotification.success(
-              title: Text("Congratulations!"),
-              description: Text("You've won a gift card!"),
+              title: Text(t('congratulations_title')),
+              description: Text(t('won_gift_card_message')),
               action: GestureDetector(
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => GiftCardPage())),
-                child: Text('View', style: TextStyle(color: Colors.blue)),
+                child: Text(t('view_label'), style: TextStyle(color: Colors.blue)),
               ),
             ).show(context);
           }
@@ -891,17 +902,23 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   Future<void> deleteQuickTransaction(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete Quick Transaction',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to delete this transaction?'),
+        title: Text(t('delete_quick_transaction_title'),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(dialogContext))),
+        content: Text(t('confirm_delete_quick_transaction'),
+            style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[700])),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -909,32 +926,32 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(t('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      if (!transactions.any((t) => t['_id'] == id)) return;
+      if (!transactions.any((txn) => txn['_id'] == id)) return;
 
       final res = await ApiClient.delete('/api/quick-transactions/$id');
       if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() {
-          transactions.removeWhere((t) => t['_id'] == id);
+          transactions.removeWhere((txn) => txn['_id'] == id);
           filteredTransactions = List.from(transactions);
           _applyPinSort();
         });
         ElegantNotification.success(
-          title: const Text("Deleted"),
-          description: const Text("Quick transaction has been deleted."),
+          title: Text(t('deleted_label')),
+          description: Text(t('quick_transaction_deleted_message')),
         ).show(context);
       } else {
         final error = json.decode(res.body)['error'];
         ElegantNotification.error(
-          title: const Text("Error"),
+          title: Text(t('error')),
           description: Text(error),
         ).show(context);
       }
@@ -942,17 +959,23 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   Future<void> clearQuickTransaction(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Clear Quick Transaction',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to clear this transaction?'),
+        title: Text(t('clear_quick_transaction_title'),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(dialogContext))),
+        content: Text(t('confirm_clear_transaction_message'),
+            style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[700])),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -960,15 +983,15 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Clear', style: TextStyle(color: Colors.white)),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(t('clear'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      final index = transactions.indexWhere((t) => t['_id'] == id);
+      final index = transactions.indexWhere((txn) => txn['_id'] == id);
       if (index == -1) return;
       final previousValue = transactions[index]['cleared'] == true;
       final token = DateTime.now().microsecondsSinceEpoch;
@@ -983,9 +1006,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Quick transaction cleared'),
+          content: Text(t('quick_transaction_cleared_message')),
           action: SnackBarAction(
-            label: 'UNDO',
+            label: t('undo_label'),
             onPressed: () {
               _clearActionTokens.remove(id);
               setState(() {
@@ -1007,8 +1030,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         if (res.statusCode == 200) {
           if (!mounted) return;
           ElegantNotification.success(
-            title: Text("Success"),
-            description: Text("Transaction has been successfully cleared!"),
+            title: Text(t('success')),
+            description: Text(t('transaction_cleared_success_message')),
           ).show(context);
         } else {
           final error = json.decode(res.body)['error'];
@@ -1019,7 +1042,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             _applyPinSort();
           });
           ElegantNotification.error(
-            title: Text("Error"),
+            title: Text(t('error')),
             description: Text(error),
           ).show(context);
         }
@@ -1049,82 +1072,90 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ),
     );
 
+    if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     if (result is Map<String, dynamic>) {
       fetchQuickTransactions();
       Provider.of<SessionProvider>(context, listen: false).loadFreebieCounts();
       ElegantNotification.success(
-        title: Text("Success"),
-        description: Text("Transaction duplicated successfully!"),
+        title: Text(t('success')),
+        description: Text(t('transaction_duplicated_success_message')),
       ).show(context);
     } else if (result is String && mounted) {
       ElegantNotification.error(
-        title: Text("Error"),
+        title: Text(t('error')),
         description: Text(result),
       ).show(context);
     }
   }
 
   String _buildReceiptText(Map<String, dynamic> transaction) {
+    final t = AppLocalizations.of(context).t;
     final counterparty = _counterpartyForViewer(transaction);
     final counterpartyName =
-        (counterparty?['name'] ?? counterparty?['email'] ?? 'Unknown')
+        (counterparty?['name'] ?? counterparty?['email'] ?? t('unknown_label'))
             .toString();
-    final viewerRole =
-        _roleForViewer(transaction) == 'lender' ? 'You Lent' : 'You Borrowed';
-    final status = transaction['cleared'] == true ? 'Cleared' : 'Pending';
+    final viewerRole = _roleForViewer(transaction) == 'lender'
+        ? t('you_lent_label')
+        : t('you_borrowed_label');
+    final status = transaction['cleared'] == true ? t('cleared') : t('pending_label');
     return [
-      'LenDen Quick Transaction',
-      'Amount: ${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())}',
-      'Currency: ${transaction['currency'] ?? 'INR'}',
-      'Role: $viewerRole',
-      'Counterparty: $counterpartyName',
-      'Description: ${transaction['description'] ?? ''}',
-      'Date: ${transaction['date']?.toString().split('T').first ?? ''}',
-      'Time: ${transaction['time'] ?? ''}',
-      'Status: $status',
+      t('lenden_quick_transaction_label'),
+      '${t('amount_colon_label')} ${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())}',
+      '${t('currency_colon_label')} ${transaction['currency'] ?? 'INR'}',
+      '${t('role_label_colon')} $viewerRole',
+      '${t('counterparty_colon_label')} $counterpartyName',
+      '${t('description_colon_label')} ${transaction['description'] ?? ''}',
+      '${t('date_colon_label')} ${transaction['date']?.toString().split('T').first ?? ''}',
+      '${t('time_colon_label')} ${transaction['time'] ?? ''}',
+      '${t('status_colon_label')} $status',
     ].join('\n');
   }
 
   Future<void> _showReceiptDialog(Map<String, dynamic> transaction) async {
+    final t = AppLocalizations.of(context).t;
     final receiptText = _buildReceiptText(transaction);
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Quick Receipt'),
+        title: Text(t('quick_receipt_title'),
+            style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
         content: SingleChildScrollView(
           child: Text(
             receiptText,
-            style: const TextStyle(height: 1.5),
+            style: TextStyle(
+                height: 1.5, color: AppThemeColors.primaryText(dialogContext)),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t('close')),
           ),
           ElevatedButton(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: receiptText));
               if (!mounted) return;
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               ElegantNotification.success(
-                title: Text("Copied"),
-                description: Text("Quick transaction receipt copied."),
+                title: Text(t('copied_label')),
+                description: Text(t('quick_transaction_receipt_copied_message')),
               ).show(context);
             },
-            child: const Text('Copy'),
+            child: Text(t('copy_label')),
           ),
           ElevatedButton(
             onPressed: () async {
               await Share.share(
                 receiptText,
-                subject: 'LenDen Quick Transaction',
+                subject: t('lenden_quick_transaction_label'),
               );
               if (!mounted) return;
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
-            child: const Text('Share'),
+            child: Text(t('share')),
           ),
         ],
       ),
@@ -1133,34 +1164,39 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
   Map<String, List<Map<String, dynamic>>> _groupDisplayedTransactions(
       List<Map<String, dynamic>> items) {
+    final t = AppLocalizations.of(context).t;
+    final todayLabel = t('today');
+    final yesterdayLabel = t('yesterday');
+    final thisWeekLabel = t('this_week');
+    final olderLabel = t('older_label');
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final transaction in items) {
       final rawDate =
           (transaction['date'] ?? transaction['createdAt'] ?? '').toString();
       final date = DateTime.tryParse(rawDate)?.toLocal();
       final now = DateTime.now();
-      String label = 'Older';
+      String label = olderLabel;
       if (date != null) {
         if (date.year == now.year &&
             date.month == now.month &&
             date.day == now.day) {
-          label = 'Today';
+          label = todayLabel;
         } else if (date.year == now.year &&
             date.month == now.month &&
             date.day == now.subtract(const Duration(days: 1)).day) {
-          label = 'Yesterday';
+          label = yesterdayLabel;
         } else {
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
           final start =
               DateTime(weekStart.year, weekStart.month, weekStart.day);
           if (!date.isBefore(start)) {
-            label = 'This Week';
+            label = thisWeekLabel;
           }
         }
       }
       grouped.putIfAbsent(label, () => []).add(transaction);
     }
-    final order = ['Today', 'Yesterday', 'This Week', 'Older'];
+    final order = [todayLabel, yesterdayLabel, thisWeekLabel, olderLabel];
     final sorted = <String, List<Map<String, dynamic>>>{};
     for (final label in order) {
       if (grouped.containsKey(label)) {
@@ -1175,13 +1211,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   String _settlementStatusLabel(Map<String, dynamic> transaction) {
+    final t = AppLocalizations.of(context).t;
     final status = _settlementStatus(transaction);
-    if (status == 'pending') return 'Settlement Pending';
+    if (status == 'pending') return t('settlement_pending_label');
     if (status == 'accepted' || transaction['cleared'] == true) {
-      return 'Settled';
+      return t('settled_label');
     }
-    if (status == 'rejected') return 'Settlement Rejected';
-    return 'No Settlement';
+    if (status == 'rejected') return t('settlement_rejected_label');
+    return t('no_settlement_label');
   }
 
   bool _canRespondToSettlement(Map<String, dynamic> transaction) {
@@ -1195,6 +1232,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   void _payNow(Map<String, dynamic> transaction) {
+    final t = AppLocalizations.of(context).t;
     final id = (transaction['_id'] ?? '').toString();
     final counterparty = _counterpartyForViewer(transaction);
     final email = (counterparty?['email'] ?? '').toString();
@@ -1204,11 +1242,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       context,
       counterpartyEmail: email,
       amount: amount,
-      description: transaction['description']?.toString() ?? 'Quick transaction settlement',
+      description: transaction['description']?.toString() ?? t('quick_transaction_settlement_label'),
       counterpartyPhone: phone,
       quickTransactionId: id,
       onSuccess: () async {
-        final index = transactions.indexWhere((t) => t['_id'] == id);
+        final index = transactions.indexWhere((txn) => txn['_id'] == id);
         if (index != -1) {
           setState(() {
             transactions[index]['cleared'] = true;
@@ -1219,36 +1257,39 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         final res = await ApiClient.put('/api/quick-transactions/$id/clear', body: {});
         if (!mounted) return;
         if (res.statusCode == 200) {
-          showSnack(context, 'Payment successful! Transaction settled.');
+          showSnack(context, t('payment_successful_transaction_settled_message'));
         }
       },
     );
   }
 
   Future<void> _requestSettlement(Map<String, dynamic> transaction) async {
+    final t = AppLocalizations.of(context).t;
     final res = await ApiClient.post(
       '/api/quick-transactions/${transaction['_id']}/request-settlement',
       body: {},
     );
     final body = jsonDecode(res.body);
+    if (!mounted) return;
     if (res.statusCode == 200) {
       // Refresh the list so users are re-enriched (raw API has string users, not objects)
       fetchQuickTransactions();
       ElegantNotification.success(
-        title: Text("Settlement Requested"),
-        description: Text("The other user can now accept or reject it."),
+        title: Text(t('settlement_requested_title')),
+        description: Text(t('other_user_can_accept_or_reject_message')),
       ).show(context);
     } else {
       ElegantNotification.error(
-        title: Text("Error"),
+        title: Text(t('error')),
         description:
-            Text((body['error'] ?? 'Unable to request settlement').toString()),
+            Text((body['error'] ?? t('unable_to_request_settlement_message')).toString()),
       ).show(context);
     }
   }
 
   Future<void> _respondSettlement(
       Map<String, dynamic> transaction, String action) async {
+    final t = AppLocalizations.of(context).t;
     if (action == 'accept') {
       // Accept = go to payment first; backend is marked settled only after payment succeeds
       final id = (transaction['_id'] ?? '').toString();
@@ -1261,7 +1302,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         counterpartyEmail: email,
         amount: amount,
         description: transaction['description']?.toString() ??
-            'Quick transaction settlement',
+            t('quick_transaction_settlement_label'),
         counterpartyPhone: phone,
         quickTransactionId: id,
         onSuccess: () async {
@@ -1274,12 +1315,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           if (res.statusCode == 200) {
             // Refresh list with enriched users
             fetchQuickTransactions();
-            showSnack(context, 'Payment successful! Settlement complete.');
+            showSnack(context, t('payment_successful_settlement_complete_message'));
           } else {
             // Payment went through but backend update failed – still refresh
             fetchQuickTransactions();
             showSnack(context,
-                'Payment done but status update failed. Please refresh.',
+                t('payment_done_status_update_failed_message'),
                 isError: true);
           }
         },
@@ -1293,18 +1334,19 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       body: {'action': 'reject'},
     );
     final body = jsonDecode(res.body);
+    if (!mounted) return;
     if (res.statusCode == 200) {
       fetchQuickTransactions();
       ElegantNotification.success(
-        title: const Text('Settlement Rejected'),
+        title: Text(t('settlement_rejected_title')),
         description: Text(
-            (body['message'] ?? 'Settlement rejected successfully').toString()),
+            (body['message'] ?? t('settlement_rejected_success_message')).toString()),
       ).show(context);
     } else {
       ElegantNotification.error(
-        title: const Text('Error'),
+        title: Text(t('error')),
         description: Text(
-            (body['error'] ?? 'Unable to reject settlement').toString()),
+            (body['error'] ?? t('unable_to_reject_settlement_message')).toString()),
       ).show(context);
     }
   }
@@ -1316,22 +1358,26 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.cyan : Colors.white,
+          color: isSelected ? AppColors.cyan : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? AppColors.cyan : Colors.grey.shade300,
+            color: isSelected ? AppColors.cyan : AppThemeColors.border(context),
           ),
         ),
         child: Row(
           children: [
             Icon(icon,
                 size: 18,
-                color: isSelected ? Colors.white : Colors.grey.shade700),
+                color: isSelected
+                    ? Colors.white
+                    : AppThemeColors.secondaryText(context)),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey.shade800,
+                color: isSelected
+                    ? Colors.white
+                    : AppThemeColors.primaryText(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1342,6 +1388,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   Widget _buildClearedChip() {
+    final t = AppLocalizations.of(context).t;
     final isSelected = filterBy == 'cleared';
     return GestureDetector(
       onTap: () {
@@ -1351,22 +1398,26 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.green : Colors.white,
+          color: isSelected ? Colors.green : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? Colors.green : Colors.grey.shade300,
+            color: isSelected ? Colors.green : AppThemeColors.border(context),
           ),
         ),
         child: Row(
           children: [
             Icon(Icons.check_circle_rounded,
                 size: 18,
-                color: isSelected ? Colors.white : Colors.grey.shade700),
+                color: isSelected
+                    ? Colors.white
+                    : AppThemeColors.secondaryText(context)),
             const SizedBox(width: 6),
             Text(
-              'Cleared',
+              t('cleared'),
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey.shade800,
+                color: isSelected
+                    ? Colors.white
+                    : AppThemeColors.primaryText(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1461,6 +1512,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   Widget _buildQuickStatCards() {
+    final t = AppLocalizations.of(context).t;
     final visibleTransactions =
         filteredTransactions.isEmpty ? transactions : filteredTransactions;
     final total = visibleTransactions.length;
@@ -1492,37 +1544,37 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         children: [
           _buildSummaryCard(
-            title: 'Transactions',
+            title: t('transactions_label'),
             value: '$total',
             icon: Icons.receipt_long_rounded,
             colors: _quickStatPalette[0],
           ),
           _buildSummaryCard(
-            title: 'Quick Value',
+            title: t('quick_value_label'),
             value: _formatDisplayAmount(totalValue, _selectedDisplayCurrency),
             icon: Icons.currency_rupee_rounded,
             colors: _quickStatPalette[1],
           ),
           _buildSummaryCard(
-            title: 'Pending Value',
+            title: t('pending_value_label'),
             value: _formatDisplayAmount(pendingValue, _selectedDisplayCurrency),
             icon: Icons.pending_actions_rounded,
             colors: _quickStatPalette[2],
           ),
           _buildSummaryCard(
-            title: 'Largest Quick',
+            title: t('largest_quick_label'),
             value: _formatDisplayAmount(largest, _selectedDisplayCurrency),
             icon: Icons.leaderboard_rounded,
             colors: _quickStatPalette[0],
           ),
           _buildSummaryCard(
-            title: 'Top Counterparty',
+            title: t('top_counterparty_label'),
             value: topCounterparty,
             icon: Icons.person_search_rounded,
             colors: _quickStatPalette[1],
           ),
           _buildSummaryCard(
-            title: 'You Lent',
+            title: t('you_lent_label'),
             value: '$lent',
             icon: Icons.arrow_upward_rounded,
             colors: _quickStatPalette[2],
@@ -1533,8 +1585,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   void _showSortOptions() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppThemeColors.cardBg(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1545,16 +1599,19 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Sort By',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              t('sort_by_label'),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context)),
             ),
             SizedBox(height: 16),
-            _buildSortOption('Date Created (Newest)', 'created_desc'),
-            _buildSortOption('Date Created (Oldest)', 'created_asc'),
-            _buildSortOption('Date Updated (Newest)', 'updated_desc'),
-            _buildSortOption('Date Updated (Oldest)', 'updated_asc'),
-            _buildSortOption('Amount (Low to High)', 'amount_asc'),
-            _buildSortOption('Amount (High to Low)', 'amount_desc'),
+            _buildSortOption(t('date_created_newest_label'), 'created_desc'),
+            _buildSortOption(t('date_created_oldest_label'), 'created_asc'),
+            _buildSortOption(t('date_updated_newest_label'), 'updated_desc'),
+            _buildSortOption(t('date_updated_oldest_label'), 'updated_asc'),
+            _buildSortOption(t('amount_low_to_high_label'), 'amount_asc'),
+            _buildSortOption(t('amount_high_to_low_label'), 'amount_desc'),
           ],
         ),
       ),
@@ -1591,7 +1648,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? AppColors.cyan : Colors.black87,
+          color: isSelected ? AppColors.cyan : AppThemeColors.primaryText(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -1618,6 +1675,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final displayedTransactions =
         _showAll ? filteredTransactions : filteredTransactions.take(3).toList();
     final counterpartyOptions = _counterpartyOptions();
@@ -1625,7 +1683,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _groupDisplayedTransactions(displayedTransactions);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           // Main content
@@ -1641,18 +1699,23 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                   Consumer<SessionProvider>(
                     builder: (context, session, child) {
                       if (session.isSubscribed) {
-                        return Text('You have unlimited quick transactions.',
+                        return Text(t('unlimited_quick_transactions_message'),
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold));
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.primaryText(context)));
                       }
                       final remaining = session.freeQuickTransactionsRemaining;
                       if (remaining == null) {
                         return SizedBox.shrink();
                       }
                       return Text(
-                          'You have $remaining free quick transactions remaining.',
+                          t('free_quick_transactions_remaining_message')
+                              .replaceFirst('{count}', '$remaining'),
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold));
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(context)));
                     },
                   ),
                   const SizedBox(height: 12),
@@ -1673,7 +1736,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             );
                           },
                           icon: const Icon(Icons.analytics_outlined),
-                          label: const Text('Open Quick Analytics'),
+                          label: Text(t('open_quick_analytics_label')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
@@ -1698,12 +1761,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildRoleChip('All', 'all', Icons.apps_rounded),
+                              _buildRoleChip(t('all'), 'all', Icons.apps_rounded),
                               const SizedBox(width: 8),
-                              _buildRoleChip('They Owe', 'lent',
+                              _buildRoleChip(t('they_owe_label'), 'lent',
                                   Icons.arrow_upward_rounded),
                               const SizedBox(width: 8),
-                              _buildRoleChip('I Owe', 'borrowed',
+                              _buildRoleChip(t('i_owe_label'), 'borrowed',
                                   Icons.arrow_downward_rounded),
                               const SizedBox(width: 8),
                               _buildClearedChip(),
@@ -1716,12 +1779,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                   decoration: BoxDecoration(
                                     color: _showFavouritesOnly
                                         ? AppColors.cyan
-                                        : Colors.white,
+                                        : AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(18),
                                     border: Border.all(
                                       color: _showFavouritesOnly
                                           ? AppColors.cyan
-                                          : Colors.grey.shade300,
+                                          : AppThemeColors.border(context),
                                     ),
                                   ),
                                   child: Row(
@@ -1731,15 +1794,15 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                         size: 18,
                                         color: _showFavouritesOnly
                                             ? Colors.white
-                                            : Colors.grey.shade700,
+                                            : AppThemeColors.secondaryText(context),
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        'Favourites',
+                                        t('favourites_label'),
                                         style: TextStyle(
                                           color: _showFavouritesOnly
                                               ? Colors.white
-                                              : Colors.grey.shade800,
+                                              : AppThemeColors.primaryText(context),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -1758,9 +1821,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.white.withValues(alpha: 0.0),
-                                  Colors.white.withValues(alpha: 0.86),
-                                  Colors.white,
+                                  AppThemeColors.cardBg(context).withValues(alpha: 0.0),
+                                  AppThemeColors.cardBg(context).withValues(alpha: 0.86),
+                                  AppThemeColors.cardBg(context),
                                 ],
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
@@ -1773,7 +1836,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               child: Text(
                                 '->',
                                 style: TextStyle(
-                                  color: Colors.grey.shade600,
+                                  color: AppThemeColors.secondaryText(context),
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
                                 ),
@@ -1809,13 +1872,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(25),
                         ),
                         child: Row(
                           children: [
                             Icon(Icons.search,
-                                color: Colors.grey[400], size: 20),
+                                color: AppThemeColors.mutedText(context), size: 20),
                             const SizedBox(width: 12),
                             Expanded(
                               child: TextField(
@@ -1831,21 +1894,22 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                 onSubmitted: (_) =>
                                     FocusScope.of(context).unfocus(),
                                 decoration: InputDecoration(
-                                  hintText:
-                                      'Search by description, amount, or user...',
+                                  hintText: t('search_by_description_amount_user_hint'),
                                   hintStyle: TextStyle(
-                                      color: Colors.grey[400], fontSize: 15),
+                                      color: AppThemeColors.mutedText(context), fontSize: 15),
                                   border: InputBorder.none,
                                   contentPadding:
                                       const EdgeInsets.symmetric(vertical: 12),
                                 ),
-                                style: const TextStyle(fontSize: 15),
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppThemeColors.primaryText(context)),
                               ),
                             ),
                             if (searchQuery.isNotEmpty)
                               IconButton(
                                 icon: Icon(Icons.clear,
-                                    color: Colors.grey[400], size: 20),
+                                    color: AppThemeColors.mutedText(context), size: 20),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => searchQuery = '');
@@ -1884,7 +1948,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             Expanded(
                               child: Text(
                                 _displayCurrencyError ??
-                                    'Conversion to $_selectedDisplayCurrency is not available for one or more quick transactions. Showing original currencies instead.',
+                                    t('conversion_not_available_quick_transactions_message')
+                                        .replaceFirst('{currency}', _selectedDisplayCurrency),
                                 style: const TextStyle(
                                   color: Color(0xFFD62828),
                                   fontWeight: FontWeight.w600,
@@ -1920,7 +1985,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: DropdownButtonHideUnderline(
@@ -1934,8 +1999,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                         (item) => DropdownMenuItem<String>(
                                           value: item['email'],
                                           child: Text(
-                                            item['label'] ?? 'All People',
+                                            item['label'] ?? t('all_people_label'),
                                             overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                                color: AppThemeColors.primaryText(context)),
                                           ),
                                         ),
                                       )
@@ -1953,11 +2020,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Text(
-                              'Show In',
+                            Text(
+                              t('show_in_label'),
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -2002,7 +2069,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: Row(
@@ -2013,7 +2080,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                         ? Icons.filter_alt_outlined
                                         : Icons.filter_alt,
                                     color: filterBy == 'all'
-                                        ? Colors.black87
+                                        ? AppThemeColors.primaryText(context)
                                         : AppColors.cyan,
                                     size: 18,
                                   ),
@@ -2022,7 +2089,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                     _filterSummaryLabel(),
                                     style: TextStyle(
                                       color: !_hasActiveFilters()
-                                          ? Colors.black87
+                                          ? AppThemeColors.primaryText(context)
                                           : AppColors.cyan,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -2061,19 +2128,19 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.sort,
-                                      color: Colors.black87, size: 18),
+                                      color: AppThemeColors.primaryText(context), size: 18),
                                   SizedBox(width: 6),
                                   Text(
                                     _sortSummaryLabel(),
                                     style: TextStyle(
-                                      color: Colors.black87,
+                                      color: AppThemeColors.primaryText(context),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -2105,18 +2172,18 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.restart_alt_rounded,
+                                  children: [
+                                    const Icon(Icons.restart_alt_rounded,
                                         color: Color(0xFFD62828), size: 18),
-                                    SizedBox(width: 6),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      'Reset',
-                                      style: TextStyle(
+                                      t('reset_label'),
+                                      style: const TextStyle(
                                         color: Color(0xFFD62828),
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
@@ -2136,9 +2203,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
                   // Transactions List
                   loading
-                      ? const Center(
+                      ? Center(
                           child:
-                              CircularProgressIndicator(color: Colors.black87))
+                              CircularProgressIndicator(color: AppThemeColors.primaryText(context)))
                       : error != null
                           ? _buildErrorState(error!, fetchQuickTransactions)
                           : filteredTransactions.isEmpty
@@ -2150,38 +2217,38 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                           _showFavouritesOnly
                                               ? Icons.star_border_rounded
                                               : Icons.receipt_long,
-                                          size: 80, color: Colors.grey[400]),
+                                          size: 80, color: AppThemeColors.mutedText(context)),
                                       const SizedBox(height: 20),
                                       Text(
                                         _showFavouritesOnly
-                                            ? 'No favourite transactions found'
+                                            ? t('no_favourite_transactions_found_message')
                                             : searchQuery.isNotEmpty ||
                                                 filterBy != 'all' ||
                                                 _roleFilter != 'all' ||
                                                 _dateFilter != 'all' ||
                                                 _selectedCounterparty != 'all'
-                                            ? 'No transactions found'
-                                            : 'No quick transactions yet.',
+                                            ? t('no_transactions_found_message')
+                                            : t('no_quick_transactions_yet_message'),
                                         style: TextStyle(
                                             fontSize: 22,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.grey[600]),
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
                                         _showFavouritesOnly
-                                            ? 'Mark a transaction as favourite to see it here.'
+                                            ? t('mark_transaction_favourite_to_see_here_message')
                                             : searchQuery.isNotEmpty ||
                                                 filterBy != 'all' ||
                                                 _roleFilter != 'all' ||
                                                 _dateFilter != 'all' ||
                                                 _selectedCounterparty != 'all'
-                                            ? 'Try adjusting your search or filters'
-                                            : 'Tap the "+" button to create your first one!',
+                                            ? t('try_adjusting_search_or_filters_message')
+                                            : t('tap_plus_button_to_create_first_one_message'),
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             fontSize: 16,
-                                            color: Colors.grey[500]),
+                                            color: AppThemeColors.mutedText(context)),
                                       ),
                                       if (_hasActiveFilters()) ...[
                                         const SizedBox(height: 18),
@@ -2209,23 +2276,23 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                                 vertical: 10,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: Colors.white,
+                                                color: AppThemeColors.cardBg(context),
                                                 borderRadius:
                                                     BorderRadius.circular(22),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
-                                                children: const [
-                                                  Icon(
+                                                children: [
+                                                  const Icon(
                                                     Icons.refresh_rounded,
                                                     color: AppColors.cyan,
                                                     size: 18,
                                                   ),
-                                                  SizedBox(width: 8),
+                                                  const SizedBox(width: 8),
                                                   Text(
-                                                    'Reset Filters',
+                                                    t('reset_filters_label'),
                                                     style: TextStyle(
-                                                      color: Colors.black87,
+                                                      color: AppThemeColors.primaryText(context),
                                                       fontWeight:
                                                           FontWeight.w700,
                                                     ),
@@ -2259,10 +2326,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                                 top: 6, bottom: 10),
                                             child: Text(
                                               entry.key,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
+                                                color: AppThemeColors.primaryText(context),
                                               ),
                                             ),
                                           ),
@@ -2297,11 +2364,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                           },
                                           child: Text(
                                             _showAll
-                                                ? 'Show Less'
-                                                : 'See All Transactions',
-                                            style: const TextStyle(
-                                              color: Color.fromARGB(
-                                                  255, 6, 18, 20),
+                                                ? t('show_less_label')
+                                                : t('see_all_transactions_label'),
+                                            style: TextStyle(
+                                              color: AppThemeColors.primaryText(context),
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -2358,7 +2424,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Text(
-                            'Quick Transactions',
+                            t('quick_transactions_title'),
                             maxLines: 1,
                             softWrap: false,
                             style: TextStyle(
@@ -2374,7 +2440,17 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 48), // Balance the back button
+                    IconButton(
+                      icon: const Icon(Icons.repeat_rounded, color: Colors.black),
+                      tooltip: t('recurring_templates_title'),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const RecurringTemplatesPage()),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -2409,6 +2485,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   Widget _buildQuickTransactionCard(Map<String, dynamic> transaction, int i) {
+    final t = AppLocalizations.of(context).t;
     final bool isCleared = transaction['cleared'] == true;
     final roleForViewer = _roleForViewer(transaction);
     final counterparty = _counterpartyForViewer(transaction);
@@ -2429,8 +2506,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         }
       }
       return <String, dynamic>{
-        'name': transaction['creatorEmail'] ?? 'Unknown',
-        'email': transaction['creatorEmail'] ?? 'Unknown',
+        'name': transaction['creatorEmail'] ?? t('unknown_label'),
+        'email': transaction['creatorEmail'] ?? t('unknown_label'),
       };
     })();
     final isPinned =
@@ -2449,14 +2526,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 backgroundColor: Colors.teal,
                 foregroundColor: Colors.white,
                 icon: Icons.handshake_rounded,
-                label: 'Settle',
+                label: t('settle_label'),
               ),
             SlidableAction(
               onPressed: (_) => _showReceiptDialog(transaction),
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
               icon: Icons.share_rounded,
-              label: 'Share',
+              label: t('share'),
             ),
           ],
         ),
@@ -2470,7 +2547,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
                 icon: Icons.edit,
-                label: 'Edit',
+                label: t('edit'),
               ),
             if (isCleared)
               SlidableAction(
@@ -2478,7 +2555,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 icon: Icons.delete,
-                label: 'Delete',
+                label: t('delete'),
               ),
           ],
         ),
@@ -2536,7 +2613,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
-                              ),
+                              ), // note cards keep a fixed light bg (_getNoteColor); black87 stays readable regardless of theme
                             ),
                           ),
                         ),
@@ -2563,7 +2640,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         ),
                         if (isCleared)
                           Text(
-                            'Cleared',
+                            t('cleared'),
                             style: TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.bold),
@@ -2594,53 +2671,53 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                           },
                           itemBuilder: (context) => [
                             if (!isCleared)
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'edit',
-                                child: Text('Edit'),
+                                child: Text(t('edit')),
                               ),
                             if (!isCleared &&
                                 (settlementStatus == 'none' ||
                                     settlementStatus == 'rejected') &&
                                 roleForViewer == 'lender')
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'request_settlement',
-                                child: Text('Request Settlement'),
+                                child: Text(t('request_settlement_label')),
                               ),
                             if (!isCleared && roleForViewer == 'borrower')
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'pay_now',
                                 child: Row(children: [
-                                  Icon(Icons.payment_rounded, size: 16, color: AppColors.cyan),
-                                  SizedBox(width: 8),
-                                  Text('Pay Now (Real Money)', style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                                  const Icon(Icons.payment_rounded, size: 16, color: AppColors.cyan),
+                                  const SizedBox(width: 8),
+                                  Text(t('pay_now_real_money_label'), style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600)),
                                 ]),
                               ),
                             if (_canRespondToSettlement(transaction))
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'accept_settlement',
-                                child: Text('Accept Settlement'),
+                                child: Text(t('accept_settlement_label')),
                               ),
                             if (_canRespondToSettlement(transaction))
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'reject_settlement',
-                                child: Text('Reject Settlement'),
+                                child: Text(t('reject_settlement_label')),
                               ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'duplicate',
-                              child: Text('Duplicate'),
+                              child: Text(t('duplicate_label')),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'share',
-                              child: Text('Share / Receipt'),
+                              child: Text(t('share_receipt_label')),
                             ),
                             PopupMenuItem(
                               value: 'pin',
-                              child: Text(isPinned ? 'Unpin' : 'Pin'),
+                              child: Text(isPinned ? t('unpin_label') : t('pin_label')),
                             ),
                             if (isCleared)
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'delete',
-                                child: Text('Delete'),
+                                child: Text(t('delete')),
                               ),
                           ],
                         ),
@@ -2653,10 +2730,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                       children: [
                         _buildStatusChip(
                           isCleared
-                              ? 'Cleared'
+                              ? t('cleared')
                               : settlementStatus == 'pending'
-                                  ? 'Pending'
-                                  : 'Open',
+                                  ? t('pending_label')
+                                  : t('open_label'),
                           isCleared
                               ? Colors.green
                               : settlementStatus == 'pending'
@@ -2670,8 +2747,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         ),
                         _buildStatusChip(
                           roleForViewer == 'lender'
-                              ? 'You Lent'
-                              : 'You Borrowed',
+                              ? t('you_lent_label')
+                              : t('you_borrowed_label'),
                           roleForViewer == 'lender'
                               ? const Color(0xFF1B58B8)
                               : const Color(0xFFD95F02),
@@ -2681,7 +2758,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                         ),
                         if (isPinned)
                           _buildStatusChip(
-                            'Pinned',
+                            t('pinned_label'),
                             Colors.amber[800]!,
                             Icons.star_rounded,
                           ),
@@ -2723,7 +2800,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                           Text(
                             (counterparty?['name'] ??
                                     counterparty?['email'] ??
-                                    'Unknown')
+                                    t('unknown_label'))
                                 .toString(),
                             style: TextStyle(
                               fontSize: 14,
@@ -2744,8 +2821,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                     const SizedBox(height: 10),
                     Text(
                       _isCurrentUserCreator(transaction)
-                          ? 'Created by you'
-                          : 'Created by ${creatorName['name'] ?? creatorName['email'] ?? 'Unknown'}',
+                          ? t('created_by_you_label')
+                          : t('created_by_name_label').replaceFirst('{name}',
+                              '${creatorName['name'] ?? creatorName['email'] ?? t('unknown_label')}'),
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey[700],
@@ -2774,7 +2852,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               elevation: 0,
                             ),
                             icon: const Icon(Icons.payment_rounded, color: Colors.white, size: 18),
-                            label: const Text('Pay Now (Real Money)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            label: Text(t('pay_now_real_money_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             onPressed: () => _payNow(transaction),
                           ),
                         ),
@@ -2795,8 +2873,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                           children: [
                             Text(
                               requestedByYou
-                                  ? 'Settlement requested by you'
-                                  : 'Settlement requested by the other user',
+                                  ? t('settlement_requested_by_you_label')
+                                  : t('settlement_requested_by_other_user_label'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF0087A8),
@@ -2813,9 +2891,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.red,
                                       ),
-                                      child: const Text(
-                                        'Reject',
-                                        style: TextStyle(color: Colors.white),
+                                      child: Text(
+                                        t('reject_label'),
+                                        style: const TextStyle(color: Colors.white),
                                       ),
                                     ),
                                   ),
@@ -2827,9 +2905,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green,
                                       ),
-                                      child: const Text(
-                                        'Accept',
-                                        style: TextStyle(color: Colors.white),
+                                      child: Text(
+                                        t('accept'),
+                                        style: const TextStyle(color: Colors.white),
                                       ),
                                     ),
                                   ),
@@ -2871,11 +2949,12 @@ class _QuickTransactionFilterPageState
   bool _favouritesOnly = false;
 
   String _counterpartyLabel(String value) {
+    final t = AppLocalizations.of(context).t;
     final match = widget.counterpartyOptions.firstWhere(
       (item) => item['email'] == value,
-      orElse: () => const {'label': 'All People'},
+      orElse: () => {'label': t('all_people_label')},
     );
-    return match['label'] ?? 'All People';
+    return match['label'] ?? t('all_people_label');
   }
 
   Widget _buildSection({
@@ -2883,7 +2962,7 @@ class _QuickTransactionFilterPageState
     required String title,
     required String subtitle,
     required Widget child,
-    Color backgroundColor = const Color(0xFFF9FCFD),
+    Color? backgroundColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(2),
@@ -2898,7 +2977,7 @@ class _QuickTransactionFilterPageState
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: backgroundColor ?? AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(
@@ -2921,9 +3000,10 @@ class _QuickTransactionFilterPageState
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -2931,7 +3011,7 @@ class _QuickTransactionFilterPageState
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade700,
+                          color: AppThemeColors.secondaryText(context),
                         ),
                       ),
                     ],
@@ -2961,12 +3041,15 @@ class _QuickTransactionFilterPageState
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE9F8FC) : Colors.white,
+          color: selected
+              ? AppThemeColors.tinted(context,
+                  light: const Color(0xFFE9F8FC), dark: const Color(0xFF173238))
+              : AppThemeColors.surfaceBg(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: selected
                 ? AppColors.cyan
-                : Colors.grey.withValues(alpha: 0.25),
+                : AppThemeColors.border(context),
           ),
         ),
         child: Row(
@@ -2985,7 +3068,7 @@ class _QuickTransactionFilterPageState
                   label,
                   style: TextStyle(
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ),
@@ -2997,6 +3080,7 @@ class _QuickTransactionFilterPageState
   }
 
   Future<void> _showCounterpartyPicker() async {
+    final t = AppLocalizations.of(context).t;
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -3016,7 +3100,7 @@ class _QuickTransactionFilterPageState
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFDFEFE),
+                color: AppThemeColors.cardBg(sheetContext),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Padding(
@@ -3028,7 +3112,7 @@ class _QuickTransactionFilterPageState
                       width: 48,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.30),
+                        color: AppThemeColors.border(sheetContext),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -3037,7 +3121,7 @@ class _QuickTransactionFilterPageState
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF4FBFE),
+                        color: AppThemeColors.surfaceBg(sheetContext),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Row(
@@ -3054,12 +3138,13 @@ class _QuickTransactionFilterPageState
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Choose Counterparty',
+                              t('choose_counterparty_title'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
+                                color: AppThemeColors.primaryText(sheetContext),
                               ),
                             ),
                           ),
@@ -3078,7 +3163,7 @@ class _QuickTransactionFilterPageState
                         itemBuilder: (context, index) {
                           final item = widget.counterpartyOptions[index];
                           final email = item['email'] ?? 'all';
-                          final label = item['label'] ?? 'All People';
+                          final label = item['label'] ?? t('all_people_label');
                           final selected = _counterparty == email;
                           final isAll = email == 'all';
                           return InkWell(
@@ -3089,13 +3174,15 @@ class _QuickTransactionFilterPageState
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? const Color(0xFFEAF9FD)
-                                    : Colors.white,
+                                    ? AppThemeColors.tinted(context,
+                                        light: const Color(0xFFEAF9FD),
+                                        dark: const Color(0xFF173238))
+                                    : AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: selected
                                       ? AppColors.cyan
-                                      : Colors.grey.withValues(alpha: 0.18),
+                                      : AppThemeColors.border(context),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
@@ -3120,8 +3207,12 @@ class _QuickTransactionFilterPageState
                                     height: 42,
                                     decoration: BoxDecoration(
                                       color: isAll
-                                          ? const Color(0xFFEDF7FA)
-                                          : const Color(0xFFF4F7FF),
+                                          ? AppThemeColors.tinted(context,
+                                              light: const Color(0xFFEDF7FA),
+                                              dark: const Color(0xFF173238))
+                                          : AppThemeColors.tinted(context,
+                                              light: const Color(0xFFF4F7FF),
+                                              dark: const Color(0xFF1E2233)),
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                     alignment: Alignment.center,
@@ -3151,18 +3242,18 @@ class _QuickTransactionFilterPageState
                                               fontWeight: selected
                                                   ? FontWeight.w800
                                                   : FontWeight.w700,
-                                              color: Colors.black87,
+                                              color: AppThemeColors.primaryText(context),
                                             ),
                                           ),
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
                                           isAll
-                                              ? 'Show every person in quick transactions'
-                                              : 'Filter quick transactions for this counterparty',
+                                              ? t('show_every_person_in_quick_transactions_message')
+                                              : t('filter_quick_transactions_for_counterparty_message'),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey.shade600,
+                                            color: AppThemeColors.secondaryText(context),
                                           ),
                                         ),
                                       ],
@@ -3189,15 +3280,16 @@ class _QuickTransactionFilterPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FBFD),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppThemeColors.cardBg(context),
+        foregroundColor: AppThemeColors.primaryText(context),
         elevation: 0,
-        title: const Text(
-          'Quick Transaction Filters',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        title: Text(
+          t('quick_transaction_filters_title'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
       body: SafeArea(
@@ -3209,27 +3301,28 @@ class _QuickTransactionFilterPageState
                 children: [
                   _buildSection(
                     icon: Icons.check_circle_outline_rounded,
-                    title: 'Status',
-                    subtitle: 'Choose the transaction status you want to see.',
-                    backgroundColor: const Color(0xFFFFFCF7),
+                    title: t('status_label'),
+                    subtitle: t('choose_transaction_status_message'),
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFFFFCF7), dark: const Color(0xFF2A2620)),
                     child: Column(
                       children: [
                         _buildChoiceRow(
-                          label: 'All Transactions',
+                          label: t('all_transactions_label'),
                           value: 'all',
                           groupValue: _status,
                           onChanged: (value) =>
                               setState(() => _status = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'Cleared Only',
+                          label: t('cleared_only_label'),
                           value: 'cleared',
                           groupValue: _status,
                           onChanged: (value) =>
                               setState(() => _status = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'Not Cleared',
+                          label: t('not_cleared_label'),
                           value: 'not_cleared',
                           groupValue: _status,
                           onChanged: (value) =>
@@ -3241,27 +3334,28 @@ class _QuickTransactionFilterPageState
                   const SizedBox(height: 16),
                   _buildSection(
                     icon: Icons.swap_vert_circle_outlined,
-                    title: 'Role',
-                    subtitle: 'Focus on what you lent or borrowed.',
-                    backgroundColor: const Color(0xFFF7FAFF),
+                    title: t('role_label'),
+                    subtitle: t('focus_on_lent_or_borrowed_message'),
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFF7FAFF), dark: const Color(0xFF1E2233)),
                     child: Column(
                       children: [
                         _buildChoiceRow(
-                          label: 'All Roles',
+                          label: t('all_roles_label'),
                           value: 'all',
                           groupValue: _role,
                           onChanged: (value) =>
                               setState(() => _role = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'You Lent',
+                          label: t('you_lent_label'),
                           value: 'lent',
                           groupValue: _role,
                           onChanged: (value) =>
                               setState(() => _role = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'You Borrowed',
+                          label: t('you_borrowed_label'),
                           value: 'borrowed',
                           groupValue: _role,
                           onChanged: (value) =>
@@ -3273,34 +3367,35 @@ class _QuickTransactionFilterPageState
                   const SizedBox(height: 16),
                   _buildSection(
                     icon: Icons.date_range_rounded,
-                    title: 'Date Range',
-                    subtitle: 'Pick a quick date window for the list.',
-                    backgroundColor: const Color(0xFFF7FBF8),
+                    title: t('date_range_label'),
+                    subtitle: t('pick_quick_date_window_message'),
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFF7FBF8), dark: const Color(0xFF1A2A1E)),
                     child: Column(
                       children: [
                         _buildChoiceRow(
-                          label: 'All Time',
+                          label: t('all_time_label'),
                           value: 'all',
                           groupValue: _date,
                           onChanged: (value) =>
                               setState(() => _date = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'Today',
+                          label: t('today'),
                           value: 'today',
                           groupValue: _date,
                           onChanged: (value) =>
                               setState(() => _date = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'This Week',
+                          label: t('this_week'),
                           value: 'week',
                           groupValue: _date,
                           onChanged: (value) =>
                               setState(() => _date = value ?? 'all'),
                         ),
                         _buildChoiceRow(
-                          label: 'This Month',
+                          label: t('this_month'),
                           value: 'month',
                           groupValue: _date,
                           onChanged: (value) =>
@@ -3312,18 +3407,18 @@ class _QuickTransactionFilterPageState
                   const SizedBox(height: 16),
                   _buildSection(
                     icon: Icons.people_alt_outlined,
-                    title: 'Counterparty',
-                    subtitle: 'Pick a person with a cleaner full list view.',
+                    title: t('counterparty_label'),
+                    subtitle: t('pick_person_cleaner_list_view_message'),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(18),
                       onTap: _showCounterpartyPicker,
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.surfaceBg(context),
                           borderRadius: BorderRadius.circular(18),
                           border:
-                              Border.all(color: Colors.grey.withValues(alpha: 0.25)),
+                              Border.all(color: AppThemeColors.border(context)),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.03),
@@ -3338,7 +3433,9 @@ class _QuickTransactionFilterPageState
                               width: 46,
                               height: 46,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEAF7FB),
+                                color: AppThemeColors.tinted(context,
+                                    light: const Color(0xFFEAF7FB),
+                                    dark: const Color(0xFF173238)),
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               alignment: Alignment.center,
@@ -3353,11 +3450,11 @@ class _QuickTransactionFilterPageState
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Selected Person',
+                                    t('selected_person_label'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.grey.shade600,
+                                      color: AppThemeColors.secondaryText(context),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -3367,10 +3464,10 @@ class _QuickTransactionFilterPageState
                                       _counterpartyLabel(_counterparty),
                                       maxLines: 1,
                                       softWrap: false,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w800,
-                                        color: Colors.black87,
+                                        color: AppThemeColors.primaryText(context),
                                       ),
                                     ),
                                   ),
@@ -3381,12 +3478,12 @@ class _QuickTransactionFilterPageState
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF4F8FA),
+                                color: AppThemeColors.surfaceBg(context),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.keyboard_arrow_down_rounded,
-                                color: Colors.black54,
+                                color: AppThemeColors.secondaryText(context),
                               ),
                             ),
                           ],
@@ -3397,19 +3494,20 @@ class _QuickTransactionFilterPageState
                   const SizedBox(height: 16),
                   _buildSection(
                     icon: Icons.favorite_border_rounded,
-                    title: 'Favourite Filter',
+                    title: t('favourite_filter_label'),
                     subtitle:
-                        'The enable or disable control is shown in front.',
-                    backgroundColor: const Color(0xFFFFF8FA),
+                        t('enable_disable_control_shown_in_front_message'),
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFFFF8FA), dark: const Color(0xFF2A1E22)),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.surfaceBg(context),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
+                        border: Border.all(color: AppThemeColors.border(context)),
                       ),
                       child: Row(
                         children: [
@@ -3424,10 +3522,10 @@ class _QuickTransactionFilterPageState
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Text(
-                                'Show Favourites Only',
+                                t('show_favourites_only_label'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.grey.shade900,
+                                  color: AppThemeColors.primaryText(context),
                                 ),
                               ),
                             ),
@@ -3441,7 +3539,7 @@ class _QuickTransactionFilterPageState
             ),
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               child: Row(
                 children: [
                   Expanded(
@@ -3462,9 +3560,9 @@ class _QuickTransactionFilterPageState
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Reset',
-                        style: TextStyle(
+                      child: Text(
+                        t('reset_label'),
+                        style: const TextStyle(
                           color: AppColors.cyan,
                           fontWeight: FontWeight.w800,
                         ),
@@ -3491,9 +3589,9 @@ class _QuickTransactionFilterPageState
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Apply Filters',
-                        style: TextStyle(fontWeight: FontWeight.w800),
+                      child: Text(
+                        t('apply_filters_label'),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),

@@ -7,6 +7,8 @@ import '../utils/api_client.dart';
 import '../utils/csv_utils.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 // ── Persistent backup entry ───────────────────────────────────────────────
 
@@ -104,6 +106,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   }
 
   Future<void> _createBackup() async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _isLoading = true);
     try {
       final types = ['users', 'transactions', 'quick_transactions', 'group_transactions', 'support'];
@@ -123,7 +126,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
       }
 
       if (paths.isEmpty) {
-        if (mounted) showSnack(context, 'No data to backup.', isError: true);
+        if (mounted) showSnack(context, t('no_data_to_backup'), isError: true);
         return;
       }
 
@@ -142,9 +145,9 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
 
       if (!mounted) return;
       showSnack(context,
-          'Backup created! ${(totalBytes / 1024).toStringAsFixed(1)} KB');
+          '${t('backup_created')} ${(totalBytes / 1024).toStringAsFixed(1)} KB');
     } catch (e) {
-      if (mounted) showSnack(context, 'Backup failed: $e', isError: true);
+      if (mounted) showSnack(context, '${t('backup_failed')} $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -153,9 +156,10 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   // ── View sheet ────────────────────────────────────────────────────────────
 
   void _viewBackup(_BackupEntry entry, String type) async {
+    final t = AppLocalizations.of(context).t;
     final filePath = entry.filePaths[type];
     if (filePath == null || !File(filePath).existsSync()) {
-      if (mounted) showSnack(context, 'File not found on disk.', isError: true);
+      if (mounted) showSnack(context, t('file_not_found_on_disk'), isError: true);
       return;
     }
     final csv = await File(filePath).readAsString();
@@ -185,12 +189,13 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
   }
 
   Future<void> _shareBackup(_BackupEntry entry) async {
+    final t = AppLocalizations.of(context).t;
     final existing = entry.filePaths.values
         .where((p) => File(p).existsSync())
         .map((p) => XFile(p, mimeType: 'text/csv'))
         .toList();
     if (existing.isEmpty) {
-      showSnack(context, 'Backup files not found on disk.', isError: true);
+      showSnack(context, t('backup_files_not_found_on_disk'), isError: true);
       return;
     }
     await Share.shareXFiles(existing,
@@ -205,13 +210,14 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
     _loadHistory().then((_) => _fetchStats());
   }
 
-  Widget _statCard(String label, String value, IconData icon) {
+  Widget _statCard(
+      BuildContext context, String label, String value, IconData icon) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -228,14 +234,16 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                     fontSize: 18,
                     color: AppColors.blue)),
             Text(label,
-                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 11, color: AppThemeColors.secondaryText(context))),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHistoryCard(_BackupEntry entry) {
+  Widget _buildHistoryCard(BuildContext context, _BackupEntry entry) {
+    final t = AppLocalizations.of(context).t;
     const typeColors = {
       'users': AppColors.cyan,
       'transactions': Colors.purple,
@@ -254,7 +262,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -275,20 +283,23 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(entry.label,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 14)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: AppThemeColors.primaryText(context))),
                       Text(
                         '${(entry.totalBytes / 1024).toStringAsFixed(1)} KB  •  '
                         '${entry.filePaths.keys.join(', ')}',
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: AppThemeColors.secondaryText(context)),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.share_rounded, color: AppColors.cyan),
-                  tooltip: 'Share all files',
+                  tooltip: t('share_all_files'),
                   onPressed: () => _shareBackup(entry),
                 ),
               ],
@@ -321,7 +332,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                       children: [
                         Icon(icon, size: 14, color: color),
                         const SizedBox(width: 5),
-                        Text('View $label',
+                        Text('${t('view_label')} $label',
                             style: TextStyle(
                                 fontSize: 12,
                                 color: color,
@@ -342,11 +353,12 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Backup & Restore',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(t('backup_and_restore'),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.cyan,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -361,21 +373,21 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('System Snapshot',
-                      style: TextStyle(
+                  Text(t('system_snapshot'),
+                      style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: AppColors.blue)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      _statCard('Users',
+                      _statCard(context, t('users_label'),
                           '${_stats?['users'] ?? '--'}',
                           Icons.people_outline),
-                      _statCard('Transactions',
+                      _statCard(context, t('transactions_label'),
                           '${_stats?['transactions'] ?? '--'}',
                           Icons.swap_horiz),
-                      _statCard('Support',
+                      _statCard(context, t('support_label'),
                           '${_stats?['supportQueries'] ?? '--'}',
                           Icons.support_agent_outlined),
                     ],
@@ -385,7 +397,7 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                   // Create backup
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -397,22 +409,23 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.backup_outlined, color: AppColors.cyan),
-                            SizedBox(width: 10),
-                            Text('Create Backup',
+                            const Icon(Icons.backup_outlined, color: AppColors.cyan),
+                            const SizedBox(width: 10),
+                            Text(t('create_backup'),
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16)),
+                                    fontSize: 16,
+                                    color: AppThemeColors.primaryText(context))),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Exports users, transactions, and support queries as CSV files '
-                          'saved on this device. History persists across app restarts.',
-                          style:
-                              TextStyle(color: Colors.grey, fontSize: 13),
+                        Text(
+                          t('create_backup_desc'),
+                          style: TextStyle(
+                              color: AppThemeColors.secondaryText(context),
+                              fontSize: 13),
                         ),
                         const SizedBox(height: 14),
                         SizedBox(
@@ -421,8 +434,8 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                             onPressed: _isLoading ? null : _createBackup,
                             icon: const Icon(Icons.cloud_upload_outlined,
                                 color: Colors.white),
-                            label: const Text('Create Backup Now',
-                                style: TextStyle(
+                            label: Text(t('create_backup_now'),
+                                style: const TextStyle(
                                     fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.cyan,
@@ -440,17 +453,18 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
 
                   Row(
                     children: [
-                      const Text('Backup History',
-                          style: TextStyle(
+                      Text(t('backup_history'),
+                          style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: AppColors.blue)),
                       const Spacer(),
                       if (_history.isNotEmpty)
                         Text(
-                          '${_history.length} backup${_history.length == 1 ? '' : 's'}',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey),
+                          '${_history.length} ${_history.length == 1 ? t('backup_singular') : t('backups_plural')}',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppThemeColors.secondaryText(context)),
                         ),
                     ],
                   ),
@@ -460,23 +474,27 @@ class _AdminBackupRestorePageState extends State<AdminBackupRestorePage> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
-                          Icon(Icons.history, color: Colors.grey, size: 40),
-                          SizedBox(height: 8),
+                          Icon(Icons.history,
+                              color: AppThemeColors.secondaryText(context),
+                              size: 40),
+                          const SizedBox(height: 8),
                           Text(
-                            'No backups yet.\nCreate your first backup above.',
+                            t('no_backups_yet'),
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                                color: AppThemeColors.secondaryText(context)),
                           ),
                         ],
                       ),
                     )
                   else
-                    ..._history.map(_buildHistoryCard),
+                    ..._history
+                        .map((entry) => _buildHistoryCard(context, entry)),
                 ],
               ),
             ),

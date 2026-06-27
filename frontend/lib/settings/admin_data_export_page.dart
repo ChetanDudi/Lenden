@@ -4,6 +4,8 @@ import '../utils/csv_utils.dart';
 import '../utils/share_utils.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminDataExportPage extends StatefulWidget {
   const AdminDataExportPage({super.key});
@@ -17,19 +19,22 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
   String? _lastExported;
 
   Future<void> _export(String type, String label, IconData icon) async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _isLoading = true);
     String csvBody = '';
     try {
       final response =
           await ApiClient.get('/api/admin/data/export?type=$type');
       if (response.statusCode != 200) {
-        if (mounted) showSnack(context, 'Export failed. Please try again.', isError: true);
+        if (mounted) {
+          showSnack(context, t('export_failed_try_again'), isError: true);
+        }
         return;
       }
       csvBody = response.body;
       setState(() => _lastExported = label);
     } catch (e) {
-      if (mounted) showSnack(context, 'Network error: $e', isError: true);
+      if (mounted) showSnack(context, '${t('network_error')}: $e', isError: true);
       return;
     } finally {
       setState(() => _isLoading = false);
@@ -48,22 +53,24 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
         content: csvBody,
         filename: '${type}_export.csv',
         subject: 'LenDen Export — ${type}_export.csv',
-        text: 'Exported data from LenDen Admin Panel.',
+        text: t('exported_data_from_admin_panel'),
       ),
     );
   }
 
   Widget _exportCard({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String subtitle,
     required String type,
     required Color accent,
   }) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -92,12 +99,15 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 15)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: AppThemeColors.primaryText(context))),
                   const SizedBox(height: 2),
                   Text(subtitle,
-                      style:
-                          const TextStyle(color: Colors.grey, fontSize: 12)),
+                      style: TextStyle(
+                          color: AppThemeColors.secondaryText(context),
+                          fontSize: 12)),
                 ],
               ),
             ),
@@ -108,8 +118,8 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
                   : () => _export(type, title, icon),
               icon: const Icon(Icons.download_rounded,
                   color: Colors.white, size: 16),
-              label: const Text('Export',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(t('export'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accent,
                 foregroundColor: Colors.white,
@@ -126,11 +136,12 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Data Export',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(t('data_export'),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.cyan,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -146,68 +157,75 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.cyan.withValues(alpha: 0.08),
+                    color: AppThemeColors.tinted(context,
+                        light: AppColors.cyan.withValues(alpha: 0.08),
+                        dark: AppColors.cyan.withValues(alpha: 0.18)),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: AppColors.blue, size: 20),
-                      SizedBox(width: 10),
+                      const Icon(Icons.info_outline, color: AppColors.blue, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Tap Export to preview the data as a table. '
-                          'Use Share / Email to send the CSV file.',
-                          style:
-                              TextStyle(fontSize: 13, color: Colors.black87),
+                          t('data_export_info_banner'),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppThemeColors.primaryText(context)),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text('Available Exports',
-                    style: TextStyle(
+                Text(t('available_exports'),
+                    style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppColors.blue)),
                 const SizedBox(height: 4),
-                sectionLabel('Users & Support', padding: const EdgeInsets.only(top: 12, bottom: 2, left: 4)),
+                sectionLabel(t('users_and_support'), padding: const EdgeInsets.only(top: 12, bottom: 2, left: 4)),
                 const SizedBox(height: 8),
                 _exportCard(
+                  context: context,
                   icon: Icons.people_outline,
-                  title: 'Users',
-                  subtitle: 'All user accounts — name, username, email, gender, joined date',
+                  title: t('users_label'),
+                  subtitle: t('export_users_subtitle'),
                   type: 'users',
                   accent: AppColors.cyan,
                 ),
                 _exportCard(
+                  context: context,
                   icon: Icons.support_agent_outlined,
-                  title: 'Support Queries',
-                  subtitle: 'All support tickets — user, topic, status, priority, date',
+                  title: t('support_queries_label'),
+                  subtitle: t('export_support_subtitle'),
                   type: 'support',
                   accent: Colors.orange,
                 ),
-                sectionLabel('Transactions', padding: const EdgeInsets.only(top: 12, bottom: 2, left: 4)),
+                sectionLabel(t('transactions_label'), padding: const EdgeInsets.only(top: 12, bottom: 2, left: 4)),
                 const SizedBox(height: 8),
                 _exportCard(
+                  context: context,
                   icon: Icons.flash_on_rounded,
-                  title: 'Quick Transactions',
-                  subtitle: 'Creator, participants, role, amount, settlement status',
+                  title: t('quick_transactions'),
+                  subtitle: t('export_quick_transactions_subtitle'),
                   type: 'quick_transactions',
                   accent: Colors.green,
                 ),
                 _exportCard(
+                  context: context,
                   icon: Icons.lock_outline_rounded,
-                  title: 'Secure Transactions',
-                  subtitle: 'User email, counterparty, role, amount, currency, place',
+                  title: t('secure_transactions'),
+                  subtitle: t('export_secure_transactions_subtitle'),
                   type: 'transactions',
                   accent: Colors.purple,
                 ),
                 _exportCard(
+                  context: context,
                   icon: Icons.group_outlined,
-                  title: 'Group Transactions',
-                  subtitle: 'Group title, creator, each expense with amount & date',
+                  title: t('group_transactions'),
+                  subtitle: t('export_group_transactions_subtitle'),
                   type: 'group_transactions',
                   accent: Colors.teal,
                 ),
@@ -224,7 +242,7 @@ class _AdminDataExportPageState extends State<AdminDataExportPage> {
                         const Icon(Icons.check_circle_outline,
                             color: Colors.green, size: 18),
                         const SizedBox(width: 8),
-                        Text('Last exported: $_lastExported',
+                        Text('${t('last_exported_label')}: $_lastExported',
                             style: const TextStyle(color: Colors.green)),
                       ],
                     ),

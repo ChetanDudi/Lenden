@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminNotificationsPage extends StatefulWidget {
   const AdminNotificationsPage({Key? key}) : super(key: key);
@@ -36,15 +38,15 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
   final _recipientsController = TextEditingController();
   final _scheduledForController = TextEditingController();
 
-  final List<_NotificationCategoryChip> _categories = const [
-    _NotificationCategoryChip(label: 'All', value: 'all'),
-    _NotificationCategoryChip(label: 'Friends', value: 'friend'),
-    _NotificationCategoryChip(label: 'Offers', value: 'offer'),
-    _NotificationCategoryChip(label: 'Transactions', value: 'transaction'),
-    _NotificationCategoryChip(label: 'Groups', value: 'group'),
-    _NotificationCategoryChip(label: 'System', value: 'system'),
-    _NotificationCategoryChip(label: 'General', value: 'general'),
-  ];
+  List<_NotificationCategoryChip> _categories(String Function(String) t) => [
+        _NotificationCategoryChip(label: t('all'), value: 'all'),
+        _NotificationCategoryChip(label: t('friends'), value: 'friend'),
+        _NotificationCategoryChip(label: t('offers'), value: 'offer'),
+        _NotificationCategoryChip(label: t('transactions'), value: 'transaction'),
+        _NotificationCategoryChip(label: t('groups'), value: 'group'),
+        _NotificationCategoryChip(label: t('system'), value: 'system'),
+        _NotificationCategoryChip(label: t('general'), value: 'general'),
+      ];
 
   @override
   void initState() {
@@ -65,14 +67,20 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     super.dispose();
   }
 
-  Color _getNoteColor(int index) {
-    const colors = [
-      Color(0xFFFFF4E6),
-      Color(0xFFE8F5E9),
-      Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD),
-      Color(0xFFFFF9C4),
-      Color(0xFFF3E5F5),
+  Color _getNoteColor(BuildContext context, int index) {
+    final colors = [
+      AppThemeColors.tinted(context,
+          light: const Color(0xFFFFF4E6), dark: const Color(0xFF3A2E1A)),
+      AppThemeColors.tinted(context,
+          light: const Color(0xFFE8F5E9), dark: const Color(0xFF1E3320)),
+      AppThemeColors.tinted(context,
+          light: const Color(0xFFFCE4EC), dark: const Color(0xFF3A2230)),
+      AppThemeColors.tinted(context,
+          light: const Color(0xFFE3F2FD), dark: const Color(0xFF1B3A57)),
+      AppThemeColors.tinted(context,
+          light: const Color(0xFFFFF9C4), dark: const Color(0xFF3A3618)),
+      AppThemeColors.tinted(context,
+          light: const Color(0xFFF3E5F5), dark: const Color(0xFF332139)),
     ];
     return colors[index % colors.length];
   }
@@ -218,14 +226,16 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
         await _fetchReceivedNotifications();
         await _fetchSentNotifications();
         if (mounted) {
+          final t = AppLocalizations.of(context).t;
           showSnack(context, _deliveryStatus == 'scheduled'
-              ? 'Notification scheduled successfully.'
+              ? t('notification_scheduled_successfully')
               : _deliveryStatus == 'draft'
-                  ? 'Notification draft saved successfully.'
-                  : 'Notification sent successfully.');
+                  ? t('notification_draft_saved_successfully')
+                  : t('notification_sent_successfully'));
         }
       } else if (mounted) {
-        String errorMessage = 'Failed to send notification.';
+        final t = AppLocalizations.of(context).t;
+        String errorMessage = t('failed_to_send_notification');
         try {
           final errorBody = json.decode(response.body);
           if (errorBody['message'] != null) {
@@ -236,7 +246,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, 'An unexpected error occurred: $e', isError: true);
+        showSnack(context,
+            '${AppLocalizations.of(context).t('unexpected_error_occurred')}: $e',
+            isError: true);
       }
     } finally {
       if (mounted) {
@@ -252,10 +264,11 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
+      final t = AppLocalizations.of(context).t;
       setState(() {
         final invalid = List<String>.from(data['invalidRecipients'] ?? const []);
         _audiencePreview =
-            '${data['estimatedAudience'] ?? 0} eligible recipients${invalid.isNotEmpty ? ' • Invalid: ${invalid.join(', ')}' : ''}';
+            '${data['estimatedAudience'] ?? 0} ${t('eligible_recipients')}${invalid.isNotEmpty ? ' • ${t('invalid_label')}: ${invalid.join(', ')}' : ''}';
       });
     }
   }
@@ -291,14 +304,18 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
       await _fetchReceivedNotifications();
       await _fetchSentNotifications();
       if (mounted) {
-        showSnack(context, 'Notification deleted successfully.');
+        showSnack(context,
+            AppLocalizations.of(context).t('notification_deleted_successfully'));
       }
     } else if (mounted) {
-      showSnack(context, 'Failed to delete notification: ${response.body}', isError: true);
+      showSnack(context,
+          '${AppLocalizations.of(context).t('failed_to_delete_notification')}: ${response.body}',
+          isError: true);
     }
   }
 
   Future<void> _editNotification(dynamic notification) async {
+    final t = AppLocalizations.of(context).t;
     final editMessageController =
         TextEditingController(text: notification['message'] ?? '');
     final editRecipientsController = TextEditingController(
@@ -316,10 +333,12 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: AppThemeColors.cardBg(context),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              title: const Text('Edit Notification'),
+              title: Text(t('edit_notification'),
+                  style: TextStyle(color: AppThemeColors.primaryText(context))),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -327,8 +346,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     TextField(
                       controller: editMessageController,
                       maxLines: 4,
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
                       decoration: InputDecoration(
-                        labelText: 'Message',
+                        labelText: t('message'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -338,27 +358,27 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     DropdownButtonFormField<String>(
                       value: editRecipientType,
                       decoration: InputDecoration(
-                        labelText: 'Audience',
+                        labelText: t('audience'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 'all-users',
-                          child: Text('All Users'),
+                          child: Text(t('all_users')),
                         ),
                         DropdownMenuItem(
                           value: 'all-admins',
-                          child: Text('All Admins'),
+                          child: Text(t('all_admins')),
                         ),
                         DropdownMenuItem(
                           value: 'specific-users',
-                          child: Text('Specific Users'),
+                          child: Text(t('specific_users')),
                         ),
                         DropdownMenuItem(
                           value: 'specific-admins',
-                          child: Text('Specific Admins'),
+                          child: Text(t('specific_admins')),
                         ),
                       ],
                       onChanged: (value) {
@@ -372,8 +392,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                       const SizedBox(height: 14),
                       TextField(
                         controller: editRecipientsController,
+                        style: TextStyle(color: AppThemeColors.primaryText(context)),
                         decoration: InputDecoration(
-                          labelText: 'Recipients (comma-separated)',
+                          labelText: t('recipients_comma_separated'),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -386,7 +407,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(t('cancel')),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -408,11 +429,11 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                       await _fetchSentNotifications();
                       if (mounted) {
                         Navigator.pop(dialogContext);
-                        showSnack(context, 'Notification updated successfully.');
+                        showSnack(context, t('notification_updated_successfully'));
                       }
                     }
                   },
-                  child: const Text('Save'),
+                  child: Text(t('save')),
                 ),
               ],
             );
@@ -445,9 +466,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context);
     final userId = session.user!['_id'];
+    final t = AppLocalizations.of(context).t;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -458,7 +480,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -470,17 +492,18 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Admin Notifications',
+                          t('admin_notifications'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
@@ -490,7 +513,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                  child: _buildSummaryCard(),
+                  child: _buildSummaryCard(context),
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -507,7 +530,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     child: Container(
                       margin: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.96),
+                        color: AppThemeColors.cardBg(context).withValues(alpha: 0.96),
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: TabBar(
@@ -521,10 +544,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                         dividerColor: Colors.transparent,
                         overlayColor:
                             WidgetStateProperty.all(Colors.transparent),
-                        tabs: const [
-                          Tab(text: 'Inbox'),
-                          Tab(text: 'Sent'),
-                          Tab(text: 'Compose'),
+                        tabs: [
+                          Tab(text: t('inbox')),
+                          Tab(text: t('sent')),
+                          Tab(text: t('compose')),
                         ],
                       ),
                     ),
@@ -540,6 +563,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           viewAll: _viewAllReceived,
                         ),
                         child: _buildNotificationsPanel(
+                          context: context,
                           notifications: _receivedNotifications,
                           loading: _isLoadingReceived,
                           unreadUserId: userId,
@@ -547,7 +571,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           onCategoryChanged: (value) {
                             setState(() => _inboxCategory = value);
                           },
-                          emptyText: 'No received notifications yet.',
+                          emptyText: t('no_received_notifications_yet'),
                           allowViewAll:
                               _receivedNotifications.length == 3 && !_viewAllReceived,
                           onViewAll: () => _fetchReceivedNotifications(viewAll: true),
@@ -560,6 +584,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           viewAll: _viewAllSent,
                         ),
                         child: _buildNotificationsPanel(
+                          context: context,
                           notifications: _sentNotifications,
                           loading: _isLoadingSent,
                           unreadUserId: userId,
@@ -567,14 +592,14 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           onCategoryChanged: (value) {
                             setState(() => _sentCategory = value);
                           },
-                          emptyText: 'No sent notifications yet.',
+                          emptyText: t('no_sent_notifications_yet'),
                           allowViewAll: _sentNotifications.length == 3 && !_viewAllSent,
                           onViewAll: () => _fetchSentNotifications(viewAll: true),
                           canManage: true,
                           showReadState: false,
                         ),
                       ),
-                      _buildComposePanel(),
+                      _buildComposePanel(context),
                     ],
                   ),
                 ),
@@ -586,12 +611,13 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -605,7 +631,8 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
         children: [
           Expanded(
             child: _buildStatTile(
-              title: 'Unread',
+              context: context,
+              title: t('unread'),
               value: '$_unreadCount',
               color: AppColors.cyan,
               icon: Icons.mark_email_unread_outlined,
@@ -614,7 +641,8 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatTile(
-              title: 'Inbox',
+              context: context,
+              title: t('inbox'),
               value: '${_receivedNotifications.length}',
               color: Colors.orange,
               icon: Icons.inbox_outlined,
@@ -623,7 +651,8 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatTile(
-              title: 'Sent',
+              context: context,
+              title: t('sent'),
               value: '${_sentNotifications.length}',
               color: Colors.green,
               icon: Icons.send_outlined,
@@ -635,6 +664,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
   }
 
   Widget _buildStatTile({
+    required BuildContext context,
     required String title,
     required String value,
     required Color color,
@@ -663,7 +693,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade700,
+              color: AppThemeColors.secondaryText(context),
             ),
           ),
         ],
@@ -682,7 +712,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     required VoidCallback onViewAll,
     required bool canManage,
     required bool showReadState,
+    required BuildContext context,
   }) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _filterByCategory(notifications, selectedCategory);
 
     if (loading) {
@@ -698,7 +730,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: _categories.map((chip) {
+            children: _categories(t).map((chip) {
               final selected = chip.value == selectedCategory;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -712,7 +744,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     fontWeight: FontWeight.w600,
                   ),
                   side: const BorderSide(color: AppColors.cyan),
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppThemeColors.cardBg(context),
                 ),
               );
             }).toList(),
@@ -725,15 +757,16 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             child: Center(
               child: Column(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.notifications_off_outlined,
                     size: 72,
-                    color: Colors.grey,
+                    color: AppThemeColors.secondaryText(context),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     emptyText,
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(
+                        fontSize: 16, color: AppThemeColors.secondaryText(context)),
                   ),
                 ],
               ),
@@ -743,6 +776,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
           final index = entry.key;
           final notification = entry.value;
           return _buildNotificationCard(
+            context: context,
             notification: notification,
             index: index,
             unreadUserId: unreadUserId,
@@ -767,7 +801,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('View All Notifications'),
+                child: Text(t('view_all_notifications')),
               ),
             ),
           ),
@@ -776,12 +810,14 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
   }
 
   Widget _buildNotificationCard({
+    required BuildContext context,
     required dynamic notification,
     required int index,
     required dynamic unreadUserId,
     required bool canManage,
     required bool showReadState,
   }) {
+    final t = AppLocalizations.of(context).t;
     final category = _categoryForNotification(notification);
     final accent = _accentForCategory(category);
     final isRead = _isNotificationRead(notification, unreadUserId);
@@ -801,7 +837,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _getNoteColor(index),
+          color: _getNoteColor(context, index),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -824,7 +860,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     children: [
                       Expanded(
                         child: Text(
-                          _labelForCategory(category),
+                          _labelForCategory(t, category),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -850,36 +886,38 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                               _deleteNotification(notification['_id']);
                             }
                           },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            PopupMenuItem(value: 'delete', child: Text('Delete')),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(value: 'edit', child: Text(t('edit'))),
+                            PopupMenuItem(value: 'delete', child: Text(t('delete'))),
                           ],
                         ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _prettifyMessage((notification['message'] ?? '').toString()),
-                    style: const TextStyle(
+                    _prettifyMessage(
+                        t, (notification['message'] ?? '').toString()),
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       height: 1.35,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _audienceLabel(notification),
+                    _audienceLabel(t, notification),
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade700,
+                      color: AppThemeColors.secondaryText(context),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatTime(notification['createdAt']),
+                    _formatTime(t, notification['createdAt']),
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade700,
+                      color: AppThemeColors.secondaryText(context),
                     ),
                   ),
                 ],
@@ -891,7 +929,8 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     );
   }
 
-  Widget _buildComposePanel() {
+  Widget _buildComposePanel(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -909,29 +948,31 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Compose Notification',
+                Text(
+                  t('compose_notification'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Create cleaner alerts for users or admins from here.',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  t('compose_notification_desc'),
+                  style: TextStyle(color: AppThemeColors.secondaryText(context)),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _titleController,
+                  style: TextStyle(color: AppThemeColors.primaryText(context)),
                   decoration: InputDecoration(
-                    labelText: 'Title',
+                    labelText: t('title'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -941,8 +982,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                 TextField(
                   controller: _messageController,
                   maxLines: 4,
+                  style: TextStyle(color: AppThemeColors.primaryText(context)),
                   decoration: InputDecoration(
-                    labelText: 'Message',
+                    labelText: t('message'),
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -953,21 +995,21 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                 DropdownButtonFormField<String>(
                   value: _recipientType,
                   decoration: InputDecoration(
-                    labelText: 'Audience',
+                    labelText: t('audience'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'all-users', child: Text('All Users')),
-                    DropdownMenuItem(value: 'all-admins', child: Text('All Admins')),
+                  items: [
+                    DropdownMenuItem(value: 'all-users', child: Text(t('all_users'))),
+                    DropdownMenuItem(value: 'all-admins', child: Text(t('all_admins'))),
                     DropdownMenuItem(
                       value: 'specific-users',
-                      child: Text('Specific Users'),
+                      child: Text(t('specific_users')),
                     ),
                     DropdownMenuItem(
                       value: 'specific-admins',
-                      child: Text('Specific Admins'),
+                      child: Text(t('specific_admins')),
                     ),
                   ],
                   onChanged: (value) {
@@ -980,17 +1022,17 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                 DropdownButtonFormField<String>(
                   value: _deliveryStatus,
                   decoration: InputDecoration(
-                    labelText: 'Delivery',
+                    labelText: t('delivery'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'sent', child: Text('Send Now')),
-                    DropdownMenuItem(value: 'draft', child: Text('Save Draft')),
+                  items: [
+                    DropdownMenuItem(value: 'sent', child: Text(t('send_now'))),
+                    DropdownMenuItem(value: 'draft', child: Text(t('save_draft'))),
                     DropdownMenuItem(
                       value: 'scheduled',
-                      child: Text('Schedule'),
+                      child: Text(t('schedule')),
                     ),
                   ],
                   onChanged: (value) {
@@ -1004,8 +1046,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                   const SizedBox(height: 14),
                   TextField(
                     controller: _recipientsController,
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                     decoration: InputDecoration(
-                      labelText: 'Recipients (comma-separated)',
+                      labelText: t('recipients_comma_separated'),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -1018,8 +1061,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     controller: _scheduledForController,
                     readOnly: true,
                     onTap: _pickScheduledDateTime,
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                     decoration: InputDecoration(
-                      labelText: 'Scheduled For',
+                      labelText: t('scheduled_for'),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -1032,20 +1076,22 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6FBFE),
+                    color: AppThemeColors.tinted(context,
+                        light: const Color(0xFFF6FBFE),
+                        dark: const Color(0xFF1B3A57)),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          _audiencePreview ?? 'Audience preview will appear here.',
-                          style: TextStyle(color: Colors.grey.shade700),
+                          _audiencePreview ?? t('audience_preview_placeholder'),
+                          style: TextStyle(color: AppThemeColors.secondaryText(context)),
                         ),
                       ),
                       TextButton(
                         onPressed: _loadAudiencePreview,
-                        child: const Text('Preview'),
+                        child: Text(t('preview')),
                       ),
                     ],
                   ),
@@ -1073,7 +1119,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text('Send Notification'),
+                        : Text(t('send_notification')),
                   ),
                 ),
               ],
@@ -1118,54 +1164,54 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     }
   }
 
-  String _labelForCategory(String category) {
+  String _labelForCategory(String Function(String) t, String category) {
     switch (category) {
       case 'friend':
-        return 'FRIENDS';
+        return t('friends').toUpperCase();
       case 'offer':
-        return 'OFFERS';
+        return t('offers').toUpperCase();
       case 'transaction':
-        return 'TRANSACTIONS';
+        return t('transactions').toUpperCase();
       case 'group':
-        return 'GROUPS';
+        return t('groups').toUpperCase();
       case 'system':
-        return 'SYSTEM';
+        return t('system').toUpperCase();
       default:
-        return 'GENERAL';
+        return t('general').toUpperCase();
     }
   }
 
-  String _prettifyMessage(String message) {
+  String _prettifyMessage(String Function(String) t, String message) {
     final normalized = message.trim().replaceAll(RegExp(r'\s+'), ' ');
-    if (normalized.isEmpty) return 'Notification message unavailable.';
+    if (normalized.isEmpty) return t('notification_message_unavailable');
     return normalized[0].toUpperCase() + normalized.substring(1);
   }
 
-  String _audienceLabel(dynamic notification) {
+  String _audienceLabel(String Function(String) t, dynamic notification) {
     final recipientType = (notification['recipientType'] ?? '').toString();
     switch (recipientType) {
       case 'all-users':
-        return 'Audience: All users';
+        return t('audience_all_users');
       case 'all-admins':
-        return 'Audience: All admins';
+        return t('audience_all_admins');
       case 'specific-users':
-        return 'Audience: Selected users';
+        return t('audience_selected_users');
       case 'specific-admins':
-        return 'Audience: Selected admins';
+        return t('audience_selected_admins');
       default:
-        return 'Audience: Custom';
+        return t('audience_custom');
     }
   }
 
-  String _formatTime(dynamic rawDate) {
-    if (rawDate == null) return 'Recently';
+  String _formatTime(String Function(String) t, dynamic rawDate) {
+    if (rawDate == null) return t('recently');
     final createdAt = DateTime.tryParse(rawDate.toString())?.toLocal();
-    if (createdAt == null) return 'Recently';
+    if (createdAt == null) return t('recently');
     final diff = DateTime.now().difference(createdAt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) return '${diff.inHours} hr ago';
-    if (diff.inDays < 7) return '${diff.inDays} day ago';
+    if (diff.inMinutes < 1) return t('just_now');
+    if (diff.inMinutes < 60) return '${diff.inMinutes} ${t('min_ago')}';
+    if (diff.inHours < 24) return '${diff.inHours} ${t('hr_ago')}';
+    if (diff.inDays < 7) return '${diff.inDays} ${t('day_ago')}';
     return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
   }
 }

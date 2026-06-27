@@ -5,6 +5,8 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageCurrencyConversionsPage extends StatefulWidget {
   const ManageCurrencyConversionsPage({super.key});
@@ -200,7 +202,9 @@ class _ManageCurrencyConversionsPageState
       showSnack(context, message, isError: isError);
 
   String _prettyTimestamp(String? raw) {
-    if (raw == null || raw.isEmpty) return 'No manual updates yet';
+    if (raw == null || raw.isEmpty) {
+      return AppLocalizations.of(context).t('no_manual_updates_yet');
+    }
     final date = DateTime.tryParse(raw)?.toLocal();
     if (date == null) return raw;
     final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
@@ -245,8 +249,9 @@ class _ManageCurrencyConversionsPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FAFE),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -257,13 +262,7 @@ class _ManageCurrencyConversionsPageState
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF67D5EB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -276,23 +275,24 @@ class _ManageCurrencyConversionsPageState
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Currency Conversions',
+                          t('currency_conversions'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black87,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: _loading ? null : _loadRates,
-                        icon: const Icon(Icons.refresh_rounded,
-                            color: Colors.black87),
+                        icon: Icon(Icons.refresh_rounded,
+                            color: AppThemeColors.iconOnWave(context)),
                       ),
                     ],
                   ),
@@ -309,15 +309,15 @@ class _ManageCurrencyConversionsPageState
                                 child: Container(
                                   padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFDFEFE),
+                                    color: AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(22),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Manage latest manual conversion rates',
-                                        style: TextStyle(
+                                      Text(
+                                        t('manage_latest_manual_conversion_rates'),
+                                        style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
                                           color: Color(0xFF175676),
@@ -325,10 +325,10 @@ class _ManageCurrencyConversionsPageState
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Enter one direct rate and the system will derive the reverse pair automatically. Supported currencies: ${_supportedCurrencies.join(', ')}.',
+                                        '${t('supported_currencies_hint')} ${_supportedCurrencies.join(', ')}.',
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: Colors.blueGrey.shade700,
+                                          color: AppThemeColors.secondaryText(context),
                                           height: 1.4,
                                         ),
                                       ),
@@ -338,10 +338,12 @@ class _ManageCurrencyConversionsPageState
                                         runSpacing: 10,
                                         children: [
                                           _buildInfoChip(
+                                            context,
                                             Icons.currency_exchange_rounded,
-                                            '${_matrix.where((row) => row['available'] == true).length} available pairs',
+                                            '${_matrix.where((row) => row['available'] == true).length} ${t('available_pairs')}',
                                           ),
                                           _buildInfoChip(
+                                            context,
                                             Icons.schedule_rounded,
                                             _prettyTimestamp(_lastUpdatedAt),
                                           ),
@@ -363,7 +365,7 @@ class _ManageCurrencyConversionsPageState
                                                 )
                                               : const Icon(Icons.cloud_sync_rounded, size: 18),
                                           label: Text(
-                                            _syncingLive ? 'Fetching live rates...' : 'Sync Live Rates (ECB)',
+                                            _syncingLive ? t('fetching_live_rates') : t('sync_live_rates_ecb'),
                                             style: const TextStyle(fontWeight: FontWeight.w700),
                                           ),
                                           style: ElevatedButton.styleFrom(
@@ -385,17 +387,18 @@ class _ManageCurrencyConversionsPageState
                                 child: Container(
                                   padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFFFEFC),
+                                    color: AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(22),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Add New Currency',
+                                      Text(
+                                        t('add_new_currency'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
+                                          color: AppThemeColors.primaryText(context),
                                         ),
                                       ),
                                       const SizedBox(height: 14),
@@ -407,11 +410,11 @@ class _ManageCurrencyConversionsPageState
                                               textCapitalization:
                                                   TextCapitalization.characters,
                                               decoration: InputDecoration(
-                                                labelText: 'Code',
+                                                labelText: t('code'),
                                                 hintText: 'e.g. SGD',
                                                 filled: true,
                                                 fillColor:
-                                                    const Color(0xFFF7FBFD),
+                                                    AppThemeColors.surfaceBg(context),
                                                 border: OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(16),
@@ -424,11 +427,11 @@ class _ManageCurrencyConversionsPageState
                                             child: TextField(
                                               controller: _symbolController,
                                               decoration: InputDecoration(
-                                                labelText: 'Symbol',
+                                                labelText: t('symbol'),
                                                 hintText: 'e.g. S\$',
                                                 filled: true,
                                                 fillColor:
-                                                    const Color(0xFFF7FBFD),
+                                                    AppThemeColors.surfaceBg(context),
                                                 border: OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(16),
@@ -442,10 +445,10 @@ class _ManageCurrencyConversionsPageState
                                       TextField(
                                         controller: _labelController,
                                         decoration: InputDecoration(
-                                          labelText: 'Label (optional)',
+                                          labelText: t('label_optional'),
                                           hintText: 'Singapore Dollar',
                                           filled: true,
-                                          fillColor: const Color(0xFFF7FBFD),
+                                          fillColor: AppThemeColors.surfaceBg(context),
                                           border: OutlineInputBorder(
                                             borderRadius:
                                                 BorderRadius.circular(16),
@@ -481,9 +484,9 @@ class _ManageCurrencyConversionsPageState
                                                             Colors.white),
                                                   ),
                                                 )
-                                              : const Text(
-                                                  'Add Currency',
-                                                  style: TextStyle(
+                                              : Text(
+                                                  t('add_currency'),
+                                                  style: const TextStyle(
                                                       fontWeight: FontWeight.w700),
                                                 ),
                                         ),
@@ -497,17 +500,18 @@ class _ManageCurrencyConversionsPageState
                                 child: Container(
                                   padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFFFEFC),
+                                    color: AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(22),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Add Or Update Rate',
+                                      Text(
+                                        t('add_or_update_rate'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
+                                          color: AppThemeColors.primaryText(context),
                                         ),
                                       ),
                                       const SizedBox(height: 14),
@@ -515,7 +519,8 @@ class _ManageCurrencyConversionsPageState
                                         children: [
                                           Expanded(
                                             child: _buildCurrencyDropdown(
-                                              label: 'From',
+                                              context: context,
+                                              label: t('from'),
                                               value: _baseCurrency,
                                               onChanged: (value) => setState(
                                                 () => _baseCurrency = value!,
@@ -525,7 +530,8 @@ class _ManageCurrencyConversionsPageState
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: _buildCurrencyDropdown(
-                                              label: 'To',
+                                              context: context,
+                                              label: t('to'),
                                               value: _quoteCurrency,
                                               onChanged: (value) => setState(
                                                 () => _quoteCurrency = value!,
@@ -542,13 +548,13 @@ class _ManageCurrencyConversionsPageState
                                         ),
                                         decoration: InputDecoration(
                                           labelText:
-                                              '1 $_baseCurrency equals how many $_quoteCurrency?',
+                                              '1 $_baseCurrency ${t('equals_how_many')} $_quoteCurrency?',
                                           prefixIcon: const Icon(
                                             Icons.calculate_outlined,
                                             color: AppColors.cyan,
                                           ),
                                           filled: true,
-                                          fillColor: const Color(0xFFF7FBFD),
+                                          fillColor: AppThemeColors.surfaceBg(context),
                                           border: OutlineInputBorder(
                                             borderRadius:
                                                 BorderRadius.circular(16),
@@ -592,9 +598,9 @@ class _ManageCurrencyConversionsPageState
                                                             Colors.white),
                                                   ),
                                                 )
-                                              : const Text(
-                                                  'Save Conversion Rate',
-                                                  style: TextStyle(
+                                              : Text(
+                                                  t('save_conversion_rate'),
+                                                  style: const TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                   ),
                                                 ),
@@ -609,17 +615,18 @@ class _ManageCurrencyConversionsPageState
                                 child: Container(
                                   padding: const EdgeInsets.all(18),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFCFFFE),
+                                    color: AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(22),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Conversion Matrix',
+                                      Text(
+                                        t('conversion_matrix'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
+                                          color: AppThemeColors.primaryText(context),
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -630,11 +637,11 @@ class _ManageCurrencyConversionsPageState
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12, vertical: 10),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFF5FBFE),
+                                            color: AppThemeColors.surfaceBg(context),
                                             borderRadius:
                                                 BorderRadius.circular(14),
                                             border: Border.all(
-                                                color: const Color(0xFFD9EEF5)),
+                                                color: AppThemeColors.border(context)),
                                           ),
                                           child: Row(
                                             children: [
@@ -651,11 +658,11 @@ class _ManageCurrencyConversionsPageState
                                                     .toString()
                                                     .trim()
                                                     .isEmpty
-                                                    ? 'Custom/Default currency'
+                                                    ? t('custom_default_currency')
                                                     : currency['label'].toString(),
                                                 style: TextStyle(
                                                   color:
-                                                      Colors.blueGrey.shade700,
+                                                      AppThemeColors.secondaryText(context),
                                                 ),
                                               ),
                                             ],
@@ -670,7 +677,7 @@ class _ManageCurrencyConversionsPageState
                                           child: Container(
                                             padding: const EdgeInsets.all(14),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFF3F9FC),
+                                              color: AppThemeColors.surfaceBg(context),
                                               borderRadius:
                                                   BorderRadius.circular(18),
                                             ),
@@ -679,7 +686,7 @@ class _ManageCurrencyConversionsPageState
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '$from base currency',
+                                                  '$from ${t('base_currency')}',
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     color: Color(0xFF175676),
@@ -748,7 +755,7 @@ class _ManageCurrencyConversionsPageState
                                                               available
                                                                   ? rate
                                                                       .toString()
-                                                                  : 'Not available',
+                                                                  : t('not_available'),
                                                               style: TextStyle(
                                                                 fontSize: 13,
                                                                 color: Colors.white,
@@ -798,13 +805,13 @@ class _ManageCurrencyConversionsPageState
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String text) {
+  Widget _buildInfoChip(BuildContext context, IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD5EEF5)),
+        border: Border.all(color: AppThemeColors.border(context)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -826,6 +833,7 @@ class _ManageCurrencyConversionsPageState
   }
 
   Widget _buildCurrencyDropdown({
+    required BuildContext context,
     required String label,
     required String value,
     required ValueChanged<String?> onChanged,
@@ -844,7 +852,7 @@ class _ManageCurrencyConversionsPageState
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF7FBFD),
+        fillColor: AppThemeColors.surfaceBg(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
         ),

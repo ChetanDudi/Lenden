@@ -8,6 +8,9 @@ import '../widgets/tricolor_border_text_field.dart';
 import 'dart:ui' as ui;
 import '../utils/api_client.dart';
 import '../utils/responsive.dart';
+import 'package:provider/provider.dart';
+import '../session.dart';
+import '../login/google_auth_service.dart';
 
 class UserRegisterPage extends StatefulWidget {
   const UserRegisterPage({super.key});
@@ -27,6 +30,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _otpSent = false;
   bool _isVerifyingOtp = false;
   int _otpSecondsLeft = 0;
@@ -179,6 +183,41 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
         _isLoading = false;
         _detailsLocked = false;
       });
+    }
+  }
+
+  void _registerWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      final result = await GoogleAuthService.loginWithGoogle();
+
+      if (result['success'] == true) {
+        final userOrAdmin = result['userOrAdmin'];
+        final token = result['accessToken'] as String;
+        final refreshToken = result['refreshToken'] as String;
+
+        final session = Provider.of<SessionProvider>(context, listen: false);
+        await session.saveTokens(token, refreshToken);
+
+        final userData = Map<String, dynamic>.from(userOrAdmin);
+        userData['role'] = 'user';
+        session.setUser(userData);
+        await session.checkSubscriptionStatus();
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/user/dashboard');
+        }
+      } else if (result['cancelled'] != true) {
+        setState(() {
+          _errorMessage = result['error'] ?? 'Google sign-in failed.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Google sign-in failed. Please try again.';
+      });
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -386,6 +425,16 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Auth screens always render in English, regardless of the user's saved
+    // app language — they're shown before any user/locale is established.
+    return Localizations.override(
+      context: context,
+      locale: const Locale('en'),
+      child: Builder(builder: _buildPage),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6FA),
       body: Stack(
@@ -747,6 +796,56 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider(color: Colors.grey)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text('OR',
+                              style: TextStyle(
+                                  fontSize: context.sp(13),
+                                  color: Colors.grey.shade600)),
+                        ),
+                        const Expanded(child: Divider(color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed:
+                            (_isLoading || _isGoogleLoading || _otpSent)
+                                ? null
+                                : _registerWithGoogle,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: _isGoogleLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.black54),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const FaIcon(FontAwesomeIcons.google,
+                                      size: 18, color: Color(0xFFEA4335)),
+                                  const SizedBox(width: 10),
+                                  Text('Sign up with Google',
+                                      style: TextStyle(
+                                          fontSize: context.sp(15),
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87)),
+                                ],
+                              ),
+                      ),
+                    ),
                     const SizedBox(height: 18),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

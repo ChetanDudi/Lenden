@@ -89,6 +89,12 @@ module.exports = (io) => {
   const coinLedgerController = require('../controllers/coinLedgerController');
   const appContentController = require('../controllers/appContentController');
   const currencyConversionController = require('../controllers/currencyConversionController');
+  const disputeController = require('../controllers/disputeController');
+  const fraudAlertController = require('../controllers/fraudAlertController');
+  const lendingBudgetController = require('../controllers/lendingBudgetController');
+  const recurringTemplateController = require('../controllers/recurringTemplateController');
+  const calendarController = require('../controllers/calendarController');
+  const statementController = require('../controllers/statementController');
   const handleUsage = require('../middleware/handleUsage');
 
   // Middleware to check for admin role
@@ -113,6 +119,7 @@ module.exports = (io) => {
   router.post('/users/verify-otp', userController.verifyOtp);
   router.post('/users/resend-otp', userController.resendOtp);
   router.post('/users/login', userController.login);
+  router.post('/users/google-login', userController.googleLogin);
   router.post('/users/check-username', userController.checkUsername);
   router.post('/users/check-email', userController.checkEmail);
   router.get('/users/list', auth, isAdmin, userController.listUsers);
@@ -273,6 +280,34 @@ module.exports = (io) => {
   router.get('/notes', auth, noteController.getNotes);
   router.put('/notes/:id', auth, noteController.updateNote);
   router.delete('/notes/:id', auth, noteController.deleteNote);
+
+  // Dispute routes
+  router.post('/disputes', auth, disputeController.createDispute);
+  router.get('/disputes/mine', auth, disputeController.getMyDisputes);
+  router.get('/disputes/:id', auth, disputeController.getDisputeById);
+  router.get('/admin/disputes', auth, isAdmin, disputeController.adminListDisputes);
+  router.patch('/admin/disputes/:id', auth, isAdmin, disputeController.adminResolveDispute);
+
+  // Fraud alert routes
+  router.get('/admin/fraud-alerts', auth, isAdmin, fraudAlertController.listFraudAlerts);
+  router.patch('/admin/fraud-alerts/:id', auth, isAdmin, fraudAlertController.updateFraudAlert);
+  router.post('/admin/fraud-alerts/scan', auth, isAdmin, fraudAlertController.triggerFraudScan);
+
+  // Lending budget routes
+  router.get('/lending-budget', auth, lendingBudgetController.getLendingBudget);
+  router.put('/lending-budget', auth, lendingBudgetController.updateLendingBudget);
+
+  // Recurring quick-transaction template routes
+  router.post('/recurring-templates', auth, recurringTemplateController.createTemplate);
+  router.get('/recurring-templates/mine', auth, recurringTemplateController.getMyTemplates);
+  router.patch('/recurring-templates/:id', auth, recurringTemplateController.updateTemplate);
+  router.delete('/recurring-templates/:id', auth, recurringTemplateController.deleteTemplate);
+
+  // Calendar routes
+  router.get('/calendar/due-dates', auth, calendarController.getDueDates);
+
+  // Statement export routes
+  router.get('/statements/export', auth, statementController.exportStatement);
 
   // Group Transaction routes
   router.post('/group-transactions', auth, handleUsage('group'), groupTransactionController.createGroup);

@@ -4,6 +4,8 @@ import '../utils/api_client.dart';
 import '../settings/custom_warning_widget.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -52,16 +54,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   String get _strengthLabel {
+    final t = AppLocalizations.of(context).t;
     switch (_strengthScore) {
       case 0:
       case 1:
-        return 'Weak';
+        return t('weak');
       case 2:
-        return 'Fair';
+        return t('fair');
       case 3:
-        return 'Good';
+        return t('good');
       case 4:
-        return 'Strong';
+        return t('strong');
       default:
         return '';
     }
@@ -100,14 +103,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       if (response.statusCode == 200) {
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'Password changed successfully!');
+              context, AppLocalizations.of(context).t('password_changed_successfully'));
           Navigator.pop(context);
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          CustomWarningWidget.showAnimatedError(
-              context, errorData['message'] ?? 'Failed to change password');
+          CustomWarningWidget.showAnimatedError(context,
+              errorData['message'] ?? AppLocalizations.of(context).t('failed_to_change_password'));
         }
       }
     } catch (e) {
@@ -122,9 +125,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   @override
   Widget build(BuildContext context) {
     final newPwd = _newPasswordController.text;
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Change Password'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('change_password')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -137,7 +141,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -149,20 +153,21 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   ],
                 ),
                 child: Column(
-                  children: const [
-                    Icon(Icons.lock_outline, size: 48, color: AppColors.cyan),
-                    SizedBox(height: 16),
+                  children: [
+                    const Icon(Icons.lock_outline, size: 48, color: AppColors.cyan),
+                    const SizedBox(height: 16),
                     Text(
-                      'Change Your Password',
+                      t('change_your_password_title'),
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black),
+                          color: AppThemeColors.primaryText(context)),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Enter your current password and choose a new one',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      t('enter_current_choose_new'),
+                      style: TextStyle(
+                          fontSize: 14, color: AppThemeColors.secondaryText(context)),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -174,14 +179,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               // Current Password
               _buildPasswordField(
                 controller: _currentPasswordController,
-                label: 'Current Password',
-                hint: 'Enter your current password',
+                label: t('current_password'),
+                hint: t('enter_current_password'),
                 obscureText: _obscureCurrentPassword,
                 onToggleVisibility: () => setState(
                     () => _obscureCurrentPassword = !_obscureCurrentPassword),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your current password';
+                    return t('please_enter_current_password');
                   }
                   return null;
                 },
@@ -192,21 +197,21 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               // New Password + live strength meter
               _buildPasswordField(
                 controller: _newPasswordController,
-                label: 'New Password',
-                hint: 'Min 8 chars, letter + number required',
+                label: t('new_password'),
+                hint: t('new_password_hint'),
                 obscureText: _obscureNewPassword,
                 onToggleVisibility: () =>
                     setState(() => _obscureNewPassword = !_obscureNewPassword),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a new password';
+                    return t('please_enter_new_password');
                   }
                   if (value.length < 8) {
-                    return 'Password must be at least 8 characters';
+                    return t('password_min_length_error');
                   }
                   if (!RegExp(r'[A-Za-z]').hasMatch(value) ||
                       !RegExp(r'[0-9]').hasMatch(value)) {
-                    return 'Password must contain at least one letter and one number';
+                    return t('password_letter_number_error');
                   }
                   return null;
                 },
@@ -223,17 +228,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               // Confirm Password
               _buildPasswordField(
                 controller: _confirmPasswordController,
-                label: 'Confirm New Password',
-                hint: 'Re-enter your new password',
+                label: t('confirm_new_password'),
+                hint: t('re_enter_new_password'),
                 obscureText: _obscureConfirmPassword,
                 onToggleVisibility: () => setState(() =>
                     _obscureConfirmPassword = !_obscureConfirmPassword),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please confirm your new password';
+                    return t('please_confirm_new_password');
                   }
                   if (value != _newPasswordController.text) {
-                    return 'Passwords do not match';
+                    return t('passwords_do_not_match');
                   }
                   return null;
                 },
@@ -262,9 +267,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Change Password',
-                          style: TextStyle(
+                      : Text(
+                          t('change_password'),
+                          style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white),
@@ -279,7 +284,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
+                  color: AppThemeColors.tinted(context,
+                      light: Colors.blue.withValues(alpha: 0.1),
+                      dark: const Color(0xFF1A2733)),
                   borderRadius: BorderRadius.circular(12),
                   border:
                       Border.all(color: Colors.blue.withValues(alpha: 0.3)),
@@ -287,26 +294,26 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Password Requirements:',
-                      style: TextStyle(
+                    Text(
+                      t('password_requirements'),
+                      style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: Colors.blue),
                     ),
                     const SizedBox(height: 8),
-                    _requirementRow('At least 8 characters',
+                    _requirementRow(t('requirement_min_chars'),
                         newPwd.length >= 8),
-                    _requirementRow('Contains a letter',
+                    _requirementRow(t('requirement_letter'),
                         RegExp(r'[A-Za-z]').hasMatch(newPwd)),
-                    _requirementRow('Contains a number',
+                    _requirementRow(t('requirement_number'),
                         RegExp(r'[0-9]').hasMatch(newPwd)),
                     _requirementRow(
-                        'Contains a special character (optional — boosts strength)',
+                        t('requirement_special_char_optional'),
                         RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]')
                             .hasMatch(newPwd),
                         optional: true),
-                    _requirementRow('Contains an uppercase letter (optional)',
+                    _requirementRow(t('requirement_uppercase_optional'),
                         RegExp(r'[A-Z]').hasMatch(newPwd),
                         optional: true),
                   ],
@@ -342,7 +349,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Strength: $_strengthLabel',
+          '${AppLocalizations.of(context).t('strength_label')}: $_strengthLabel',
           style: TextStyle(
               fontSize: 12,
               color: _strengthColor,
@@ -403,13 +410,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           hintText: hint,
           border: InputBorder.none,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppThemeColors.cardBg(context),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           suffixIcon: IconButton(
             icon: Icon(
               obscureText ? Icons.visibility_off : Icons.visibility,
-              color: Colors.grey,
+              color: AppThemeColors.secondaryText(context),
             ),
             onPressed: onToggleVisibility,
           ),

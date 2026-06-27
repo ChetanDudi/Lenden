@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminFeaturesPage extends StatefulWidget {
   @override
@@ -29,25 +31,30 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Manage Subscription',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(t('manage_subscription_title'),
+            style: TextStyle(
+                color: AppThemeColors.iconOnWave(context),
+                fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.iconOnWave(context)),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.black54,
+          labelColor: AppThemeColors.iconOnWave(context),
+          unselectedLabelColor:
+              AppThemeColors.iconOnWave(context).withValues(alpha: 0.7),
           indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
-            Tab(text: 'Plans', icon: Icon(Icons.card_membership)),
-            Tab(text: 'Benefits', icon: Icon(Icons.star)),
-            Tab(text: 'FAQs', icon: Icon(Icons.help_outline)),
-            Tab(text: 'Subscriptions', icon: Icon(Icons.subscriptions)),
+            Tab(text: t('plans_tab'), icon: Icon(Icons.card_membership)),
+            Tab(text: t('benefits_tab'), icon: Icon(Icons.star)),
+            Tab(text: t('faqs_tab'), icon: Icon(Icons.help_outline)),
+            Tab(text: t('subscriptions_tab'), icon: Icon(Icons.subscriptions)),
           ],
         ),
       ),
@@ -61,7 +68,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -73,7 +80,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
               clipper: BottomWaveClipper(),
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.13,
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -178,15 +185,24 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
     _fetchPlans();
   }
 
-  Color _getCardColor(int index) {
-    final colors = [
-      Color(0xFFFFF4E6),
-      Color(0xFFE8F5E9),
-      Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD),
-      Color(0xFFFFF9C4),
-      Color(0xFFF3E5F5),
-    ];
+  Color _getCardColor(BuildContext context, int index) {
+    final colors = AppThemeColors.isDark(context)
+        ? [
+            const Color(0xFF4A3F1F),
+            const Color(0xFF1E3A26),
+            const Color(0xFF3A2230),
+            const Color(0xFF1B3A57),
+            const Color(0xFF3A3420),
+            const Color(0xFF332139),
+          ]
+        : [
+            const Color(0xFFFFF4E6),
+            const Color(0xFFE8F5E9),
+            const Color(0xFFFCE4EC),
+            const Color(0xFFE3F2FD),
+            const Color(0xFFFFF9C4),
+            const Color(0xFFF3E5F5),
+          ];
     return colors[index % colors.length];
   }
 
@@ -204,6 +220,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
 
   Future<void> _togglePlanAvailability(
       SubscriptionPlan plan, bool isAvailable) async {
+    final t = AppLocalizations.of(context).t;
     setState(() {
       _isToggling[plan.id] = true;
     });
@@ -221,12 +238,13 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
 
       if (response.statusCode == 200) {
         _fetchPlans();
-        showSnack(context, 'Plan availability updated successfully');
+        showSnack(context, t('plan_availability_updated_successfully'));
       } else {
         // handle error
       }
     } catch (e) {
-      showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+      showStylishSnackBar(context, '${t('an_error_occurred')}: $e',
+          isError: true);
     } finally {
       if (mounted)
         setState(() {
@@ -237,6 +255,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: _plans.isEmpty
@@ -244,19 +263,21 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+                  Icon(Icons.inbox,
+                      size: 80, color: AppThemeColors.mutedText(context)),
                   SizedBox(height: 16),
                   Text(
-                    'Nothing here',
+                    t('nothing_here'),
                     style: TextStyle(
                         fontSize: 20,
-                        color: Colors.grey[600],
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Add your first subscription plan',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    t('add_first_subscription_plan'),
+                    style: TextStyle(
+                        fontSize: 14, color: AppThemeColors.mutedText(context)),
                   ),
                 ],
               ),
@@ -279,7 +300,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                   ),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: _getCardColor(index),
+                      color: _getCardColor(context, index),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Padding(
@@ -297,14 +318,17 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                                       plan.name,
                                       style: TextStyle(
                                           fontSize: 18,
-                                          fontWeight: FontWeight.bold),
+                                          fontWeight: FontWeight.bold,
+                                          color: AppThemeColors.primaryText(
+                                              context)),
                                     ),
                                     SizedBox(height: 4),
                                     Text(
-                                      '₹${plan.price} for ${plan.duration} days',
+                                      '₹${plan.price} ${t('for_label')} ${plan.duration} ${t('days_label')}',
                                       style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey[700]),
+                                          color: AppThemeColors.secondaryText(
+                                              context)),
                                     ),
                                   ],
                                 ),
@@ -365,7 +389,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
           child: FloatingActionButton.extended(
             onPressed: () => _showPlanDialog(),
             icon: Icon(Icons.add),
-            label: Text('Add Plan'),
+            label: Text(t('add_plan_title')),
             backgroundColor: Colors.transparent,
             elevation: 0,
           ),
@@ -384,9 +408,10 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
   }
 
   Future<void> _deletePlan(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
@@ -400,7 +425,9 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
           padding: EdgeInsets.all(2),
           child: Container(
             decoration: BoxDecoration(
-              color: Color(0xFFFFEBEE),
+              color: AppThemeColors.tinted(dialogContext,
+                  light: const Color(0xFFFFEBEE),
+                  dark: const Color(0xFF4A2326)),
               borderRadius: BorderRadius.circular(18),
             ),
             padding: EdgeInsets.all(20),
@@ -410,34 +437,39 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                 Icon(Icons.warning_amber_rounded, color: Colors.red, size: 50),
                 SizedBox(height: 16),
                 Text(
-                  'Delete Plan',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  t('delete_plan_title'),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Are you sure you want to delete this plan?',
+                  t('confirm_delete_plan'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: AppThemeColors.secondaryText(dialogContext)),
                 ),
                 SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: Text(t('cancel')),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child:
-                          Text('Delete', style: TextStyle(color: Colors.white)),
+                      child: Text(t('delete'),
+                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -452,12 +484,12 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
           await ApiClient.delete('/api/admin/subscription-plans/$id');
       if (response.statusCode == 200) {
         _fetchPlans();
-        showStylishSnackBar(context, 'Plan deleted successfully');
+        showStylishSnackBar(context, t('plan_deleted_successfully'));
       } else {
         final body =
             response.body.isNotEmpty ? json.decode(response.body) : null;
         showStylishSnackBar(
-            context, body?['message'] ?? 'Failed to delete plan',
+            context, body?['message'] ?? t('failed_to_delete_plan'),
             isError: true);
       }
     }
@@ -516,11 +548,12 @@ class _PlanDialogState extends State<PlanDialog> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: TextFormField(
           initialValue: initialValue,
+          style: TextStyle(color: AppThemeColors.primaryText(context)),
           decoration: InputDecoration(
             labelText: label,
             border: OutlineInputBorder(
@@ -528,7 +561,7 @@ class _PlanDialogState extends State<PlanDialog> {
               borderSide: BorderSide.none,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppThemeColors.cardBg(context),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           keyboardType: keyboardType,
@@ -542,6 +575,7 @@ class _PlanDialogState extends State<PlanDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -556,7 +590,8 @@ class _PlanDialogState extends State<PlanDialog> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFFFCE4EC),
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFFCE4EC), dark: const Color(0xFF3A2230)),
             borderRadius: BorderRadius.circular(18),
           ),
           padding: EdgeInsets.all(20),
@@ -568,51 +603,54 @@ class _PlanDialogState extends State<PlanDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.plan == null ? 'Add Plan' : 'Edit Plan',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    widget.plan == null ? t('add_plan_title') : t('edit_plan_title'),
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context)),
                   ),
                   SizedBox(height: 20),
                   _buildStylishTextField(
-                    label: 'Plan Name',
+                    label: t('plan_name_label'),
                     initialValue: _name,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a name' : null,
+                        value!.isEmpty ? t('please_enter_a_name') : null,
                     onSaved: (value) => _name = value!,
                   ),
                   _buildStylishTextField(
-                    label: 'Price (₹)',
+                    label: t('price_rupees_label'),
                     initialValue: _price.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a price' : null,
+                        value!.isEmpty ? t('please_enter_a_price') : null,
                     onSaved: (value) => _price = double.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Duration (days)',
+                    label: t('duration_days_label'),
                     initialValue: _duration.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a duration' : null,
+                        value!.isEmpty ? t('please_enter_a_duration') : null,
                     onSaved: (value) => _duration = int.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Discount (%)',
+                    label: t('discount_percent_label'),
                     initialValue: _discount.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a discount' : null,
+                        value!.isEmpty ? t('please_enter_a_discount') : null,
                     onSaved: (value) => _discount = int.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Free Days',
+                    label: t('free_days_label'),
                     initialValue: _free.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter free days' : null,
+                        value!.isEmpty ? t('please_enter_free_days') : null,
                     onSaved: (value) => _free = int.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Features (comma separated)',
+                    label: t('features_comma_separated_label'),
                     initialValue: _features.join(', '),
                     maxLines: 3,
                     validator: (value) => null,
@@ -628,7 +666,7 @@ class _PlanDialogState extends State<PlanDialog> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel'),
+                        child: Text(t('cancel')),
                       ),
                       SizedBox(width: 8),
                       ElevatedButton(
@@ -645,7 +683,7 @@ class _PlanDialogState extends State<PlanDialog> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white),
                               )
-                            : Text('Save',
+                            : Text(t('save'),
                                 style: TextStyle(color: Colors.white)),
                       ),
                     ],
@@ -660,6 +698,7 @@ class _PlanDialogState extends State<PlanDialog> {
   }
 
   Future<void> _savePlan() async {
+    final t = AppLocalizations.of(context).t;
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() {
@@ -683,16 +722,17 @@ class _PlanDialogState extends State<PlanDialog> {
         if (response.statusCode == 201 || response.statusCode == 200) {
           widget.onSave();
           Navigator.of(context).pop();
-          showStylishSnackBar(context, 'Plan saved successfully');
+          showStylishSnackBar(context, t('plan_saved_successfully'));
         } else {
           final respBody =
               response.body.isNotEmpty ? json.decode(response.body) : null;
           showStylishSnackBar(
-              context, respBody?['message'] ?? 'Failed to save plan',
+              context, respBody?['message'] ?? t('failed_to_save_plan'),
               isError: true);
         }
       } catch (e) {
-        showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+        showStylishSnackBar(context, '${t('an_error_occurred')}: $e',
+            isError: true);
       } finally {
         if (mounted) setState(() => _isSaving = false);
       }
@@ -715,15 +755,24 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
     _fetchBenefits();
   }
 
-  Color _getCardColor(int index) {
-    final colors = [
-      Color(0xFFFFF4E6),
-      Color(0xFFE8F5E9),
-      Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD),
-      Color(0xFFFFF9C4),
-      Color(0xFFF3E5F5),
-    ];
+  Color _getCardColor(BuildContext context, int index) {
+    final colors = AppThemeColors.isDark(context)
+        ? [
+            const Color(0xFF4A3F1F),
+            const Color(0xFF1E3A26),
+            const Color(0xFF3A2230),
+            const Color(0xFF1B3A57),
+            const Color(0xFF3A3420),
+            const Color(0xFF332139),
+          ]
+        : [
+            const Color(0xFFFFF4E6),
+            const Color(0xFFE8F5E9),
+            const Color(0xFFFCE4EC),
+            const Color(0xFFE3F2FD),
+            const Color(0xFFFFF9C4),
+            const Color(0xFFF3E5F5),
+          ];
     return colors[index % colors.length];
   }
 
@@ -741,6 +790,7 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: _benefits.isEmpty
@@ -748,19 +798,21 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+                  Icon(Icons.inbox,
+                      size: 80, color: AppThemeColors.mutedText(context)),
                   SizedBox(height: 16),
                   Text(
-                    'Nothing here',
+                    t('nothing_here'),
                     style: TextStyle(
                         fontSize: 20,
-                        color: Colors.grey[600],
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Add your first premium benefit',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    t('add_first_premium_benefit'),
+                    style: TextStyle(
+                        fontSize: 14, color: AppThemeColors.mutedText(context)),
                   ),
                 ],
               ),
@@ -783,14 +835,16 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
                   ),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: _getCardColor(index),
+                      color: _getCardColor(context, index),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: ListTile(
                       leading: Icon(Icons.check_circle,
                           color: AppColors.cyan, size: 32),
                       title: Text(benefit.text,
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppThemeColors.primaryText(context))),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -828,7 +882,7 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
           child: FloatingActionButton.extended(
             onPressed: () => _showBenefitDialog(),
             icon: Icon(Icons.add),
-            label: Text('Add Benefit'),
+            label: Text(t('add_benefit_title')),
             backgroundColor: Colors.transparent,
             elevation: 0,
           ),
@@ -847,9 +901,10 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
   }
 
   Future<void> _deleteBenefit(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
@@ -863,7 +918,9 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
           padding: EdgeInsets.all(2),
           child: Container(
             decoration: BoxDecoration(
-              color: Color(0xFFFFEBEE),
+              color: AppThemeColors.tinted(dialogContext,
+                  light: const Color(0xFFFFEBEE),
+                  dark: const Color(0xFF4A2326)),
               borderRadius: BorderRadius.circular(18),
             ),
             padding: EdgeInsets.all(20),
@@ -873,34 +930,39 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
                 Icon(Icons.warning_amber_rounded, color: Colors.red, size: 50),
                 SizedBox(height: 16),
                 Text(
-                  'Delete Benefit',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  t('delete_benefit_title'),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Are you sure you want to delete this benefit?',
+                  t('confirm_delete_benefit'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: AppThemeColors.secondaryText(dialogContext)),
                 ),
                 SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: Text(t('cancel')),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child:
-                          Text('Delete', style: TextStyle(color: Colors.white)),
+                      child: Text(t('delete'),
+                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -916,12 +978,12 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
           await ApiClient.delete('/api/admin/premium-benefits/$id');
       if (response.statusCode == 200) {
         _fetchBenefits();
-        showStylishSnackBar(context, 'Benefit deleted successfully');
+        showStylishSnackBar(context, t('benefit_deleted_successfully'));
       } else {
         final body =
             response.body.isNotEmpty ? json.decode(response.body) : null;
         showStylishSnackBar(
-            context, body?['message'] ?? 'Failed to delete benefit',
+            context, body?['message'] ?? t('failed_to_delete_benefit'),
             isError: true);
       }
     }
@@ -951,6 +1013,7 @@ class _BenefitDialogState extends State<BenefitDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -965,7 +1028,8 @@ class _BenefitDialogState extends State<BenefitDialog> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFFE8F5E9),
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFE8F5E9), dark: const Color(0xFF1E3A26)),
             borderRadius: BorderRadius.circular(18),
           ),
           padding: EdgeInsets.all(20),
@@ -977,8 +1041,13 @@ class _BenefitDialogState extends State<BenefitDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.benefit == null ? 'Add Benefit' : 'Edit Benefit',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    widget.benefit == null
+                        ? t('add_benefit_title')
+                        : t('edit_benefit_title'),
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context)),
                   ),
                   SizedBox(height: 20),
                   Container(
@@ -993,25 +1062,28 @@ class _BenefitDialogState extends State<BenefitDialog> {
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: TextFormField(
                         initialValue: _text,
+                        style: TextStyle(
+                            color: AppThemeColors.primaryText(context)),
                         decoration: InputDecoration(
-                          labelText: 'Benefit Text',
+                          labelText: t('benefit_text_label'),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: AppThemeColors.cardBg(context),
                           contentPadding: EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                         ),
                         maxLines: 3,
-                        validator: (value) =>
-                            value!.isEmpty ? 'Please enter benefit text' : null,
+                        validator: (value) => value!.isEmpty
+                            ? t('please_enter_benefit_text')
+                            : null,
                         onSaved: (value) => _text = value!,
                       ),
                     ),
@@ -1022,7 +1094,7 @@ class _BenefitDialogState extends State<BenefitDialog> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel'),
+                        child: Text(t('cancel')),
                       ),
                       SizedBox(width: 8),
                       ElevatedButton(
@@ -1039,7 +1111,7 @@ class _BenefitDialogState extends State<BenefitDialog> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white),
                               )
-                            : Text('Save',
+                            : Text(t('save'),
                                 style: TextStyle(color: Colors.white)),
                       ),
                     ],
@@ -1054,6 +1126,7 @@ class _BenefitDialogState extends State<BenefitDialog> {
   }
 
   Future<void> _saveBenefit() async {
+    final t = AppLocalizations.of(context).t;
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() {
@@ -1070,16 +1143,17 @@ class _BenefitDialogState extends State<BenefitDialog> {
         if (response.statusCode == 201 || response.statusCode == 200) {
           widget.onSave();
           Navigator.of(context).pop();
-          showStylishSnackBar(context, 'Benefit saved successfully');
+          showStylishSnackBar(context, t('benefit_saved_successfully'));
         } else {
           final respBody =
               response.body.isNotEmpty ? json.decode(response.body) : null;
           showStylishSnackBar(
-              context, respBody?['message'] ?? 'Failed to save benefit',
+              context, respBody?['message'] ?? t('failed_to_save_benefit'),
               isError: true);
         }
       } catch (e) {
-        showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+        showStylishSnackBar(context, '${t('an_error_occurred')}: $e',
+            isError: true);
       } finally {
         if (mounted) setState(() => _isSaving = false);
       }
@@ -1102,15 +1176,24 @@ class _FaqsTabState extends State<FaqsTab> {
     _fetchFaqs();
   }
 
-  Color _getCardColor(int index) {
-    final colors = [
-      Color(0xFFFFF4E6),
-      Color(0xFFE8F5E9),
-      Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD),
-      Color(0xFFFFF9C4),
-      Color(0xFFF3E5F5),
-    ];
+  Color _getCardColor(BuildContext context, int index) {
+    final colors = AppThemeColors.isDark(context)
+        ? [
+            const Color(0xFF4A3F1F),
+            const Color(0xFF1E3A26),
+            const Color(0xFF3A2230),
+            const Color(0xFF1B3A57),
+            const Color(0xFF3A3420),
+            const Color(0xFF332139),
+          ]
+        : [
+            const Color(0xFFFFF4E6),
+            const Color(0xFFE8F5E9),
+            const Color(0xFFFCE4EC),
+            const Color(0xFFE3F2FD),
+            const Color(0xFFFFF9C4),
+            const Color(0xFFF3E5F5),
+          ];
     return colors[index % colors.length];
   }
 
@@ -1128,6 +1211,7 @@ class _FaqsTabState extends State<FaqsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: _faqs.isEmpty
@@ -1135,19 +1219,21 @@ class _FaqsTabState extends State<FaqsTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+                  Icon(Icons.inbox,
+                      size: 80, color: AppThemeColors.mutedText(context)),
                   SizedBox(height: 16),
                   Text(
-                    'Nothing here',
+                    t('nothing_here'),
                     style: TextStyle(
                         fontSize: 20,
-                        color: Colors.grey[600],
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Add your first FAQ',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    t('add_first_faq'),
+                    style: TextStyle(
+                        fontSize: 14, color: AppThemeColors.mutedText(context)),
                   ),
                 ],
               ),
@@ -1170,7 +1256,7 @@ class _FaqsTabState extends State<FaqsTab> {
                   ),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: _getCardColor(index),
+                      color: _getCardColor(context, index),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Column(
@@ -1181,7 +1267,9 @@ class _FaqsTabState extends State<FaqsTab> {
                           title: Text(
                             faq.question,
                             style: TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 15),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: AppThemeColors.primaryText(context)),
                           ),
                           children: [
                             Padding(
@@ -1189,7 +1277,9 @@ class _FaqsTabState extends State<FaqsTab> {
                               child: Text(
                                 faq.answer,
                                 style: TextStyle(
-                                    color: Colors.grey[700], fontSize: 14),
+                                    color: AppThemeColors.secondaryText(
+                                        context),
+                                    fontSize: 14),
                               ),
                             ),
                           ],
@@ -1238,7 +1328,7 @@ class _FaqsTabState extends State<FaqsTab> {
           child: FloatingActionButton.extended(
             onPressed: () => _showFaqDialog(),
             icon: Icon(Icons.add),
-            label: Text('Add FAQ'),
+            label: Text(t('add_faq_title')),
             backgroundColor: Colors.transparent,
             elevation: 0,
           ),
@@ -1257,9 +1347,10 @@ class _FaqsTabState extends State<FaqsTab> {
   }
 
   Future<void> _deleteFaq(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
@@ -1273,7 +1364,9 @@ class _FaqsTabState extends State<FaqsTab> {
           padding: EdgeInsets.all(2),
           child: Container(
             decoration: BoxDecoration(
-              color: Color(0xFFFFEBEE),
+              color: AppThemeColors.tinted(dialogContext,
+                  light: const Color(0xFFFFEBEE),
+                  dark: const Color(0xFF4A2326)),
               borderRadius: BorderRadius.circular(18),
             ),
             padding: EdgeInsets.all(20),
@@ -1283,34 +1376,39 @@ class _FaqsTabState extends State<FaqsTab> {
                 Icon(Icons.warning_amber_rounded, color: Colors.red, size: 50),
                 SizedBox(height: 16),
                 Text(
-                  'Delete FAQ',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  t('delete_faq_title'),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Are you sure you want to delete this FAQ?',
+                  t('confirm_delete_faq'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: AppThemeColors.secondaryText(dialogContext)),
                 ),
                 SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: Text(t('cancel')),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child:
-                          Text('Delete', style: TextStyle(color: Colors.white)),
+                      child: Text(t('delete'),
+                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -1325,11 +1423,11 @@ class _FaqsTabState extends State<FaqsTab> {
       final response = await ApiClient.delete('/api/admin/faqs/$id');
       if (response.statusCode == 200) {
         _fetchFaqs();
-        showStylishSnackBar(context, 'FAQ deleted successfully');
+        showStylishSnackBar(context, t('faq_deleted_successfully'));
       } else {
         final body =
             response.body.isNotEmpty ? json.decode(response.body) : null;
-        showStylishSnackBar(context, body?['message'] ?? 'Failed to delete FAQ',
+        showStylishSnackBar(context, body?['message'] ?? t('failed_to_delete_faq'),
             isError: true);
       }
     }
@@ -1379,11 +1477,12 @@ class _FaqDialogState extends State<FaqDialog> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: TextFormField(
           initialValue: initialValue,
+          style: TextStyle(color: AppThemeColors.primaryText(context)),
           decoration: InputDecoration(
             labelText: label,
             border: OutlineInputBorder(
@@ -1391,7 +1490,7 @@ class _FaqDialogState extends State<FaqDialog> {
               borderSide: BorderSide.none,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppThemeColors.cardBg(context),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           maxLines: maxLines,
@@ -1404,6 +1503,7 @@ class _FaqDialogState extends State<FaqDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -1418,7 +1518,8 @@ class _FaqDialogState extends State<FaqDialog> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFFE3F2FD),
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFE3F2FD), dark: const Color(0xFF1B3A57)),
             borderRadius: BorderRadius.circular(18),
           ),
           padding: EdgeInsets.all(20),
@@ -1430,24 +1531,27 @@ class _FaqDialogState extends State<FaqDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.faq == null ? 'Add FAQ' : 'Edit FAQ',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    widget.faq == null ? t('add_faq_title') : t('edit_faq_title'),
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context)),
                   ),
                   SizedBox(height: 20),
                   _buildStylishTextField(
-                    label: 'Question',
+                    label: t('question_label'),
                     initialValue: _question,
                     maxLines: 2,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a question' : null,
+                        value!.isEmpty ? t('please_enter_a_question') : null,
                     onSaved: (value) => _question = value!,
                   ),
                   _buildStylishTextField(
-                    label: 'Answer',
+                    label: t('answer_label'),
                     initialValue: _answer,
                     maxLines: 4,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter an answer' : null,
+                        value!.isEmpty ? t('please_enter_an_answer') : null,
                     onSaved: (value) => _answer = value!,
                   ),
                   SizedBox(height: 20),
@@ -1456,7 +1560,7 @@ class _FaqDialogState extends State<FaqDialog> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel'),
+                        child: Text(t('cancel')),
                       ),
                       SizedBox(width: 8),
                       ElevatedButton(
@@ -1473,7 +1577,7 @@ class _FaqDialogState extends State<FaqDialog> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white),
                               )
-                            : Text('Save',
+                            : Text(t('save'),
                                 style: TextStyle(color: Colors.white)),
                       ),
                     ],
@@ -1488,6 +1592,7 @@ class _FaqDialogState extends State<FaqDialog> {
   }
 
   Future<void> _saveFaq() async {
+    final t = AppLocalizations.of(context).t;
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() {
@@ -1503,14 +1608,16 @@ class _FaqDialogState extends State<FaqDialog> {
         if (response.statusCode == 201 || response.statusCode == 200) {
           widget.onSave();
           Navigator.of(context).pop();
-          showSnack(context, 'FAQ saved successfully');
+          showSnack(context, t('faq_saved_successfully'));
         } else {
           final respBody =
               response.body.isNotEmpty ? json.decode(response.body) : null;
-          showSnack(context, 'Failed to save FAQ: ${respBody?['message'] ?? response.body}', isError: true);
+          showSnack(context,
+              '${t('failed_to_save_faq')}: ${respBody?['message'] ?? response.body}',
+              isError: true);
         }
       } catch (e) {
-        showSnack(context, 'An error occurred: $e', isError: true);
+        showSnack(context, '${t('an_error_occurred')}: $e', isError: true);
       } finally {
         if (mounted) setState(() => _isSaving = false);
       }
@@ -1619,7 +1726,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -1645,6 +1752,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
   }
 
   Future<void> _fetchSubscriptions() async {
+    final t = AppLocalizations.of(context).t;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -1662,13 +1770,13 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
             response.body.isNotEmpty ? json.decode(response.body) : null;
         setState(() {
           _error =
-              (body?['message'] ?? 'Failed to load subscriptions').toString();
+              (body?['message'] ?? t('failed_to_load_subscriptions')).toString();
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Error: $e';
+        _error = '${t('error_prefix')} $e';
         _isLoading = false;
       });
     }
@@ -1686,9 +1794,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
   }
 
   Future<void> _deactivateSubscription(String subscriptionId) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
@@ -1702,7 +1811,9 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
           padding: EdgeInsets.all(2),
           child: Container(
             decoration: BoxDecoration(
-              color: Color(0xFFFFEBEE),
+              color: AppThemeColors.tinted(dialogContext,
+                  light: const Color(0xFFFFEBEE),
+                  dark: const Color(0xFF4A2326)),
               borderRadius: BorderRadius.circular(18),
             ),
             padding: EdgeInsets.all(20),
@@ -1712,33 +1823,38 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                 Icon(Icons.warning_amber_rounded, color: Colors.red, size: 50),
                 SizedBox(height: 16),
                 Text(
-                  'Deactivate Subscription',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  t('deactivate_subscription_title'),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Are you sure you want to deactivate this subscription?',
+                  t('confirm_deactivate_subscription'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: AppThemeColors.secondaryText(dialogContext)),
                 ),
                 SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: Text(t('cancel')),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Text('Deactivate',
+                      child: Text(t('deactivate_label'),
                           style: TextStyle(color: Colors.white)),
                     ),
                   ],
@@ -1764,13 +1880,14 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
   }
 
   void _showSortSheet() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(sheetContext),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1780,27 +1897,29 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppThemeColors.divider(sheetContext),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(20),
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Sort by',
+                child: Text(t('sort_by'),
                     style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(sheetContext))),
               ),
             ),
             _buildSortTile(
-                'newest', 'Newest First', Icons.arrow_downward_rounded),
+                'newest', t('newest_first'), Icons.arrow_downward_rounded),
             _buildSortTile(
-                'oldest', 'Oldest First', Icons.arrow_upward_rounded),
+                'oldest', t('oldest_first'), Icons.arrow_upward_rounded),
             _buildSortTile(
-                'ending_soon', 'Ending Soon', Icons.hourglass_bottom_rounded),
+                'ending_soon', t('ending_soon_label'), Icons.hourglass_bottom_rounded),
             _buildSortTile(
-                'price_high', 'Highest Price', Icons.attach_money_rounded),
+                'price_high', t('highest_price_label'), Icons.attach_money_rounded),
             const SizedBox(height: 24),
           ],
         ),
@@ -1812,11 +1931,13 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
     final isSelected = _sortBy == value;
     return ListTile(
       leading: Icon(icon,
-          color: isSelected ? AppColors.cyan : Colors.grey),
+          color: isSelected
+              ? AppColors.cyan
+              : AppThemeColors.secondaryText(context)),
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? AppColors.cyan : Colors.grey[800],
+          color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -1838,9 +1959,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? color : Colors.white,
+          color: selected ? color : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? color : Colors.grey.shade300),
+          border: Border.all(
+              color: selected ? color : AppThemeColors.border(context)),
           boxShadow: selected
               ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6)]
               : [],
@@ -1850,7 +1972,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            color: selected ? Colors.white : Colors.grey[700],
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context),
           ),
         ),
       ),
@@ -1858,6 +1980,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
   }
 
   Widget _buildSubCard(dynamic sub, int index) {
+    final t = AppLocalizations.of(context).t;
     final now = DateTime.now();
     final endDate =
         DateTime.tryParse((sub['endDate'] ?? '').toString());
@@ -1865,9 +1988,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
     final daysLeft =
         endDate != null ? endDate.difference(now).inDays : null;
     final isFree = sub['free'] == true;
-    final planName = (sub['subscriptionPlan'] ?? 'Plan').toString();
+    final planName =
+        (sub['subscriptionPlan'] ?? t('plan_fallback_label')).toString();
     final userName =
-        (sub['user']?['name'] ?? 'Unknown User').toString();
+        (sub['user']?['name'] ?? t('unknown_user_label')).toString();
     final userEmail = (sub['user']?['email'] ?? '').toString();
     final price = (sub['price'] as num?)?.toDouble() ?? 0.0;
 
@@ -1893,8 +2017,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isExpired
-              ? const Color(0xFFFFF5F5)
-              : _getCardColor(index),
+              ? AppThemeColors.tinted(context,
+                  light: const Color(0xFFFFF5F5),
+                  dark: const Color(0xFF3A2326))
+              : _getCardColor(context, index),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -1923,14 +2049,17 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                     children: [
                       Text(
                         userName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       if (userEmail.isNotEmpty)
                         Text(
                           userEmail,
                           style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600]),
+                              fontSize: 12,
+                              color: AppThemeColors.secondaryText(context)),
                         ),
                     ],
                   ),
@@ -1950,7 +2079,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                       ),
                       child: Text(
                         isFree
-                            ? 'Free'
+                            ? t('free_label')
                             : '₹${price.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 11,
@@ -1972,7 +2101,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        isExpired ? 'Expired' : 'Active',
+                        isExpired ? t('expired_label') : t('active'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1988,14 +2117,14 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
             Row(
               children: [
                 Icon(Icons.card_membership_rounded,
-                    size: 14, color: Colors.grey[500]),
+                    size: 14, color: AppThemeColors.mutedText(context)),
                 const SizedBox(width: 4),
                 Text(
                   planName,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                    color: AppThemeColors.secondaryText(context),
                   ),
                 ),
                 const Spacer(),
@@ -2003,16 +2132,18 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                   Icon(
                     Icons.calendar_today_rounded,
                     size: 12,
-                    color: isExpired ? Colors.red[400] : Colors.grey[500],
+                    color: isExpired
+                        ? Colors.red[400]
+                        : AppThemeColors.mutedText(context),
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Ends: ${DateFormat('MMM dd, yyyy').format(endDate.toLocal())}',
+                    '${t('ends_colon_label')}: ${DateFormat('MMM dd, yyyy').format(endDate.toLocal())}',
                     style: TextStyle(
                       fontSize: 11,
                       color: isExpired
                           ? Colors.red[400]
-                          : Colors.grey[600],
+                          : AppThemeColors.secondaryText(context),
                     ),
                   ),
                 ],
@@ -2026,7 +2157,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                       size: 12, color: Colors.orange[400]),
                   const SizedBox(width: 4),
                   Text(
-                    '$daysLeft day${daysLeft == 1 ? '' : 's'} remaining',
+                    '$daysLeft ${daysLeft == 1 ? t('day_remaining_label') : t('days_remaining_label')}',
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.orange[600],
@@ -2042,7 +2173,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
               children: [
                 TextButton.icon(
                   icon: const Icon(Icons.edit_outlined, size: 14),
-                  label: const Text('Edit'),
+                  label: Text(t('edit')),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.cyan,
                     padding: const EdgeInsets.symmetric(
@@ -2055,7 +2186,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                 const SizedBox(width: 8),
                 TextButton.icon(
                   icon: const Icon(Icons.cancel_outlined, size: 14),
-                  label: const Text('Deactivate'),
+                  label: Text(t('deactivate_label')),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(
@@ -2076,6 +2207,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _filteredSubs;
     final now = DateTime.now();
     final activeCount = _subscriptions.where((s) {
@@ -2105,23 +2237,25 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.search,
-                            color: Colors.grey[500], size: 20),
+                            color: AppThemeColors.mutedText(context), size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
                             controller: _searchController,
                             onChanged: (_) => setState(() {}),
+                            style: TextStyle(
+                                color: AppThemeColors.primaryText(context)),
                             decoration: InputDecoration(
                               hintText:
-                                  'Search by name, email, or plan...',
-                              hintStyle:
-                                  TextStyle(color: Colors.grey[400]),
+                                  t('search_by_name_email_plan_placeholder'),
+                              hintStyle: TextStyle(
+                                  color: AppThemeColors.mutedText(context)),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
                                   vertical: 12),
@@ -2135,7 +2269,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                               setState(() {});
                             },
                             child: Icon(Icons.clear,
-                                color: Colors.grey[400], size: 18),
+                                color: AppThemeColors.mutedText(context),
+                                size: 18),
                           ),
                       ],
                     ),
@@ -2151,20 +2286,20 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                         child: Row(
                           children: [
                             _buildStatusChip(
-                                'all', 'All', AppColors.cyan),
+                                'all', t('all'), AppColors.cyan),
                             const SizedBox(width: 8),
                             _buildStatusChip(
-                                'active', 'Active', Colors.green),
+                                'active', t('active'), Colors.green),
                             const SizedBox(width: 8),
                             _buildStatusChip(
-                                'expired', 'Expired', Colors.red),
+                                'expired', t('expired_label'), Colors.red),
                           ],
                         ),
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.sort_rounded),
-                      tooltip: 'Sort',
+                      tooltip: t('sort_tooltip'),
                       onPressed: _showSortSheet,
                     ),
                   ],
@@ -2176,14 +2311,14 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                   runSpacing: 8,
                   children: [
                     _buildOverviewChip(
-                        'Total', '${_subscriptions.length}'),
-                    _buildOverviewChip('Active', '$activeCount'),
+                        t('total_label'), '${_subscriptions.length}'),
+                    _buildOverviewChip(t('active'), '$activeCount'),
                     _buildOverviewChip(
-                      'Free',
+                      t('free_label'),
                       '${_subscriptions.where((s) => s['free'] == true).length}',
                     ),
                     _buildOverviewChip(
-                      'Revenue',
+                      t('revenue_label'),
                       '₹${_subscriptions.fold<num>(0, (sum, s) => sum + ((s['price'] ?? 0) as num))}',
                     ),
                   ],
@@ -2194,9 +2329,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        '${filtered.length} subscription${filtered.length == 1 ? '' : 's'}',
+                        '${filtered.length} ${filtered.length == 1 ? t('subscription_count_label') : t('subscriptions_count_label')}',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey[600]),
+                            fontSize: 12,
+                            color: AppThemeColors.secondaryText(context)),
                       ),
                     ),
                   ),
@@ -2221,7 +2357,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                             ElevatedButton.icon(
                               onPressed: _fetchSubscriptions,
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Retry'),
+                              label: Text(t('retry')),
                             ),
                           ],
                         ),
@@ -2232,15 +2368,16 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.subscriptions_outlined,
-                                    size: 64, color: Colors.grey[300]),
+                                    size: 64,
+                                    color: AppThemeColors.mutedText(context)),
                                 const SizedBox(height: 16),
                                 Text(
                                   _subscriptions.isEmpty
-                                      ? 'No subscriptions found'
-                                      : 'No matching subscriptions',
+                                      ? t('no_subscriptions_found')
+                                      : t('no_matching_subscriptions'),
                                   style: TextStyle(
                                       fontSize: 17,
-                                      color: Colors.grey[500]),
+                                      color: AppThemeColors.mutedText(context)),
                                 ),
                               ],
                             ),
@@ -2261,15 +2398,24 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
     );
   }
 
-  Color _getCardColor(int index) {
-    const colors = [
-      Color(0xFFFFF4E6),
-      Color(0xFFE8F5E9),
-      Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD),
-      Color(0xFFFFF9C4),
-      Color(0xFFF3E5F5),
-    ];
+  Color _getCardColor(BuildContext context, int index) {
+    final colors = AppThemeColors.isDark(context)
+        ? [
+            const Color(0xFF4A3F1F),
+            const Color(0xFF1E3A26),
+            const Color(0xFF3A2230),
+            const Color(0xFF1B3A57),
+            const Color(0xFF3A3420),
+            const Color(0xFF332139),
+          ]
+        : [
+            const Color(0xFFFFF4E6),
+            const Color(0xFFE8F5E9),
+            const Color(0xFFFCE4EC),
+            const Color(0xFFE3F2FD),
+            const Color(0xFFFFF9C4),
+            const Color(0xFFF3E5F5),
+          ];
     return colors[index % colors.length];
   }
 }
@@ -2339,11 +2485,12 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: TextFormField(
           initialValue: initialValue,
+          style: TextStyle(color: AppThemeColors.primaryText(context)),
           decoration: InputDecoration(
             labelText: label,
             border: OutlineInputBorder(
@@ -2351,7 +2498,7 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
               borderSide: BorderSide.none,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppThemeColors.cardBg(context),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           keyboardType: keyboardType,
@@ -2365,6 +2512,7 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -2379,7 +2527,8 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
         padding: EdgeInsets.all(2),
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFFFCE4EC),
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFFCE4EC), dark: const Color(0xFF3A2230)),
             borderRadius: BorderRadius.circular(18),
           ),
           padding: EdgeInsets.all(20),
@@ -2391,52 +2540,58 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Edit Subscription',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    t('edit_subscription_title'),
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context)),
                   ),
                   SizedBox(height: 20),
                   _buildStylishTextField(
-                    label: 'Subscription Plan',
+                    label: t('subscription_plan_label'),
                     initialValue: _subscriptionPlan,
-                    validator: (value) =>
-                        value!.isEmpty ? 'Please enter a plan name' : null,
+                    validator: (value) => value!.isEmpty
+                        ? t('please_enter_a_plan_name')
+                        : null,
                     onSaved: (value) => _subscriptionPlan = value!,
                   ),
                   _buildStylishTextField(
-                    label: 'Duration (days)',
+                    label: t('duration_days_label'),
                     initialValue: _duration.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a duration' : null,
+                        value!.isEmpty ? t('please_enter_a_duration') : null,
                     onSaved: (value) => _duration = int.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Price',
+                    label: t('price_label'),
                     initialValue: _price.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a price' : null,
+                        value!.isEmpty ? t('please_enter_a_price') : null,
                     onSaved: (value) => _price = double.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Discount (%)',
+                    label: t('discount_percent_label'),
                     initialValue: _discount.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter a discount' : null,
+                        value!.isEmpty ? t('please_enter_a_discount') : null,
                     onSaved: (value) => _discount = int.parse(value!),
                   ),
                   _buildStylishTextField(
-                    label: 'Free Days',
+                    label: t('free_days_label'),
                     initialValue: _free.toString(),
                     keyboardType: TextInputType.number,
                     validator: (value) =>
-                        value!.isEmpty ? 'Please enter free days' : null,
+                        value!.isEmpty ? t('please_enter_free_days') : null,
                     onSaved: (value) => _free = int.parse(value!),
                   ),
                   SizedBox(height: 16),
-                  Text('End Date',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(t('end_date_label'),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context))),
                   SizedBox(height: 8),
                   Container(
                     padding: EdgeInsets.all(2),
@@ -2450,12 +2605,14 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ListTile(
                         title: Text(
-                            '${_endDate.toLocal().toString().substring(0, 10)}'),
+                            '${_endDate.toLocal().toString().substring(0, 10)}',
+                            style: TextStyle(
+                                color: AppThemeColors.primaryText(context))),
                         trailing: Icon(Icons.calendar_today,
                             color: AppColors.cyan),
                         onTap: () => _selectEndDate(context),
@@ -2468,12 +2625,12 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text('Cancel'),
+                        child: Text(t('cancel')),
                       ),
                       SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: _saveSubscription,
-                        child: Text('Save'),
+                        child: Text(t('save')),
                       ),
                     ],
                   ),

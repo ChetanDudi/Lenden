@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminSystemMaintenancePage extends StatefulWidget {
   const AdminSystemMaintenancePage({super.key});
@@ -41,27 +43,32 @@ class _AdminSystemMaintenancePageState
   }
 
   Future<void> _runAction(String action, String confirmMsg) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Confirm Action'),
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text(t('confirm_action_title'),
+                style: TextStyle(color: AppThemeColors.primaryText(ctx))),
           ],
         ),
-        content: Text(confirmMsg),
+        content: Text(confirmMsg,
+            style: TextStyle(color: AppThemeColors.primaryText(ctx))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+            child: Text(t('confirm'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -76,25 +83,26 @@ class _AdminSystemMaintenancePageState
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        showSnack(context, data['message'] ?? 'Done!');
+        showSnack(context, data['message'] ?? t('done_exclaim'));
         await _fetchStats();
       } else {
         final data = jsonDecode(response.body);
-        showSnack(context, data['error'] ?? 'Action failed.', isError: true);
+        showSnack(context, data['error'] ?? t('action_failed'), isError: true);
       }
     } catch (e) {
-      showSnack(context, 'Network error: $e', isError: true);
+      showSnack(context, '${t('network_error_label')}: $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  Widget _statTile(String label, String value, IconData icon, Color color) {
+  Widget _statTile(
+      BuildContext context, String label, String value, IconData icon, Color color) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)
@@ -114,7 +122,8 @@ class _AdminSystemMaintenancePageState
           const SizedBox(width: 14),
           Expanded(
             child: Text(label,
-                style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                style: TextStyle(
+                    fontSize: 14, color: AppThemeColors.primaryText(context))),
           ),
           Text(value,
               style: TextStyle(
@@ -124,7 +133,8 @@ class _AdminSystemMaintenancePageState
     );
   }
 
-  Widget _actionCard({
+  Widget _actionCard(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -132,11 +142,12 @@ class _AdminSystemMaintenancePageState
     required String confirmMsg,
     Color color = _cyan,
   }) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8)
@@ -159,11 +170,14 @@ class _AdminSystemMaintenancePageState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppThemeColors.primaryText(context))),
                 Text(subtitle,
-                    style:
-                        const TextStyle(color: Colors.grey, fontSize: 12)),
+                    style: TextStyle(
+                        color: AppThemeColors.secondaryText(context),
+                        fontSize: 12)),
               ],
             ),
           ),
@@ -177,7 +191,7 @@ class _AdminSystemMaintenancePageState
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: Text('Run', style: TextStyle(color: color)),
+            child: Text(t('run'), style: TextStyle(color: color)),
           ),
         ],
       ),
@@ -194,11 +208,12 @@ class _AdminSystemMaintenancePageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('System Maintenance',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(t('system_maintenance_title'),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: _cyan,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -206,7 +221,7 @@ class _AdminSystemMaintenancePageState
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchStats,
-            tooltip: 'Refresh Stats',
+            tooltip: t('refresh_stats_tooltip'),
           ),
         ],
       ),
@@ -218,39 +233,48 @@ class _AdminSystemMaintenancePageState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // System health
-                const Text('System Health',
-                    style: TextStyle(
+                Text(t('system_health_title'),
+                    style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: _blue)),
                 const SizedBox(height: 10),
-                _statTile('Total Users', '${_stats?['users'] ?? '--'}',
-                    Icons.people_outline, _cyan),
-                _statTile('Total Admins', '${_stats?['admins'] ?? '--'}',
-                    Icons.admin_panel_settings_outlined, Colors.purple),
+                _statTile(context, t('total_users_label'),
+                    '${_stats?['users'] ?? '--'}', Icons.people_outline, _cyan),
                 _statTile(
-                    'Transactions',
+                    context,
+                    t('total_admins_label'),
+                    '${_stats?['admins'] ?? '--'}',
+                    Icons.admin_panel_settings_outlined,
+                    Colors.purple),
+                _statTile(
+                    context,
+                    t('transactions_label'),
                     '${_stats?['transactions'] ?? '--'}',
                     Icons.swap_horiz_rounded,
                     Colors.green),
                 _statTile(
-                    'Support Queries',
+                    context,
+                    t('support_queries_label'),
                     '${_stats?['supportQueries'] ?? '--'}',
                     Icons.support_agent_outlined,
                     Colors.orange),
                 _statTile(
-                    'Activity Records',
+                    context,
+                    t('activity_records_label'),
                     '${_stats?['activities'] ?? '--'}',
                     Icons.timeline_rounded,
                     Colors.blue),
                 _statTile(
-                    'Server Uptime',
+                    context,
+                    t('server_uptime_label'),
                     _formatUptime(_stats?['uptimeSeconds'] as int?),
                     Icons.timer_outlined,
                     Colors.teal),
                 if (_stats?['serverTime'] != null)
                   _statTile(
-                    'Server Time',
+                    context,
+                    t('server_time_label'),
                     (_stats!['serverTime'] as String).replaceAll('T', ' ').split('.').first,
                     Icons.access_time,
                     Colors.indigo,
@@ -258,8 +282,8 @@ class _AdminSystemMaintenancePageState
                 const SizedBox(height: 24),
 
                 // Maintenance actions
-                const Text('Maintenance Actions',
-                    style: TextStyle(
+                Text(t('maintenance_actions_title'),
+                    style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: _blue)),
@@ -268,49 +292,51 @@ class _AdminSystemMaintenancePageState
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.08),
+                    color: AppThemeColors.tinted(context,
+                        light: Colors.orange.withValues(alpha: 0.08),
+                        dark: Colors.orange.withValues(alpha: 0.2)),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
+                      const Icon(Icons.warning_amber_rounded,
                           color: Colors.orange, size: 18),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'These actions permanently delete data. Use with caution.',
-                          style: TextStyle(color: Colors.orange, fontSize: 12),
+                          t('maintenance_actions_warning'),
+                          style: const TextStyle(color: Colors.orange, fontSize: 12),
                         ),
                       ),
                     ],
                   ),
                 ),
                 _actionCard(
+                  context,
                   icon: Icons.delete_sweep_outlined,
-                  title: 'Clear Old Resolved Queries',
-                  subtitle: 'Delete resolved/closed support queries older than 7 days',
+                  title: t('clear_old_resolved_queries_title'),
+                  subtitle: t('clear_old_resolved_queries_desc'),
                   action: 'clear_old_queries',
-                  confirmMsg:
-                      'This will permanently delete all resolved/closed support queries older than 7 days. This cannot be undone.',
+                  confirmMsg: t('clear_old_resolved_queries_confirm'),
                   color: Colors.orange,
                 ),
                 _actionCard(
+                  context,
                   icon: Icons.history_toggle_off_rounded,
-                  title: 'Clear Old Activity Logs',
-                  subtitle: 'Delete activity records older than 30 days',
+                  title: t('clear_old_activity_logs_title'),
+                  subtitle: t('clear_old_activity_logs_desc'),
                   action: 'clear_old_activities',
-                  confirmMsg:
-                      'This will permanently delete all activity records older than 30 days. This cannot be undone.',
+                  confirmMsg: t('clear_old_activity_logs_confirm'),
                   color: Colors.deepOrange,
                 ),
                 _actionCard(
+                  context,
                   icon: Icons.manage_history_rounded,
-                  title: 'Clear Old Audit Logs',
-                  subtitle: 'Delete admin audit logs older than 90 days',
+                  title: t('clear_old_audit_logs_title'),
+                  subtitle: t('clear_old_audit_logs_desc'),
                   action: 'clear_old_audit_logs',
-                  confirmMsg:
-                      'This will permanently delete admin audit logs older than 90 days. This cannot be undone.',
+                  confirmMsg: t('clear_old_audit_logs_confirm'),
                   color: Colors.red,
                 ),
               ],

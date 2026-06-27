@@ -15,6 +15,8 @@ import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ViewGroupTransactionsPage extends StatefulWidget {
   const ViewGroupTransactionsPage({super.key});
@@ -146,14 +148,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
           loading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          error = 'Failed to load group transactions. Please try again.';
+          error = t('failed_to_load_group_transactions_retry_message');
           loading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        error = 'Unable to connect. Please check your internet connection.';
+        error = t('unable_to_connect_check_internet_message');
         loading = false;
       });
     }
@@ -161,7 +165,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
   // Helper function to format date and time
   String _formatDateTime(dynamic dateTime) {
-    if (dateTime == null) return 'Unknown';
+    final t = AppLocalizations.of(context).t;
+    if (dateTime == null) return t('unknown_label');
 
     try {
       DateTime date;
@@ -170,7 +175,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       } else if (dateTime is DateTime) {
         date = dateTime;
       } else {
-        return 'Invalid date';
+        return t('invalid_date_label');
       }
 
       // Format: "Dec 15, 2023 at 2:30 PM"
@@ -185,7 +190,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
       return '$month $day, $year at $hour:$minute $period';
     } catch (e) {
-      return 'Invalid date';
+      return t('invalid_date_label');
     }
   }
 
@@ -222,11 +227,12 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       });
     } catch (_) {
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
         _displayCurrencyError =
-            'Currency conversion options are not available right now.';
+            t('currency_conversion_unavailable_message');
       });
     }
   }
@@ -277,6 +283,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   String _formatInr(num amount) => '₹${amount.toStringAsFixed(2)}';
 
   Widget _buildErrorState(String message, VoidCallback onRetry) {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -296,7 +303,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Column(
@@ -312,7 +319,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Oops! Something went wrong',
+                      t('oops_something_went_wrong_message'),
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
                       textAlign: TextAlign.center,
                     ),
@@ -320,7 +327,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
                     ),
                   ],
                 ),
@@ -340,7 +347,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               child: ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
@@ -475,10 +482,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   }
 
   void _showGroupFiltersSheet() {
+    final t = AppLocalizations.of(context).t;
+    final filterLabels = {
+      'All Groups': t('filter_all_groups_label'),
+      'Joined Groups': t('filter_joined_groups_label'),
+      'Left Groups': t('filter_left_groups_label'),
+    };
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -496,8 +509,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                       children: [
                         const Icon(Icons.filter_list, color: AppColors.cyan),
                         const SizedBox(width: 8),
-                        const Text('Filters',
-                            style: TextStyle(
+                        Text(t('filters_label'),
+                            style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -517,7 +530,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             Icon(option['icon'] as IconData,
                                 color: AppColors.cyan, size: 18),
                             const SizedBox(width: 8),
-                            Text(option['value'] as String),
+                            Text(filterLabels[option['value']] ?? option['value'] as String),
                           ],
                         ),
                         onChanged: (value) {
@@ -528,9 +541,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     const Divider(),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Show Favourites Only',
-                        style: TextStyle(
+                      title: Text(
+                        t('show_favourites_only_label'),
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppColors.cyan,
                         ),
@@ -571,6 +584,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
   Future<void> _editExpense(String groupId, String expenseId,
       Map<String, dynamic> expenseData) async {
+    final t = AppLocalizations.of(context).t;
     setState(() {
       loading = true;
       error = null;
@@ -584,15 +598,15 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         // Refresh the groups data
         await _fetchUserGroups();
         // Show success message
-        showSnack(context, '✅ Expense updated successfully!');
+        showSnack(context, '✅ ${t('expense_updated_successfully_message')}');
       } else {
         setState(() {
-          error = data?['error'] ?? 'Failed to update expense';
+          error = data?['error'] ?? t('failed_to_update_expense_message');
         });
       }
     } catch (e) {
       setState(() {
-        error = 'Something went wrong. Please try again.';
+        error = t('something_went_wrong_retry_message');
       });
     } finally {
       setState(() {
@@ -602,6 +616,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   }
 
   void _showEditExpenseDialog(Map<String, dynamic> expense, String groupId) {
+    final t = AppLocalizations.of(context).t;
     final TextEditingController editDescController =
         TextEditingController(text: expense['description'] ?? '');
     final TextEditingController editAmountController =
@@ -630,7 +645,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         builder: (context, setDialogState) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: Colors.white,
+          backgroundColor: AppThemeColors.cardBg(context),
           title: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -646,7 +661,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 Icon(Icons.edit, color: Colors.white, size: 28),
                 SizedBox(width: 12),
                 Text(
-                  'Edit Expense',
+                  t('edit_expense_title'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -665,7 +680,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 children: [
                   // Description
                   Text(
-                    'Description',
+                    t('description_label'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -676,7 +691,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                   TextField(
                     controller: editDescController,
                     decoration: InputDecoration(
-                      hintText: 'Enter expense description',
+                      hintText: t('enter_expense_description_hint'),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -690,7 +705,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                   SizedBox(height: 16),
 
                   Text(
-                    'Currency',
+                    t('currency_label'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -702,8 +717,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     value: editCurrency,
                     decoration: InputDecoration(
                       helperText: lockedCurrency != null
-                          ? 'Locked to $lockedCurrency because the first expense in this group used that currency.'
-                          : 'You can use a different currency in other groups.',
+                          ? t('currency_locked_to_message').replaceFirst('{currency}', lockedCurrency)
+                          : t('currency_unlocked_other_groups_message'),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -732,7 +747,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'Amount',
+                    t('amount_label'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -744,7 +759,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     controller: editAmountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      hintText: 'Enter amount',
+                      hintText: t('enter_amount_hint'),
                       prefixText: _currencySymbol(editCurrency),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -760,7 +775,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
                   // Member Selection
                   Text(
-                    'Select Members',
+                    t('select_members_label'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -795,7 +810,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
                   // Split Type
                   Text(
-                    'Split Type',
+                    t('split_type_label'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -817,9 +832,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     ),
                     items: [
                       DropdownMenuItem(
-                          value: 'equal', child: Text('Equal Split')),
+                          value: 'equal', child: Text(t('equal_split_label'))),
                       DropdownMenuItem(
-                          value: 'custom', child: Text('Custom Split')),
+                          value: 'custom', child: Text(t('custom_split_label'))),
                     ],
                     onChanged: (value) {
                       setDialogState(() {
@@ -846,7 +861,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         padding: EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        'Cancel',
+                        t('cancel'),
                         style: TextStyle(
                           color: Colors.grey[700],
                           fontSize: 16,
@@ -862,19 +877,19 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         if (editDescController.text.trim().isEmpty) {
-                          showSnack(context, 'Please enter a description', isError: true);
+                          showSnack(context, t('enter_a_description_message'), isError: true);
                           return;
                         }
 
                         final amount =
                             double.tryParse(editAmountController.text);
                         if (amount == null || amount <= 0) {
-                          showSnack(context, 'Please enter a valid amount', isError: true);
+                          showSnack(context, t('enter_a_valid_amount'), isError: true);
                           return;
                         }
 
                         if (editSelectedMembers.isEmpty) {
-                          showSnack(context, 'Please select at least one member', isError: true);
+                          showSnack(context, t('select_at_least_one_member_message'), isError: true);
                           return;
                         }
 
@@ -898,7 +913,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         padding: EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        'Update',
+                        t('update_label'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -918,11 +933,12 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
   void _showAllExpensesDialog(
       List<Map<String, dynamic>> expenses, String groupTitle, String groupId) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemeColors.cardBg(context),
         title: Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -938,7 +954,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               Icon(Icons.receipt_long, color: Colors.white, size: 28),
               SizedBox(width: 12),
               Text(
-                'All Expenses - $groupTitle',
+                t('all_expenses_title_message').replaceFirst('{groupTitle}', groupTitle),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -969,7 +985,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                           color: AppColors.cyan, size: 20),
                       SizedBox(width: 8),
                       Text(
-                        'Total Expenses: ${expenses.length}',
+                        t('total_expenses_count_label').replaceFirst('{count}', '${expenses.length}'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -984,7 +1000,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                   return Container(
                     margin: EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.surfaceBg(context),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: AppColors.cyan.withValues(alpha: 0.2),
@@ -1011,7 +1027,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         ),
                       ),
                       title: Text(
-                        expense['description'] ?? 'No description',
+                        expense['description'] ?? t('no_description_label'),
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppColors.cyan,
@@ -1021,16 +1037,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Amount: ${_formatDisplayAmountFromInr(_expenseAmountInInr(Map<String, dynamic>.from(expense)))}',
+                            '${t('amount_colon_label')} ${_formatDisplayAmountFromInr(_expenseAmountInInr(Map<String, dynamic>.from(expense)))}',
                             style: TextStyle(
                               color: Colors.green[700],
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            'Added by: ${expense['addedBy'] ?? 'Unknown'}',
+                            t('added_by_colon_label').replaceFirst('{email}', expense['addedBy'] ?? t('unknown_label')),
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: AppThemeColors.secondaryText(context),
                               fontSize: 12,
                             ),
                           ),
@@ -1039,13 +1055,13 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             Row(
                               children: [
                                 Icon(Icons.access_time,
-                                    color: Colors.grey[500], size: 12),
+                                    color: AppThemeColors.mutedText(context), size: 12),
                                 SizedBox(width: 4),
                                 Text(
                                   _formatDateTime(
                                       expense['createdAt'] ?? expense['date']),
                                   style: TextStyle(
-                                    color: Colors.grey[500],
+                                    color: AppThemeColors.mutedText(context),
                                     fontSize: 11,
                                   ),
                                 ),
@@ -1095,7 +1111,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 padding: EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
-                'Close',
+                t('close'),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -1110,6 +1126,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   }
 
   Future<void> _openCreateGroup() async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (!session.isSubscribed) {
       int? dailyRemaining;
@@ -1125,15 +1142,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       if (!mounted) return;
       if (dailyRemaining != null && dailyRemaining! <= 0) {
         showDailyLimitDialog(context,
-            message:
-                'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+            message: t('daily_group_creation_limit_reached_message'));
         return;
       }
       final freeRemaining = session.freeGroupsRemaining ?? 0;
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'group creation', coinCost: 20, currentCoins: coins);
+            featureName: t('group_creation_feature_label'), coinCost: 20, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context,
@@ -1147,6 +1163,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     final currentUserEmail = session.user?['email'];
 
@@ -1164,8 +1181,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 icon: const Icon(Icons.arrow_back, color: Colors.black),
                 onPressed: () => Navigator.of(context).pop(),
               ),
-              const Text('Group Transactions',
-                  style: TextStyle(
+              Text(t('group_transactions_title_label'),
+                  style: const TextStyle(
                       color: Colors.black, fontWeight: FontWeight.bold)),
             ],
           ),
@@ -1190,7 +1207,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedDisplayCurrency,
-                    dropdownColor: Colors.white,
+                    dropdownColor: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(14),
                     items: (_displayCurrencyData?.currencies ?? _currencies)
                         .map(
@@ -1198,9 +1215,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             value: currency['code'],
                             child: Text(
                               '${currency['symbol']} ${currency['code']}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
                           ),
@@ -1229,17 +1246,17 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.group_outlined,
-                              size: 64, color: Colors.grey),
+                              size: 64, color: AppThemeColors.secondaryText(context)),
                           SizedBox(height: 16),
                           Text(
-                            'No Group Transactions Found',
+                            t('no_group_transactions_found_message'),
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'You are not part of any group transactions yet.',
-                            style: TextStyle(color: Colors.grey[600]),
+                            t('not_part_of_any_group_transactions_message'),
+                            style: TextStyle(color: AppThemeColors.secondaryText(context)),
                           ),
                         ],
                       ),
@@ -1286,7 +1303,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         Expanded(
                                           child: Text(
                                             _displayCurrencyError ??
-                                                'Conversion to $_selectedDisplayCurrency is not available yet. Showing INR values instead.',
+                                                t('conversion_to_currency_unavailable_message').replaceFirst('{currency}', _selectedDisplayCurrency),
                                             style: const TextStyle(
                                               color: Color(0xFFD62828),
                                               fontWeight: FontWeight.w600,
@@ -1326,14 +1343,14 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         child: Container(
                                           margin: const EdgeInsets.all(2),
                                           decoration: BoxDecoration(
-                                            color: Colors.white,
+                                            color: AppThemeColors.cardBg(context),
                                             borderRadius:
                                                 BorderRadius.circular(18),
                                           ),
                                           child: TextField(
                                             controller: _searchController,
                                             decoration: InputDecoration(
-                                              labelText: 'Search Groups',
+                                              labelText: t('search_groups_label'),
                                               labelStyle: TextStyle(
                                                 color: AppColors.cyan,
                                                 fontWeight: FontWeight.w600,
@@ -1377,7 +1394,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                       horizontal: 16,
                                                       vertical: 16),
                                               hintText:
-                                                  'Search by group name, members, or expenses...',
+                                                  t('search_groups_hint'),
                                               hintStyle: TextStyle(
                                                 color: Color(0xFF6B7280),
                                                 fontSize: 14,
@@ -1425,7 +1442,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                       child: IconButton(
                                         icon: const Icon(Icons.more_vert,
                                             color: Colors.white),
-                                        tooltip: 'Filters',
+                                        tooltip: t('filters_label'),
                                         onPressed: _showGroupFiltersSheet,
                                       ),
                                     ),
@@ -1471,7 +1488,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                     ),
                                     SizedBox(width: 10),
                                     Text(
-                                      'Total Summary',
+                                      t('total_summary_label'),
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
@@ -1485,20 +1502,20 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
                                     children: [
-                                      _summaryStatChip('Total Groups',
+                                      _summaryStatChip(t('total_groups_label'),
                                           '${userGroups.length}',
                                           color: const Color(0xFFFF9933),
                                           icon: Icons.groups_rounded),
                                       _summaryStatChip(
-                                          'Created', '$createdGroupsCount',
+                                          t('created_label'), '$createdGroupsCount',
                                           color: const Color(0xFFFF9933),
                                           icon: Icons.add_circle_rounded),
-                                      _summaryStatChip('Expenses',
+                                      _summaryStatChip(t('expenses_label'),
                                           '${_calculateTotalExpenses()}',
                                           color: const Color(0xFFFF9933),
                                           icon: Icons.receipt_long_rounded),
                                       _summaryStatChip(
-                                          'Pending',
+                                          t('pending_label'),
                                           _formatDisplayAmountFromInr(
                                               _calculateTotalPendingBalance()),
                                           color: const Color(0xFFFF9933),
@@ -1519,19 +1536,19 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.search_off,
-                                          size: 64, color: Colors.grey),
+                                          size: 64, color: AppThemeColors.secondaryText(context)),
                                       SizedBox(height: 16),
                                       Text(
-                                        'No Groups Found',
+                                        t('no_groups_found_message'),
                                         style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold),
                                       ),
                                       SizedBox(height: 8),
                                       Text(
-                                        'Try adjusting your search terms.',
+                                        t('try_adjusting_search_terms_message'),
                                         style: TextStyle(
-                                            color: Colors.grey[600]),
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                     ],
                                   ),
@@ -1622,7 +1639,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                       Flexible(
                                                         child: Text(
                                                           group['title'] ??
-                                                              'Untitled Group',
+                                                              t('untitled_group_label'),
                                                           style: TextStyle(
                                                               fontWeight:
                                                                   FontWeight.bold,
@@ -1640,7 +1657,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                               : Icons.star_border,
                                                           color: isFavourite
                                                               ? Colors.amber
-                                                              : Colors.grey,
+                                                              : AppThemeColors.secondaryText(context),
                                                           size: 20,
                                                         ),
                                                         onPressed: () =>
@@ -1663,7 +1680,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                     group['_id'],
                                                                 groupTitle: group[
                                                                         'title'] ??
-                                                                    'Group Chat',
+                                                                    t('group_chat_label'),
                                                                 members: group[
                                                                         'members'] ??
                                                                     [],
@@ -1683,10 +1700,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                       spacing: 6,
                                                       runSpacing: 4,
                                                       children: [
-                                                        _subtitleChip(Icons.person_outline, 'Creator', creator?['email'] ?? 'Unknown'),
-                                                        _subtitleChip(Icons.group_outlined, 'Members', '${members.length}'),
-                                                        _subtitleChip(Icons.receipt_outlined, 'Expenses', '${expenses.length}'),
-                                                        _subtitleChip(Icons.chat_bubble_outline, 'Messages', '${group['messageCount'] ?? 0}'),
+                                                        _subtitleChip(Icons.person_outline, t('creator_label'), creator?['email'] ?? t('unknown_label')),
+                                                        _subtitleChip(Icons.group_outlined, t('members_label'), '${members.length}'),
+                                                        _subtitleChip(Icons.receipt_outlined, t('expenses_label'), '${expenses.length}'),
+                                                        _subtitleChip(Icons.chat_bubble_outline, t('messages_label'), '${group['messageCount'] ?? 0}'),
                                                       ],
                                                     ),
                                                   ),
@@ -1721,7 +1738,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                       .start,
                                                               children: [
                                                                 Text(
-                                                                  'Your Summary',
+                                                                  t('your_summary_label'),
                                                                   style:
                                                                       TextStyle(
                                                                     fontWeight:
@@ -1737,7 +1754,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                     height: 8),
                                                                 Row(
                                                                   children: [
-                                                                    Expanded(child: Text('Total Split Amount:')),
+                                                                    Expanded(child: Text(t('total_split_amount_label'))),
                                                                     Flexible(
                                                                       child: Text(
                                                                         _formatDisplayAmountFromInr(userTotalSplit),
@@ -1753,7 +1770,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                 SizedBox(height: 4),
                                                                 Row(
                                                                   children: [
-                                                                    Expanded(child: Text('Pending Balance:')),
+                                                                    Expanded(child: Text(t('pending_balance_label'))),
                                                                     Flexible(
                                                                       child: Text(
                                                                         _formatDisplayAmountFromInr(userPendingBalance),
@@ -1809,13 +1826,13 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                       Icons
                                                                           .receipt_long,
                                                                       size: 18,
-                                                                      color: Colors
-                                                                          .black),
+                                                                      color: AppThemeColors
+                                                                          .primaryText(context)),
                                                                   label: Text(
-                                                                      'Generate Receipt',
+                                                                      t('generate_receipt_label'),
                                                                       style: TextStyle(
                                                                           color:
-                                                                              Colors.black)),
+                                                                              AppThemeColors.primaryText(context))),
                                                                   style: ElevatedButton
                                                                       .styleFrom(
                                                                     backgroundColor:
@@ -1849,7 +1866,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                             Row(
                                                               children: [
                                                                 Text(
-                                                                  'Recent Expenses',
+                                                                  t('recent_expenses_label'),
                                                                   style:
                                                                       TextStyle(
                                                                     fontWeight:
@@ -1867,11 +1884,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                     onPressed: () => _showAllExpensesDialog(
                                                                         expenses,
                                                                         group['title'] ??
-                                                                            'Group',
+                                                                            t('group_label'),
                                                                         group[
                                                                             '_id']),
                                                                     child: Text(
-                                                                      'View All (${expenses.length})',
+                                                                      t('view_all_count_label').replaceFirst('{count}', '${expenses.length}'),
                                                                       style:
                                                                           TextStyle(
                                                                         color: Color(
@@ -1899,16 +1916,15 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                             12),
                                                                 decoration:
                                                                     BoxDecoration(
-                                                                  color: Colors
-                                                                      .grey[50],
+                                                                  color: AppThemeColors
+                                                                      .surfaceBg(context),
                                                                   borderRadius:
                                                                       BorderRadius
                                                                           .circular(
                                                                               8),
                                                                   border: Border.all(
-                                                                      color: Colors
-                                                                              .grey[
-                                                                          300]!),
+                                                                      color: AppThemeColors
+                                                                          .border(context)),
                                                                 ),
                                                                 child: Column(
                                                                   crossAxisAlignment:
@@ -1921,7 +1937,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                         SizedBox(width: 8),
                                                                         Expanded(
                                                                           child: Text(
-                                                                            expense['description'] ?? 'No description',
+                                                                            expense['description'] ?? t('no_description_label'),
                                                                             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                                                                             overflow: TextOverflow.ellipsis,
                                                                           ),
@@ -1941,20 +1957,20 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                     ),
                                                                     SizedBox(height: 4),
                                                                     Text(
-                                                                      'Added by: ${expense['addedBy'] ?? 'Unknown'}',
-                                                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                                                      t('added_by_colon_label').replaceFirst('{email}', expense['addedBy'] ?? t('unknown_label')),
+                                                                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12),
                                                                       overflow: TextOverflow.ellipsis,
                                                                       maxLines: 1,
                                                                     ),
                                                                     if (expense['createdAt'] != null || expense['date'] != null)
                                                                       Row(
                                                                         children: [
-                                                                          Icon(Icons.access_time, color: Colors.grey[500], size: 12),
+                                                                          Icon(Icons.access_time, color: AppThemeColors.mutedText(context), size: 12),
                                                                           SizedBox(width: 4),
                                                                           Expanded(
                                                                             child: Text(
                                                                               _formatDateTime(expense['createdAt'] ?? expense['date']),
-                                                                              style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                                                                              style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
                                                                               overflow: TextOverflow.ellipsis,
                                                                             ),
                                                                           ),
@@ -1991,7 +2007,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                                 Icon(Icons.people_outline, color: AppColors.cyan, size: 14),
                                                                                 SizedBox(width: 4),
                                                                                 Text(
-                                                                                  'Split Details:',
+                                                                                  t('split_details_label'),
                                                                                   style: TextStyle(
                                                                                     fontSize: 12,
                                                                                     fontWeight: FontWeight.w600,
@@ -2005,7 +2021,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                               final member = members.firstWhere(
                                                                                 (m) => m['_id'] == splitItem['user'],
                                                                                 orElse: () => {
-                                                                                  'email': 'Unknown User'
+                                                                                  'email': t('unknown_user_label')
                                                                                 },
                                                                               );
                                                                               final isCurrentUser = member['email'] == currentUserEmail;
@@ -2020,7 +2036,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                                         '• ${member['email']}',
                                                                                         style: TextStyle(
                                                                                           fontSize: 11,
-                                                                                          color: Colors.grey[600],
+                                                                                          color: AppThemeColors.secondaryText(context),
                                                                                           fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
                                                                                         ),
                                                                                         overflow: TextOverflow.ellipsis,
@@ -2037,7 +2053,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                                       ),
                                                                                     ),
                                                                                     if (isCurrentUser)
-                                                                                      Text(' (You)', style: TextStyle(fontSize: 10, color: AppColors.cyan, fontStyle: FontStyle.italic)),
+                                                                                      Text(t('you_suffix_label'), style: TextStyle(fontSize: 10, color: AppColors.cyan, fontStyle: FontStyle.italic)),
                                                                                     if (isSettled)
                                                                                       Text(' ✓', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
                                                                                   ],
@@ -2059,8 +2075,8 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                                       .all(16),
                                                               decoration:
                                                                   BoxDecoration(
-                                                                color: Colors
-                                                                    .grey[100],
+                                                                color: AppThemeColors
+                                                                    .surfaceBg(context),
                                                                 borderRadius:
                                                                     BorderRadius
                                                                         .circular(
@@ -2068,12 +2084,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                                               ),
                                                               child: Center(
                                                                 child: Text(
-                                                                  'No expenses in this group yet',
+                                                                  t('no_expenses_in_group_yet_message'),
                                                                   style:
                                                                       TextStyle(
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        600],
+                                                                    color: AppThemeColors
+                                                                        .secondaryText(context),
                                                                     fontStyle:
                                                                         FontStyle
                                                                             .italic,
@@ -2116,6 +2131,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   }
 
   void _showGroupReceiptOptionsDialog(Map<String, dynamic> group) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2127,7 +2143,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
             children: [
               SizedBox(height: 20),
               Text(
-                'Generate Group Receipt',
+                t('generate_group_receipt_title'),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
@@ -2138,9 +2154,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'Choose an option to generate the receipt for the group "${group['title']}".',
+                  t('choose_option_generate_receipt_for_group_message').replaceFirst('{groupTitle}', group['title']?.toString() ?? ''),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
+                  style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context)),
                 ),
               ),
               SizedBox(height: 20),
@@ -2151,7 +2167,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                   children: [
                     ElevatedButton.icon(
                       icon: Icon(Icons.email, color: Colors.white),
-                      label: Text('Send to Email',
+                      label: Text(t('send_to_email_label'),
                           style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue[600],
@@ -2167,7 +2183,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                     ),
                     ElevatedButton.icon(
                       icon: Icon(Icons.download, color: Colors.white),
-                      label: Text('Download Locally',
+                      label: Text(t('download_locally_label'),
                           style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[600],
@@ -2192,10 +2208,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   }
 
   void _sendGroupReceiptByEmail(Map<String, dynamic> group) async {
+    final t = AppLocalizations.of(context).t;
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
     if (email == null) {
-      showSnack(context, 'User email not found.', isError: true);
+      showSnack(context, t('user_email_not_found_message'), isError: true);
       return;
     }
 
@@ -2211,7 +2228,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(width: 20),
-                Text("Sending to email..."),
+                Text(t('sending_to_email_message')),
               ],
             ),
           ),
@@ -2226,18 +2243,19 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       Navigator.pop(context); // Close the loading dialog
       final data = response.body.isNotEmpty ? jsonDecode(response.body) : null;
       if (response.statusCode == 200) {
-        showSnack(context, 'Receipt sent to your email!');
+        showSnack(context, t('receipt_sent_to_email_message'));
       } else {
-        String errorMessage = data?['error'] ?? 'Failed to send receipt';
+        String errorMessage = data?['error'] ?? t('failed_to_send_receipt_message');
         showSnack(context, errorMessage, isError: true);
       }
     } catch (e) {
       Navigator.pop(context); // Close the loading dialog
-      showSnack(context, 'Network error: ${e.toString()}', isError: true);
+      showSnack(context, t('network_error_message').replaceFirst('{error}', e.toString()), isError: true);
     }
   }
 
   void _downloadGroupReceiptLocally(Map<String, dynamic> group) async {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2250,7 +2268,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(width: 20),
-                Text("Downloading locally..."),
+                Text(t('downloading_locally_message')),
               ],
             ),
           ),
@@ -2271,16 +2289,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
         final file = File('${output.path}/group-receipt-${group['_id']}.pdf');
         await file.writeAsBytes(response.bodyBytes);
         OpenFile.open(file.path);
-        showSnack(context, 'Receipt downloaded to ${file.path}');
+        showSnack(context, t('receipt_downloaded_to_path_message').replaceFirst('{path}', file.path));
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        String errorMessage = data?['error'] ?? 'Failed to download receipt';
+        String errorMessage = data?['error'] ?? t('failed_to_download_receipt_message');
         showSnack(context, errorMessage, isError: true);
       }
     } catch (e) {
       Navigator.pop(context); // Close the loading dialog
-      showSnack(context, 'Network error: ${e.toString()}', isError: true);
+      showSnack(context, t('network_error_message').replaceFirst('{error}', e.toString()), isError: true);
     }
   }
 }

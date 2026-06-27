@@ -1,0 +1,63 @@
+import 'dart:convert';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../utils/api_client.dart';
+
+class GoogleAuthService {
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId:
+        '4140108048-q3lmaf876pp52opjjpnsjre36d9vq1od.apps.googleusercontent.com',
+    scopes: ['email'],
+  );
+
+  /// Triggers the Google account picker and returns the Google ID token,
+  /// or null if the user cancelled the sign-in flow.
+  static Future<String?> signInAndGetIdToken() async {
+    final account = await _googleSignIn.signIn();
+    if (account == null) return null;
+    final auth = await account.authentication;
+    return auth.idToken;
+  }
+
+  /// Exchanges a Google ID token for LenDen session tokens via the backend.
+  /// Returns the same result shape as EmailPasswordLogin.login/UsernamePasswordLogin.login.
+  static Future<Map<String, dynamic>> loginWithGoogle({
+    String? deviceId,
+    String? deviceName,
+  }) async {
+    try {
+      final idToken = await signInAndGetIdToken();
+      if (idToken == null) {
+        return {'success': false, 'cancelled': true};
+      }
+
+      final response = await ApiClient.post('/api/users/google-login', body: {
+        'idToken': idToken,
+        if (deviceId != null) 'deviceId': deviceId,
+        if (deviceName != null) 'deviceName': deviceName,
+      });
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData['user'] != null) {
+        return {
+          'success': true,
+          'userOrAdmin': responseData['user'],
+          'accessToken': responseData['accessToken'],
+          'refreshToken': responseData['refreshToken'],
+          'userType': 'user',
+          'dailyLoginReward': responseData['dailyLoginReward'],
+        };
+      }
+      return {
+        'success': false,
+        'error': responseData['error'] ?? 'Google sign-in failed'
+      };
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<void> signOut() async {
+    await _googleSignIn.signOut();
+  }
+}

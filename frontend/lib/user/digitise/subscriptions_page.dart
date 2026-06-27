@@ -12,6 +12,8 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/display_currency_helper.dart';
 import '../../widgets/payment_success_page.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 // Models
 class SubscriptionPlan {
@@ -86,40 +88,43 @@ class SubscriptionsPage extends StatefulWidget {
 }
 
 class _SubscriptionsPageState extends State<SubscriptionsPage> {
-  Widget get _razorpayTestHint => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF8E1),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFFFCC02), width: 1),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(children: [
-          Icon(Icons.science_rounded, size: 13, color: Color(0xFFF57F17)),
-          SizedBox(width: 6),
-          Text('Test Mode — use these in Razorpay checkout:',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
-        ]),
-        const SizedBox(height: 4),
-        Row(children: const [
-          Icon(Icons.credit_card_rounded, size: 12, color: Color(0xFF795548)),
-          SizedBox(width: 5),
-          Text('Card: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
-          Expanded(child: Text('4111 1111 1111 1111  |  12/28  |  CVV 123  |  OTP 1234',
-            style: TextStyle(fontSize: 11, color: Color(0xFF795548)))),
-        ]),
-        const SizedBox(height: 2),
-        Row(children: const [
-          Icon(Icons.phone_android_rounded, size: 12, color: Color(0xFF795548)),
-          SizedBox(width: 5),
-          Text('UPI: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
-          Text('success@razorpay', style: TextStyle(fontSize: 11, color: Color(0xFF795548))),
-        ]),
-      ],
-    ),
-  );
+  Widget get _razorpayTestHint {
+    final t = AppLocalizations.of(context).t;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFFCC02), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.science_rounded, size: 13, color: Color(0xFFF57F17)),
+            const SizedBox(width: 6),
+            Text(t('razorpay_test_mode_hint_label'),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
+          ]),
+          const SizedBox(height: 4),
+          Row(children: [
+            const Icon(Icons.credit_card_rounded, size: 12, color: Color(0xFF795548)),
+            const SizedBox(width: 5),
+            Text(t('card_colon_label'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
+            const Expanded(child: Text('4111 1111 1111 1111  |  12/28  |  CVV 123  |  OTP 1234',
+              style: TextStyle(fontSize: 11, color: Color(0xFF795548)))),
+          ]),
+          const SizedBox(height: 2),
+          Row(children: [
+            const Icon(Icons.phone_android_rounded, size: 12, color: Color(0xFF795548)),
+            const SizedBox(width: 5),
+            Text(t('upi_colon_label'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
+            const Text('success@razorpay', style: TextStyle(fontSize: 11, color: Color(0xFF795548))),
+          ]),
+        ],
+      ),
+    );
+  }
 
   String? _selectedPlan;
   String _searchQuery = '';
@@ -201,11 +206,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       });
     } catch (_) {
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError =
-            'Currency conversion options are not available right now.';
+        _displayCurrencyError = t('currency_conversion_unavailable_message');
       });
     }
   }
@@ -253,7 +258,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(16),
         ),
         child: DropdownButtonHideUnderline(
@@ -261,13 +266,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             value: _selectedDisplayCurrency,
             icon: const Icon(Icons.keyboard_arrow_down_rounded),
             borderRadius: BorderRadius.circular(16),
+            dropdownColor: AppThemeColors.cardBg(context),
             items: currencies
                 .map(
                   (currency) => DropdownMenuItem<String>(
                     value: currency['code'],
                     child: Text(
                       '${currency['symbol']} ${currency['code']}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
                     ),
                   ),
                 )
@@ -343,19 +349,20 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Future<void> _startPayment() async {
+    final t = AppLocalizations.of(context).t;
     if (_selectedPlan == null) {
-      showSnack(context, 'Please select a subscription plan.', isError: true);
+      showSnack(context, t('please_select_a_plan_message'), isError: true);
       return;
     }
 
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (session.token == null || session.user == null) {
-      showSnack(context, 'Please login to subscribe.', isError: true);
+      showSnack(context, t('please_login_to_subscribe_message'), isError: true);
       return;
     }
 
     if (!_isMobilePlatform) {
-      showSnack(context, 'Payment is only supported on Android & iOS. Please use the mobile app.', isError: true);
+      showSnack(context, t('payment_only_supported_mobile_message'), isError: true);
       return;
     }
 
@@ -374,7 +381,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
       if (orderRes.statusCode != 200) {
         final err = jsonDecode(orderRes.body);
-        showSnack(context, err['error'] ?? 'Failed to create payment order', isError: true);
+        showSnack(context, err['error'] ?? t('failed_to_create_payment_order_message'), isError: true);
         setState(() => _isProcessingPayment = false);
         return;
       }
@@ -404,13 +411,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       // Payment result arrives in _handlePaymentSuccess / _handlePaymentError
     } catch (e) {
       if (!mounted) return;
-      showSnack(context, 'Error initiating payment: $e', isError: true);
+      showSnack(context, t('error_initiating_payment_message').replaceFirst('{error}', '$e'), isError: true);
       setState(() => _isProcessingPayment = false);
     }
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     // Step 3: Verify payment signature on backend
     try {
       final verifyRes = await ApiClient.post(
@@ -434,42 +442,47 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _showSuccessDialog();
       } else {
         final err = jsonDecode(verifyRes.body);
-        showSnack(context, 'Payment received but verification failed: ${err['error'] ?? ''}. Contact support.', isError: true);
+        showSnack(context, t('payment_verification_failed_message').replaceFirst('{error}', err['error'] ?? ''), isError: true);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
-      showSnack(context, 'Payment done but verification error: $e', isError: true);
+      showSnack(context, t('payment_done_verification_error_message').replaceFirst('{error}', '$e'), isError: true);
     }
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
     if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     setState(() => _isProcessingPayment = false);
-    final message = response.message ?? 'Payment failed';
-    showSnack(context, 'Payment cancelled or failed: $message', isError: true);
+    final message = response.message ?? t('payment_failed_label');
+    showSnack(context, t('payment_cancelled_or_failed_message').replaceFirst('{message}', message), isError: true);
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
     if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     setState(() => _isProcessingPayment = false);
-    showSnack(context, 'External wallet selected: ${response.walletName}');
+    showSnack(context, t('external_wallet_selected_message').replaceFirst('{wallet}', response.walletName ?? ''));
   }
 
   Future<void> _payViaWallet() async {
+    final t = AppLocalizations.of(context).t;
     if (_selectedPlan == null) {
-      showSnack(context, 'Please select a subscription plan.', isError: true);
+      showSnack(context, t('please_select_a_plan_message'), isError: true);
       return;
     }
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (session.token == null || session.user == null) {
-      showSnack(context, 'Please login to subscribe.', isError: true);
+      showSnack(context, t('please_login_to_subscribe_message'), isError: true);
       return;
     }
     final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
     final actualPrice = plan.price * (1 - plan.discount / 100);
     if (_walletBalance < actualPrice) {
-      showSnack(context, 'Insufficient wallet balance. Need ₹${actualPrice.toStringAsFixed(2)}, have ₹${_walletBalance.toStringAsFixed(2)}.', isError: true);
+      showSnack(context, t('insufficient_wallet_balance_message')
+          .replaceFirst('{needed}', actualPrice.toStringAsFixed(2))
+          .replaceFirst('{available}', _walletBalance.toStringAsFixed(2)), isError: true);
       return;
     }
     setState(() => _isPayingViaWallet = true);
@@ -486,33 +499,36 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _showSuccessDialog();
       } else {
         final err = json.decode(res.body);
-        showSnack(context, err['error'] ?? 'Wallet payment failed', isError: true);
+        showSnack(context, err['error'] ?? t('wallet_payment_failed_message'), isError: true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isPayingViaWallet = false);
-        showSnack(context, 'Error: $e', isError: true);
+        showSnack(context, t('error_colon_label').replaceFirst('{error}', '$e'), isError: true);
       }
     }
   }
 
   void _showSuccessDialog() {
+    final t = AppLocalizations.of(context).t;
     double? planPrice;
-    String planLabel = _selectedPlan ?? 'Premium';
+    String planLabel = _selectedPlan ?? t('premium_label');
     try {
       final plan = _plans.firstWhere((p) => p.name == _selectedPlan!);
       planPrice = plan.price * (1 - plan.discount / 100);
-      if (plan.discount > 0) planLabel = '${plan.name} (${plan.discount}% off)';
+      if (plan.discount > 0) planLabel = t('plan_with_discount_off_label')
+          .replaceFirst('{plan}', plan.name)
+          .replaceFirst('{discount}', '${plan.discount}');
     } catch (_) {}
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentSuccessPage(
-          title: 'Subscription Activated!',
+          title: t('subscription_activated_label'),
           amount: planPrice,
-          transactionType: 'Subscription — $planLabel',
-          extraDetails: const {'Status': 'Premium Member ✓'},
+          transactionType: t('subscription_em_dash_plan_label').replaceFirst('{plan}', planLabel),
+          extraDetails: {t('status_label'): t('premium_member_check_label')},
           onDone: () => Navigator.of(context).pop(),
         ),
       ),
@@ -559,11 +575,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Go Premium',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(t('go_premium_label'),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -623,16 +640,22 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   bool _showAllHistory = false;
 
   Widget _buildSubscriptionHistory(List<Map<String, dynamic>> history) {
+    final t = AppLocalizations.of(context).t;
     final filteredHistory = _getFilteredHistory(history);
     final itemsToShow =
         _showAllHistory ? filteredHistory : filteredHistory.take(3).toList();
+    final filterLabels = {
+      'All': t('all_label'),
+      'Active': t('active_label'),
+      'Expired': t('expired_label'),
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Subscription History',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        Text(
+          t('subscription_history_label'),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
         ),
         const SizedBox(height: 15),
 
@@ -657,13 +680,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(10),
             ),
             child: TextField(
               controller: _searchController,
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
               decoration: InputDecoration(
-                hintText: 'Search by plan name...',
+                hintText: t('search_by_plan_name_hint'),
                 border: InputBorder.none,
                 icon: Icon(Icons.search, color: AppColors.cyan),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -694,7 +718,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           spacing: 8,
           children: ['All', 'Active', 'Expired'].map((filter) {
             return FilterChip(
-              label: Text(filter),
+              label: Text(filterLabels[filter]!),
               selected: _filterOption == filter,
               onSelected: (selected) {
                 setState(() {
@@ -702,8 +726,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 });
               },
               selectedColor: AppColors.cyan,
+              backgroundColor: AppThemeColors.cardBg(context),
               labelStyle: TextStyle(
-                color: _filterOption == filter ? Colors.white : Colors.black,
+                color: _filterOption == filter ? Colors.white : AppThemeColors.primaryText(context),
               ),
             );
           }).toList(),
@@ -717,7 +742,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Text(
-                'No subscriptions found',
+                t('no_subscriptions_found_message'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ),
@@ -736,15 +761,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             Color pmColor;
             if (paymentMethod == 'wallet') {
               pmIcon = Icons.account_balance_wallet_rounded;
-              pmLabel = 'LenDen Wallet';
+              pmLabel = t('lenden_wallet_label');
               pmColor = AppColors.cyan;
             } else if (paymentMethod == 'admin') {
               pmIcon = Icons.admin_panel_settings_rounded;
-              pmLabel = 'Admin';
+              pmLabel = t('admin_label');
               pmColor = Colors.deepPurple;
             } else {
               pmIcon = Icons.payment_rounded;
-              pmLabel = 'Razorpay';
+              pmLabel = t('razorpay_label');
               pmColor = const Color(0xFF528FF5);
             }
 
@@ -783,8 +808,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                       const SizedBox(height: 3),
                       Text(
                         isActive
-                            ? 'Active until: ${endDate.toLocal().toString().substring(0, 10)}'
-                            : 'Expired on: ${endDate.toLocal().toString().substring(0, 10)}',
+                            ? t('active_until_message').replaceFirst('{date}', endDate.toLocal().toString().substring(0, 10))
+                            : t('expired_on_message').replaceFirst('{date}', endDate.toLocal().toString().substring(0, 10)),
                         style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                       if (isActive) ...[
@@ -793,10 +818,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           final daysLeft = endDate.difference(DateTime.now()).inDays;
                           final hoursLeft = endDate.difference(DateTime.now()).inHours % 24;
                           final label = daysLeft > 0
-                              ? '$daysLeft day${daysLeft == 1 ? '' : 's'} left'
+                              ? t('days_left_message').replaceFirst('{count}', '$daysLeft')
                               : hoursLeft > 0
-                                  ? '$hoursLeft hour${hoursLeft == 1 ? '' : 's'} left'
-                                  : 'Expiring soon';
+                                  ? t('hours_left_message').replaceFirst('{count}', '$hoursLeft')
+                                  : t('expiring_soon_label');
                           final color = daysLeft <= 3
                               ? Colors.orange
                               : AppColors.cyan;
@@ -841,7 +866,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         ],
                         if (duration > 0) ...[
                           const SizedBox(width: 6),
-                          Text('$duration days', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                          Text(t('duration_days_count_message').replaceFirst('{duration}', '$duration'), style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                         ],
                       ]),
                     ]),
@@ -849,7 +874,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   const SizedBox(width: 8),
                   Chip(
                     label: Text(
-                      isActive ? 'ACTIVE' : 'EXPIRED',
+                      isActive ? t('active_caps_label') : t('expired_caps_label'),
                       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     backgroundColor: isActive ? Colors.green : Colors.grey,
@@ -869,7 +894,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   _showAllHistory = !_showAllHistory;
                 });
               },
-              child: Text(_showAllHistory ? 'Show less' : 'View all'),
+              child: Text(_showAllHistory ? t('show_less_label') : t('view_all_label')),
             ),
           ),
 
@@ -879,6 +904,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Widget _buildSubscribedView(SessionProvider session) {
+    final t = AppLocalizations.of(context).t;
     final daysRemaining = session.subscriptionEndDate != null
         ? session.subscriptionEndDate!.difference(DateTime.now()).inDays
         : 0;
@@ -921,7 +947,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             child: Column(
               children: [
                 Text(
-                  '🎉 Premium Member',
+                  '🎉 ${t('premium_member_label')}',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -940,17 +966,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                               ? '$daysRemaining'
                               : (freeDaysRemaining > 0
                                   ? '$freeDaysRemaining'
-                                  : 'Expired'),
+                                  : t('expired_label')),
                           daysRemaining > 0
-                              ? 'Days Left'
+                              ? t('days_left_label')
                               : (freeDaysRemaining > 0
-                                  ? 'Free Days Left'
-                                  : 'Status')),
+                                  ? t('free_days_left_label')
+                                  : t('status_label'))),
                       SizedBox(width: 20),
                       _buildStatCard(
                           Icons.workspace_premium,
-                          session.subscriptionPlan?.split(' ')[0] ?? 'N/A',
-                          'Plan'),
+                          session.subscriptionPlan?.split(' ')[0] ?? t('na_label'),
+                          t('plan_label')),
                     ],
                   ),
                 ),
@@ -984,28 +1010,27 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Subscription Details',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      t('subscription_details_label'),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
                     ),
                     Icon(Icons.edit, color: AppColors.cyan),
                   ],
                 ),
                 const SizedBox(height: 20),
-                _buildInfoRow('Plan:', session.subscriptionPlan ?? 'N/A'),
+                _buildInfoRow(t('plan_colon_label'), session.subscriptionPlan ?? t('na_label')),
                 const SizedBox(height: 10),
                 _buildInfoRow(
-                    'Expires On:',
+                    t('expires_on_colon_label'),
                     session.subscriptionEndDate
                             ?.toLocal()
                             .toString()
                             .split(' ')[0] ??
-                        'N/A'),
+                        t('na_label')),
                 const SizedBox(height: 20),
-                const Text(
-                  'Premium Features:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  t('premium_features_colon_label'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
                 const SizedBox(height: 10),
                 ..._benefits.asMap().entries.map((entry) {
@@ -1027,7 +1052,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               color: AppColors.cyan,
             ),
             label: Text(
-              _showRenewalSection ? 'Hide Renewal Options' : 'Renew / Extend Subscription',
+              _showRenewalSection ? t('hide_renewal_options_label') : t('renew_extend_subscription_label'),
               style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 15),
             ),
             style: OutlinedButton.styleFrom(
@@ -1043,6 +1068,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Widget _buildRenewalSection() {
+    final t = AppLocalizations.of(context).t;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1058,16 +1084,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           child: Row(children: [
             const Icon(Icons.info_outline, color: Colors.green, size: 18),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Any days remaining on your current plan will carry over to the new subscription.',
-                style: TextStyle(fontSize: 12, color: Colors.green),
+                t('carry_over_renewal_message'),
+                style: const TextStyle(fontSize: 12, color: Colors.green),
               ),
             ),
           ]),
         ),
         const SizedBox(height: 16),
-        const Text('Select a Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(t('select_a_plan_label'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
         const SizedBox(height: 12),
         if (_isLoadingPlans)
           const Center(child: CircularProgressIndicator())
@@ -1101,7 +1127,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
                 : const Icon(Icons.payment, color: Colors.black),
             label: Text(
-              _isProcessingPayment ? 'Processing...' : 'Renew via Razorpay',
+              _isProcessingPayment ? t('processing_ellipsis_label') : t('renew_via_razorpay_label'),
               style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.bold),
             ),
           ),
@@ -1111,7 +1137,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           const Expanded(child: Divider(thickness: 1.2)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('OR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+            child: Text(t('or_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
           ),
           const Expanded(child: Divider(thickness: 1.2)),
         ]),
@@ -1139,11 +1165,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isPayingViaWallet ? 'Processing...' : 'Renew via LenDen Wallet',
+                  _isPayingViaWallet ? t('processing_ellipsis_label') : t('renew_via_lenden_wallet_label'),
                   style: const TextStyle(fontSize: 17, color: AppColors.cyan, fontWeight: FontWeight.bold),
                 ),
                 if (!_isPayingViaWallet)
-                  Text('Balance: ₹${_walletBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text(t('balance_amount_message').replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)), style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               ],
             ),
           ),
@@ -1187,13 +1213,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(value),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(value, style: const TextStyle(color: Colors.black87)),
       ],
     );
   }
 
   Widget _buildSubscribeView() {
+    final t = AppLocalizations.of(context).t;
     final showWarning =
         _displayCurrencyError != null || _hasMissingPlanConversion();
     return Column(
@@ -1205,15 +1232,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _buildPremiumIllustration(),
 
         // Benefits Section
-        const Text(
-          'Premium Benefits',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        Text(
+          t('premium_benefits_label'),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
         ),
         const SizedBox(height: 15),
         if (_isLoadingBenefits)
           const Center(child: CircularProgressIndicator())
         else if (_benefits.isEmpty)
-          const Center(child: Text('Loading benefits...'))
+          Center(child: Text(t('loading_benefits_message')))
         else
           ..._benefits.asMap().entries.map((entry) {
             int idx = entry.key;
@@ -1227,9 +1254,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Select a Plan',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            Text(
+              t('select_a_plan_label'),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
             ),
             TextButton.icon(
               onPressed: () {
@@ -1238,16 +1265,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 });
               },
               icon: Icon(_showComparison ? Icons.grid_view : Icons.view_list),
-              label: Text(_showComparison ? 'List View' : 'Compare'),
+              label: Text(_showComparison ? t('list_view_label') : t('compare_label')),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            const Text(
-              'Show In',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            Text(
+              t('show_in_label'),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(width: 10),
             _buildCurrencySelector(),
@@ -1265,7 +1292,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ),
             child: Text(
               _displayCurrencyError ??
-                  'Conversion to $_selectedDisplayCurrency is not available for subscription plans yet. Showing INR values instead.',
+                  t('conversion_unavailable_subscription_message').replaceFirst('{currency}', _selectedDisplayCurrency),
               style: const TextStyle(
                 color: Color(0xFFC62828),
                 fontWeight: FontWeight.w600,
@@ -1280,7 +1307,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _isLoadingPlans
             ? const Center(child: CircularProgressIndicator())
             : _plans.isEmpty
-                ? const Center(child: Text('Loading plans...'))
+                ? Center(child: Text(t('loading_plans_message')))
                 : _showComparison
                     ? _buildComparisonView()
                     : Column(
@@ -1326,7 +1353,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
                 : const Icon(Icons.payment, color: Colors.black),
             label: Text(
-              _isProcessingPayment ? 'Processing...' : 'Pay via Razorpay',
+              _isProcessingPayment ? t('processing_ellipsis_label') : t('pay_via_razorpay_label'),
               style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.bold),
             ),
           ),
@@ -1339,7 +1366,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           const Expanded(child: Divider(thickness: 1.2)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('OR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+            child: Text(t('or_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
           ),
           const Expanded(child: Divider(thickness: 1.2)),
         ]),
@@ -1369,12 +1396,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isPayingViaWallet ? 'Processing...' : 'Pay via LenDen Wallet',
+                  _isPayingViaWallet ? t('processing_ellipsis_label') : t('pay_via_lenden_wallet_label'),
                   style: const TextStyle(fontSize: 17, color: AppColors.cyan, fontWeight: FontWeight.bold),
                 ),
                 if (!_isPayingViaWallet)
                   Text(
-                    'Balance: ₹${_walletBalance.toStringAsFixed(2)}',
+                    t('balance_amount_message').replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
               ],
@@ -1472,6 +1499,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Widget _buildPlanCard(SubscriptionPlan plan, int index) {
+    final t = AppLocalizations.of(context).t;
     final isSelected = _selectedPlan == plan.name;
     final discountedPrice = plan.price * (1 - plan.discount / 100);
     // Mark the most popular plan: index 1 when 3+ plans, otherwise index 0
@@ -1526,9 +1554,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           children: [
                             Text(
                               plan.name,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
                             ),
                             SizedBox(height: 4),
@@ -1557,7 +1586,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'for ${plan.duration} days',
+                              t('for_days_message').replaceFirst('{duration}', '${plan.duration}'),
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
@@ -1570,7 +1599,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                                       color: Colors.orange, size: 16),
                                   SizedBox(width: 4),
                                   Text(
-                                    '${plan.free} free days',
+                                    t('free_days_message').replaceFirst('{count}', '${plan.free}'),
                                     style: TextStyle(
                                       color: Colors.orange,
                                       fontWeight: FontWeight.bold,
@@ -1619,10 +1648,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     bottomRight: Radius.circular(12),
                   ),
                 ),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.star_rounded, color: Colors.white, size: 11),
-                  SizedBox(width: 3),
-                  Text('Most Popular', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.star_rounded, color: Colors.white, size: 11),
+                  const SizedBox(width: 3),
+                  Text(t('most_popular_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                 ]),
               ),
             ),
@@ -1640,7 +1669,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   ),
                 ),
                 child: Text(
-                  '${plan.discount}% OFF',
+                  t('percent_off_message').replaceFirst('{discount}', '${plan.discount}'),
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
@@ -1651,6 +1680,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Widget _buildComparisonView() {
+    final t = AppLocalizations.of(context).t;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -1691,9 +1721,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     SizedBox(height: 12),
                     Text(
                       plan.name,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
                     SizedBox(height: 8),
@@ -1707,7 +1738,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'for ${plan.duration} days',
+                      t('for_days_message').replaceFirst('{duration}', '${plan.duration}'),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -1724,6 +1755,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Widget _buildTrustBadges() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1733,9 +1765,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildBadge(Icons.security, 'Secure\nPayment'),
-          _buildBadge(Icons.support_agent, '24/7\nSupport'),
-          _buildBadge(Icons.verified, 'Money Back\nGuarantee'),
+          _buildBadge(Icons.security, t('secure_payment_label')),
+          _buildBadge(Icons.support_agent, t('support_24_7_label')),
+          _buildBadge(Icons.verified, t('money_back_guarantee_label')),
         ],
       ),
     );
@@ -1749,7 +1781,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         Text(
           text,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
         ),
       ],
     );
@@ -1776,18 +1808,19 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         child: ListTile(
           leading: Icon(icon, color: AppColors.cyan, size: 40),
           title:
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+          subtitle: subtitle.isNotEmpty ? Text(subtitle, style: const TextStyle(color: Colors.black87)) : null,
         ),
       ),
     );
   }
 
   Widget _buildFAQSection() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1805,8 +1838,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               Icon(Icons.help_outline, color: AppColors.cyan, size: 28),
               SizedBox(width: 10),
               Text(
-                'FAQs',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                t('faqs_label'),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
               ),
             ],
           ),
@@ -1814,7 +1847,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           if (_isLoadingFaqs)
             const Center(child: CircularProgressIndicator())
           else if (_faqs.isEmpty)
-            const Center(child: Text('Loading FAQs...'))
+            Center(child: Text(t('loading_faqs_message')))
           else
             ..._faqs.asMap().entries.map((entry) {
               int idx = entry.key;
@@ -1846,7 +1879,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         child: ExpansionTile(
           title: Text(
             question,
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
           ),
           children: [
             Padding(

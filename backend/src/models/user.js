@@ -3,7 +3,11 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   username: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // Will be hashed
+  password: {
+    type: String,
+    // Will be hashed. Not required for accounts created via Google Sign-In.
+    required: function () { return this.authProvider !== 'google'; },
+  },
   email: {
     type: String,
     required: true,
@@ -12,7 +16,17 @@ const userSchema = new mongoose.Schema({
   gender: {
     type: String,
     enum: ['Male', 'Female', 'Other'],
-    required: true,
+    // Google doesn't provide gender, so it's optional for Google-created accounts.
+    required: function () { return this.authProvider !== 'google'; },
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local',
+  },
+  googleId: {
+    type: String,
+    default: null,
   },
   birthday: { type: Date },
   address: { type: String },
@@ -28,6 +42,10 @@ const userSchema = new mongoose.Schema({
     windowStart: { type: Date },
   },
   memberSince: { type: Date, default: Date.now },
+  lendingBudget: {
+    monthlyLimit: { type: Number, default: null },
+    alertThresholdPercent: { type: Number, default: 80 },
+  },
   avgRating: {
     type: Number,
     min: 0,
@@ -189,5 +207,6 @@ userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
 userSchema.index({ phone: 1 });
 userSchema.index({ referralCode: 1 });
+userSchema.index({ googleId: 1 });
 
 module.exports = mongoose.model('User', userSchema);

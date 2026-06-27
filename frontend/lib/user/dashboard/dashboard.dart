@@ -33,6 +33,8 @@ import '../../widgets/stylish_dialog.dart';
 import '../scanner/qr_scanner_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 enum _QuickActionsViewStyle {
   grid,
@@ -148,6 +150,33 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       'action': 'gift_cards'
     },
   ];
+
+  String t(String key) => AppLocalizations.of(context).t(key);
+
+  String _quickActionLabel(String action) {
+    switch (action) {
+      case 'balance':
+        return t('balance');
+      case 'history':
+        return t('history_label');
+      case 'favourites':
+        return t('favourites_label');
+      case 'offers':
+        return t('offers');
+      case 'refer':
+        return t('refer_label');
+      case 'ratings':
+        return t('ratings_label');
+      case 'subscriptions':
+        return t('subscriptions_label');
+      case 'friends':
+        return t('friends');
+      case 'gift_cards':
+        return t('gift_cards_label');
+      default:
+        return action;
+    }
+  }
 
   Future<void> _openLenDenCoinsPage(int coins) async {
     await Navigator.push(
@@ -326,8 +355,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         if (pending > 0 && !_friendToastShown && mounted) {
           _friendToastShown = true;
           ElegantNotification.info(
-            title: Text('Friend Request'),
-            description: Text('You have $pending pending request(s).'),
+            title: Text(t('friend_request_title')),
+            description: Text(
+                '${t('you_have_label')} $pending ${t('pending_requests_suffix')}'),
             action: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -335,7 +365,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   MaterialPageRoute(builder: (_) => const FriendsPage()),
                 );
               },
-              child: Text('View', style: TextStyle(color: Colors.blue)),
+              child: Text(t('view_label'), style: TextStyle(color: Colors.blue)),
             ),
           ).show(context);
         }
@@ -448,7 +478,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             child: Container(
               padding: EdgeInsets.all(ctx.sw(22)),
               decoration: BoxDecoration(
-                color: const Color(0xFFFCE4EC),
+                color: AppThemeColors.tinted(ctx,
+                    light: const Color(0xFFFCE4EC),
+                    dark: const Color(0xFF2A1A22)),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: StatefulBuilder(
@@ -459,7 +491,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       Icon(Icons.star, color: AppColors.cyan, size: ctx.sp(44)),
                       SizedBox(height: ctx.sh(10)),
                       Text(
-                        'Rate Our App!',
+                        t('rate_our_app_title'),
                         style: TextStyle(
                           fontSize: ctx.sp(20),
                           fontWeight: FontWeight.bold,
@@ -468,9 +500,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       ),
                       SizedBox(height: ctx.sh(8)),
                       Text(
-                        'Your feedback helps us improve.\nHow would you rate your experience?',
+                        t('rate_app_feedback_desc'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: ctx.sp(15), color: Colors.grey[700]),
+                        style: TextStyle(
+                            fontSize: ctx.sp(15),
+                            color: AppThemeColors.secondaryText(ctx)),
                       ),
                       SizedBox(height: 18),
                       Row(
@@ -488,7 +522,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 ),
                                 Icon(
                                   Icons.star_border,
-                                  color: Colors.black,
+                                  color: AppThemeColors.primaryText(ctx),
                                   size: 36,
                                 ),
                               ],
@@ -506,14 +540,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                           ElevatedButton(
                             onPressed: () => Navigator.of(ctx).pop(),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
+                              backgroundColor: AppThemeColors.cardBg(ctx),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text('Close',
+                            child: Text(t('close'),
                                 style: TextStyle(
-                                    color: Colors.grey[700],
+                                    color: AppThemeColors.secondaryText(ctx),
                                     fontWeight: FontWeight.bold)),
                           ),
                           ElevatedButton(
@@ -534,23 +568,23 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                           .showSnackBar(
                                         SnackBar(
                                             content: Text(
-                                                'Failed to submit rating.')),
+                                                t('failed_submit_rating'))),
                                       );
                                     }
                                   }
                                 : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
+                              backgroundColor: AppThemeColors.cardBg(ctx),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
                               padding: EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 12),
                             ),
-                            child: Text('Submit',
+                            child: Text(t('submit'),
                                 style: TextStyle(
                                     color: _selectedStars > 0
-                                        ? Colors.black
-                                        : Colors.grey[600],
+                                        ? AppThemeColors.primaryText(ctx)
+                                        : AppThemeColors.mutedText(ctx),
                                     fontWeight: FontWeight.bold)),
                           ),
                         ],
@@ -575,7 +609,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         child: Container(
           padding: EdgeInsets.all(ctx.sw(26)),
           decoration: BoxDecoration(
-            color: const Color(0xFFE0F7FA),
+            color: AppThemeColors.tinted(ctx,
+                light: const Color(0xFFE0F7FA), dark: const Color(0xFF0F2E33)),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -591,7 +626,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               Icon(Icons.celebration, color: AppColors.cyan, size: ctx.sp(52)),
               SizedBox(height: ctx.sh(14)),
               Text(
-                'Thank You for Rating!',
+                t('thank_you_rating_title'),
                 style: TextStyle(
                   fontSize: ctx.sp(22),
                   fontWeight: FontWeight.bold,
@@ -602,10 +637,10 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               SizedBox(height: ctx.sh(10)),
               Text(
-                'Your feedback means a lot to us.\nWe appreciate your support!',
+                t('thank_you_rating_desc'),
                 style: TextStyle(
                   fontSize: ctx.sp(15),
-                  color: Colors.grey[800],
+                  color: AppThemeColors.secondaryText(ctx),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -620,7 +655,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       horizontal: ctx.sw(28), vertical: ctx.sh(12)),
                 ),
                 child: Text(
-                  'Continue',
+                  t('continue'),
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -697,10 +732,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFFE0F7FA),
-                  Color(0xFFB2EBF2),
-                ],
+                colors: AppThemeColors.isDark(context)
+                    ? [const Color(0xFF0F2E33), const Color(0xFF123840)]
+                    : [const Color(0xFFE0F7FA), const Color(0xFFB2EBF2)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -711,18 +745,20 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Text(
-                    'Favourites',
+                    t('favourites_label'),
                     style: TextStyle(
                       fontSize: context.sp(22),
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF00796B),
+                      color: AppThemeColors.tinted(context,
+                          light: const Color(0xFF00796B),
+                          dark: const Color(0xFF4DD0E1)),
                     ),
                   ),
                 ),
                 _buildFavouriteItem(
                   context,
                   icon: Icons.shield,
-                  text: 'Secure',
+                  text: t('secure_label'),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -738,7 +774,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 _buildFavouriteItem(
                   context,
                   icon: Icons.group,
-                  text: 'Groups',
+                  text: t('groups_label'),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -754,7 +790,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 _buildFavouriteItem(
                   context,
                   icon: Icons.bolt,
-                  text: 'Quick',
+                  text: t('quick_label'),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -780,6 +816,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       {required IconData icon,
       required String text,
       required VoidCallback onTap}) {
+    final favColor = AppThemeColors.tinted(context,
+        light: const Color(0xFF00796B), dark: const Color(0xFF4DD0E1));
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
@@ -787,7 +825,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: AppThemeColors.isDark(context)
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
@@ -799,18 +839,18 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         ),
         child: Row(
           children: [
-            Icon(icon, color: Color(0xFF00796B)),
+            Icon(icon, color: favColor),
             SizedBox(width: 20),
             Text(
               text,
               style: TextStyle(
                 fontSize: context.sp(16),
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF004D40),
+                color: favColor,
               ),
             ),
             Spacer(),
-            Icon(Icons.arrow_forward_ios, color: Color(0xFF00796B), size: 16),
+            Icon(Icons.arrow_forward_ios, color: favColor, size: 16),
           ],
         ),
       ),
@@ -829,24 +869,25 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       child: Scaffold(
         drawer: Drawer(
           width: context.sw(200),
+          backgroundColor: AppThemeColors.cardBg(context),
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
                 decoration: const BoxDecoration(color: AppColors.cyan),
-                child: Text('Menu',
+                child: Text(t('menu_label'),
                     style: TextStyle(color: Colors.white, fontSize: context.sp(22))),
               ),
               ListTile(
                 leading: const Icon(Icons.dashboard),
-                title: const Text('Dashboard'),
+                title: Text(t('dashboard')),
                 onTap: () {
                   Navigator.of(context).pop();
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
+                title: Text(t('settings')),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.pushNamed(context, '/settings');
@@ -854,7 +895,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               ListTile(
                 leading: const Icon(Icons.timeline),
-                title: const Text('Activity'),
+                title: Text(t('activity')),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.push(context,
@@ -863,7 +904,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               ListTile(
                 leading: const Icon(Icons.campaign_outlined),
-                title: const Text('Updates'),
+                title: Text(t('updates')),
                 trailing: _unreadUpdatesCount > 0
                     ? Container(
                         padding: const EdgeInsets.symmetric(
@@ -896,7 +937,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               ListTile(
                 leading: const Icon(Icons.note),
-                title: Text('Notes'),
+                title: Text(t('notes')),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.push(
@@ -905,7 +946,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               ListTile(
                 leading: const Icon(Icons.help_center),
-                title: const Text('Help & Support'),
+                title: Text(t('help_and_support')),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.push(context,
@@ -914,7 +955,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               ListTile(
                 leading: const Icon(Icons.feedback),
-                title: const Text('Feedback'),
+                title: Text(t('feedback')),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.pushNamed(context, '/feedback');
@@ -922,13 +963,13 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               ListTile(
                 leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
+                title: Text(t('logout')),
                 onTap: () => _confirmLogout(context),
               ),
             ],
           ),
         ),
-        backgroundColor: const Color(0xFFF8F6FA),
+        backgroundColor: AppThemeColors.scaffoldBg(context),
         floatingActionButton: Container(
           width: context.sh(64),
           height: context.sh(64),
@@ -973,7 +1014,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 Positioned.fill(
                   child: ClipPath(
                     clipper: _BottomNavWaveClipper(),
-                    child: Container(color: const Color(0xFF009999)),
+                    child: Container(color: AppThemeColors.waveSolid(context)),
                   ),
                 ),
                 // Icons sit in the solid area at the bottom of the wave
@@ -985,23 +1026,23 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _navBarItem(Icons.settings_rounded, 'Settings', () {
+                      _navBarItem(Icons.settings_rounded, t('settings'), () {
                         Navigator.pushNamed(context, '/settings');
                       }),
-                      _navBarItem(Icons.monetization_on_rounded, 'Coins', () {
+                      _navBarItem(Icons.monetization_on_rounded, t('coins_label'), () {
                         final session = Provider.of<SessionProvider>(context,
                             listen: false);
                         _openLenDenCoinsPage(session.lenDenCoins ?? 0);
                       }, accent: const Color(0xFFFF9F45)),
                       SizedBox(width: context.sh(48)),
                       _navBarItem(Icons.account_balance_wallet_rounded,
-                          'Wallet', () {
+                          t('wallet_label'), () {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const LendenWalletPage()));
                       }, accent: const Color(0xFFFF9F45)),
-                      _navBarItem(Icons.logout_rounded, 'Logout',
+                      _navBarItem(Icons.logout_rounded, t('logout'),
                           () => _confirmLogout(context)),
                     ],
                   ),
@@ -1065,14 +1106,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
                                       Icons.search,
-                                      color: Colors.grey[600],
+                                      color: AppThemeColors.secondaryText(context),
                                       size: 20,
                                     ),
                                     const SizedBox(width: 12),
@@ -1080,23 +1121,25 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                       child: TextField(
                                         controller: _searchController,
                                         onSubmitted: _performSearch,
+                                        style: TextStyle(
+                                          fontSize: context.sp(15),
+                                          color: AppThemeColors.primaryText(context),
+                                        ),
                                         decoration: InputDecoration(
-                                          hintText: 'Search sections...',
+                                          hintText: t('search_sections_placeholder'),
                                           hintStyle: TextStyle(
-                                              color: Colors.grey[400]),
+                                              color: AppThemeColors.mutedText(context)),
                                           border: InputBorder.none,
                                           contentPadding:
                                               const EdgeInsets.symmetric(
                                                   vertical: 8),
                                         ),
-                                        style:
-                                            TextStyle(fontSize: context.sp(15)),
                                       ),
                                     ),
                                     if (_searchController.text.isNotEmpty)
                                       IconButton(
                                         icon: Icon(Icons.clear,
-                                            color: Colors.grey[600], size: 20),
+                                            color: AppThemeColors.secondaryText(context), size: 20),
                                         onPressed: () {
                                           setState(() {
                                             _searchController.clear();
@@ -1126,14 +1169,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                             ),
                             padding: const EdgeInsets.all(2),
                             child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: AppThemeColors.cardBg(context),
                                 shape: BoxShape.circle,
                               ),
                               child: IconButton(
                                 icon: Icon(Icons.more_vert,
                                     color: Color(0xFF00B4D8)),
-                                tooltip: 'Quick Actions View',
+                                tooltip: t('quick_actions_view_label'),
                                 onPressed: _showQuickActionsViewMenu,
                               ),
                             ),
@@ -1167,7 +1210,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE0F7FA),
+                          color: AppThemeColors.tinted(context,
+                              light: const Color(0xFFE0F7FA),
+                              dark: const Color(0xFF0F2E33)),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Column(
@@ -1182,7 +1227,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                         color: AppColors.cyan),
                                     SizedBox(width: 8),
                                     Text(
-                                      'Counterparties',
+                                      t('counterparties'),
                                       style: TextStyle(
                                         fontSize: context.sp(16),
                                         fontWeight: FontWeight.bold,
@@ -1209,7 +1254,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: const Text('View'),
+                                  child: Text(t('view_label')),
                                 ),
                               ],
                             ),
@@ -1227,18 +1272,19 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Transaction Options',
+                            t('transaction_options_title'),
                             style: TextStyle(
                               fontSize: context.sp(16),
                               fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Open the main transaction tools from one place.',
+                            t('open_main_transaction_tools_subtitle'),
                             style: TextStyle(
                               fontSize: context.sp(12),
-                              color: Colors.grey[600],
+                              color: AppThemeColors.secondaryText(context),
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -1260,14 +1306,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               ),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _buildTransactionLayoutChip(
-                                      label: 'Single View',
+                                      label: t('single_view_label'),
                                       selected: !_useCompactTransactionOptions,
                                       onTap: () {
                                         setState(() {
@@ -1276,7 +1322,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                       },
                                     ),
                                     _buildTransactionLayoutChip(
-                                      label: 'Grid View',
+                                      label: t('grid_view_label'),
                                       selected: _useCompactTransactionOptions,
                                       onTap: () {
                                         setState(() {
@@ -1309,7 +1355,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: context.sh(78),
-                  color: AppColors.cyan,
+                  color: AppThemeColors.waveSolid(context),
                 ),
               ),
             ),
@@ -1331,8 +1377,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                           Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.arrow_back,
-                                    color: Colors.black),
+                                icon: Icon(Icons.arrow_back,
+                                    color: AppThemeColors.iconOnWave(context)),
                                 onPressed: () async {
                                   final popped =
                                       await Navigator.of(context).maybePop();
@@ -1344,8 +1390,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               ),
                               Builder(
                                 builder: (context) => IconButton(
-                                  icon: const Icon(Icons.menu,
-                                      color: Colors.black),
+                                  icon: Icon(Icons.menu,
+                                      color: AppThemeColors.iconOnWave(context)),
                                   onPressed: () =>
                                       Scaffold.of(context).openDrawer(),
                                 ),
@@ -1359,9 +1405,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               NotificationIcon(),
                               const SizedBox(width: 4),
                               IconButton(
-                                icon: const Icon(Icons.emoji_events,
-                                    color: Color(0xFF005F73), size: 26),
-                                tooltip: 'Leaderboard',
+                                icon: Icon(Icons.emoji_events,
+                                    color: AppThemeColors.primaryText(context), size: 26),
+                                tooltip: t('leaderboard'),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
@@ -1405,14 +1451,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                   child: CircleAvatar(
                                     key: ValueKey(_imageRefreshKey),
                                     radius: 16,
-                                    backgroundColor: Colors.white,
+                                    backgroundColor: AppThemeColors.cardBg(context),
                                     backgroundImage: _getUserAvatar(),
                                     onBackgroundImageError:
                                         (exception, stackTrace) {},
                                     child: _getUserAvatar() is AssetImage
                                         ? Icon(
                                             Icons.person,
-                                            color: Colors.grey[400],
+                                            color: AppThemeColors.mutedText(context),
                                             size: 20,
                                           )
                                         : null,
@@ -1438,52 +1484,52 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   static const List<Map<String, dynamic>> _quickActionsViewOptions = [
     {
       'style': _QuickActionsViewStyle.grid,
-      'label': 'Grid',
+      'label': 'grid_label',
       'icon': Icons.grid_view_rounded,
     },
     {
       'style': _QuickActionsViewStyle.orbit,
-      'label': 'Orbit',
+      'label': 'orbit_label',
       'icon': Icons.circle_outlined,
     },
     {
       'style': _QuickActionsViewStyle.verticalOrbit,
-      'label': 'Vertical Orbit',
+      'label': 'vertical_orbit_label',
       'icon': Icons.swap_vert_circle_outlined,
     },
     {
       'style': _QuickActionsViewStyle.galaxy,
-      'label': 'Galaxy',
+      'label': 'galaxy_label',
       'icon': Icons.blur_circular,
     },
     {
       'style': _QuickActionsViewStyle.zigzag,
-      'label': 'Zig Zag',
+      'label': 'zig_zag_label',
       'icon': Icons.show_chart_rounded,
     },
     {
       'style': _QuickActionsViewStyle.star,
-      'label': 'Star',
+      'label': 'star_label',
       'icon': Icons.star_rate_rounded,
     },
     {
       'style': _QuickActionsViewStyle.spiral,
-      'label': 'Spiral',
+      'label': 'spiral_label',
       'icon': Icons.cyclone_rounded,
     },
     {
       'style': _QuickActionsViewStyle.wave,
-      'label': 'Wave',
+      'label': 'wave_label',
       'icon': Icons.waves_rounded,
     },
     {
       'style': _QuickActionsViewStyle.circle,
-      'label': 'Circle',
+      'label': 'circle_label',
       'icon': Icons.radio_button_unchecked,
     },
     {
       'style': _QuickActionsViewStyle.list,
-      'label': 'List',
+      'label': 'list_label',
       'icon': Icons.view_list_rounded,
     },
   ];
@@ -1517,7 +1563,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             padding: const EdgeInsets.all(3),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(23),
               ),
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
@@ -1537,15 +1583,19 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                             color: Colors.white, size: 18),
                       ),
                       const SizedBox(width: 10),
-                      const Text('Quick Actions View',
+                      Text(t('quick_actions_view_label'),
                           style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(context))),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Choose how the 9 quick actions are displayed.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    t('choose_quick_actions_display'),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppThemeColors.secondaryText(context)),
                   ),
                   const SizedBox(height: 16),
                   GridView.builder(
@@ -1585,14 +1635,16 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 : null,
                             border: selected
                                 ? null
-                                : Border.all(color: Colors.grey[300]!),
+                                : Border.all(color: AppThemeColors.divider(context)),
                           ),
                           padding: EdgeInsets.all(selected ? 2 : 0),
                           child: Container(
                             decoration: BoxDecoration(
                               color: selected
-                                  ? const Color(0xFFE0F7FA)
-                                  : Colors.white,
+                                  ? AppThemeColors.tinted(context,
+                                      light: const Color(0xFFE0F7FA),
+                                      dark: const Color(0xFF0F2E33))
+                                  : AppThemeColors.cardBg(context),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Column(
@@ -1601,11 +1653,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 Icon(option['icon'] as IconData,
                                     color: selected
                                         ? const Color(0xFF00B4D8)
-                                        : Colors.grey[600],
+                                        : AppThemeColors.secondaryText(context),
                                     size: 26),
                                 const SizedBox(height: 6),
                                 Text(
-                                  option['label'] as String,
+                                  t(option['label'] as String),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 11,
@@ -1614,7 +1666,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                         : FontWeight.w600,
                                     color: selected
                                         ? const Color(0xFF00B4D8)
-                                        : Colors.grey[700],
+                                        : AppThemeColors.secondaryText(context),
                                   ),
                                 ),
                               ],
@@ -1670,7 +1722,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               final item = _carouselItems[index];
               return _buildQuickActionItem(
                 icon: item['icon'] as IconData,
-                label: item['label'] as String,
+                label: _quickActionLabel(item['action'] as String),
                 color: item['color'] as Color,
                 onTap: () => _handleCarouselAction(item['action'] as String),
                 index: index,
@@ -1707,7 +1759,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   opacity: (sin(angle) + 1) / 2 * 0.8 + 0.2,
                   child: _buildQuickActionItem(
                     icon: item['icon'] as IconData,
-                    label: item['label'] as String,
+                    label: _quickActionLabel(item['action'] as String),
                     color: item['color'] as Color,
                     onTap: () =>
                         _handleCarouselAction(item['action'] as String),
@@ -1747,7 +1799,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   opacity: (cos(angle) + 1) / 2 * 0.8 + 0.2,
                   child: _buildQuickActionItem(
                     icon: item['icon'] as IconData,
-                    label: item['label'] as String,
+                    label: _quickActionLabel(item['action'] as String),
                     color: item['color'] as Color,
                     onTap: () =>
                         _handleCarouselAction(item['action'] as String),
@@ -1795,7 +1847,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   opacity: (sin(angle) + 1) / 2 * 0.7 + 0.3,
                   child: _buildQuickActionItem(
                     icon: item['icon'] as IconData,
-                    label: item['label'] as String,
+                    label: _quickActionLabel(item['action'] as String),
                     color: item['color'] as Color,
                     onTap: () =>
                         _handleCarouselAction(item['action'] as String),
@@ -1827,7 +1879,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               child: _buildQuickActionItem(
                 icon: item['icon'] as IconData,
-                label: item['label'] as String,
+                label: _quickActionLabel(item['action'] as String),
                 color: item['color'] as Color,
                 onTap: () => _handleCarouselAction(item['action'] as String),
                 index: index,
@@ -1860,7 +1912,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 offset: Offset(x, y),
                 child: _buildQuickActionItem(
                   icon: item['icon'] as IconData,
-                  label: item['label'] as String,
+                  label: _quickActionLabel(item['action'] as String),
                   color: item['color'] as Color,
                   onTap: () =>
                       _handleCarouselAction(item['action'] as String),
@@ -1898,7 +1950,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 alignment: Alignment.center,
                 child: _buildQuickActionItem(
                   icon: item['icon'] as IconData,
-                  label: item['label'] as String,
+                  label: _quickActionLabel(item['action'] as String),
                   color: item['color'] as Color,
                   onTap: () =>
                       _handleCarouselAction(item['action'] as String),
@@ -1931,7 +1983,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     top: 50 + y,
                     child: _buildQuickActionItem(
                       icon: item['icon'] as IconData,
-                      label: item['label'] as String,
+                      label: _quickActionLabel(item['action'] as String),
                       color: item['color'] as Color,
                       onTap: () =>
                           _handleCarouselAction(item['action'] as String),
@@ -1961,7 +2013,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             offset: Offset(x, y),
             child: _buildQuickActionItem(
               icon: item['icon'] as IconData,
-              label: item['label'] as String,
+              label: _quickActionLabel(item['action'] as String),
               color: item['color'] as Color,
               onTap: () => _handleCarouselAction(item['action'] as String),
               index: index,
@@ -1984,9 +2036,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey[200]!),
+                border: Border.all(color: AppThemeColors.divider(context)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
@@ -2009,12 +2061,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      item['label'] as String,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 15),
+                      _quickActionLabel(item['action'] as String),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: Colors.grey[400]),
+                  Icon(Icons.chevron_right, color: AppThemeColors.mutedText(context)),
                 ],
               ),
             ),
@@ -2047,7 +2101,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getBoxColor(index),
+                color: _getBoxColor(index, context),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: context.sp(22)),
@@ -2059,7 +2113,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             style: TextStyle(
               fontSize: context.sp(10),
               fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
+              color: AppThemeColors.secondaryText(context),
             ),
           ),
         ],
@@ -2072,11 +2126,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       _buildDashboardOptionCard(
         key: _sectionKeys['quick_transactions'],
         icon: Icons.flash_on,
-        title: 'Quick Transactions',
-        subtitle: 'Fast entries and shortcuts',
-        valueLabel: 'Quick',
+        title: t('quick_transactions_title'),
+        subtitle: t('fast_entries_shortcuts_desc'),
+        valueLabel: t('quick_label'),
         iconColor: Colors.amber,
-        fillColor: _getBoxColor(0),
+        fillColor: _getBoxColor(0, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2088,22 +2142,22 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       _buildDashboardOptionCard(
         key: _sectionKeys['transactions'],
         icon: Icons.swap_horiz,
-        title: 'Create Secure Transactions',
-        subtitle: 'Start a secure transaction',
-        valueLabel: 'Create',
+        title: t('create_secure_transactions_title'),
+        subtitle: t('start_secure_transaction_desc'),
+        valueLabel: t('create'),
         iconColor: Colors.teal,
-        fillColor: _getBoxColor(1),
+        fillColor: _getBoxColor(1, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: showTransactionForm,
       ),
       _buildDashboardOptionCard(
         key: _sectionKeys['your_transactions'],
         icon: Icons.account_balance_wallet,
-        title: 'View Secure Transactions',
-        subtitle: 'See all secure records',
-        valueLabel: 'View',
+        title: t('view_secure_transactions_title'),
+        subtitle: t('see_all_secure_records_desc'),
+        valueLabel: t('view_label'),
         iconColor: Colors.blue,
-        fillColor: _getBoxColor(2),
+        fillColor: _getBoxColor(2, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2115,11 +2169,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       _buildDashboardOptionCard(
         key: _sectionKeys['analytics'],
         icon: Icons.analytics,
-        title: 'Analytics',
-        subtitle: 'Secure and group insights',
-        valueLabel: 'Stats',
+        title: t('analytics'),
+        subtitle: t('secure_and_group_insights_desc'),
+        valueLabel: t('stats_label'),
         iconColor: AppColors.cyan,
-        fillColor: _getBoxColor(3),
+        fillColor: _getBoxColor(3, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2131,11 +2185,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       _buildDashboardOptionCard(
         key: _sectionKeys['group_transaction'],
         icon: Icons.group,
-        title: 'Create Group',
-        subtitle: 'Start a shared expense group',
-        valueLabel: 'Create',
+        title: t('create_group_title'),
+        subtitle: t('start_shared_expense_group_desc'),
+        valueLabel: t('create'),
         iconColor: Colors.deepPurple,
-        fillColor: _getBoxColor(4),
+        fillColor: _getBoxColor(4, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2147,11 +2201,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       _buildDashboardOptionCard(
         key: _sectionKeys['view_group'],
         icon: Icons.visibility,
-        title: 'View Groups',
-        subtitle: 'Open your group transactions',
-        valueLabel: 'View',
+        title: t('view_groups_title'),
+        subtitle: t('open_your_group_transactions_desc'),
+        valueLabel: t('view_label'),
         iconColor: Colors.orange,
-        fillColor: _getBoxColor(5),
+        fillColor: _getBoxColor(5, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2265,7 +2319,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   width: 42,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: AppThemeColors.cardBg(context).withValues(alpha: 0.92),
                   ),
                   child: Icon(icon, color: iconColor),
                 ),
@@ -2277,7 +2331,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                   style: TextStyle(
                     fontSize: context.sp(14),
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2297,7 +2351,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: context.sp(11),
-                      color: Colors.grey[700],
+                      color: AppThemeColors.secondaryText(context),
                     ),
                   ),
                 ],
@@ -2374,7 +2428,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           elevation: 0,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -2401,9 +2455,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                         clipper: LogoutWaveClipper(),
                         child: Container(
                           height: context.sh(80),
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Color(0xFF0077B6), AppColors.cyan],
+                              colors: AppThemeColors.waveGradient(context),
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -2451,25 +2505,25 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               AlwaysStoppedAnimation<Color>(AppColors.cyan),
                         ),
                         SizedBox(height: context.sh(16)),
-                        Text('Logging out...',
+                        Text(t('logging_out_label'),
                             style: TextStyle(
                               fontSize: context.sp(16),
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: AppThemeColors.primaryText(context),
                             )),
                       ] else ...[
-                        Text('Are you sure?',
+                        Text(t('are_you_sure_title'),
                             style: TextStyle(
                               fontSize: context.sp(22),
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: AppThemeColors.primaryText(context),
                             )),
                         SizedBox(height: context.sh(8)),
                         Text(
-                          'You will be logged out of\nyour account.',
+                          t('logout_confirm_message'),
                           style: TextStyle(
                             fontSize: context.sp(14),
-                            color: Colors.grey[500],
+                            color: AppThemeColors.secondaryText(context),
                             height: 1.5,
                           ),
                           textAlign: TextAlign.center,
@@ -2491,7 +2545,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                   padding: EdgeInsets.symmetric(
                                       vertical: context.sh(14)),
                                 ),
-                                child: Text('Cancel',
+                                child: Text(t('cancel'),
                                     style: TextStyle(
                                         fontSize: context.sp(14),
                                         fontWeight: FontWeight.w600)),
@@ -2543,7 +2597,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                     children: [
                                       const Icon(Icons.logout_rounded, size: 18),
                                       const SizedBox(width: 6),
-                                      Text('Logout',
+                                      Text(t('logout'),
                                           style: TextStyle(
                                               fontSize: context.sp(14),
                                               fontWeight: FontWeight.bold)),
@@ -2628,7 +2682,10 @@ class LogoutWaveClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-Color _getBoxColor(int index) {
+Color _getBoxColor(int index, BuildContext context) {
+  if (AppThemeColors.isDark(context)) {
+    return AppThemeColors.surfaceBg(context);
+  }
   // Returns alternating soft colors for visual variety
   final colors = [
     Color(0xFFE8F5E9), // Soft green

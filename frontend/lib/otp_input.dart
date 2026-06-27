@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'utils/theme_helper.dart';
 
 class OtpInput extends StatefulWidget {
   final void Function(String) onChanged;
@@ -75,7 +76,7 @@ class _OtpInputState extends State<OtpInput> {
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: TextField(
@@ -86,7 +87,10 @@ class _OtpInputState extends State<OtpInput> {
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               maxLength: 1,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context)),
               decoration: const InputDecoration(
                 counterText: '',
                 filled: true,

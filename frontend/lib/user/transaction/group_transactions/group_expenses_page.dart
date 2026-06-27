@@ -9,6 +9,9 @@ import '../../../utils/api_client.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../session.dart';
 import '../../../widgets/stylish_dialog.dart';
+import '../../../utils/share_utils.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -93,12 +96,27 @@ IconData _categoryIcon(String? key) {
   return cat['icon'] as IconData;
 }
 
-String _categoryLabel(String? key) {
-  final cat = _kCategories.firstWhere(
-    (c) => c['key'] == key,
-    orElse: () => _kCategories.last,
-  );
-  return cat['label'] as String;
+String _categoryLabel(String? key, String Function(String) t) {
+  switch (key) {
+    case 'food':
+      return t('category_food_label');
+    case 'transport':
+      return t('category_transport_label');
+    case 'accommodation':
+      return t('category_stay_label');
+    case 'entertainment':
+      return t('category_fun_label');
+    case 'shopping':
+      return t('category_shopping_label');
+    case 'utilities':
+      return t('category_utilities_label');
+    case 'medical':
+      return t('category_medical_label');
+    case 'education':
+      return t('category_education_label');
+    default:
+      return t('other');
+  }
 }
 
 // All supported currencies
@@ -272,18 +290,19 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   }
 
   void _handleSubmit() {
+    final t = AppLocalizations.of(context).t;
     final desc = descCtrl.text.trim();
     final amount = double.tryParse(amtCtrl.text.trim());
     if (desc.isEmpty) {
-      _validationError('Enter a description');
+      _validationError(t('enter_a_description_message'));
       return;
     }
     if (amount == null || amount <= 0) {
-      _validationError('Enter a valid amount');
+      _validationError(t('enter_a_valid_amount'));
       return;
     }
     if (selectedEmails.isEmpty) {
-      _validationError('Select at least one member');
+      _validationError(t('select_at_least_one_member_message'));
       return;
     }
 
@@ -311,7 +330,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
           0.0, (s, m) => s + ((m['amount'] ?? 0) as num).toDouble());
       if ((total - amount).abs() > 0.01) {
         _validationError(
-            'Split total (${total.toStringAsFixed(2)}) must equal amount (${amount.toStringAsFixed(2)})');
+            t('split_total_must_equal_amount_message').replaceFirst('{total}', total.toStringAsFixed(2)).replaceFirst('{amount}', amount.toStringAsFixed(2)));
         return;
       }
     }
@@ -323,6 +342,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final lockedCurrency = widget.lockedCurrency;
     final expense = widget.expense;
     final allEmails = widget.allEmails;
@@ -368,7 +388,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    expense == null ? 'Add Expense' : 'Edit Expense',
+                    expense == null ? t('add_expense_label') : t('edit_expense_label'),
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold),
                   ),
@@ -405,7 +425,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${widget.skippedLeftCount} member(s) from this expense have left the group. Their balances are auto-settled and cannot be re-included here.',
+                        t('members_left_group_balances_auto_settled_message').replaceFirst('{count}', '${widget.skippedLeftCount}'),
                         style: TextStyle(
                             fontSize: 12, color: Colors.orange[800]),
                       ),
@@ -418,7 +438,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
             TextField(
               controller: descCtrl,
               decoration: InputDecoration(
-                hintText: 'Description (e.g. Dinner, Hotel)',
+                hintText: t('description_hint_dinner_hotel_message'),
                 prefixIcon: const Icon(Icons.description_outlined),
                 filled: true,
                 fillColor: Colors.grey[100],
@@ -466,7 +486,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            cat['label'] as String,
+                            _categoryLabel(cat['key'] as String, t),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -493,7 +513,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
-                      hintText: 'Amount',
+                      hintText: t('amount_hint'),
                       prefixIcon:
                           const Icon(Icons.currency_rupee_rounded),
                       filled: true,
@@ -583,8 +603,8 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                   Flexible(
                     child: Text(
                       expense != null
-                          ? 'Currency cannot be changed when editing an expense'
-                          : 'Currency is fixed for this group ($lockedCurrency)',
+                          ? t('currency_cannot_be_changed_editing_message')
+                          : t('currency_fixed_for_group_message').replaceFirst('{currency}', '$lockedCurrency'),
                       style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ),
@@ -594,8 +614,8 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
             const SizedBox(height: 12),
 
             // ── Added by picker ───────────────────────────────────
-            const Text('Added by (who paid)',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            Text(t('added_by_who_paid_label'),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 6),
             SizedBox(
               height: 38,
@@ -627,7 +647,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                               child: Icon(Icons.check_circle_rounded, size: 13, color: Colors.white),
                             ),
                           Text(
-                            email == widget.currentUserEmail ? 'You' : email.split('@').first,
+                            email == widget.currentUserEmail ? t('you_label') : email.split('@').first,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -646,8 +666,8 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
 
             Row(
               children: [
-                const Text('Split between',
-                    style: TextStyle(
+                Text(t('split_between_label'),
+                    style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 14)),
                 const Spacer(),
                 GestureDetector(
@@ -662,8 +682,8 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                   }),
                   child: Text(
                     selectedEmails.length == allEmails.length
-                        ? 'Deselect all'
-                        : 'Select all',
+                        ? t('deselect_all_label')
+                        : t('select_all_label'),
                     style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF2E7D32),
@@ -738,18 +758,18 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
             }).toList(),
 
             const SizedBox(height: 12),
-            const Text('Split type',
+            Text(t('split_type_label'),
                 style:
-                    TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _chip('Equal split', 'equal', splitType,
+                  _chip(t('equal_split_label'), 'equal', splitType,
                       (v) => setState(() => splitType = v)),
                   const SizedBox(width: 8),
-                  _chip('Custom split', 'custom', splitType,
+                  _chip(t('custom_split_label'), 'custom', splitType,
                       (v) => setState(() => splitType = v)),
                 ],
               ),
@@ -797,7 +817,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Assigned: $symStr${assigned.toStringAsFixed(2)}',
+                        '${t('assigned_label')}: $symStr${assigned.toStringAsFixed(2)}',
                         style: TextStyle(
                             fontSize: 12,
                             color: textColor,
@@ -805,10 +825,10 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                       ),
                       Text(
                         exact
-                            ? '✓ Balanced'
+                            ? '✓ ${t('balanced_label')}'
                             : over
-                                ? 'Over by $symStr${(-remaining).toStringAsFixed(2)}'
-                                : 'Left: $symStr${remaining.toStringAsFixed(2)}',
+                                ? '${t('over_by_label')} $symStr${(-remaining).toStringAsFixed(2)}'
+                                : '${t('left_colon_label')} $symStr${remaining.toStringAsFixed(2)}',
                         style: TextStyle(
                             fontSize: 12,
                             color: textColor,
@@ -820,7 +840,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
               }),
               const SizedBox(height: 8),
               Text(
-                'Amount for each selected member:',
+                t('amount_for_each_selected_member_label'),
                 style:
                     TextStyle(fontSize: 13, color: Colors.grey[600]),
               ),
@@ -895,7 +915,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                           : Icons.save_rounded,
                       color: Colors.white),
                   label: Text(
-                    expense == null ? 'Add Expense' : 'Save Changes',
+                    expense == null ? t('add_expense_label') : t('save_changes_label'),
                     style: const TextStyle(
                         color: Colors.white, fontSize: 16),
                   ),
@@ -993,6 +1013,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   Future<void> _openAddExpense() async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (!session.isSubscribed) {
       await Future.wait([
@@ -1004,7 +1025,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       final coins = session.lenDenCoins ?? 0;
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,
-        featureName: 'group expense',
+        featureName: t('group_expense_feature_label'),
         coinCost: 5,
         currentCoins: coins,
       );
@@ -1125,6 +1146,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   void _showReceiptDialog() {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -1132,7 +1154,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         child: _tricolorBorderBox(
           radius: 20,
           child: Container(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             padding: const EdgeInsets.all(20),
             constraints: const BoxConstraints(maxWidth: 320),
             child: Column(
@@ -1143,8 +1165,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                   const Icon(Icons.picture_as_pdf_rounded,
                       color: Color(0xFF2E7D32)),
                   const SizedBox(width: 8),
-                  const Text('Group Report',
-                      style: TextStyle(
+                  Text(t('group_report_label'),
+                      style: const TextStyle(
                           fontSize: 17, fontWeight: FontWeight.bold)),
                 ]),
                 const SizedBox(height: 16),
@@ -1158,7 +1180,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.email_outlined),
-                    label: const Text('Send to my email'),
+                    label: Text(t('send_to_my_email_label')),
                     onPressed: () {
                       Navigator.pop(context);
                       _requestReceipt('email');
@@ -1170,17 +1192,36 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: AppThemeColors.cardBg(context),
                       foregroundColor: const Color(0xFF2E7D32),
                       side: const BorderSide(color: Color(0xFF2E7D32)),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.download_rounded),
-                    label: const Text('Download PDF'),
+                    label: Text(t('download_pdf_label')),
                     onPressed: () {
                       Navigator.pop(context);
                       _requestReceipt('download');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppThemeColors.cardBg(context),
+                      foregroundColor: const Color(0xFF2E7D32),
+                      side: const BorderSide(color: Color(0xFF2E7D32)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.share_rounded),
+                    label: Text(t('share_pdf_label')),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _requestReceipt('share');
                     },
                   ),
                 ),
@@ -1193,6 +1234,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   Future<void> _requestReceipt(String action) async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _loading = true);
     final res = await ApiClient.post(
       '/api/group-transactions/${widget.groupId}/receipt',
@@ -1208,13 +1250,21 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           await file.writeAsBytes(res.bodyBytes);
           await OpenFile.open(file.path);
         } catch (e) {
-          _showError('Could not open PDF: $e');
+          _showError('${t('could_not_open_pdf_message')}: $e');
         }
+      } else if (action == 'share') {
+        final ok = await shareBytesFile(
+          bytes: res.bodyBytes,
+          filename: 'group-receipt-${widget.groupId}.pdf',
+          subject: '${widget.groupTitle} - Group Summary',
+          mimeType: 'application/pdf',
+        );
+        if (!ok) _showError(t('could_not_share_pdf_message'));
       } else {
-        _showSnack('Report sent to your email!', success: true);
+        _showSnack(t('report_sent_to_email_message'), success: true);
       }
     } else {
-      _showError(jsonDecode(res.body)['error'] ?? 'Failed to generate report');
+      _showError(jsonDecode(res.body)['error'] ?? t('failed_to_generate_report_message'));
     }
   }
 
@@ -1229,7 +1279,10 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           : null,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: Color(0xFF2E7D32)),
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
+                primary: const Color(0xFF2E7D32),
+                onPrimary: Colors.white,
+              ),
         ),
         child: child!,
       ),
@@ -1243,6 +1296,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   Future<void> _deleteExpense(String expenseId) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
@@ -1250,7 +1304,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         child: _tricolorBorderBox(
           radius: 20,
           child: Container(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1259,17 +1313,17 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                 Row(children: [
                   const Icon(Icons.delete_rounded, color: Colors.red),
                   const SizedBox(width: 8),
-                  const Text('Delete Expense',
-                      style: TextStyle(
+                  Text(t('delete_expense_title'),
+                      style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.red)),
                 ]),
                 const SizedBox(height: 12),
-                const Text('Are you sure you want to delete this expense?',
-                    style: TextStyle(fontSize: 14)),
+                Text(t('confirm_delete_expense_message'),
+                    style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 8),
-                Text('This action cannot be undone.',
+                Text(t('action_cannot_be_undone_message'),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                 const SizedBox(height: 20),
                 Row(
@@ -1277,7 +1331,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                   children: [
                     TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel')),
+                        child: Text(t('cancel'))),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -1285,8 +1339,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12))),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete',
-                          style: TextStyle(color: Colors.white)),
+                      child: Text(t('delete'),
+                          style: const TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -1302,15 +1356,16 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         '/api/group-transactions/${widget.groupId}/expenses/$expenseId');
     if (!mounted) return;
     if (res.statusCode == 200) {
-      _showSnack('Expense deleted', success: true);
+      _showSnack(t('expense_deleted_message'), success: true);
       _refresh();
     } else {
       setState(() => _loading = false);
-      _showError(jsonDecode(res.body)['error'] ?? 'Failed to delete');
+      _showError(jsonDecode(res.body)['error'] ?? t('failed_to_delete_expense_message'));
     }
   }
 
   Future<void> _settleExpense(String expenseId) async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _loading = true);
     final res = await ApiClient.post(
       '/api/group-transactions/${widget.groupId}/expenses/$expenseId/settle',
@@ -1318,11 +1373,11 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     );
     if (!mounted) return;
     if (res.statusCode == 200) {
-      _showSnack('Your share settled!', success: true);
+      _showSnack(t('your_share_settled_message'), success: true);
       _refresh();
     } else {
       setState(() => _loading = false);
-      _showError(jsonDecode(res.body)['error'] ?? 'Failed to settle');
+      _showError(jsonDecode(res.body)['error'] ?? t('failed_to_settle_message'));
     }
   }
 
@@ -1362,9 +1417,10 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   void _showError(String raw) {
+    final t = AppLocalizations.of(context).t;
     String msg = raw;
     if (raw.contains('Cannot include members who have left')) {
-      msg = 'Some selected members have left this group and cannot be included. Deselect them before saving.';
+      msg = t('members_left_cannot_include_message');
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1450,7 +1506,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1509,12 +1565,13 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         },
       );
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       if (res.statusCode == 200 || res.statusCode == 201) {
-        _showSnack('Expense added!', success: true);
+        _showSnack(t('expense_added_message'), success: true);
         _refresh();
       } else {
         setState(() => _loading = false);
-        _showError(jsonDecode(res.body)['error'] ?? 'Failed to add expense');
+        _showError(jsonDecode(res.body)['error'] ?? t('failed_to_add_expense_message'));
       }
     } else {
       final res = await ApiClient.put(
@@ -1530,12 +1587,13 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         },
       );
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       if (res.statusCode == 200) {
-        _showSnack('Expense updated!', success: true);
+        _showSnack(t('expense_updated_message'), success: true);
         _refresh();
       } else {
         setState(() => _loading = false);
-        _showError(jsonDecode(res.body)['error'] ?? 'Failed to update expense');
+        _showError(jsonDecode(res.body)['error'] ?? t('failed_to_update_expense_message'));
       }
     }
   }
@@ -1547,16 +1605,18 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       body: {'memberEmails': emails},
     );
     if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     if (res.statusCode == 200) {
-      _showSnack('Settled successfully!', success: true);
+      _showSnack(t('settled_successfully_message'), success: true);
       _refresh();
     } else {
       setState(() => _loading = false);
-      _showError(jsonDecode(res.body)['error'] ?? 'Failed to settle');
+      _showError(jsonDecode(res.body)['error'] ?? t('failed_to_settle_message'));
     }
   }
 
   void _showSettleMembersDialog(Map<String, dynamic> expense) {
+    final t = AppLocalizations.of(context).t;
     final expenseId = expense['_id']?.toString() ?? '';
     final split = List<dynamic>.from(expense['split'] ?? []);
     final unsettled = split
@@ -1566,7 +1626,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         .toList();
 
     if (unsettled.isEmpty) {
-      _showSnack('All splits are already settled!', success: true);
+      _showSnack(t('all_splits_already_settled_message'), success: true);
       return;
     }
 
@@ -1580,7 +1640,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           child: _tricolorBorderBox(
             radius: 20,
             child: Container(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               constraints: const BoxConstraints(maxWidth: 360),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1601,7 +1661,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Settle Members — ${expense['description']}',
+                            t('settle_members_title_message')
+                                .replaceFirst('{description}', expense['description']?.toString() ?? ''),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1620,13 +1681,13 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                         TextButton(
                           onPressed: () =>
                               setDlg(() => selected.addAll(unsettled)),
-                          child: const Text('Select All'),
+                          child: Text(t('select_all_label')),
                         ),
                         const SizedBox(width: 4),
                         TextButton(
                           onPressed: () =>
                               setDlg(() => selected.clear()),
-                          child: const Text('Clear'),
+                          child: Text(t('clear')),
                         ),
                         const Spacer(),
                         // Settle All for this expense — one tap
@@ -1637,7 +1698,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           },
                           icon: const Icon(Icons.done_all_rounded,
                               size: 15),
-                          label: const Text('Settle All'),
+                          label: Text(t('settle_all_label')),
                           style: TextButton.styleFrom(
                             foregroundColor: const Color(0xFF2E7D32),
                           ),
@@ -1709,7 +1770,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancel'),
+                            child: Text(t('cancel')),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1728,7 +1789,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                     _settleMembers(
                                         expenseId, selected.toList());
                                   },
-                            child: const Text('Settle'),
+                            child: Text(t('settle_label')),
                           ),
                         ),
                       ],
@@ -1744,6 +1805,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   void _showSplitsDialog(Map<String, dynamic> expense) {
+    final t = AppLocalizations.of(context).t;
     final split = List<dynamic>.from(expense['split'] ?? []);
     final sym = _currencySymbol(expense['currency']);
     showDialog(
@@ -1753,7 +1815,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         child: _tricolorBorderBox(
           radius: 20,
           child: Container(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             constraints: const BoxConstraints(maxWidth: 340),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1773,7 +1835,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Splits: ${expense['description']}',
+                          t('splits_title_message')
+                              .replaceFirst('{description}', expense['description']?.toString() ?? ''),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1861,7 +1924,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                         color: Colors.grey[500]),
                                   ),
                                 Text(
-                                  settled ? 'Settled' : 'Pending',
+                                  settled ? t('settled_label') : t('pending_label'),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: settled
@@ -1871,7 +1934,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                 ),
                                 if (settled && settledBy != null)
                                   Text(
-                                    'by ${settledBy.split('@').first}',
+                                    t('settled_by_label')
+                                        .replaceFirst('{name}', settledBy.split('@').first),
                                     style: TextStyle(
                                         fontSize: 9,
                                         color: Colors.green[400]),
@@ -1897,7 +1961,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                     width: double.infinity,
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
+                      child: Text(t('close')),
                     ),
                   ),
                 ),
@@ -1911,6 +1975,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _filtered;
     double myPendingInr = 0;
     for (final e in _expenses) {
@@ -1932,15 +1997,15 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     final groupCur = _groupCurrency;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0FF),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Expenses',
-                style: TextStyle(
+            Text(t('expenses_title_label'),
+                style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold)),
             Text(widget.groupTitle,
                 style: const TextStyle(
@@ -1964,10 +2029,10 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedDisplayCurrency,
-                dropdownColor: Colors.white,
+                dropdownColor: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(14),
-                style: const TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w600),
                 iconEnabledColor: Colors.white,
                 selectedItemBuilder: (_) =>
                     (_displayCurrencyData?.currencies ?? _kFallbackCurrencies)
@@ -1995,7 +2060,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Group Report',
+            tooltip: t('group_report_label'),
             onPressed: _showReceiptDialog,
           ),
           IconButton(
@@ -2025,14 +2090,15 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                   child: Row(
                     children: [
                       _statPill(
-                          '${_expenses.length} Expenses', Colors.white),
+                          t('expenses_count_label').replaceFirst('{count}', '${_expenses.length}'),
+                          Colors.white),
                       const SizedBox(width: 8),
                       _statPill(
-                          '${_fmtInr(myPendingInr)} Pending',
+                          t('amount_pending_label').replaceFirst('{amount}', _fmtInr(myPendingInr)),
                           Colors.orange[200]!),
                       if (groupCur != null) ...[
                         const SizedBox(width: 8),
-                        _statPill('Native: $groupCur', Colors.white70),
+                        _statPill(t('native_currency_label').replaceFirst('{currency}', groupCur), Colors.white70),
                       ],
                     ],
                   ),
@@ -2046,7 +2112,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
 
           // Filter chips + search + date
           Container(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Column(
               children: [
@@ -2055,11 +2121,11 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _filterChip('All', 'all'),
+                      _filterChip(t('filter_all_label'), 'all'),
                       const SizedBox(width: 8),
-                      _filterChip('Added by me', 'mine'),
+                      _filterChip(t('filter_added_by_me_label'), 'mine'),
                       const SizedBox(width: 8),
-                      _filterChip('My Pending', 'unsettled'),
+                      _filterChip(t('filter_my_pending_label'), 'unsettled'),
                       const SizedBox(width: 8),
                       // Date range button
                       GestureDetector(
@@ -2070,12 +2136,12 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           decoration: BoxDecoration(
                             color: (_dateFrom != null || _dateTo != null)
                                 ? const Color(0xFF2E7D32)
-                                : Colors.grey[100],
+                                : AppThemeColors.surfaceBg(context),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: (_dateFrom != null || _dateTo != null)
                                   ? const Color(0xFF2E7D32)
-                                  : Colors.grey[300]!,
+                                  : AppThemeColors.border(context),
                             ),
                           ),
                           child: Row(
@@ -2084,18 +2150,18 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                   size: 14,
                                   color: (_dateFrom != null || _dateTo != null)
                                       ? Colors.white
-                                      : Colors.grey[700]),
+                                      : AppThemeColors.secondaryText(context)),
                               const SizedBox(width: 4),
                               Text(
                                 (_dateFrom != null || _dateTo != null)
                                     ? '${_dateFrom != null ? "${_dateFrom!.day}/${_dateFrom!.month}" : "…"} – ${_dateTo != null ? "${_dateTo!.day}/${_dateTo!.month}" : "…"}'
-                                    : 'Date',
+                                    : t('date_label'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: (_dateFrom != null || _dateTo != null)
                                       ? Colors.white
-                                      : Colors.grey[700],
+                                      : AppThemeColors.secondaryText(context),
                                 ),
                               ),
                               if (_dateFrom != null || _dateTo != null) ...[
@@ -2118,9 +2184,9 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                 // Search bar
                 TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search by description or member…',
+                    hintText: t('search_description_member_hint'),
                     hintStyle:
-                        TextStyle(fontSize: 13, color: Colors.grey[400]),
+                        TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context)),
                     prefixIcon: const Icon(Icons.search_rounded, size: 20),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
@@ -2130,7 +2196,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: AppThemeColors.surfaceBg(context),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 8),
                     border: OutlineInputBorder(
@@ -2157,11 +2223,11 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.receipt_long_outlined,
-                            color: Colors.grey[300], size: 64),
+                            color: AppThemeColors.mutedText(context), size: 64),
                         const SizedBox(height: 8),
-                        Text('No expenses found',
+                        Text(t('no_expenses_found_message'),
                             style:
-                                TextStyle(color: Colors.grey[500])),
+                                TextStyle(color: AppThemeColors.secondaryText(context))),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
@@ -2170,9 +2236,9 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                           onPressed: _openAddExpense,
                           icon: const Icon(Icons.add,
                               color: Colors.white),
-                          label: const Text('Add First Expense',
+                          label: Text(t('add_first_expense_label'),
                               style:
-                                  TextStyle(color: Colors.white)),
+                                  const TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -2269,7 +2335,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'by $addedByEmail',
+                                            t('by_email_label').replaceFirst('{email}', addedByEmail),
                                             style: TextStyle(
                                                 fontSize: 12,
                                                 color: Colors
@@ -2305,7 +2371,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                               children: [
                                                 Flexible(
                                                   child: Text(
-                                                    'Your share: ${myAmtInr != null ? _fmtInr(myAmtInr) : ''}',
+                                                    t('your_share_label').replaceFirst('{amount}', myAmtInr != null ? _fmtInr(myAmtInr) : ''),
                                                     overflow:
                                                         TextOverflow
                                                             .ellipsis,
@@ -2343,8 +2409,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                                   ),
                                                   child: Text(
                                                     mySettled
-                                                        ? '✓ Settled'
-                                                        : 'Pending',
+                                                        ? t('settled_check_label')
+                                                        : t('pending_label'),
                                                     style: TextStyle(
                                                       fontSize: 10,
                                                       color: mySettled
@@ -2390,7 +2456,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                               ),
                                               const SizedBox(width: 3),
                                               Text(
-                                                _categoryLabel(expCategory),
+                                                _categoryLabel(expCategory, t),
                                                 style: const TextStyle(
                                                     fontSize: 10,
                                                     color: Color(0xFF2E7D32),
@@ -2437,7 +2503,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                     if (mySplit != null && !mySettled) ...[
                                       if (widget.isCreator) ...[
                                         _actionBtn(
-                                          'Settle my share',
+                                          t('settle_my_share_label'),
                                           Icons.check_circle_rounded,
                                           Colors.green,
                                           () => _settleExpense(expenseId),
@@ -2460,7 +2526,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                                   color: Colors.orange[700]),
                                               const SizedBox(width: 4),
                                               Text(
-                                                'Ask creator to settle',
+                                                t('ask_creator_to_settle_message'),
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color: Colors.orange[700]),
@@ -2473,7 +2539,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                     ],
                                     if (canEdit) ...[
                                       _actionBtn(
-                                        'Edit',
+                                        t('edit'),
                                         Icons.edit_rounded,
                                         const Color(0xFF1565C0),
                                         () => _showAddEditSheet(
@@ -2483,7 +2549,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                     ],
                                     if (canDelete) ...[
                                       _actionBtn(
-                                        'Delete',
+                                        t('delete'),
                                         Icons.delete_rounded,
                                         Colors.red,
                                         () => _deleteExpense(
@@ -2493,7 +2559,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                     ],
                                     if (widget.isCreator) ...[
                                       _actionBtn(
-                                        'Settle Members',
+                                        t('settle_members_label'),
                                         Icons.how_to_reg_rounded,
                                         const Color(0xFF00695C),
                                         () => _showSettleMembersDialog(e),
@@ -2501,7 +2567,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                       const SizedBox(width: 8),
                                     ],
                                     _actionBtn(
-                                      'Splits (${split.length})',
+                                      t('splits_count_label').replaceFirst('{count}', '${split.length}'),
                                       Icons.people_outline_rounded,
                                       Colors.grey,
                                       () => _showSplitsDialog(e),
@@ -2530,8 +2596,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
           backgroundColor: const Color(0xFF2E7D32),
           elevation: 0,
           icon: const Icon(Icons.add_rounded, color: Colors.white),
-          label: const Text('Add Expense',
-              style: TextStyle(color: Colors.white)),
+          label: Text(t('add_expense_label'),
+              style: const TextStyle(color: Colors.white)),
         ),
       ),
     );
@@ -2566,6 +2632,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }
 
   Widget _buildBalanceSummary() {
+    final t = AppLocalizations.of(context).t;
     // Compute per-member unsettled totals from expense splits
     final Map<String, double> pending = {};
     for (final e in _expenses) {
@@ -2593,7 +2660,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return Container(
-      color: Colors.white,
+      color: AppThemeColors.cardBg(context),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2605,8 +2672,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                 const Icon(Icons.account_balance_wallet_outlined,
                     size: 14, color: Color(0xFF2E7D32)),
                 const SizedBox(width: 5),
-                const Text('Pending Balances',
-                    style: TextStyle(
+                Text(t('pending_balances_label'),
+                    style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2E7D32))),
@@ -2718,12 +2785,12 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppThemeColors.surfaceBg(context),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(label,
                   style: TextStyle(
-                      color: Colors.grey[700],
+                      color: AppThemeColors.secondaryText(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 13)),
             ),

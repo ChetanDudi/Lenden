@@ -9,6 +9,8 @@ import 'create_group_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../api_config.dart';
 import '../../../utils/responsive.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -157,6 +159,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
 
 
   Widget _buildErrorState(String message, VoidCallback onRetry) {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -175,7 +178,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               ),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -185,7 +188,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                       child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
                     ),
                     const SizedBox(height: 16),
-                    Text('Oops! Something went wrong',
+                    Text(t('oops_something_went_wrong_message'),
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
                         textAlign: TextAlign.center),
                     const SizedBox(height: 8),
@@ -208,7 +211,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               child: ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
@@ -260,25 +263,28 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
         });
         _filterAndSearchGroups();
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
           error =
-              'Failed to load groups. Please try again.';
+              t('failed_to_load_groups_retry_message');
           groupsLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        error = 'Unable to connect. Please check your internet connection.';
+        error = t('unable_to_connect_check_internet_message');
         groupsLoading = false;
       });
     }
   }
 
   void _showCreateGroupFiltersSheet() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -297,17 +303,17 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         children: [
                           const Icon(Icons.filter_list, color: AppColors.cyan),
                           const SizedBox(width: 8),
-                          const Text('Filters',
-                              style: TextStyle(
+                          Text(t('filters_label'),
+                              style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 8),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Show Favourites Only',
-                          style: TextStyle(
+                        title: Text(
+                          t('show_favourites_only_label'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: AppColors.cyan),
                         ),
@@ -321,12 +327,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                       ),
                       const Divider(),
                       _filterDropdownRow<String>(
-                        label: 'Group',
+                        label: t('group_label'),
                         value: groupFilter,
-                        items: const {
-                          'all': 'All',
-                          'created': 'Created by Me',
-                          'member': 'Member',
+                        items: {
+                          'all': t('filter_all_label'),
+                          'created': t('created_by_me_label'),
+                          'member': t('member_label'),
                         },
                         onChanged: (val) {
                           setState(() => groupFilter = val);
@@ -335,15 +341,15 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         },
                       ),
                       _filterDropdownRow<String>(
-                        label: 'Sort',
+                        label: t('sort_label'),
                         value: groupSort,
-                        items: const {
-                          'newest': 'Newest',
-                          'oldest': 'Oldest',
-                          'name_az': 'Name A-Z',
-                          'name_za': 'Name Z-A',
-                          'members_high': 'Members High-Low',
-                          'members_low': 'Members Low-High',
+                        items: {
+                          'newest': t('newest_label'),
+                          'oldest': t('oldest_label'),
+                          'name_az': t('name_a_z_label'),
+                          'name_za': t('name_z_a_label'),
+                          'members_high': t('members_high_low_label'),
+                          'members_low': t('members_low_high_label'),
                         },
                         onChanged: (val) {
                           setState(() => groupSort = val);
@@ -352,10 +358,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         },
                       ),
                       _filterDropdownRow<String>(
-                        label: 'Members',
+                        label: t('members_label'),
                         value: memberCountFilter,
-                        items: const {
-                          'all': 'All Members',
+                        items: {
+                          'all': t('all_members_label'),
                           '2-5': '2-5',
                           '6-10': '6-10',
                           '10+': '10+',
@@ -367,13 +373,13 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         },
                       ),
                       _filterDropdownRow<String>(
-                        label: 'Created',
+                        label: t('created_label'),
                         value: dateFilter,
-                        items: const {
-                          'all': 'All Dates',
-                          '7days': 'Last 7 Days',
-                          '30days': 'Last 30 Days',
-                          'custom': 'Custom',
+                        items: {
+                          'all': t('all_dates_label'),
+                          '7days': t('last_7_days_label'),
+                          '30days': t('last_30_days_label'),
+                          'custom': t('custom_label'),
                         },
                         onChanged: (val) async {
                           setState(() => dateFilter = val);
@@ -520,11 +526,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   }
 
   void _showMemberDetails(Map<String, dynamic> member) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemeColors.cardBg(context),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -549,10 +556,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             Text((member['email'] ?? '').toString(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             if (member['joinedAt'] != null)
-              Text('Joined: ${member['joinedAt'].toString().substring(0, 10)}',
+              Text(t('joined_date_label').replaceFirst('{date}', member['joinedAt'].toString().substring(0, 10)),
                   style: TextStyle(fontSize: 14, color: Colors.grey)),
             if (member['leftAt'] != null)
-              Text('Left: ${member['leftAt'].toString().substring(0, 10)}',
+              Text(t('left_date_label').replaceFirst('{date}', member['leftAt'].toString().substring(0, 10)),
                   style: TextStyle(fontSize: 14, color: Colors.red)),
           ],
         ),
@@ -573,6 +580,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   }
 
   Future<void> _showCreateGroup({List<String>? prefill}) async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (!session.isSubscribed) {
       int? dailyRemaining;
@@ -588,15 +596,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
       if (!mounted) return;
       if (dailyRemaining != null && dailyRemaining! <= 0) {
         showDailyLimitDialog(context,
-            message:
-                'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+            message: t('daily_group_creation_limit_reached_message'));
         return;
       }
       final freeRemaining = session.freeGroupsRemaining ?? 0;
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'group creation', coinCost: 20, currentCoins: coins);
+            featureName: t('group_creation_feature_label'), coinCost: 20, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         final result = await Navigator.push<Map<String, dynamic>>(
@@ -648,6 +655,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       body: Stack(
         children: [
@@ -687,8 +695,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                       scrollDirection: Axis.horizontal,
                       child: Text(
                         group == null
-                            ? 'Group Transactions'
-                            : 'Group: ${group?['title'] ?? ''}',
+                            ? t('group_transactions_title_label')
+                            : t('group_colon_label').replaceFirst('{title}', group?['title'] ?? ''),
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 22,
@@ -732,12 +740,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     ),
                                     const SizedBox(height: 24),
                                     Text(
-                                      'No Groups Yet!',
+                                      t('no_groups_yet_message'),
                                       style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.cyan),
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Split expenses with friends & family effortlessly.\nTap "+" to create your first group!',
+                                      t('split_expenses_with_friends_message'),
                                       textAlign: TextAlign.center,
                                       style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
                                     ),
@@ -755,7 +763,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                       child: ElevatedButton.icon(
                                         onPressed: _showCreateGroup,
                                         icon: const Icon(Icons.add_rounded),
-                                        label: const Text('Create First Group', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                        label: Text(t('create_first_group_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.cyan,
                                           foregroundColor: Colors.white,
@@ -796,11 +804,11 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                         child: TextField(
                                           decoration: InputDecoration(
                                             hintText:
-                                                'Search by group name or creator email...',
+                                                t('search_group_name_or_creator_email_hint'),
                                             prefixIcon: Icon(Icons.search,
                                                 color: AppColors.cyan),
                                             filled: true,
-                                            fillColor: Colors.white,
+                                            fillColor: AppThemeColors.cardBg(context),
                                             contentPadding:
                                                 EdgeInsets.symmetric(
                                                     vertical: 0,
@@ -844,14 +852,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                       ),
                                       padding: const EdgeInsets.all(2),
                                       child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
+                                        decoration: BoxDecoration(
+                                          color: AppThemeColors.cardBg(context),
                                           shape: BoxShape.circle,
                                         ),
                                         child: IconButton(
                                           icon: Icon(Icons.more_vert,
                                               color: AppColors.cyan),
-                                          tooltip: 'Filters',
+                                          tooltip: t('filters_label'),
                                           onPressed: _showCreateGroupFiltersSheet,
                                         ),
                                       ),
@@ -878,7 +886,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     ),
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: AppThemeColors.cardBg(context),
                                         borderRadius: BorderRadius.circular(18),
                                       ),
                                       child: Padding(
@@ -889,7 +897,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                 color: Colors.grey, size: 60),
                                             SizedBox(height: 16),
                                             Text(
-                                              'No Favourite Groups Yet!',
+                                              t('no_favourite_groups_yet_message'),
                                               style: TextStyle(
                                                 fontSize: 24,
                                                 fontWeight: FontWeight.bold,
@@ -898,10 +906,10 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                             ),
                                             SizedBox(height: 8),
                                             Text(
-                                              'Mark groups as favourites to see them here.',
+                                              t('mark_groups_as_favourites_message'),
                                               style: TextStyle(
                                                   fontSize: 16,
-                                                  color: Colors.grey[700]),
+                                                  color: AppThemeColors.secondaryText(context)),
                                               textAlign: TextAlign.center,
                                             ),
                                           ],
@@ -970,7 +978,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                             elevation: 0,
                                                           ),
                                                           child: Text(
-                                                              'View Details',
+                                                              t('view_details_label'),
                                                               style: TextStyle(
                                                                   color: Colors
                                                                       .white)),
@@ -1083,8 +1091,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           ),
                                                           SizedBox(width: 4),
                                                           Text(
-                                                            'Creator: ${_emailOf(g['creator'])}',
-                                                            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                                            t('creator_colon_label').replaceFirst('{email}', _emailOf(g['creator'])),
+                                                            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
                                                           ),
                                                         ],
                                                       ),
@@ -1098,8 +1106,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           Icon(Icons.people, size: 18, color: Colors.grey),
                                                           SizedBox(width: 4),
                                                           Text(
-                                                            'Members: ${(g['members'] as List).length}',
-                                                            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                                            t('members_colon_label').replaceFirst('{count}', '${(g['members'] as List).length}'),
+                                                            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
                                                           ),
                                                           SizedBox(width: 10),
                                                           ...((g['members'] as List).map((m) {
@@ -1150,8 +1158,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                           Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                                                           SizedBox(width: 4),
                                                           Text(
-                                                            'Created: ${g['createdAt'] != null ? g['createdAt'].toString().substring(0, 10) : ''}',
-                                                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                                            t('created_colon_label').replaceFirst('{date}', g['createdAt'] != null ? g['createdAt'].toString().substring(0, 10) : ''),
+                                                            style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
                                                           ),
                                                         ],
                                                       ),
@@ -1182,7 +1190,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
           onPressed: _showCreateGroup,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          tooltip: 'Create New Group',
+          tooltip: t('create_new_group_label'),
           child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),

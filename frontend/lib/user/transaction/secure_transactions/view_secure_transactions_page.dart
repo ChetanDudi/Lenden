@@ -15,6 +15,8 @@ import 'create_secure_transaction_page.dart' hide TopWaveClipper;
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class UserTransactionsPage extends StatefulWidget {
   final String initialFilter;
@@ -183,6 +185,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Future<void> _loadDisplayCurrencies() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final data = await DisplayCurrencyHelper.load();
       if (!mounted) return;
@@ -200,13 +203,13 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError =
-            'Currency conversion options are not available right now.';
+        _displayCurrencyError = t('currency_conversion_unavailable_message');
       });
     }
   }
 
   Widget _buildErrorState(String message, VoidCallback onRetry) {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -225,7 +228,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
               ),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -235,11 +238,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
                     ),
                     const SizedBox(height: 16),
-                    Text('Oops! Something went wrong',
+                    Text(t('oops_something_went_wrong_message'),
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
                         textAlign: TextAlign.center),
                     const SizedBox(height: 8),
-                    Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context))),
                   ],
                 ),
               ),
@@ -258,7 +261,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
               child: ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(t('retry_label'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
@@ -333,7 +336,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(16),
         ),
         child: DropdownButtonHideUnderline(
@@ -364,6 +367,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Future<void> fetchTransactions() async {
+    final t = AppLocalizations.of(context).t;
     setState(() {
       loading = true;
       error = null;
@@ -372,7 +376,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     final email = user?['email'];
     if (email == null) {
       setState(() {
-        error = 'User email not found.';
+        error = t('user_email_not_found_message');
         loading = false;
       });
       return;
@@ -457,19 +461,20 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         });
       } else {
         setState(() {
-          error = 'Failed to load transactions.';
+          error = t('failed_to_load_transactions_message');
           loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        error = 'Unable to connect. Please check your internet connection.';
+        error = t('unable_to_connect_check_internet_message');
         loading = false;
       });
     }
   }
 
   Widget _buildTransactionCard(Map t, bool isLending) {
+    final tr = AppLocalizations.of(context).t;
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
     final userEmail = t['userEmail'];
@@ -521,7 +526,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 10, horizontal: 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -551,14 +556,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                         Icon(Icons.calendar_today,
                             color: Colors.blue, size: 18),
                         SizedBox(width: 6),
-                        Text('Date: $dateStr',
-                            style: TextStyle(fontSize: 14)),
+                        Text('${tr('date')}: $dateStr',
+                            style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                         SizedBox(width: 10),
                         Icon(Icons.access_time,
                             color: Colors.deepPurple, size: 18),
                         SizedBox(width: 6),
-                        Text('Time: $timeStr',
-                            style: TextStyle(fontSize: 14)),
+                        Text('${tr('time')}: $timeStr',
+                            style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                         Spacer(),
                         Icon(Icons.chevron_right, color: Colors.teal, size: 20),
                       ],
@@ -583,7 +588,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Partial',
+                              tr('partial_label'),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -597,8 +602,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                         SizedBox(width: 10),
                         Text(
                           isLending
-                              ? 'Lending (You gave money)'
-                              : 'Borrowing (You took money)',
+                              ? tr('lending_you_gave_money_label')
+                              : tr('borrowing_you_took_money_label'),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: isLending ? Colors.green : Colors.orange,
@@ -614,9 +619,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                             radius: 14),
                         SizedBox(width: 8),
                         Expanded(
-                          child: Text('Counterparty: $counterpartyEmail',
+                          child: Text('${tr('counterparty_label')}: $counterpartyEmail',
                               style:
-                                  TextStyle(fontSize: 15, color: Colors.black87),
+                                  TextStyle(fontSize: 15, color: AppThemeColors.primaryText(context)),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),
                         ),
@@ -629,7 +634,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                         Icon(Icons.attach_money, color: Colors.green, size: 20),
                         SizedBox(width: 6),
                         Text(
-                          'Amount: ${_formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString())}',
+                          '${tr('amount')}: ${_formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString())}',
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -729,14 +734,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                           SizedBox(width: 6),
                           Text(
                             fullyCleared
-                                ? 'Fully Cleared'
+                                ? tr('fully_cleared_label')
                                 : hasPartialPayment
-                                    ? 'Partially Paid / Cleared'
+                                    ? tr('partially_paid_or_cleared_label')
                                     : (youCleared && !otherCleared)
-                                        ? 'You cleared'
+                                        ? tr('you_cleared_label')
                                         : (!youCleared && otherCleared)
-                                            ? 'Other cleared'
-                                            : 'Uncleared',
+                                            ? tr('other_cleared_label')
+                                            : tr('uncleared_label'),
                             style: TextStyle(
                               color: fullyCleared
                                   ? Colors.green
@@ -766,7 +771,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                     color: hasInterest ? Colors.deepOrange : Colors.teal),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Amount due: ₹${dueAmt.toStringAsFixed(2)}',
+                                  '${tr('amount_due_label')}: ₹${dueAmt.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -776,7 +781,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                 if (hasInterest) ...[
                                   const SizedBox(width: 6),
                                   Text(
-                                    '(${t['interestType']} ${t['interestRate']}% interest)',
+                                    '(${t['interestType']} ${t['interestRate']}% ${tr('interest_label').toLowerCase()})',
                                     style: const TextStyle(fontSize: 11, color: Colors.deepOrange),
                                   ),
                                 ],
@@ -788,7 +793,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Colors.white),
                                 label: Text(
-                                  'Pay Now  •  ₹${dueAmt.toStringAsFixed(2)}',
+                                  '${tr('pay_now_label')}  •  ₹${dueAmt.toStringAsFixed(2)}',
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                 ),
                                 style: ElevatedButton.styleFrom(
@@ -810,7 +815,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               context,
                               counterpartyEmail: lenderEmail,
                               amount: remaining,
-                              description: 'Secure transaction repayment',
+                              description: tr('secure_transaction_repayment_label'),
                               secureTransactionId: txId,
                               onSuccess: () {
                                 if (txId.isNotEmpty && userEmail.isNotEmpty) {
@@ -855,6 +860,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Widget _buildFilterToolbar() {
+    final t = AppLocalizations.of(context).t;
     final activeCount = _activeFilterCount();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -868,21 +874,21 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
               child: Row(
                 children: [
                   _buildPrimaryFilterTab(
-                    label: 'All',
+                    label: t('all'),
                     selected: filter == 'All',
                     accentColor: AppColors.cyan,
                     onTap: () { setState(() => filter = 'All'); fetchTransactions(); },
                   ),
                   const SizedBox(width: 10),
                   _buildPrimaryFilterTab(
-                    label: 'Lending',
+                    label: t('lending_label'),
                     selected: filter == 'Lending',
                     accentColor: Colors.green,
                     onTap: () { setState(() => filter = 'Lending'); fetchTransactions(); },
                   ),
                   const SizedBox(width: 10),
                   _buildPrimaryFilterTab(
-                    label: 'Borrowing',
+                    label: t('borrowing_label'),
                     selected: filter == 'Borrowing',
                     accentColor: Colors.orange,
                     onTap: () { setState(() => filter = 'Borrowing'); fetchTransactions(); },
@@ -892,7 +898,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     icon: showFavouritesOnly
                         ? Icons.favorite
                         : Icons.favorite_border,
-                    label: 'Fav',
+                    label: t('fav_label'),
                     accentColor: Colors.red,
                     isActive: showFavouritesOnly,
                     onTap: () {
@@ -904,7 +910,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                   _buildToolbarAction(
                     icon: Icons.tune_rounded,
                     label:
-                        activeCount > 0 ? 'Filters ($activeCount)' : 'Filters',
+                        activeCount > 0 ? t('filters_count_label').replaceFirst('{count}', '$activeCount') : t('filters_label'),
                     accentColor: AppColors.cyan,
                     isActive: activeCount > 0,
                     onTap: _showFiltersBottomSheet,
@@ -920,9 +926,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.0),
-                    Colors.white.withValues(alpha: 0.86),
-                    Colors.white,
+                    AppThemeColors.scaffoldBg(context).withValues(alpha: 0.0),
+                    AppThemeColors.scaffoldBg(context).withValues(alpha: 0.86),
+                    AppThemeColors.scaffoldBg(context),
                   ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
@@ -935,7 +941,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 child: Text(
                   '->',
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: AppThemeColors.mutedText(context),
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -961,7 +967,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         constraints: BoxConstraints(minWidth: label.length > 8 ? 112 : 74),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? accentColor.withValues(alpha: 0.12) : Colors.white,
+          color: selected ? accentColor.withValues(alpha: 0.12) : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: selected
@@ -980,7 +986,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: selected ? accentColor : Colors.grey.shade700,
+            color: selected ? accentColor : AppThemeColors.secondaryText(context),
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
@@ -1002,7 +1008,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? accentColor.withValues(alpha: 0.12) : Colors.white,
+          color: isActive ? accentColor.withValues(alpha: 0.12) : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive
@@ -1039,26 +1045,16 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       lastDate: DateTime(2100),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: AppColors.cyan,
               onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
-            ),
-            dialogTheme: DialogTheme(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.cyan,
               ),
             ),
-            cardColor: Colors.white,
-            canvasColor: Colors.white,
           ),
           child: child!,
         );
@@ -1067,6 +1063,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Future<void> _showFiltersBottomSheet() async {
+    final t = AppLocalizations.of(context).t;
     String tempClearanceFilter = 'All';
     String tempInterestTypeFilter = 'All';
     String tempSortBy = 'Created';
@@ -1108,21 +1105,48 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: AppThemeColors.mutedText(context),
                       fontSize: 12,
                     ),
                   ),
                 ],
               );
+            }
+
+            String clearanceFilterLabel(String value) {
+              switch (value) {
+                case 'Totally Cleared':
+                  return t('totally_cleared_label');
+                case 'Totally Uncleared':
+                  return t('totally_uncleared_label');
+                case 'Partially Cleared':
+                  return t('partially_cleared_label');
+                default:
+                  return t('all');
+              }
+            }
+
+            String sortByLabel(String value) {
+              switch (value) {
+                case 'Transaction Date':
+                  return t('transaction_date_label');
+                case 'Amount':
+                  return t('amount');
+                case 'Status':
+                  return t('status_label');
+                default:
+                  return t('created_label');
+              }
             }
 
             Widget tricolorSection({
@@ -1178,7 +1202,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFDFEFE),
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: SingleChildScrollView(
@@ -1206,24 +1230,25 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       color: AppColors.cyan),
                                 ),
                                 const SizedBox(width: 12),
-                                const Expanded(
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Refine Transactions',
+                                        t('refine_transactions_title'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          color: AppThemeColors.primaryText(context),
                                         ),
                                       ),
-                                      SizedBox(height: 2),
+                                      const SizedBox(height: 2),
                                       Text(
-                                        'Use smart filters to narrow the secure list quickly.',
+                                        t('refine_transactions_subtitle_message'),
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.black54,
+                                          color: AppThemeColors.mutedText(context),
                                         ),
                                       ),
                                     ],
@@ -1243,8 +1268,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 sectionTitle(
-                                  'Clearance status',
-                                  'Choose how far the transaction has progressed.',
+                                  t('clearance_status_label'),
+                                  t('clearance_status_subtitle_message'),
                                 ),
                                 const SizedBox(height: 10),
                                 SingleChildScrollView(
@@ -1261,7 +1286,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                             padding:
                                                 const EdgeInsets.only(right: 8),
                                             child: ChoiceChip(
-                                              label: Text(value),
+                                              label: Text(clearanceFilterLabel(value)),
                                               selected:
                                                   tempClearanceFilter == value,
                                               onSelected: (_) {
@@ -1285,25 +1310,25 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 sectionTitle(
-                                  'Interest type',
-                                  'Focus on the interest setup you want to review.',
+                                  t('interest_type_label'),
+                                  t('interest_type_subtitle_message'),
                                 ),
                                 const SizedBox(height: 10),
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
                                     children: [
-                                      {'label': 'All', 'value': 'All'},
+                                      {'label': t('all'), 'value': 'All'},
                                       {
-                                        'label': 'Simple Interest',
+                                        'label': t('simple_interest_label'),
                                         'value': 'simple'
                                       },
                                       {
-                                        'label': 'Compound Interest',
+                                        'label': t('compound_interest_label'),
                                         'value': 'compound'
                                       },
                                       {
-                                        'label': 'With Interest',
+                                        'label': t('with_interest_label'),
                                         'value': 'with_interest'
                                       },
                                     ]
@@ -1338,8 +1363,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 sectionTitle(
-                                  'Sort transactions',
-                                  'Order secure transactions by creation time, transaction date, amount, or status.',
+                                  t('sort_transactions_label'),
+                                  t('sort_transactions_subtitle_message'),
                                 ),
                                 const SizedBox(height: 10),
                                 SingleChildScrollView(
@@ -1356,7 +1381,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                             padding:
                                                 const EdgeInsets.only(right: 8),
                                             child: ChoiceChip(
-                                              label: Text(value),
+                                              label: Text(sortByLabel(value)),
                                               selected: tempSortBy == value,
                                               onSelected: (_) {
                                                 modalSetState(() {
@@ -1375,11 +1400,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                   child: Row(
                                     children: [
                                       {
-                                        'label': 'Newest First',
+                                        'label': t('newest_first_label'),
                                         'value': false,
                                       },
                                       {
-                                        'label': 'Oldest First',
+                                        'label': t('oldest_first_label'),
                                         'value': true,
                                       },
                                     ]
@@ -1414,8 +1439,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 sectionTitle(
-                                  'Date range',
-                                  'Limit results to a transaction period.',
+                                  t('date_range_label'),
+                                  t('date_range_subtitle_message'),
                                 ),
                                 const SizedBox(height: 10),
                                 Row(
@@ -1425,7 +1450,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                         onTap: () => pickDate(true),
                                         child: InputDecorator(
                                           decoration: InputDecoration(
-                                            labelText: 'Start Date',
+                                            labelText: t('start_date_label'),
                                             border: InputBorder.none,
                                             isDense: true,
                                             prefixIcon: const Icon(
@@ -1439,7 +1464,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                             children: [
                                               Text(
                                                 tempStartDate == null
-                                                    ? 'Any'
+                                                    ? t('any_label')
                                                     : DateFormat('yyyy-MM-dd')
                                                         .format(tempStartDate!),
                                               ),
@@ -1456,7 +1481,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                         onTap: () => pickDate(false),
                                         child: InputDecorator(
                                           decoration: InputDecoration(
-                                            labelText: 'End Date',
+                                            labelText: t('end_date_label'),
                                             border: InputBorder.none,
                                             isDense: true,
                                             prefixIcon: const Icon(
@@ -1470,7 +1495,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                             children: [
                                               Text(
                                                 tempEndDate == null
-                                                    ? 'Any'
+                                                    ? t('any_label')
                                                     : DateFormat('yyyy-MM-dd')
                                                         .format(tempEndDate!),
                                               ),
@@ -1493,8 +1518,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 sectionTitle(
-                                  'Amount range',
-                                  'See only transactions within a value band.',
+                                  t('amount_range_label'),
+                                  t('amount_range_subtitle_message'),
                                 ),
                                 const SizedBox(height: 10),
                                 Row(
@@ -1503,9 +1528,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       child: TextFormField(
                                         controller: minAmountController,
                                         decoration: InputDecoration(
-                                          labelText: 'Min Amount',
+                                          labelText: t('min_amount_label'),
                                           filled: true,
-                                          fillColor: Colors.white,
+                                          fillColor: AppThemeColors.cardBg(context),
                                           border: OutlineInputBorder(
                                             borderRadius:
                                                 BorderRadius.circular(14),
@@ -1526,9 +1551,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       child: TextFormField(
                                         controller: maxAmountController,
                                         decoration: InputDecoration(
-                                          labelText: 'Max Amount',
+                                          labelText: t('max_amount_label'),
                                           filled: true,
-                                          fillColor: Colors.white,
+                                          fillColor: AppThemeColors.cardBg(context),
                                           border: OutlineInputBorder(
                                             borderRadius:
                                                 BorderRadius.circular(14),
@@ -1583,7 +1608,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       });
                                     },
                                     style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white,
+                                      backgroundColor: AppThemeColors.cardBg(context),
                                       side: BorderSide.none,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -1591,9 +1616,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 14),
                                     ),
-                                    child: const Text(
-                                      'Clear Sheet',
-                                      style: TextStyle(
+                                    child: Text(
+                                      t('clear_sheet_label'),
+                                      style: const TextStyle(
                                         color: Color(0xFF0077B6),
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -1642,9 +1667,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 14),
                                     ),
-                                    child: const Text(
-                                      'Apply Filters',
-                                      style: TextStyle(
+                                    child: Text(
+                                      t('apply_filters_label'),
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -1668,19 +1693,44 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Widget _buildActiveFilterSummary() {
+    final t = AppLocalizations.of(context).t;
+    String clearanceLabel(String value) {
+      switch (value) {
+        case 'Totally Cleared':
+          return t('totally_cleared_label');
+        case 'Totally Uncleared':
+          return t('totally_uncleared_label');
+        case 'Partially Cleared':
+          return t('partially_cleared_label');
+        default:
+          return t('all');
+      }
+    }
+    String sortByDisplayLabel(String value) {
+      switch (value) {
+        case 'Transaction Date':
+          return t('transaction_date_label');
+        case 'Amount':
+          return t('amount');
+        case 'Status':
+          return t('status_label');
+        default:
+          return t('created_label');
+      }
+    }
     final chips = <Map<String, dynamic>>[];
     if (filter != 'All') {
       chips.add({
-        'label': filter,
+        'label': filter == 'Lending' ? t('lending_label') : t('borrowing_label'),
         'color': filter == 'Lending' ? Colors.green : Colors.orange,
       });
     }
     if (showFavouritesOnly) {
-      chips.add({'label': 'Favourites', 'color': Colors.red});
+      chips.add({'label': t('favourites_label'), 'color': Colors.red});
     }
     if (clearanceFilter != 'All') {
       chips.add({
-        'label': clearanceFilter,
+        'label': clearanceLabel(clearanceFilter),
         'color': clearanceFilter == 'Totally Cleared'
             ? Colors.green
             : clearanceFilter == 'Totally Uncleared'
@@ -1691,10 +1741,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     if (interestTypeFilter != 'All') {
       chips.add({
         'label': interestTypeFilter == 'with_interest'
-            ? 'With Interest'
+            ? t('with_interest_label')
             : interestTypeFilter == 'simple'
-                ? 'Simple Interest'
-                : 'Compound Interest',
+                ? t('simple_interest_label')
+                : t('compound_interest_label'),
         'color': interestTypeFilter == 'simple'
             ? Colors.green
             : interestTypeFilter == 'compound'
@@ -1705,21 +1755,21 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     if (_startDate != null || _endDate != null) {
       chips.add({
         'label':
-            'Dates: ${_startDate == null ? 'Any' : DateFormat('MMM d').format(_startDate!)} - ${_endDate == null ? 'Any' : DateFormat('MMM d').format(_endDate!)}',
+            '${t('dates_label')}: ${_startDate == null ? t('any_label') : DateFormat('MMM d').format(_startDate!)} - ${_endDate == null ? t('any_label') : DateFormat('MMM d').format(_endDate!)}',
         'color': AppColors.cyan,
       });
     }
     if (_minAmount != null || _maxAmount != null) {
       chips.add({
         'label':
-            'Amount: ${_minAmount?.toStringAsFixed(0) ?? 'Any'} - ${_maxAmount?.toStringAsFixed(0) ?? 'Any'}',
+            '${t('amount')}: ${_minAmount?.toStringAsFixed(0) ?? t('any_label')} - ${_maxAmount?.toStringAsFixed(0) ?? t('any_label')}',
         'color': const Color(0xFF7C4DFF),
       });
     }
     if (_sortBy != 'Created' || _sortAsc != false) {
       chips.add({
         'label':
-            'Sort: $_sortBy â€¢ ${_sortAsc ? 'Oldest First' : 'Newest First'}',
+            '${t('sort_label')}: ${sortByDisplayLabel(_sortBy)} • ${_sortAsc ? t('oldest_first_label') : t('newest_first_label')}',
         'color': const Color(0xFF1565C0),
       });
     }
@@ -1732,7 +1782,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -1750,18 +1800,18 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                 const Icon(Icons.filter_alt_outlined,
                     size: 18, color: AppColors.cyan),
                 const SizedBox(width: 8),
-                const Text(
-                  'Active filters',
+                Text(
+                  t('active_filters_label'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: _resetFilters,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Reset'),
+                  label: Text(t('reset_label')),
                 ),
               ],
             ),
@@ -1888,17 +1938,18 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
 
 
   String _remainingTimeLabel(DateTime expectedReturnDate) {
+    final t = AppLocalizations.of(context).t;
     final difference = expectedReturnDate.difference(_now);
     if (difference.isNegative) {
-      return 'Overdue since ${DateFormat('MMM d').format(expectedReturnDate)}';
+      return t('overdue_since_message').replaceFirst('{date}', DateFormat('MMM d').format(expectedReturnDate));
     }
     if (difference.inDays > 0) {
-      return '${difference.inDays} day(s) remaining';
+      return t('days_remaining_message').replaceFirst('{count}', '${difference.inDays}');
     }
     final hours = difference.inHours;
     final minutes = difference.inMinutes.remainder(60);
     final seconds = difference.inSeconds.remainder(60);
-    return '${hours}h ${minutes}m ${seconds}s remaining';
+    return t('hms_remaining_message').replaceFirst('{h}', '$hours').replaceFirst('{m}', '$minutes').replaceFirst('{s}', '$seconds');
   }
 
   // Returns already server-filtered data as-is
@@ -1910,6 +1961,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Widget _buildStatusLegend() {
+    final t = AppLocalizations.of(context).t;
     Widget item(Color color, IconData icon, String label) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1942,16 +1994,17 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         spacing: 8,
         runSpacing: 8,
         children: [
-          item(Colors.grey, Icons.hourglass_empty, 'Uncleared'),
-          item(Colors.orange, Icons.check_circle_outline, 'You cleared'),
-          item(Colors.blue, Icons.people_alt_outlined, 'Other cleared'),
-          item(Colors.green, Icons.verified, 'Fully cleared'),
+          item(Colors.grey, Icons.hourglass_empty, t('uncleared_label')),
+          item(Colors.orange, Icons.check_circle_outline, t('you_cleared_label')),
+          item(Colors.blue, Icons.people_alt_outlined, t('other_cleared_label')),
+          item(Colors.green, Icons.verified, t('fully_cleared_label')),
         ],
       ),
     );
   }
 
   List<Widget> _buildFilteredTransactionCards({int? limit}) {
+    final tr = AppLocalizations.of(context).t;
     List<Widget> widgets = [];
     final buckets = _getFilteredTransactionBuckets();
     final lendingFiltered = List<dynamic>.from(buckets['lending'] ?? const []);
@@ -1985,7 +2038,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         .toList();
 
     if (finalLending.isNotEmpty) {
-      widgets.add(Text('Lending Amount',
+      widgets.add(Text(tr('lending_amount_label'),
           style: TextStyle(
               fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green)));
       widgets.add(SizedBox(height: 8));
@@ -1994,7 +2047,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     }
 
     if (finalBorrowing.isNotEmpty) {
-      widgets.add(Text('Borrowing Amount',
+      widgets.add(Text(tr('borrowing_amount_label'),
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -2014,24 +2067,24 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                     ? Icons.star_border_rounded
                     : Icons.receipt_long,
                 size: 80,
-                color: Colors.grey[400]),
+                color: AppThemeColors.mutedText(context)),
             const SizedBox(height: 20),
             Text(
               showFavouritesOnly
-                  ? 'No favourite transactions found'
-                  : 'No transactions found',
+                  ? tr('no_favourite_transactions_found_message')
+                  : tr('no_transactions_found_message'),
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[600]),
+                  color: AppThemeColors.secondaryText(context)),
             ),
             const SizedBox(height: 10),
             Text(
               showFavouritesOnly
-                  ? 'Mark a transaction as favourite to see it here.'
-                  : 'Try adjusting your search or filters',
+                  ? tr('mark_transaction_favourite_hint_message')
+                  : tr('try_adjusting_search_filters_message'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 16, color: AppThemeColors.mutedText(context)),
             ),
             if (_hasActiveFilters()) ...[
               const SizedBox(height: 18),
@@ -2045,7 +2098,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                   ),
                 ),
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Reset Filters'),
+                label: Text(tr('reset_filters_label')),
               ),
             ],
           ],
@@ -2056,6 +2109,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Future<void> _openCreateSecureTransaction() async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (!session.isSubscribed) {
       int? dailyRemaining;
@@ -2071,15 +2125,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       if (!mounted) return;
       if (dailyRemaining != null && dailyRemaining! <= 0) {
         showDailyLimitDialog(context,
-            message:
-                'You\'ve reached today\'s limit of 2 secure transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+            message: t('daily_secure_transactions_limit_reached_message'));
         return;
       }
       final freeRemaining = session.freeUserTransactionsRemaining ?? 0;
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'secure transaction', coinCost: 10, currentCoins: coins);
+            featureName: t('secure_transaction_feature_label'), coinCost: 10, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context,
@@ -2093,6 +2146,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context).t;
     final buckets = _getFilteredTransactionBuckets();
     final filteredLending = List<dynamic>.from(buckets['lending'] ?? const []);
     final filteredBorrowing =
@@ -2111,7 +2165,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: Text('Your Transactions ($totalTransactions)',
+        title: Text(loc('your_transactions_count_title').replaceFirst('{count}', '$totalTransactions'),
             style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -2163,12 +2217,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                         child: TextField(
                           controller: _globalSearchController,
                           decoration: InputDecoration(
-                            hintText:
-                                'Search transactions... (email, place, type, id, amount, lending/borrowing)',
+                            hintText: loc('search_transactions_hint_message'),
                             prefixIcon:
                                 Icon(Icons.search, color: AppColors.cyan),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: AppThemeColors.cardBg(context),
                             contentPadding: EdgeInsets.symmetric(
                                 vertical: 0, horizontal: 16),
                             border: OutlineInputBorder(
@@ -2220,7 +2273,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               Expanded(
                                 child: Text(
                                   _displayCurrencyError ??
-                                      'Conversion to $_selectedDisplayCurrency is not available for one or more secure transactions. Showing original currencies instead.',
+                                      loc('conversion_not_available_secure_message').replaceFirst('{currency}', _selectedDisplayCurrency),
                                   style: const TextStyle(
                                     color: Color(0xFFD62828),
                                     fontWeight: FontWeight.w600,
@@ -2237,9 +2290,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          const Text(
-                            'Show In',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          Text(
+                            loc('show_in_label'),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(width: 10),
                           _buildCurrencySelector(),
@@ -2266,7 +2319,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                     padding: EdgeInsets.symmetric(
                                         horizontal: 32, vertical: 12),
                                   ),
-                                  child: Text('View All Transactions',
+                                  child: Text(loc('view_all_transactions_label'),
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 16)),
                                 ),
@@ -2280,14 +2333,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                   onPressed: () => setState(
                                       () => showAllTransactions = false),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey[300],
+                                    backgroundColor: AppThemeColors.cardBg(context),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(16)),
                                     padding: EdgeInsets.symmetric(
                                         horizontal: 32, vertical: 12),
                                   ),
-                                  child: Text('Show Less',
+                                  child: Text(loc('show_less_label'),
                                       style: TextStyle(
                                           color: AppColors.cyan,
                                           fontSize: 16)),

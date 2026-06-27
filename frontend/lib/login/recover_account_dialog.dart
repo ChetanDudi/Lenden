@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class RecoverAccountDialog extends StatelessWidget {
   final VoidCallback onRecover;
@@ -17,6 +19,7 @@ class RecoverAccountDialog extends StatelessWidget {
   }
 
   Widget contentBox(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Stack(
       children: <Widget>[
         Container(
@@ -29,7 +32,7 @@ class RecoverAccountDialog extends StatelessWidget {
           margin: const EdgeInsets.only(top: 45),
           decoration: BoxDecoration(
             shape: BoxShape.rectangle,
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(20),
             boxShadow: const [
               BoxShadow(
@@ -42,14 +45,18 @@ class RecoverAccountDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Text(
-                'Account Deactivated',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              Text(
+                t('account_deactivated'),
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: AppThemeColors.primaryText(context)),
               ),
               const SizedBox(height: 15),
-              const Text(
-                'This account has been deactivated. Would you like to recover it and log in?',
-                style: TextStyle(fontSize: 14),
+              Text(
+                t('account_deactivated_message'),
+                style: TextStyle(
+                    fontSize: 14, color: AppThemeColors.secondaryText(context)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 22),
@@ -60,9 +67,9 @@ class RecoverAccountDialog extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.grey),
+                    child: Text(
+                      t('cancel'),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ),
                   ElevatedButton(
@@ -73,9 +80,9 @@ class RecoverAccountDialog extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Recover & Login',
-                      style: TextStyle(color: Colors.white),
+                    child: Text(
+                      t('recover_and_login'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
@@ -83,14 +90,14 @@ class RecoverAccountDialog extends StatelessWidget {
             ],
           ),
         ),
-        const Positioned(
+        Positioned(
           left: 20,
           right: 20,
           child: CircleAvatar(
-            backgroundColor: Colors.white,
+            backgroundColor: AppThemeColors.cardBg(context),
             radius: 45,
             child: ClipRRect(
-              borderRadius: BorderRadius.all(Radius.circular(45)),
+              borderRadius: const BorderRadius.all(Radius.circular(45)),
               child: Icon(
                 Icons.lock_outline,
                 size: 50,

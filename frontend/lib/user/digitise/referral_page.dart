@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../l10n/app_localizations.dart';
 
 class ReferralPage extends StatefulWidget {
   const ReferralPage({super.key});
@@ -77,6 +79,7 @@ class _ReferralPageState extends State<ReferralPage> {
   }
 
   Future<void> _shareVia(Map<String, dynamic> option) async {
+    final t = AppLocalizations.of(context).t;
     final key = (option['key'] ?? 'other').toString().toLowerCase();
     final template = (option['urlTemplate'] ?? '').toString().trim();
     if (template.isEmpty) return;
@@ -99,21 +102,21 @@ class _ReferralPageState extends State<ReferralPage> {
       await Clipboard.setData(ClipboardData(text: rawCopy));
       await _logShare(key);
       if (!mounted) return;
-      showSnack(context, 'Invite content copied!');
+      showSnack(context, t('invite_content_copied'));
       return;
     }
 
     final uri = Uri.tryParse(resolvedUrl);
-    if (uri == null) { showSnack(context, 'Invalid share URL', isError: true); return; }
+    if (uri == null) { showSnack(context, t('invalid_share_url'), isError: true); return; }
 
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (launched) {
       await _logShare(key);
       if (!mounted) return;
-      showSnack(context, 'Invite opened! Ask your friend to sign up.');
+      showSnack(context, t('invite_opened_ask_friend'));
     } else {
       if (!mounted) return;
-      showSnack(context, 'Could not open ${option['label'] ?? 'the app'}. Make sure it is installed.', isError: true);
+      showSnack(context, '${t('could_not_open_app_prefix')} ${option['label'] ?? t('the_app_label')}. ${t('make_sure_installed_suffix')}', isError: true);
     }
   }
 
@@ -152,8 +155,9 @@ class _ReferralPageState extends State<ReferralPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFE0F7FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           // Header gradient
@@ -161,13 +165,13 @@ class _ReferralPageState extends State<ReferralPage> {
             top: 0, left: 0, right: 0,
             child: Container(
               height: 200,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  colors: AppThemeColors.waveGradient(context),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(36)),
               ),
             ),
           ),
@@ -178,10 +182,10 @@ class _ReferralPageState extends State<ReferralPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(children: [
-                    IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-                    const Expanded(child: Text('Refer & Earn', textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white))),
-                    IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _fetchReferralInfo),
+                    IconButton(icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)), onPressed: () => Navigator.pop(context)),
+                    Expanded(child: Text(t('refer_and_earn'), textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.iconOnWave(context)))),
+                    IconButton(icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)), onPressed: _fetchReferralInfo),
                   ]),
                 ),
 
@@ -197,27 +201,27 @@ class _ReferralPageState extends State<ReferralPage> {
                             _triCard(
                               child: Container(
                                 padding: const EdgeInsets.all(22),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                 child: Column(children: [
                                   // Coins display
                                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                    _coinBadge('You Get', _inviterRewardCoins, Colors.amber),
+                                    _coinBadge(t('you_get_label'), _inviterRewardCoins, Colors.amber),
                                     const SizedBox(width: 24),
-                                    Container(width: 1, height: 60, color: Colors.grey[200]),
+                                    Container(width: 1, height: 60, color: AppThemeColors.divider(context)),
                                     const SizedBox(width: 24),
-                                    _coinBadge('Friend Gets', _refereeRewardCoins, AppColors.cyan),
+                                    _coinBadge(t('friend_gets_label'), _refereeRewardCoins, AppColors.cyan),
                                   ]),
                                   const SizedBox(height: 18),
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE0F7FA),
+                                      color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF15333A)),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Text(
-                                      'Coins are awarded after your friend signs up and creates their first transaction',
+                                    child: Text(
+                                      t('coins_awarded_after_signup_first_txn'),
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 12, color: Color(0xFF006D77), fontWeight: FontWeight.w500),
+                                      style: TextStyle(fontSize: 12, color: AppThemeColors.tinted(context, light: const Color(0xFF006D77), dark: const Color(0xFF8FE3EE)), fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                 ]),
@@ -227,11 +231,11 @@ class _ReferralPageState extends State<ReferralPage> {
 
                             // ── Stats row ─────────────────────────────────
                             Row(children: [
-                              Expanded(child: _statCard('$_totalShares', 'Shares', Icons.share_rounded, AppColors.cyan)),
+                              Expanded(child: _statCard('$_totalShares', t('shares_label'), Icons.share_rounded, AppColors.cyan)),
                               const SizedBox(width: 10),
-                              Expanded(child: _statCard('$_invitedUsers', 'Invited', Icons.person_add_rounded, Colors.orange)),
+                              Expanded(child: _statCard('$_invitedUsers', t('invited_label'), Icons.person_add_rounded, Colors.orange)),
                               const SizedBox(width: 10),
-                              Expanded(child: _statCard('$_convertedUsers', 'Joined', Icons.how_to_reg_rounded, const Color(0xFF48CAE4))),
+                              Expanded(child: _statCard('$_convertedUsers', t('joined_label'), Icons.how_to_reg_rounded, const Color(0xFF48CAE4))),
                             ]),
                             const SizedBox(height: 14),
 
@@ -239,26 +243,26 @@ class _ReferralPageState extends State<ReferralPage> {
                             _triCard(
                               child: Container(
                                 padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Row(children: [
-                                      Icon(Icons.qr_code_2, color: AppColors.cyan, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('Your Referral Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    Row(children: [
+                                      const Icon(Icons.qr_code_2, color: AppColors.cyan, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(t('your_referral_code_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
                                     ]),
                                     const SizedBox(height: 12),
                                     GestureDetector(
                                       onTap: () async {
                                         await Clipboard.setData(ClipboardData(text: _referralCode));
-                                        showSnack(context, 'Code copied!');
+                                        showSnack(context, t('code_copied'));
                                       },
                                       child: Container(
                                         width: double.infinity,
                                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF0F9FF),
+                                          color: AppThemeColors.tinted(context, light: const Color(0xFFF0F9FF), dark: const Color(0xFF132A33)),
                                           borderRadius: BorderRadius.circular(14),
                                           border: Border.all(color: AppColors.cyan, width: 1.5, style: BorderStyle.solid),
                                         ),
@@ -288,16 +292,16 @@ class _ReferralPageState extends State<ReferralPage> {
                                       ),
                                     ),
                                     const SizedBox(height: 12),
-                                    const Text('Invite Link', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                                    Text(t('invite_link_label'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.secondaryText(context))),
                                     const SizedBox(height: 6),
                                     Row(children: [
                                       Expanded(
-                                        child: Text(_inviteLink, style: TextStyle(fontSize: 12, color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        child: Text(_inviteLink, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       ),
                                       GestureDetector(
                                         onTap: () async {
                                           await Clipboard.setData(ClipboardData(text: _inviteLink));
-                                          showSnack(context, 'Link copied!');
+                                          showSnack(context, t('link_copied'));
                                         },
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -305,10 +309,10 @@ class _ReferralPageState extends State<ReferralPage> {
                                             color: AppColors.cyan.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(20),
                                           ),
-                                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                            Icon(Icons.link, size: 14, color: AppColors.cyan),
-                                            SizedBox(width: 4),
-                                            Text('Copy', style: TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                            const Icon(Icons.link, size: 14, color: AppColors.cyan),
+                                            const SizedBox(width: 4),
+                                            Text(t('copy_label'), style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
                                           ]),
                                         ),
                                       ),
@@ -323,18 +327,18 @@ class _ReferralPageState extends State<ReferralPage> {
                             _triCard(
                               child: Container(
                                 padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Row(children: [
-                                      Icon(Icons.share_rounded, color: AppColors.cyan, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('Share Via', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    Row(children: [
+                                      const Icon(Icons.share_rounded, color: AppColors.cyan, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(t('share_via_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
                                     ]),
                                     const SizedBox(height: 14),
                                     if (_shareOptions.isEmpty)
-                                      Text('No share options configured.', style: TextStyle(color: Colors.grey[500]))
+                                      Text(t('no_share_options_configured'), style: TextStyle(color: AppThemeColors.mutedText(context)))
                                     else
                                       Wrap(
                                         spacing: 14, runSpacing: 14,
@@ -362,7 +366,7 @@ class _ReferralPageState extends State<ReferralPage> {
                                                   ),
                                                   const SizedBox(height: 6),
                                                   Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
-                                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context))),
                                                 ],
                                               ),
                                             ),
@@ -373,12 +377,12 @@ class _ReferralPageState extends State<ReferralPage> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE0F7FA),
+                                        color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF15333A)),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: const Text(
-                                        'Ask your friend to sign up with your code and create at least one transaction.',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF006D77), fontWeight: FontWeight.w500),
+                                      child: Text(
+                                        t('ask_friend_signup_create_txn'),
+                                        style: TextStyle(fontSize: 12, color: AppThemeColors.tinted(context, light: const Color(0xFF006D77), dark: const Color(0xFF8FE3EE)), fontWeight: FontWeight.w500),
                                       ),
                                     ),
                                   ],
@@ -392,14 +396,14 @@ class _ReferralPageState extends State<ReferralPage> {
                               _triCard(
                                 child: Container(
                                   padding: const EdgeInsets.all(18),
-                                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                  decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Row(children: [
-                                        Icon(Icons.history, color: AppColors.cyan, size: 20),
-                                        SizedBox(width: 8),
-                                        Text('Recent Shares', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                      Row(children: [
+                                        const Icon(Icons.history, color: AppColors.cyan, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(t('recent_shares_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
                                       ]),
                                       const SizedBox(height: 12),
                                       ..._recentShares.take(6).map((item) {
@@ -419,10 +423,10 @@ class _ReferralPageState extends State<ReferralPage> {
                                             Icon(_iconFor(ch), size: 16, color: color),
                                             const SizedBox(width: 10),
                                             Expanded(child: Text(
-                                              '${ch.substring(0, 1).toUpperCase()}${ch.substring(1)} Share',
+                                              '${ch.substring(0, 1).toUpperCase()}${ch.substring(1)} ${t('share_label')}',
                                               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: color),
                                             )),
-                                            Text(stamp, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                            Text(stamp, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
                                           ]),
                                         );
                                       }),
@@ -436,20 +440,20 @@ class _ReferralPageState extends State<ReferralPage> {
                             _triCard(
                               child: Container(
                                 padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Row(children: [
-                                      Icon(Icons.info_outline, color: AppColors.cyan, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('How it Works', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    Row(children: [
+                                      const Icon(Icons.info_outline, color: AppColors.cyan, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(t('how_it_works_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
                                     ]),
                                     const SizedBox(height: 14),
-                                    _step(1, 'Share your referral code or link with friends', Icons.share_rounded, AppColors.cyan),
-                                    _step(2, 'Friend signs up on LenDen using your code', Icons.person_add_rounded, Colors.orange),
-                                    _step(3, 'Friend creates their first transaction', Icons.receipt_long_rounded, const Color(0xFF48CAE4)),
-                                    _step(4, 'Both of you earn LenDen coins!', Icons.monetization_on_rounded, Colors.amber, isLast: true),
+                                    _step(1, t('step_share_referral_code'), Icons.share_rounded, AppColors.cyan),
+                                    _step(2, t('step_friend_signs_up'), Icons.person_add_rounded, Colors.orange),
+                                    _step(3, t('step_friend_first_transaction'), Icons.receipt_long_rounded, const Color(0xFF48CAE4)),
+                                    _step(4, t('step_both_earn_coins'), Icons.monetization_on_rounded, Colors.amber, isLast: true),
                                   ],
                                 ),
                               ),
@@ -484,8 +488,8 @@ class _ReferralPageState extends State<ReferralPage> {
         const SizedBox(height: 8),
         Text('+$coins', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-        Text('coins', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        Text(label, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+        Text(AppLocalizations.of(context).t('coins_label_short_lower'), style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
       ],
     );
   }
@@ -494,7 +498,7 @@ class _ReferralPageState extends State<ReferralPage> {
     return _triCard(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(16)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             width: 38, height: 38,
@@ -503,7 +507,7 @@ class _ReferralPageState extends State<ReferralPage> {
           ),
           const SizedBox(height: 8),
           Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          Text(label, style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
         ]),
       ),
     );
@@ -521,14 +525,14 @@ class _ReferralPageState extends State<ReferralPage> {
               child: Icon(icon, color: color, size: 16),
             ),
             if (!isLast)
-              Container(width: 2, height: 28, color: Colors.grey[200], margin: const EdgeInsets.symmetric(vertical: 2)),
+              Container(width: 2, height: 28, color: AppThemeColors.divider(context), margin: const EdgeInsets.symmetric(vertical: 2)),
           ],
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Padding(
             padding: EdgeInsets.only(bottom: isLast ? 0 : 24, top: 6),
-            child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            child: Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(context))),
           ),
         ),
       ],

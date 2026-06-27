@@ -49,5 +49,7 @@
 	<string>LenDen needs camera access to scan QR codes for payments.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>LenDen needs photo library access to scan QR codes from images.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>LenDen uses Face ID to unlock the app securely.</string>
 </dict>
 </plist>

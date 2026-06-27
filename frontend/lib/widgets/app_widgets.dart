@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // TRICOLOR BORDER
@@ -121,12 +123,14 @@ AppBar transparentAppBar(
   return AppBar(
     title: Text(
       title,
-      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+      style: TextStyle(
+          color: AppThemeColors.primaryText(context),
+          fontWeight: FontWeight.bold),
     ),
     backgroundColor: Colors.transparent,
     elevation: 0,
     leading: IconButton(
-      icon: const Icon(Icons.arrow_back, color: Colors.black),
+      icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
       onPressed: onBack ?? () => Navigator.pop(context),
     ),
     actions: actions,
@@ -147,7 +151,8 @@ AppBar transparentAppBar(
 ///   if (_isLoading) loadingOverlay(),
 /// ])
 /// ```
-Widget cyanWaveHeader({double height = 110, CustomClipper<Path>? clipper}) {
+Widget cyanWaveHeader(BuildContext context,
+    {double height = 110, CustomClipper<Path>? clipper}) {
   return Positioned(
     top: 0,
     left: 0,
@@ -156,7 +161,7 @@ Widget cyanWaveHeader({double height = 110, CustomClipper<Path>? clipper}) {
       clipper: clipper ?? _DefaultTopWaveClipper(),
       child: Container(
         height: height,
-        color: AppColors.cyan,
+        color: AppThemeColors.waveSolid(context),
       ),
     ),
   );
@@ -202,22 +207,25 @@ class _DefaultTopWaveClipper extends CustomClipper<Path> {
 /// });
 /// ```
 void showLogoutDialog(BuildContext context, {required VoidCallback onConfirm}) {
+  final t = AppLocalizations.of(context).t;
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
+      backgroundColor: AppThemeColors.cardBg(ctx),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        'Logout',
-        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+      title: Text(
+        t('logout'),
+        style: TextStyle(
+            fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx)),
       ),
-      content: const Text(
-        'Are you sure you want to logout?',
-        style: TextStyle(color: Colors.black87),
+      content: Text(
+        t('logout_confirm'),
+        style: TextStyle(color: AppThemeColors.secondaryText(ctx)),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           onPressed: () {
@@ -228,7 +236,7 @@ void showLogoutDialog(BuildContext context, {required VoidCallback onConfirm}) {
             backgroundColor: Colors.red,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          child: Text(t('logout'), style: const TextStyle(color: Colors.white)),
         ),
       ],
     ),

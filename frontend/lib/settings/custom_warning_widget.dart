@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import '../utils/theme_helper.dart';
+
+/// Darkens a light pastel "tinted surface" color for dark mode by blending
+/// it at low opacity over the dark card surface, instead of hand-picking a
+/// dark counterpart for every status color used in this file.
+Color _surfaceTint(BuildContext context, Color light) {
+  if (!AppThemeColors.isDark(context)) return light;
+  return Color.alphaBlend(light.withValues(alpha: 0.22), const Color(0xFF1E1E1E));
+}
 
 class CustomWarningWidget {
   // Success message with green theme
@@ -70,7 +79,7 @@ class CustomWarningWidget {
           color: Colors.transparent,
           child: Container(
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: _surfaceTint(context, backgroundColor),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: iconColor.withValues(alpha: 0.3), width: 1),
               boxShadow: [
@@ -195,7 +204,7 @@ class CustomWarningWidget {
                   color: Colors.transparent,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: backgroundColor,
+                      color: _surfaceTint(context, backgroundColor),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: iconColor.withValues(alpha: 0.3), width: 1),
                       boxShadow: [
@@ -290,7 +299,7 @@ class CustomWarningWidget {
           color: Colors.transparent,
           child: Container(
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: _surfaceTint(context, backgroundColor),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: iconColor.withValues(alpha: 0.3), width: 1),
               boxShadow: [

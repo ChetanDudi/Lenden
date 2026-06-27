@@ -7,6 +7,8 @@ import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageUpdatesPage extends StatefulWidget {
   const ManageUpdatesPage({super.key});
@@ -126,8 +128,9 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
   }
 
   Future<void> _submitUpdate() async {
+    final t = AppLocalizations.of(context).t;
     if (_titleController.text.trim().isEmpty || _bodyController.text.trim().isEmpty) {
-      setState(() => _error = 'Title and body are required.');
+      setState(() => _error = t('title_and_body_required'));
       return;
     }
 
@@ -157,12 +160,12 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
           : await ApiClient.post('/api/admin/app-updates', body: body);
       final data = jsonDecode(res.body);
       if (res.statusCode != 200 && res.statusCode != 201) {
-        throw Exception((data['error'] ?? 'Failed to save update').toString());
+        throw Exception((data['error'] ?? t('failed_to_save_update')).toString());
       }
 
       final message = _isEditing
-          ? 'Update edited successfully.'
-          : 'Update published successfully.';
+          ? t('update_edited_successfully')
+          : t('update_published_successfully');
       _resetForm();
       await _loadUpdates();
       if (!mounted) return;
@@ -221,11 +224,12 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> update) async {
+    final t = AppLocalizations.of(context).t;
     final shouldDelete = await _showConfirmDialog(
-      title: 'Delete Update?',
+      title: t('delete_update_question'),
       message:
-          'Are you sure you want to delete "${(update['title'] ?? '').toString()}"?',
-      confirmLabel: 'Delete',
+          '${t('delete_update_confirm_prefix')} "${(update['title'] ?? '').toString()}"?',
+      confirmLabel: t('delete'),
       confirmColor: Colors.redAccent,
     );
 
@@ -236,14 +240,14 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
       if (res.statusCode != 200) {
         if (!mounted) return;
         _showStylishMessage(
-          (data['error'] ?? 'Failed to delete update').toString(),
+          (data['error'] ?? t('failed_to_delete_update')).toString(),
           true,
         );
         return;
       }
       await _loadUpdates();
       if (!mounted) return;
-      _showStylishMessage('Update deleted successfully.', false);
+      _showStylishMessage(t('update_deleted_successfully'), false);
       if (_editingId == update['_id']?.toString()) _resetForm();
     }
   }
@@ -254,9 +258,10 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
     required String confirmLabel,
     required Color confirmColor,
   }) {
+    final t = AppLocalizations.of(context).t;
     return showDialog<bool>(
       context: context,
-      builder: (_) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           padding: const EdgeInsets.all(2),
@@ -271,7 +276,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(dialogContext),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -281,27 +286,34 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                 const SizedBox(height: 12),
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppThemeColors.primaryText(dialogContext),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(height: 1.45),
+                  style: TextStyle(
+                    height: 1.45,
+                    color: AppThemeColors.primaryText(dialogContext),
+                  ),
                 ),
                 const SizedBox(height: 18),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: Text(t('cancel')),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
+                        onPressed: () => Navigator.pop(dialogContext, true),
                         style: ElevatedButton.styleFrom(backgroundColor: confirmColor),
                         child: Text(confirmLabel),
                       ),
@@ -380,8 +392,9 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -392,12 +405,15 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                 ),
               ),
             ),
@@ -411,16 +427,17 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Manage Updates',
+                          t('manage_updates'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
@@ -442,20 +459,22 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: TabBar(
                         controller: _tabController,
                         labelColor: AppColors.cyan,
-                        unselectedLabelColor: Colors.black54,
+                        unselectedLabelColor: AppThemeColors.secondaryText(context),
                         indicator: BoxDecoration(
-                          color: const Color(0xFFEAF5FF),
+                          color: AppThemeColors.tinted(context,
+                              light: const Color(0xFFEAF5FF),
+                              dark: const Color(0xFF1B3A4A)),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        tabs: const [
-                          Tab(text: 'Create'),
-                          Tab(text: 'Manage'),
+                        tabs: [
+                          Tab(text: t('create')),
+                          Tab(text: t('manage')),
                         ],
                       ),
                     ),
@@ -508,6 +527,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
   }
 
   Widget _buildComposer() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -521,7 +541,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -535,60 +555,64 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isEditing ? 'Edit Update' : 'Publish New Update',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              _isEditing ? t('edit_update') : t('publish_new_update'),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppThemeColors.primaryText(context),
+              ),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('title'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _summaryController,
-              decoration: const InputDecoration(
-                labelText: 'Short Summary',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('short_summary'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _versionController,
-              decoration: const InputDecoration(
-                labelText: 'Version Tag',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('version_tag'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _category,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('category'),
+                border: const OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 'general', child: Text('General')),
-                DropdownMenuItem(value: 'feature', child: Text('Feature')),
-                DropdownMenuItem(value: 'bug_fix', child: Text('Bug Fix')),
-                DropdownMenuItem(value: 'security', child: Text('Security')),
-                DropdownMenuItem(value: 'maintenance', child: Text('Maintenance')),
+              items: [
+                DropdownMenuItem(value: 'general', child: Text(t('general'))),
+                DropdownMenuItem(value: 'feature', child: Text(t('feature'))),
+                DropdownMenuItem(value: 'bug_fix', child: Text(t('bug_fix'))),
+                DropdownMenuItem(value: 'security', child: Text(t('security'))),
+                DropdownMenuItem(value: 'maintenance', child: Text(t('maintenance'))),
               ],
               onChanged: (value) => setState(() => _category = value ?? 'general'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _importance,
-              decoration: const InputDecoration(
-                labelText: 'Importance',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('importance'),
+                border: const OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 'normal', child: Text('Normal')),
-                DropdownMenuItem(value: 'important', child: Text('Important')),
-                DropdownMenuItem(value: 'critical', child: Text('Critical')),
+              items: [
+                DropdownMenuItem(value: 'normal', child: Text(t('normal'))),
+                DropdownMenuItem(value: 'important', child: Text(t('important'))),
+                DropdownMenuItem(value: 'critical', child: Text(t('critical'))),
               ],
               onChanged: (value) =>
                   setState(() => _importance = value ?? 'normal'),
@@ -596,14 +620,14 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _targetAudience,
-              decoration: const InputDecoration(
-                labelText: 'Audience',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('audience'),
+                border: const OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Users')),
-                DropdownMenuItem(value: 'subscribed', child: Text('Subscribed Only')),
-                DropdownMenuItem(value: 'nonsubscribed', child: Text('Non-Subscribed Only')),
+              items: [
+                DropdownMenuItem(value: 'all', child: Text(t('all_users'))),
+                DropdownMenuItem(value: 'subscribed', child: Text(t('subscribed_only'))),
+                DropdownMenuItem(value: 'nonsubscribed', child: Text(t('non_subscribed_only'))),
               ],
               onChanged: (value) =>
                   setState(() => _targetAudience = value ?? 'all'),
@@ -611,14 +635,14 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _status,
-              decoration: const InputDecoration(
-                labelText: 'Publish Status',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('publish_status'),
+                border: const OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 'published', child: Text('Publish Now')),
-                DropdownMenuItem(value: 'draft', child: Text('Save as Draft')),
-                DropdownMenuItem(value: 'scheduled', child: Text('Schedule for Later')),
+              items: [
+                DropdownMenuItem(value: 'published', child: Text(t('publish_now'))),
+                DropdownMenuItem(value: 'draft', child: Text(t('save_as_draft'))),
+                DropdownMenuItem(value: 'scheduled', child: Text(t('schedule_for_later'))),
               ],
               onChanged: (value) =>
                   setState(() => _status = value ?? 'published'),
@@ -630,11 +654,11 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                 readOnly: true,
                 onTap: () => _pickDateTime(
                   controller: _scheduledForController,
-                  title: 'Select Schedule Date',
+                  title: t('select_schedule_date'),
                 ),
                 decoration: InputDecoration(
-                  labelText: 'Scheduled For',
-                  hintText: 'Tap to choose date and time',
+                  labelText: t('scheduled_for'),
+                  hintText: t('tap_to_choose_date_time'),
                   border: const OutlineInputBorder(),
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -649,7 +673,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                         icon: const Icon(Icons.calendar_month_outlined),
                         onPressed: () => _pickDateTime(
                           controller: _scheduledForController,
-                          title: 'Select Schedule Date',
+                          title: t('select_schedule_date'),
                         ),
                       ),
                     ],
@@ -660,28 +684,28 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             const SizedBox(height: 12),
             TextField(
               controller: _tagsController,
-              decoration: const InputDecoration(
-                labelText: 'Tags',
+              decoration: InputDecoration(
+                labelText: t('tags'),
                 hintText: 'security, release, dashboard',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _platformsController,
-              decoration: const InputDecoration(
-                labelText: 'Platforms',
+              decoration: InputDecoration(
+                labelText: t('platforms'),
                 hintText: 'all, windows, android, ios, web',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _bodyController,
               maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'Update Details',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('update_details'),
+                border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
             ),
@@ -689,7 +713,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _pinned,
-              title: const Text('Pin this update'),
+              title: Text(t('pin_this_update')),
               onChanged: (value) => setState(() => _pinned = value),
             ),
             if (_error != null)
@@ -712,7 +736,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Cancel Edit'),
+                      child: Text(t('cancel_edit')),
                     ),
                   ),
                 if (_isEditing) const SizedBox(width: 12),
@@ -728,8 +752,8 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                     ),
                     child: Text(
                       _submitting
-                          ? (_isEditing ? 'Saving...' : 'Publishing...')
-                          : (_isEditing ? 'Save Changes' : 'Publish Update'),
+                          ? (_isEditing ? t('saving') : t('publishing_ellipsis'))
+                          : (_isEditing ? t('save_changes') : t('publish_update')),
                     ),
                   ),
                 ),
@@ -742,10 +766,11 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
   }
 
   Widget _buildManageHeader() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
@@ -758,20 +783,24 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Manage Published Updates',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          Text(
+            t('manage_published_updates'),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppThemeColors.primaryText(context),
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildSummaryChip('Published', '${_updateSummary['published']}'),
-              _buildSummaryChip('Drafts', '${_updateSummary['draft']}'),
-              _buildSummaryChip('Scheduled', '${_updateSummary['scheduled']}'),
-              _buildSummaryChip('Reads', '${_updateSummary['reads']}'),
-              _buildSummaryChip('Critical', '${_updateSummary['critical']}'),
+              _buildSummaryChip(t('published'), '${_updateSummary['published']}'),
+              _buildSummaryChip(t('drafts'), '${_updateSummary['draft']}'),
+              _buildSummaryChip(t('scheduled'), '${_updateSummary['scheduled']}'),
+              _buildSummaryChip(t('reads'), '${_updateSummary['reads']}'),
+              _buildSummaryChip(t('critical'), '${_updateSummary['critical']}'),
             ],
           ),
           const SizedBox(height: 12),
@@ -779,12 +808,12 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildFilterChip('all', 'All'),
-              _buildFilterChip('mine', 'Mine'),
-              _buildFilterChip('pinned', 'Pinned'),
-              _buildFilterChip('draft', 'Drafts'),
-              _buildFilterChip('scheduled', 'Scheduled'),
-              _buildFilterChip('critical', 'Critical'),
+              _buildFilterChip('all', t('all')),
+              _buildFilterChip('mine', t('mine')),
+              _buildFilterChip('pinned', t('pinned')),
+              _buildFilterChip('draft', t('drafts')),
+              _buildFilterChip('scheduled', t('scheduled')),
+              _buildFilterChip('critical', t('critical')),
             ],
           ),
           const SizedBox(height: 12),
@@ -792,7 +821,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? 'Show Latest 3' : 'View All'),
+              child: Text(_showAll ? t('show_latest_3') : t('view_all')),
             ),
           ),
         ],
@@ -806,9 +835,10 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
       label: Text(label),
       selected: selected,
       onSelected: (_) => setState(() => _filter = value),
-      selectedColor: const Color(0xFFEAF5FF),
+      selectedColor: AppThemeColors.tinted(context,
+          light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A4A)),
       labelStyle: TextStyle(
-        color: selected ? AppColors.cyan : Colors.black87,
+        color: selected ? AppColors.cyan : AppThemeColors.primaryText(context),
         fontWeight: FontWeight.w700,
       ),
     );
@@ -818,12 +848,13 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5FF),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A4A)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(color: Colors.black87),
+          style: TextStyle(color: AppThemeColors.primaryText(context)),
           children: [
             TextSpan(
               text: '$value ',
@@ -843,21 +874,26 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
   }
 
   Widget _buildEmptyState() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Text(
-        'No updates found for this filter.',
+      child: Text(
+        t('no_updates_found_for_filter'),
         textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppThemeColors.secondaryText(context),
+        ),
       ),
     );
   }
 
   Widget _buildUpdateCard(Map<String, dynamic> update) {
+    final t = AppLocalizations.of(context).t;
     final createdBy = update['createdBy'];
     final createdByEmail =
         createdBy is Map ? (createdBy['email'] ?? '').toString() : '';
@@ -881,7 +917,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(
@@ -892,8 +928,11 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                 Expanded(
                   child: Text(
                     (update['title'] ?? '').toString(),
-                    style:
-                        const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(context),
+                    ),
                   ),
                 ),
                 if (update['pinned'] == true)
@@ -901,12 +940,14 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAF4FF),
+                      color: AppThemeColors.tinted(context,
+                          light: const Color(0xFFEAF4FF),
+                          dark: const Color(0xFF1B3A4A)),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'Pinned',
-                      style: TextStyle(
+                    child: Text(
+                      t('pinned'),
+                      style: const TextStyle(
                         color: Color(0xFF0E5A8A),
                         fontWeight: FontWeight.w700,
                       ),
@@ -917,7 +958,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             if ((update['versionTag'] ?? '').toString().trim().isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Version ${update['versionTag']}',
+                '${t('version_label')} ${update['versionTag']}',
                 style: const TextStyle(
                   color: AppColors.cyan,
                   fontWeight: FontWeight.w700,
@@ -929,7 +970,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
               Text(
                 (update['summary'] ?? '').toString(),
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: AppThemeColors.secondaryText(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -937,21 +978,24 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             const SizedBox(height: 10),
             Text(
               (update['body'] ?? '').toString(),
-              style: const TextStyle(height: 1.45, color: Colors.black87),
+              style: TextStyle(
+                height: 1.45,
+                color: AppThemeColors.primaryText(context),
+              ),
             ),
             const SizedBox(height: 14),
             Wrap(
               spacing: 10,
               runSpacing: 10,
               children: [
-                _buildMetaChip(Icons.person_outline, 'Published by: $createdByEmail'),
-                _buildMetaChip(Icons.schedule, 'Published: $publishedAt'),
-                _buildMetaChip(Icons.category_outlined, 'Category: ${(update['category'] ?? 'general').toString()}'),
-                _buildMetaChip(Icons.priority_high, 'Importance: ${(update['importance'] ?? 'normal').toString()}'),
-                _buildMetaChip(Icons.event_note, 'Status: ${(update['status'] ?? 'published').toString()}'),
-                _buildMetaChip(Icons.visibility, 'Reads: ${((update['stats'] ?? {})['readCount'] ?? 0)}'),
+                _buildMetaChip(Icons.person_outline, '${t('published_by_label')} $createdByEmail'),
+                _buildMetaChip(Icons.schedule, '${t('published_label')} $publishedAt'),
+                _buildMetaChip(Icons.category_outlined, '${t('category')}: ${(update['category'] ?? 'general').toString()}'),
+                _buildMetaChip(Icons.priority_high, '${t('importance')}: ${(update['importance'] ?? 'normal').toString()}'),
+                _buildMetaChip(Icons.event_note, '${t('status')}: ${(update['status'] ?? 'published').toString()}'),
+                _buildMetaChip(Icons.visibility, '${t('reads')}: ${((update['stats'] ?? {})['readCount'] ?? 0)}'),
                 if (wasEdited)
-                  _buildMetaChip(Icons.edit_outlined, 'Edited: $editedAt'),
+                  _buildMetaChip(Icons.edit_outlined, '${t('edited_label')} $editedAt'),
               ],
             ),
             const SizedBox(height: 16),
@@ -961,7 +1005,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                   child: OutlinedButton.icon(
                     onPressed: canManage ? () => _startEditing(update) : null,
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit'),
+                    label: Text(t('edit')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -972,7 +1016,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                       backgroundColor: Colors.redAccent,
                     ),
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
+                    label: Text(t('delete')),
                   ),
                 ),
               ],
@@ -980,9 +1024,9 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
             if (!canManage) ...[
               const SizedBox(height: 10),
               Text(
-                'Only the creator admin or a superadmin can edit or delete this update.',
+                t('only_creator_or_superadmin_can_manage_update'),
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: AppThemeColors.secondaryText(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -997,7 +1041,8 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F8FB),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF4F8FB), dark: const Color(0xFF223240)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -1007,7 +1052,11 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: AppThemeColors.primaryText(context),
+            ),
           ),
         ],
       ),
@@ -1016,7 +1065,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
 
   String _formatDateTime(dynamic value) {
     final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
-    if (date == null) return 'Unknown';
+    if (date == null) return AppLocalizations.of(context).t('unknown');
     const months = [
       'Jan',
       'Feb',

@@ -14,6 +14,8 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserManagementPage extends StatefulWidget {
   final String initialStatusFilter;
@@ -83,14 +85,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
         }
       } else {
         if (mounted) {
+          final t = AppLocalizations.of(context).t;
           setState(() => _isLoading = false);
-          showSnack(context, 'Failed to load users: ${response.statusCode}', isError: true);
+          showSnack(context, '${t('failed_to_load_users')}: ${response.statusCode}', isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context).t;
         setState(() => _isLoading = false);
-        showSnack(context, 'Error loading users: ${e.toString()}', isError: true);
+        showSnack(context, '${t('error_loading_users')}: ${e.toString()}', isError: true);
       }
     }
   }
@@ -115,7 +119,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             gradient: LinearGradient(
               colors: [
                 accentColor.withValues(alpha: 0.14),
-                Colors.white,
+                AppThemeColors.cardBg(context),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -157,9 +161,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     const SizedBox(height: 3),
                     Text(
                       message,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                   ],
@@ -181,6 +185,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Future<void> _bulkForceLogout() async {
     if (_selectedUserIds.isEmpty) return;
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -193,7 +198,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(26),
               ),
               child: Column(
@@ -216,18 +221,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Force Logout Selected',
+                            Text(
+                              t('force_logout_selected_title'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Invalidate all sessions for ${_selectedUserIds.length} selected user${_selectedUserIds.length > 1 ? 's' : ''}.',
-                              style: const TextStyle(
-                                color: Colors.black54,
+                              '${t('invalidate_sessions_for_label')} ${_selectedUserIds.length} ${_selectedUserIds.length > 1 ? t('selected_users_plural') : t('selected_user_singular')}.',
+                              style: TextStyle(
+                                color: AppThemeColors.secondaryText(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -242,7 +248,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                          child: Text(t('cancel')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -250,7 +256,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: ElevatedButton.icon(
                           onPressed: () => Navigator.of(context).pop(true),
                           icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Force Logout All'),
+                          label: Text(t('force_logout_all_label')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
@@ -281,18 +287,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
         setState(() => _selectedUserIds.clear());
         if (!mounted) return;
         _showStyledBanner(
-          title: 'Force Logout Done',
-          message: (data['message'] ?? 'Selected users have been logged out').toString(),
+          title: t('force_logout_done_title'),
+          message: (data['message'] ?? t('selected_users_logged_out')).toString(),
           icon: Icons.logout_rounded,
           accentColor: Colors.red,
         );
       } else {
-        throw Exception((data['message'] ?? 'Bulk force logout failed').toString());
+        throw Exception((data['message'] ?? t('bulk_force_logout_failed')).toString());
       }
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Force Logout Failed',
+        title: t('force_logout_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -302,6 +308,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Future<void> _bulkUpdateStatus(bool isActive) async {
     if (_selectedUserIds.isEmpty) return;
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.patch(
         '/api/admin/users/bulk-status',
@@ -316,18 +323,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
         setState(() => _selectedUserIds.clear());
         if (!mounted) return;
         _showStyledBanner(
-          title: isActive ? 'Users Activated' : 'Users Deactivated',
-          message: (data['message'] ?? 'Users updated').toString(),
+          title: isActive ? t('users_activated_title') : t('users_deactivated_title'),
+          message: (data['message'] ?? t('users_updated_label')).toString(),
           icon: isActive ? Icons.check_circle_rounded : Icons.block_rounded,
           accentColor: isActive ? Colors.green : Colors.deepOrange,
         );
       } else {
-        throw Exception((data['message'] ?? 'Failed to update users').toString());
+        throw Exception((data['message'] ?? t('failed_to_update_users')).toString());
       }
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Bulk Action Failed',
+        title: t('bulk_action_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -336,6 +343,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _exportUsers() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final ids = _selectedUserIds.join(',');
       final path = ids.isEmpty
@@ -343,14 +351,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
           : '/api/admin/users/export?userIds=${Uri.encodeQueryComponent(ids)}';
       final response = await ApiClient.get(path);
       if (response.statusCode != 200) {
-        throw Exception('Failed to export users');
+        throw Exception(t('failed_to_export_users'));
       }
       if (!mounted) return;
-      _showExportOptions('User Export CSV', response.body);
+      _showExportOptions(t('user_export_csv_title'), response.body);
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Export Failed',
+        title: t('export_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.file_download_off_rounded,
         accentColor: Colors.red,
@@ -359,6 +367,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _clearPendingUsers() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.patch(
         '/api/admin/users/clear-pending',
@@ -370,9 +379,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
         if (!mounted) return;
         final modifiedCount = (data['modifiedCount'] ?? 0) as num;
         _showStyledBanner(
-          title: modifiedCount > 0 ? 'Pending Reviewed' : 'All Clear',
+          title: modifiedCount > 0 ? t('pending_reviewed_title') : t('all_clear_title'),
           message: (data['message'] ??
-                  'No pending users were left to review')
+                  t('no_pending_users_left_to_review'))
               .toString(),
           icon: modifiedCount > 0
               ? Icons.verified_user_rounded
@@ -382,13 +391,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
         );
       } else {
         throw Exception(
-          (data['message'] ?? 'Failed to clear pending users').toString(),
+          (data['message'] ?? t('failed_to_clear_pending_users')).toString(),
         );
       }
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Review Failed',
+        title: t('review_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -397,6 +406,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _reviewPendingUser(Map<String, dynamic> user) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -405,7 +415,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
         final createdAt = DateTime.tryParse((user['createdAt'] ?? '').toString());
         final joinedText = createdAt != null
             ? DateFormat('dd MMM yyyy, hh:mm a').format(createdAt)
-            : 'Date unavailable';
+            : t('date_unavailable');
 
         return SafeArea(
           child: Padding(
@@ -415,7 +425,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Column(
@@ -437,22 +447,23 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Review Pending User',
+                                t('review_pending_user_title'),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
+                                  color: AppThemeColors.primaryText(context),
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                'Verify this user individually instead of clearing everyone together.',
+                                t('verify_this_user_individually_desc'),
                                 style: TextStyle(
-                                  color: Colors.black54,
+                                  color: AppThemeColors.secondaryText(context),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -462,21 +473,21 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    _buildInfoPill(Icons.person_outline, user['name'] ?? 'Unknown'),
+                    _buildInfoPill(context, Icons.person_outline, user['name'] ?? t('unknown')),
                     const SizedBox(height: 10),
-                    _buildInfoPill(Icons.email_outlined, user['email'] ?? 'No email'),
+                    _buildInfoPill(context, Icons.email_outlined, user['email'] ?? t('no_email')),
                     const SizedBox(height: 10),
-                    _buildInfoPill(Icons.alternate_email_rounded,
-                        '@${user['username'] ?? 'unknown'}'),
+                    _buildInfoPill(context, Icons.alternate_email_rounded,
+                        '@${user['username'] ?? t('unknown')}'),
                     const SizedBox(height: 10),
-                    _buildInfoPill(Icons.schedule_rounded, 'Joined: $joinedText'),
+                    _buildInfoPill(context, Icons.schedule_rounded, '${t('joined_colon_label')} $joinedText'),
                     const SizedBox(height: 18),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Keep Pending'),
+                            child: Text(t('keep_pending_label')),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -484,7 +495,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           child: ElevatedButton.icon(
                             onPressed: () => Navigator.of(context).pop(true),
                             icon: const Icon(Icons.verified_rounded),
-                            label: const Text('Mark Verified'),
+                            label: Text(t('mark_verified_label')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.cyan,
                               foregroundColor: Colors.white,
@@ -516,7 +527,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       final data = json.decode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) {
         throw Exception(
-          (data['message'] ?? 'Failed to review pending user').toString(),
+          (data['message'] ?? t('failed_to_review_pending_user')).toString(),
         );
       }
 
@@ -533,15 +544,15 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
       if (!mounted) return;
       _showStyledBanner(
-        title: 'User Reviewed',
-        message: (data['message'] ?? 'Pending user marked as verified').toString(),
+        title: t('user_reviewed_title'),
+        message: (data['message'] ?? t('pending_user_marked_verified')).toString(),
         icon: Icons.verified_user_rounded,
         accentColor: Colors.green,
       );
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Review Failed',
+        title: t('review_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -549,12 +560,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
     }
   }
 
-  Widget _buildInfoPill(IconData icon, String text) {
+  Widget _buildInfoPill(BuildContext context, IconData icon, String text) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFD),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF7FAFD), dark: const Color(0xFF1E2A30)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -564,7 +576,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppThemeColors.primaryText(context),
+              ),
             ),
           ),
         ],
@@ -573,6 +588,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   void _showExportOptions(String title, String content) {
+    final t = AppLocalizations.of(context).t;
     final previewLines = content.split('\n').take(5).join('\n');
 
     showModalBottomSheet<void>(
@@ -587,25 +603,26 @@ class _UserManagementPageState extends State<UserManagementPage> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(26),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Export Users',
+                  Text(
+                    t('export_users_title'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Choose how you want to send or review this export. Share options now carry the full export payload to the selected destination, just like the referral flow.',
+                  Text(
+                    t('export_share_options_desc'),
                     style: TextStyle(
-                      color: Colors.black54,
+                      color: AppThemeColors.secondaryText(context),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -614,14 +631,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF6FBFE),
+                      color: AppThemeColors.tinted(context,
+                          light: const Color(0xFFF6FBFE),
+                          dark: const Color(0xFF1A2226)),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: SelectableText(
                       previewLines,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 12,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                   ),
@@ -631,31 +651,34 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     runSpacing: 10,
                     children: [
                       _buildExportActionChip(
+                        context: context,
                         icon: Icons.visibility_rounded,
-                        label: 'Preview',
+                        label: t('preview'),
                         onTap: () {
                           Navigator.of(context).pop();
                           _showExportPreview(title, content);
                         },
                       ),
                       _buildExportActionChip(
+                        context: context,
                         icon: Icons.copy_rounded,
-                        label: 'Copy',
+                        label: t('copy'),
                         onTap: () async {
                           await Clipboard.setData(ClipboardData(text: content));
                           if (!mounted) return;
                           Navigator.of(context).pop();
                           _showStyledBanner(
-                            title: 'Copied',
-                            message: 'Export content was copied to clipboard.',
+                            title: t('copied_title'),
+                            message: t('export_content_copied_to_clipboard'),
                             icon: Icons.copy_rounded,
                             accentColor: AppColors.cyan,
                           );
                         },
                       ),
                       _buildExportActionChip(
+                        context: context,
                         icon: Icons.mail_outline_rounded,
-                        label: 'Email',
+                        label: t('email'),
                         onTap: () => _launchExportOption(
                           channel: 'email',
                           title: title,
@@ -663,8 +686,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       ),
                       _buildExportActionChip(
+                        context: context,
                         icon: Icons.chat_bubble_outline_rounded,
-                        label: 'WhatsApp',
+                        label: t('whatsapp_label'),
                         onTap: () => _launchExportOption(
                           channel: 'whatsapp',
                           title: title,
@@ -672,8 +696,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       ),
                       _buildExportActionChip(
+                        context: context,
                         icon: Icons.send_rounded,
-                        label: 'Telegram',
+                        label: t('telegram_label'),
                         onTap: () => _launchExportOption(
                           channel: 'telegram',
                           title: title,
@@ -681,8 +706,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       ),
                       _buildExportActionChip(
+                        context: context,
                         icon: Icons.open_in_new_rounded,
-                        label: 'Others',
+                        label: t('others_label'),
                         onTap: () => _launchExportOption(
                           channel: 'others',
                           title: title,
@@ -701,6 +727,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Widget _buildExportActionChip({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -711,7 +738,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.scaffoldBgAlt,
+          color: AppThemeColors.scaffoldBg(context),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -721,7 +748,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppThemeColors.primaryText(context),
+              ),
             ),
           ],
         ),
@@ -734,6 +764,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     required String title,
     required String content,
   }) async {
+    final t = AppLocalizations.of(context).t;
     try {
       if (channel == 'others') {
         final directory = await getTemporaryDirectory();
@@ -745,8 +776,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
         Navigator.of(context).pop();
         await OpenFile.open(file.path);
         _showStyledBanner(
-          title: 'Export Ready',
-          message: 'The full export file was prepared and opened for external sharing.',
+          title: t('export_ready_title'),
+          message: t('export_file_prepared_opened_desc'),
           icon: Icons.file_open_rounded,
           accentColor: AppColors.cyan,
         );
@@ -780,16 +811,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
       Navigator.of(context).pop();
       if (!launched) {
         _showStyledBanner(
-          title: 'Share App Unavailable',
-          message: 'That app could not be opened on this device right now. You can still use Preview or Others.',
+          title: t('share_app_unavailable_title'),
+          message: t('share_app_unavailable_desc'),
           icon: Icons.info_outline,
           accentColor: Colors.orange,
         );
         return;
       }
       _showStyledBanner(
-        title: 'Export Sent Out',
-        message: 'Your export was prepared for ${channel[0].toUpperCase()}${channel.substring(1)}.',
+        title: t('export_sent_out_title'),
+        message: '${t('export_prepared_for_label')} ${channel[0].toUpperCase()}${channel.substring(1)}.',
         icon: Icons.outbound_rounded,
         accentColor: Colors.green,
       );
@@ -797,7 +828,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       if (!mounted) return;
       Navigator.of(context).pop();
       _showStyledBanner(
-        title: 'Export Failed',
+        title: t('export_failed_title'),
         message: e.toString(),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -806,6 +837,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   void _showExportPreview(String title, String content) {
+    final t = AppLocalizations.of(context).t;
     showDialog<void>(
       context: context,
       builder: (context) => Dialog(
@@ -815,7 +847,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(26),
             ),
             child: Column(
@@ -829,9 +861,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                     ),
@@ -844,15 +877,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFD),
+                      color: AppThemeColors.tinted(context,
+                          light: const Color(0xFFF8FAFD),
+                          dark: const Color(0xFF1A2226)),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: SingleChildScrollView(
                       child: SelectableText(
                         content,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                     ),
@@ -864,7 +900,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   child: TextButton.icon(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded),
-                    label: const Text('Close'),
+                    label: Text(t('close')),
                   ),
                 ),
               ],
@@ -877,6 +913,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
 
   Future<void> _toggleUserStatus(String userId, bool currentStatus) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.patch('/api/admin/users/$userId/status',
           body: {'isActive': !currentStatus});
@@ -892,18 +929,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
         _loadUsers();
         if (!mounted) return;
         _showStyledBanner(
-          title: !currentStatus ? 'User Activated' : 'User Deactivated',
-          message: (data['message'] ?? 'User status updated successfully').toString(),
+          title: !currentStatus ? t('user_activated_title') : t('user_deactivated_title'),
+          message: (data['message'] ?? t('user_status_updated_successfully')).toString(),
           icon: !currentStatus ? Icons.check_circle_rounded : Icons.block_rounded,
           accentColor: !currentStatus ? Colors.green : Colors.deepOrange,
         );
       } else {
-        throw Exception((data['message'] ?? 'Failed to update user status').toString());
+        throw Exception((data['message'] ?? t('failed_to_update_user_status')).toString());
       }
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Status Update Failed',
+        title: t('status_update_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -912,6 +949,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _forceLogoutUser(String userId, String userName) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -924,7 +962,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(26),
               ),
               child: Column(
@@ -943,22 +981,23 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: const Icon(Icons.logout_rounded, color: Colors.red),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Force Logout User',
+                              t('force_logout_user_title'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              'This will immediately invalidate all active sessions for this user.',
+                              t('force_logout_user_desc'),
                               style: TextStyle(
-                                color: Colors.black54,
+                                color: AppThemeColors.secondaryText(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -968,14 +1007,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _buildInfoPill(Icons.person_outline, userName),
+                  _buildInfoPill(context, Icons.person_outline, userName),
                   const SizedBox(height: 18),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                          child: Text(t('cancel')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -983,7 +1022,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: ElevatedButton.icon(
                           onPressed: () => Navigator.of(context).pop(true),
                           icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Force Logout'),
+                          label: Text(t('force_logout_label')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
@@ -1015,18 +1054,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         _showStyledBanner(
-          title: 'User Logged Out',
-          message: (data['message'] ?? 'All sessions invalidated for $userName').toString(),
+          title: t('user_logged_out_title'),
+          message: (data['message'] ?? '${t('all_sessions_invalidated_for_label')} $userName').toString(),
           icon: Icons.logout_rounded,
           accentColor: Colors.red,
         );
       } else {
-        throw Exception((data['message'] ?? 'Failed to force logout').toString());
+        throw Exception((data['message'] ?? t('failed_to_force_logout')).toString());
       }
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Force Logout Failed',
+        title: t('force_logout_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -1035,6 +1074,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _deleteUser(String userId, String userName) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -1047,7 +1087,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(26),
               ),
               child: Column(
@@ -1066,22 +1106,23 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: const Icon(Icons.delete_forever_rounded, color: Colors.red),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Delete User',
+                              t('delete_user_title'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              'This action is permanent and cannot be undone.',
+                              t('delete_user_permanent_desc'),
                               style: TextStyle(
-                                color: Colors.black54,
+                                color: AppThemeColors.secondaryText(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1091,14 +1132,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _buildInfoPill(Icons.person_outline, userName),
+                  _buildInfoPill(context, Icons.person_outline, userName),
                   const SizedBox(height: 18),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                          child: Text(t('cancel')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1106,7 +1147,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: ElevatedButton.icon(
                           onPressed: () => Navigator.of(context).pop(true),
                           icon: const Icon(Icons.delete_forever_rounded),
-                          label: const Text('Delete'),
+                          label: Text(t('delete')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
@@ -1139,18 +1180,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
         _loadUsers();
         if (!mounted) return;
         _showStyledBanner(
-          title: 'User Deleted',
-          message: (data['message'] ?? 'User "$userName" has been permanently deleted').toString(),
+          title: t('user_deleted_title'),
+          message: (data['message'] ?? '${t('user_label')} "$userName" ${t('has_been_permanently_deleted')}').toString(),
           icon: Icons.delete_forever_rounded,
           accentColor: Colors.red,
         );
       } else {
-        throw Exception((data['message'] ?? 'Failed to delete user').toString());
+        throw Exception((data['message'] ?? t('failed_to_delete_user')).toString());
       }
     } catch (e) {
       if (!mounted) return;
       _showStyledBanner(
-        title: 'Delete Failed',
+        title: t('delete_failed_title'),
         message: e.toString().replaceFirst('Exception: ', ''),
         icon: Icons.error_outline,
         accentColor: Colors.red,
@@ -1158,8 +1199,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
     }
   }
 
-  Color _getNoteColor(int index) {
-    final colors = [
+  Color _getNoteColor(BuildContext context, int index) {
+    final lightColors = [
       const Color(0xFFFFF4E6),
       const Color(0xFFE8F5E9),
       const Color(0xFFFCE4EC),
@@ -1167,14 +1208,27 @@ class _UserManagementPageState extends State<UserManagementPage> {
       const Color(0xFFFFF9C4),
       const Color(0xFFF3E5F5),
     ];
-    return colors[index % colors.length];
+    final darkColors = [
+      const Color(0xFF332B1E),
+      const Color(0xFF1E2E1F),
+      const Color(0xFF332229),
+      const Color(0xFF1C2A33),
+      const Color(0xFF33311E),
+      const Color(0xFF2B2233),
+    ];
+    return AppThemeColors.tinted(
+      context,
+      light: lightColors[index % lightColors.length],
+      dark: darkColors[index % darkColors.length],
+    );
   }
 
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -1185,7 +1239,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -1198,22 +1252,22 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'User Management',
+                          t('user_management'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                             fontWeight: FontWeight.bold,
                             fontSize: 24,
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
                         onPressed: _loadUsers,
                       ),
                     ],
@@ -1227,14 +1281,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         radius: 16,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppThemeColors.cardBg(context),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: TextField(
                             controller: _searchController,
+                            style: TextStyle(color: AppThemeColors.primaryText(context)),
                             decoration: InputDecoration(
-                              hintText:
-                                  'Search users by name, email, or username...',
+                              hintText: t('search_users_by_name_email_username'),
                               prefixIcon: const Icon(Icons.search,
                                   color: AppColors.cyan),
                               suffixIcon: _searchQuery.isNotEmpty
@@ -1275,18 +1329,25 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _statusFilter,
                                     isExpanded: true,
+                                    dropdownColor: AppThemeColors.cardBg(context),
+                                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                                     items:
-                                        ['All', 'Active', 'Inactive', 'Pending']
+                                        [
+                                              {'value': 'All', 'label': t('all_label')},
+                                              {'value': 'Active', 'label': t('active')},
+                                              {'value': 'Inactive', 'label': t('inactive')},
+                                              {'value': 'Pending', 'label': t('pending')},
+                                            ]
                                             .map((status) => DropdownMenuItem(
-                                                  value: status,
-                                                  child: Text(status),
+                                                  value: status['value'],
+                                                  child: Text(status['label']!),
                                                 ))
                                             .toList(),
                                     onChanged: (value) {
@@ -1314,17 +1375,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
                               _loadUsers();
                             },
                             itemBuilder: (context) => [
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'name',
-                                child: Text('Sort by Name'),
+                                child: Text(t('sort_by_name_label')),
                               ),
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'email',
-                                child: Text('Sort by Email'),
+                                child: Text(t('sort_by_email_label')),
                               ),
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'createdAt',
-                                child: Text('Sort by Date'),
+                                child: Text(t('sort_by_date_label')),
                               ),
                             ],
                             child: tricolorBorder(
@@ -1333,7 +1394,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
@@ -1343,10 +1404,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                         size: 20, color: AppColors.cyan),
                                     const SizedBox(width: 4),
                                     Text(_sortBy == 'name'
-                                        ? 'Name'
+                                        ? t('name')
                                         : _sortBy == 'email'
-                                            ? 'Email'
-                                            : 'Date'),
+                                            ? t('email')
+                                            : t('date_label')),
                                     Icon(
                                       _sortAscending
                                           ? Icons.arrow_upward
@@ -1367,11 +1428,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      _buildStatCard('Total Users', _users.length.toString(),
+                      _buildStatCard(t('total_users_label'), _users.length.toString(),
                           Icons.people, 0),
                       const SizedBox(width: 12),
                       _buildStatCard(
-                          'Active Users',
+                          t('active_users_label'),
                           _users
                               .where((u) => u['isActive'] == true)
                               .length
@@ -1380,7 +1441,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           1),
                       const SizedBox(width: 12),
                       _buildStatCard(
-                          'Pending',
+                          t('pending'),
                           _users
                               .where((u) => u['isVerified'] == false)
                               .length
@@ -1404,12 +1465,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             _loadUsers();
                           },
                           icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('Review One by One'),
+                          label: Text(t('review_one_by_one_label')),
                         ),
                       TextButton.icon(
                         onPressed: _canManageUsers ? _clearPendingUsers : null,
                         icon: const Icon(Icons.verified_rounded),
-                        label: const Text('Review All Pending'),
+                        label: Text(t('review_all_pending_label')),
                       ),
                     ],
                   ),
@@ -1420,37 +1481,40 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text(
-                            '${_selectedUserIds.length} users selected',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            '${_selectedUserIds.length} ${t('users_selected_label')}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppThemeColors.primaryText(context),
+                            ),
                           ),
                         ),
                         TextButton(
                           onPressed: _canManageUsers
                               ? () => _bulkUpdateStatus(true)
                               : null,
-                          child: const Text('Activate'),
+                          child: Text(t('activate')),
                         ),
                         TextButton(
                           onPressed: _canManageUsers
                               ? () => _bulkUpdateStatus(false)
                               : null,
-                          child: const Text('Deactivate'),
+                          child: Text(t('deactivate')),
                         ),
                         TextButton(
                           onPressed: _exportUsers,
-                          child: const Text('Export CSV'),
+                          child: Text(t('export_csv')),
                         ),
                         TextButton(
                           onPressed: _bulkForceLogout,
                           style: TextButton.styleFrom(foregroundColor: Colors.red),
-                          child: const Text('Force Logout'),
+                          child: Text(t('force_logout_label')),
                         ),
                         IconButton(
                           onPressed: () => setState(() => _selectedUserIds.clear()),
@@ -1478,8 +1542,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                   const SizedBox(height: 16),
                                   Text(
                                     _statusFilter == 'Pending'
-                                        ? 'No pending users were left to review'
-                                        : 'No users found',
+                                        ? t('no_pending_users_left_to_review')
+                                        : t('no_users_found'),
                                     style: const TextStyle(
                                         fontSize: 18, color: Colors.grey),
                                   ),
@@ -1511,7 +1575,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _getNoteColor(index),
+            color: _getNoteColor(context, index),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -1528,18 +1592,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
               const SizedBox(height: 8),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: AppThemeColors.primaryText(context),
                 ),
               ),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppThemeColors.secondaryText(context),
                 ),
               ),
             ],
@@ -1550,6 +1614,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Widget _buildUserCard(Map<String, dynamic> user, int index) {
+    final t = AppLocalizations.of(context).t;
     final isActive = user['isActive'] ?? false;
     final isVerified = user['isVerified'] ?? false;
 
@@ -1558,7 +1623,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       padding: const EdgeInsets.all(1),
       child: Container(
         decoration: BoxDecoration(
-          color: _getNoteColor(index),
+          color: _getNoteColor(context, index),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -1580,11 +1645,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
             children: [
               Expanded(
                 child: Text(
-                  user['name'] ?? 'Unknown User',
-                  style: const TextStyle(
+                  user['name'] ?? t('unknown_user'),
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ),
@@ -1597,7 +1662,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  isActive ? 'Active' : 'Inactive',
+                  isActive ? t('active') : t('inactive'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -1612,15 +1677,15 @@ class _UserManagementPageState extends State<UserManagementPage> {
             children: [
               const SizedBox(height: 4),
               Text(
-                user['email'] ?? 'No email',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                user['email'] ?? t('no_email'),
+                style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
               ),
               const SizedBox(height: 2),
               Row(
                 children: [
                   Text(
-                    '@${user['username'] ?? 'unknown'}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    '@${user['username'] ?? t('unknown')}',
+                    style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
                   ),
                   const SizedBox(width: 8),
                   if (!isVerified)
@@ -1631,9 +1696,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'Pending',
-                        style: TextStyle(
+                      child: Text(
+                        t('pending'),
+                        style: const TextStyle(
                           fontSize: 10,
                           color: Colors.orange,
                           fontWeight: FontWeight.bold,
@@ -1656,18 +1721,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       color: Colors.orange.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.verified_user_outlined,
                           size: 16,
                           color: Colors.orange,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Text(
-                          'Review this pending user',
-                          style: TextStyle(
+                          t('review_this_pending_user_label'),
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: Colors.orange,
@@ -1706,7 +1771,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   _reviewPendingUser(user);
                   break;
                 case 'force_logout':
-                  _forceLogoutUser(user['_id'], user['name'] ?? 'User');
+                  _forceLogoutUser(user['_id'], user['name'] ?? t('user_label'));
                   break;
                 case 'delete':
                   _deleteUser(user['_id'], user['name']);
@@ -1714,23 +1779,23 @@ class _UserManagementPageState extends State<UserManagementPage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'view',
                 child: Row(
                   children: [
-                    Icon(Icons.visibility, size: 16),
-                    SizedBox(width: 8),
-                    Text('View Details'),
+                    const Icon(Icons.visibility, size: 16),
+                    const SizedBox(width: 8),
+                    Text(t('view_details')),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: Row(
                   children: [
-                    Icon(Icons.edit, size: 16),
-                    SizedBox(width: 8),
-                    Text('Edit User'),
+                    const Icon(Icons.edit, size: 16),
+                    const SizedBox(width: 8),
+                    Text(t('edit_user')),
                   ],
                 ),
               ),
@@ -1743,7 +1808,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         color: isActive ? Colors.deepOrange : Colors.green),
                     const SizedBox(width: 8),
                     Text(
-                      isActive ? 'Deactivate' : 'Activate',
+                      isActive ? t('deactivate') : t('activate'),
                       style: TextStyle(
                         color: isActive ? Colors.deepOrange : Colors.green,
                         fontWeight: FontWeight.w600,
@@ -1753,35 +1818,35 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 ),
               ),
               if (!isVerified)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'review_pending',
                   child: Row(
                     children: [
-                      Icon(Icons.verified_user_outlined,
+                      const Icon(Icons.verified_user_outlined,
                           size: 16, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text('Review Pending'),
+                      const SizedBox(width: 8),
+                      Text(t('review_pending')),
                     ],
                   ),
                 ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'force_logout',
                 child: Row(
                   children: [
-                    Icon(Icons.logout_rounded, size: 16, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Force Logout',
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                    const Icon(Icons.logout_rounded, size: 16, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Text(t('force_logout_label'),
+                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_forever_rounded, size: 16, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Delete User', style: TextStyle(color: Colors.red)),
+                    const Icon(Icons.delete_forever_rounded, size: 16, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Text(t('delete_user_label'), style: const TextStyle(color: Colors.red)),
                   ],
                 ),
               ),

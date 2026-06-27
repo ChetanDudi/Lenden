@@ -5,6 +5,8 @@ import '../../session.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 import '../digitise/subscriptions_page.dart';
 
 class RatingsPage extends StatefulWidget {
@@ -68,6 +70,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   }
 
   Future<void> fetchRatings() async {
+    final t = AppLocalizations.of(context).t;
     setState(() { loading = true; error = null; });
     final res = await ApiClient.get('/api/ratings/me');
     if (res.statusCode == 200) {
@@ -79,7 +82,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         loading = false;
       });
     } else {
-      setState(() { error = 'Failed to load ratings.'; loading = false; });
+      setState(() { error = t('failed_to_load_ratings'); loading = false; });
     }
   }
 
@@ -94,6 +97,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   }
 
   Future<void> submitRating() async {
+    final t = AppLocalizations.of(context).t;
     if (!_formKey.currentState!.validate()) return;
     setState(() { _submitting = true; _submitError = null; _showSuccess = false; });
     final res = await ApiClient.post('/api/ratings', body: {
@@ -106,15 +110,16 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       _commentController.clear();
       fetchRatings();
     } else {
-      setState(() => _submitError = json.decode(res.body)['error'] ?? 'Failed to submit rating.');
+      setState(() => _submitError = json.decode(res.body)['error'] ?? t('failed_to_submit_rating'));
     }
     setState(() => _submitting = false);
   }
 
   Future<void> _searchUserRating() async {
+    final t = AppLocalizations.of(context).t;
     final input = _searchController.text.trim();
     if (input.isEmpty) {
-      setState(() { _searchError = 'Enter a username or email.'; _searchedAvgRating = null; });
+      setState(() { _searchError = t('enter_username_or_email_error'); _searchedAvgRating = null; });
       return;
     }
 
@@ -124,7 +129,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     final myUsername = (session.user?['username'] ?? '').toString().toLowerCase();
     if (lower == myEmail || (myUsername.isNotEmpty && lower == myUsername)) {
       setState(() {
-        _searchError = "That's you! Your ratings are shown in the first tab above.";
+        _searchError = t('thats_you_ratings_first_tab');
         _searchedAvgRating = null;
       });
       return;
@@ -149,15 +154,16 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         });
       } else {
         final err = json.decode(res.body);
-        setState(() => _searchError = err['error'] ?? 'User not found.');
+        setState(() => _searchError = err['error'] ?? t('user_not_found_label'));
       }
     } catch (_) {
-      setState(() => _searchError = 'Error searching user.');
+      setState(() => _searchError = t('error_searching_user'));
     }
     setState(() => _searching = false);
   }
 
   void _showEditRatingSheet(Map<String, dynamic> r) {
+    final t = AppLocalizations.of(context).t;
     final ratingId = r['_id']?.toString() ?? '';
     if (ratingId.isEmpty) return;
     final commentCtrl = TextEditingController(text: r['comment'] ?? '');
@@ -172,9 +178,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         builder: (ctx, setSheet) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(ctx),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             child: Column(
@@ -182,19 +188,19 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
               children: [
                 Container(
                   width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(color: AppThemeColors.divider(ctx), borderRadius: BorderRadius.circular(2)),
                 ),
                 const SizedBox(height: 16),
-                const Text('Edit Rating', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(t('edit_rating_title'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
                 const SizedBox(height: 4),
-                Text('Rating for ${r['rateeName'] ?? 'User'}',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                Text('${t('rating_for_label')} ${r['rateeName'] ?? t('user_fallback')}',
+                  style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 13)),
                 const SizedBox(height: 20),
-                _interactiveStars(localRating, (val) => setSheet(() => localRating = val), size: 40),
+                _interactiveStars(ctx, localRating, (val) => setSheet(() => localRating = val), size: 40),
                 const SizedBox(height: 6),
                 Text(
-                  localRating == 5 ? 'Excellent!' : localRating >= 4 ? 'Great!' :
-                  localRating >= 3 ? 'Good' : localRating >= 2 ? 'Fair' : 'Poor',
+                  localRating == 5 ? t('excellent_label') : localRating >= 4 ? t('great_label') :
+                  localRating >= 3 ? t('good_label') : localRating >= 2 ? t('fair_label') : t('poor_label'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 15,
                     color: localRating >= 4 ? Colors.green : Colors.orange,
@@ -205,17 +211,18 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                   controller: commentCtrl,
                   maxLines: 3,
                   maxLength: 200,
+                  style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                   decoration: InputDecoration(
-                    labelText: 'Comment (optional)',
+                    labelText: t('comment_optional_label'),
                     alignLabelWithHint: true,
                     filled: true,
-                    fillColor: const Color(0xFFF5F7FA),
+                    fillColor: AppThemeColors.surfaceBg(ctx),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                     ),
-                    counterStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
+                    counterStyle: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 11),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -227,7 +234,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(t('cancel')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -250,15 +257,15 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                         if (res.statusCode == 200) {
                           fetchRatings();
                           if (mounted) {
-                            showSnack(context, 'Rating updated!');
+                            showSnack(context, t('rating_updated_label'));
                           }
                         } else {
                           if (mounted) {
-                            showSnack(context, json.decode(res.body)['error'] ?? 'Failed to update.', isError: true);
+                            showSnack(context, json.decode(res.body)['error'] ?? t('failed_to_update_label'), isError: true);
                           }
                         }
                       },
-                      child: const Text('Update', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                      child: Text(t('update_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
                     ),
                   ),
                 ]),
@@ -296,7 +303,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2.5),
           child: Row(children: [
-            Text('$star', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            Text('$star', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
             const SizedBox(width: 2),
             const Icon(Icons.star_rounded, color: Colors.amber, size: 11),
             const SizedBox(width: 6),
@@ -305,7 +312,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                 borderRadius: BorderRadius.circular(3),
                 child: LinearProgressIndicator(
                   value: pct,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: AppThemeColors.divider(context),
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   minHeight: 7,
                 ),
@@ -314,7 +321,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
             const SizedBox(width: 6),
             SizedBox(
               width: 20,
-              child: Text('$count', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+              child: Text('$count', style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context))),
             ),
           ]),
         );
@@ -322,7 +329,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     );
   }
 
-  Widget _interactiveStars(double value, ValueChanged<double> onChange, {double size = 32}) {
+  Widget _interactiveStars(BuildContext context, double value, ValueChanged<double> onChange, {double size = 32}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) => GestureDetector(
@@ -331,7 +338,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
           padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Icon(
             i < value ? Icons.star_rounded : Icons.star_outline_rounded,
-            color: i < value ? Colors.amber : Colors.grey[300],
+            color: i < value ? Colors.amber : AppThemeColors.divider(context),
             size: size,
           ),
         ),
@@ -356,11 +363,12 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   }
 
   Widget _ratingCard(Map<String, dynamic> r, {required bool isGiven}) {
+    final t = AppLocalizations.of(context).t;
     final rating = (r['rating'] ?? 0).toDouble();
     final name = isGiven
-        ? (r['rateeName'] ?? r['ratee'] ?? 'User').toString()
-        : (r['raterName'] ?? r['rater'] ?? 'User').toString();
-    final prefix = isGiven ? 'To' : 'From';
+        ? (r['rateeName'] ?? r['ratee'] ?? t('user_fallback')).toString()
+        : (r['raterName'] ?? r['rater'] ?? t('user_fallback')).toString();
+    final prefix = isGiven ? t('to_label') : t('from_label');
     final starColor = rating >= 4 ? Colors.green : rating >= 3 ? Colors.orange : Colors.orange;
     final comment = r['comment']?.toString() ?? '';
 
@@ -368,7 +376,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       radius: 16,
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(14)),
         child: Row(
           children: [
             Container(
@@ -389,13 +397,13 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$prefix: $name', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('$prefix: $name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   _starRow(rating, size: 16),
                   if (comment.isNotEmpty) ...[
                     const SizedBox(height: 5),
                     Text('"$comment"',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12, fontStyle: FontStyle.italic),
+                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12, fontStyle: FontStyle.italic),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],
                 ],
@@ -405,7 +413,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.cyan),
                 onPressed: () => _showEditRatingSheet(r),
-                tooltip: 'Edit',
+                tooltip: t('edit'),
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 padding: EdgeInsets.zero,
               ),
@@ -416,22 +424,23 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   }
 
   Widget _myRatingHero() {
+    final t = AppLocalizations.of(context).t;
     final stars = avgRating ?? 0.0;
     final color = stars >= 4 ? const Color(0xFF2E7D32) : Colors.orange;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: color.withValues(alpha: 0.18), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.star_rounded, color: Colors.amber, size: 28),
+            const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
             const SizedBox(width: 8),
-            const Text('Your Rating', style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500)),
+            Text(t('your_rating_label'), style: TextStyle(fontSize: 16, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w500)),
           ]),
           const SizedBox(height: 12),
           Text(
@@ -444,9 +453,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _statPill('Given', '${ratingsGiven.length}', Colors.blue),
+              _statPill(t('given_label'), '${ratingsGiven.length}', Colors.blue),
               const SizedBox(width: 12),
-              _statPill('Received', '${ratingsReceived.length}', Colors.purple),
+              _statPill(t('received_label'), '${ratingsReceived.length}', Colors.purple),
             ],
           ),
         ],
@@ -475,21 +484,22 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFE0F7FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
             top: 0, left: 0, right: 0,
             child: Container(
               height: 180,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  colors: AppThemeColors.waveGradient(context),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
               ),
             ),
           ),
@@ -500,9 +510,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(children: [
-                    IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-                    const Expanded(child: Text('Ratings', textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white))),
+                    IconButton(icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)), onPressed: () => Navigator.pop(context)),
+                    Expanded(child: Text(t('ratings_title'), textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.iconOnWave(context)))),
                     const SizedBox(width: 48),
                   ]),
                 ),
@@ -518,7 +528,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
                   ),
@@ -528,13 +538,13 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.grey[600],
+                    unselectedLabelColor: AppThemeColors.secondaryText(context),
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                     unselectedLabelStyle: const TextStyle(fontSize: 12),
-                    tabs: const [
-                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.rate_review, size: 15), SizedBox(width: 4), Text('Rate')])),
-                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.search, size: 15), SizedBox(width: 4), Text('Search')])),
-                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.history, size: 15), SizedBox(width: 4), Text('History')])),
+                    tabs: [
+                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.rate_review, size: 15), const SizedBox(width: 4), Text(t('rate_tab_label'))])),
+                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.search, size: 15), const SizedBox(width: 4), Text(t('search'))])),
+                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.history, size: 15), const SizedBox(width: 4), Text(t('history_label'))])),
                     ],
                   ),
                 ),
@@ -553,7 +563,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                 _tricolorBorder(
                                   child: Container(
                                     padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                    decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -564,7 +574,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             child: const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
                                           ),
                                           const SizedBox(width: 10),
-                                          const Text('Rate Another User', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                                          Text(t('rate_another_user_title'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
                                         ]),
                                         const SizedBox(height: 16),
                                         if (_showSuccess)
@@ -579,7 +589,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             child: Row(children: [
                                               const Icon(Icons.check_circle, color: Colors.green, size: 18),
                                               const SizedBox(width: 8),
-                                              const Text('Rating submitted successfully!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                                              Text(t('rating_submitted_successfully'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
                                             ]),
                                           ),
                                         Form(
@@ -589,27 +599,29 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             children: [
                                               TextFormField(
                                                 controller: _usernameController,
+                                                style: TextStyle(color: AppThemeColors.primaryText(context)),
                                                 decoration: InputDecoration(
-                                                  labelText: 'Username or Email',
+                                                  labelText: t('username_or_email_label'),
                                                   prefixIcon: const Icon(Icons.person_search_outlined),
                                                   filled: true,
-                                                  fillColor: const Color(0xFFF5F7FA),
+                                                  fillColor: AppThemeColors.surfaceBg(context),
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                                                   focusedBorder: OutlineInputBorder(
                                                     borderRadius: BorderRadius.circular(14),
                                                     borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                                                   ),
                                                 ),
-                                                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                                                validator: (val) => val == null || val.isEmpty ? t('required') : null,
                                               ),
                                               const SizedBox(height: 20),
-                                              const Text('Your Rating', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
+                                              Text(t('your_rating_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
                                               const SizedBox(height: 10),
                                               Center(
                                                 child: Column(
                                                   children: [
                                                     StatefulBuilder(
                                                       builder: (context, setStar) => _interactiveStars(
+                                                        context,
                                                         _selectedRating,
                                                         (val) => setState(() => _selectedRating = val),
                                                         size: 40,
@@ -617,10 +629,10 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                     ),
                                                     const SizedBox(height: 6),
                                                     Text(
-                                                      _selectedRating == 5 ? 'Excellent!' :
-                                                      _selectedRating >= 4 ? 'Great!' :
-                                                      _selectedRating >= 3 ? 'Good' :
-                                                      _selectedRating >= 2 ? 'Fair' : 'Poor',
+                                                      _selectedRating == 5 ? t('excellent_label') :
+                                                      _selectedRating >= 4 ? t('great_label') :
+                                                      _selectedRating >= 3 ? t('good_label') :
+                                                      _selectedRating >= 2 ? t('fair_label') : t('poor_label'),
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.bold, fontSize: 16,
                                                         color: _selectedRating >= 4 ? Colors.green : Colors.orange,
@@ -630,25 +642,26 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                 ),
                                               ),
                                               const SizedBox(height: 20),
-                                              const Align(
+                                              Align(
                                                 alignment: Alignment.centerLeft,
-                                                child: Text('Comment (optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 13)),
+                                                child: Text(t('comment_optional_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context), fontSize: 13)),
                                               ),
                                               const SizedBox(height: 8),
                                               TextFormField(
                                                 controller: _commentController,
                                                 maxLines: 3,
                                                 maxLength: 200,
+                                                style: TextStyle(color: AppThemeColors.primaryText(context)),
                                                 decoration: InputDecoration(
-                                                  hintText: 'Share your experience...',
+                                                  hintText: t('share_your_experience_placeholder'),
                                                   filled: true,
-                                                  fillColor: const Color(0xFFF5F7FA),
+                                                  fillColor: AppThemeColors.surfaceBg(context),
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                                                   focusedBorder: OutlineInputBorder(
                                                     borderRadius: BorderRadius.circular(14),
                                                     borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
                                                   ),
-                                                  counterStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
+                                                  counterStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
                                                 ),
                                               ),
                                               if (_submitError != null)
@@ -679,7 +692,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                   onPressed: _submitting ? null : submitRating,
                                                   child: _submitting
                                                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                                    : const Text('Submit Rating', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                                                    : Text(t('submit_rating_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
                                                 ),
                                               ),
                                             ],
@@ -702,16 +715,16 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                   return _tricolorBorder(
                                     child: Container(
                                       padding: const EdgeInsets.all(22),
-                                      decoration: BoxDecoration(color: const Color(0xFFFFF8F0), borderRadius: BorderRadius.circular(18)),
+                                      decoration: BoxDecoration(color: AppThemeColors.tinted(context, light: const Color(0xFFFFF8F0), dark: const Color(0xFF3A3420)), borderRadius: BorderRadius.circular(18)),
                                       child: Column(children: [
                                         const Icon(Icons.lock_rounded, size: 48, color: AppColors.cyan),
                                         const SizedBox(height: 14),
-                                        const Text('Premium Feature', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0096C7))),
+                                        Text(t('premium_feature_label'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0096C7))),
                                         const SizedBox(height: 8),
                                         Text(
-                                          'Subscribe to search and view other users\' ratings.',
+                                          t('subscribe_to_search_ratings'),
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(color: Colors.grey[700]),
+                                          style: TextStyle(color: AppThemeColors.secondaryText(context)),
                                         ),
                                         const SizedBox(height: 16),
                                         ElevatedButton.icon(
@@ -721,7 +734,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                           ),
                                           icon: const Icon(Icons.workspace_premium, color: Colors.amber),
-                                          label: const Text('Subscribe Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                          label: Text(t('subscribe_now_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
                                         ),
                                       ]),
@@ -733,18 +746,19 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                     _tricolorBorder(
                                       child: Container(
                                         padding: const EdgeInsets.all(18),
-                                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                         child: Column(
                                           children: [
                                             Row(children: [
                                               Expanded(
                                                 child: TextField(
                                                   controller: _searchController,
+                                                  style: TextStyle(color: AppThemeColors.primaryText(context)),
                                                   decoration: InputDecoration(
-                                                    hintText: 'Enter username or email',
+                                                    hintText: t('enter_username_or_email_placeholder'),
                                                     prefixIcon: const Icon(Icons.person_search),
                                                     filled: true,
-                                                    fillColor: const Color(0xFFF5F7FA),
+                                                    fillColor: AppThemeColors.surfaceBg(context),
                                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                                                   ),
                                                   onSubmitted: (_) => _searchUserRating(),
@@ -786,7 +800,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                       _tricolorBorder(
                                         child: Container(
                                           padding: const EdgeInsets.all(22),
-                                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                          decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                                           child: Column(children: [
                                             CircleAvatar(
                                               radius: 32,
@@ -798,11 +812,11 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             ),
                                             const SizedBox(height: 12),
                                             if (_searchedName?.isNotEmpty == true)
-                                              Text(_searchedName!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                              Text(_searchedName!, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
                                             if (_searchedUsername?.isNotEmpty == true)
-                                              Text('@$_searchedUsername', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                                              Text('@$_searchedUsername', style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13)),
                                             if (_searchedEmail?.isNotEmpty == true)
-                                              Text(_searchedEmail!, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                              Text(_searchedEmail!, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
                                             const SizedBox(height: 16),
                                             _starRow(_searchedAvgRating!, size: 30),
                                             const SizedBox(height: 8),
@@ -811,13 +825,13 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                               style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF0096C7)),
                                             ),
                                             if (_searchedTotalRatings != null)
-                                              Text('Based on $_searchedTotalRatings rating${_searchedTotalRatings == 1 ? '' : 's'}',
-                                                style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                              Text('${t('based_on_label')} $_searchedTotalRatings ${_searchedTotalRatings == 1 ? t('rating_singular_label') : t('ratings_plural_label')}',
+                                                style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
                                             if (_searchedDistribution != null && (_searchedTotalRatings ?? 0) > 0) ...[
                                               const SizedBox(height: 16),
-                                              const Divider(height: 1),
+                                              Divider(height: 1, color: AppThemeColors.divider(context)),
                                               const SizedBox(height: 14),
-                                              const Text('Rating Breakdown', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                                              Text(t('rating_breakdown_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
                                               const SizedBox(height: 10),
                                               _distributionBars(_searchedDistribution!, _searchedTotalRatings!),
                                             ],
@@ -841,7 +855,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                 child: Row(children: [
                                   const Icon(Icons.arrow_upward, color: Colors.blue, size: 18),
                                   const SizedBox(width: 6),
-                                  const Text('Ratings Given', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.cyan)),
+                                  Text(t('ratings_given_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.cyan)),
                                   const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -852,7 +866,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                               ),
                               const SizedBox(height: 10),
                               if (ratingsGiven.isEmpty)
-                                _emptyState('No ratings given yet', Icons.star_outline)
+                                _emptyState(t('no_ratings_given_yet'), Icons.star_outline)
                               else
                                 ...ratingsGiven.map((r) => Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
@@ -864,7 +878,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                 child: Row(children: [
                                   const Icon(Icons.arrow_downward, color: Colors.purple, size: 18),
                                   const SizedBox(width: 6),
-                                  const Text('Ratings Received', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF6A1B9A))),
+                                  Text(t('ratings_received_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF6A1B9A))),
                                   const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -875,7 +889,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                               ),
                               const SizedBox(height: 10),
                               if (ratingsReceived.isEmpty)
-                                _emptyState('No ratings received yet', Icons.star_border)
+                                _emptyState(t('no_ratings_received_yet'), Icons.star_border)
                               else
                                 ...ratingsReceived.map((r) => Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
@@ -883,10 +897,10 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                 )),
                               if (ratingActivities.isNotEmpty) ...[
                                 const SizedBox(height: 20),
-                                const Row(children: [
-                                  Icon(Icons.timeline, color: Colors.teal, size: 18),
-                                  SizedBox(width: 6),
-                                  Text('Recent Activity', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.teal)),
+                                Row(children: [
+                                  const Icon(Icons.timeline, color: Colors.teal, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(t('recent_activity_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.teal)),
                                 ]),
                                 const SizedBox(height: 10),
                                 ...ratingActivities.map((a) {
@@ -895,7 +909,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                     margin: const EdgeInsets.only(bottom: 8),
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: AppThemeColors.cardBg(context),
                                       borderRadius: BorderRadius.circular(14),
                                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
                                     ),
@@ -910,8 +924,8 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                        Text(a['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1),
-                                        Text(a['description'] ?? '', style: TextStyle(color: Colors.grey[500], fontSize: 11), maxLines: 1),
+                                        Text(a['title'] ?? '', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.primaryText(context)), maxLines: 1),
+                                        Text(a['description'] ?? '', style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11), maxLines: 1),
                                       ])),
                                       if (a['metadata']?['rating'] != null)
                                         Container(
@@ -941,9 +955,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 48, color: Colors.grey[300]),
+          Icon(icon, size: 48, color: AppThemeColors.divider(context)),
           const SizedBox(height: 8),
-          Text(msg, style: TextStyle(color: Colors.grey[400])),
+          Text(msg, style: TextStyle(color: AppThemeColors.mutedText(context))),
         ]),
       ),
     );

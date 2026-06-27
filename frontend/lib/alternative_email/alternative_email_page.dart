@@ -8,6 +8,8 @@ import '../settings/custom_warning_widget.dart';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AlternativeEmailPage extends StatefulWidget {
   const AlternativeEmailPage({super.key});
@@ -62,8 +64,8 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
       }
     } catch (e) {
       if (mounted) {
-        CustomWarningWidget.showAnimatedError(
-            context, 'Error loading current email: ${e.toString()}');
+        CustomWarningWidget.showAnimatedError(context,
+            '${AppLocalizations.of(context).t('error_loading_current_email')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -92,7 +94,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
       if (response.statusCode == 200) {
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'OTP sent successfully! Check your email.');
+              context, AppLocalizations.of(context).t('otp_sent_check_email'));
           setState(() {
             _showOtpInput = true;
             _targetEmail = _emailController.text.trim();
@@ -104,14 +106,14 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          CustomWarningWidget.showAnimatedError(
-              context, errorData['message'] ?? 'Failed to send OTP');
+          CustomWarningWidget.showAnimatedError(context,
+              errorData['message'] ?? AppLocalizations.of(context).t('failed_to_send_otp_retry'));
         }
       }
     } catch (e) {
       if (mounted) {
         CustomWarningWidget.showAnimatedError(
-            context, 'Error: ${e.toString()}');
+            context, '${AppLocalizations.of(context).t('error_prefix')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -125,7 +127,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
   Future<void> _verifyOtp() async {
     if (_otpCode.length != 6) {
       CustomWarningWidget.showAnimatedError(
-          context, 'Please enter a valid 6-digit OTP');
+          context, AppLocalizations.of(context).t('please_enter_valid_6_digit_otp'));
       return;
     }
 
@@ -143,7 +145,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
       if (response.statusCode == 200) {
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'Alternative email verified and added successfully!');
+              context, AppLocalizations.of(context).t('alt_email_verified_added'));
           _timer?.cancel();
           setState(() {
             _currentAltEmail = _targetEmail;
@@ -157,14 +159,14 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          CustomWarningWidget.showAnimatedError(
-              context, errorData['message'] ?? 'Failed to verify OTP');
+          CustomWarningWidget.showAnimatedError(context,
+              errorData['message'] ?? AppLocalizations.of(context).t('failed_to_verify_otp'));
         }
       }
     } catch (e) {
       if (mounted) {
         CustomWarningWidget.showAnimatedError(
-            context, 'Error: ${e.toString()}');
+            context, '${AppLocalizations.of(context).t('error_prefix')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -204,33 +206,35 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
   Future<void> _removeAlternativeEmail() async {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
+        final t = AppLocalizations.of(dialogContext).t;
         return AlertDialog(
+          backgroundColor: AppThemeColors.cardBg(dialogContext),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
-            'Remove Alternative Email',
+          title: Text(
+            t('remove_alternative_email'),
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: AppThemeColors.primaryText(dialogContext),
             ),
           ),
-          content: const Text(
-            'Are you sure you want to remove your alternative email? This action cannot be undone.',
-            style: TextStyle(color: Colors.black87),
+          content: Text(
+            t('remove_alt_email_confirm'),
+            style: TextStyle(color: AppThemeColors.secondaryText(dialogContext)),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                t('cancel'),
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
                 await _performRemoveAlternativeEmail();
               },
               style: ElevatedButton.styleFrom(
@@ -239,9 +243,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                t('remove'),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -261,7 +265,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
       if (response.statusCode == 200) {
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'Alternative email removed successfully!');
+              context, AppLocalizations.of(context).t('alt_email_removed_successfully'));
           setState(() {
             _currentAltEmail = null;
             _emailController.clear();
@@ -275,13 +279,13 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
         final errorData = json.decode(response.body);
         if (mounted) {
           CustomWarningWidget.showAnimatedError(context,
-              errorData['message'] ?? 'Failed to remove alternative email');
+              errorData['message'] ?? AppLocalizations.of(context).t('failed_to_remove_alt_email'));
         }
       }
     } catch (e) {
       if (mounted) {
         CustomWarningWidget.showAnimatedError(
-            context, 'Error: ${e.toString()}');
+            context, '${AppLocalizations.of(context).t('error_prefix')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -294,9 +298,10 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Alternative Email'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('alternative_email')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -311,7 +316,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -330,20 +335,20 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                             color: AppColors.cyan,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Alternative Email',
+                          Text(
+                            t('alternative_email'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Add a backup email for account recovery and notifications',
+                          Text(
+                            t('alt_email_backup_desc'),
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey,
+                              color: AppThemeColors.secondaryText(context),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -361,7 +366,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
+                          color: AppThemeColors.tinted(context,
+                              light: Colors.green.withValues(alpha: 0.1),
+                              dark: const Color(0xFF18301F)),
                           borderRadius: BorderRadius.circular(12),
                           border:
                               Border.all(color: Colors.green.withValues(alpha: 0.3)),
@@ -369,9 +376,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Current Alternative Email:',
-                              style: TextStyle(
+                            Text(
+                              t('current_alternative_email'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
@@ -380,9 +387,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                             const SizedBox(height: 8),
                             Text(
                               _currentAltEmail!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
                           ],
@@ -402,23 +409,23 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter an email address';
+                              return t('please_enter_email_address');
                             }
                             if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                 .hasMatch(value)) {
-                              return 'Please enter a valid email address';
+                              return t('please_enter_valid_email_address');
                             }
                             return null;
                           },
-                          decoration: const InputDecoration(
-                            labelText: 'Alternative Email',
-                            hintText: 'Enter your alternative email address',
+                          decoration: InputDecoration(
+                            labelText: t('alternative_email'),
+                            hintText: t('enter_alt_email_hint'),
                             border: InputBorder.none,
                             filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: EdgeInsets.symmetric(
+                            fillColor: AppThemeColors.cardBg(context),
+                            contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 16),
-                            prefixIcon: Icon(Icons.email_outlined,
+                            prefixIcon: const Icon(Icons.email_outlined,
                                 color: AppColors.cyan),
                           ),
                         ),
@@ -433,7 +440,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
+                          color: AppThemeColors.tinted(context,
+                              light: Colors.blue.withValues(alpha: 0.1),
+                              dark: const Color(0xFF1A2733)),
                           borderRadius: BorderRadius.circular(12),
                           border:
                               Border.all(color: Colors.blue.withValues(alpha: 0.3)),
@@ -441,9 +450,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Verifying Email:',
-                              style: TextStyle(
+                            Text(
+                              t('verifying_email_label'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.blue,
@@ -452,9 +461,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                             const SizedBox(height: 8),
                             Text(
                               _targetEmail,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
                           ],
@@ -468,7 +477,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
@@ -481,20 +490,20 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                         ),
                         child: Column(
                           children: [
-                            const Text(
-                              'Enter Verification Code',
+                            Text(
+                              t('enter_verification_code'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'We\'ve sent a 6-digit code to your email',
+                            Text(
+                              t('otp_sent_to_email_desc'),
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey,
+                                color: AppThemeColors.secondaryText(context),
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -564,7 +573,7 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                           ? _resendOtp
                                           : null,
                                   child: Text(
-                                    'Resend OTP',
+                                    t('resend_otp'),
                                     style: TextStyle(
                                       color:
                                           _timeRemaining == 0 && !_isSendingOtp
@@ -606,9 +615,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                                   Colors.white),
                                         ),
                                       )
-                                    : const Text(
-                                        'Verify OTP',
-                                        style: TextStyle(
+                                    : Text(
+                                        t('verify_otp'),
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
@@ -642,9 +651,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 16),
                                 ),
-                                child: const Text(
-                                  'Cancel',
-                                  style: TextStyle(
+                                child: Text(
+                                  t('cancel'),
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.grey,
@@ -688,9 +697,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                                   Colors.white),
                                         ),
                                       )
-                                    : const Text(
-                                        'Update Alternative Email',
-                                        style: TextStyle(
+                                    : Text(
+                                        t('update_alternative_email'),
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
@@ -713,9 +722,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 16),
                                 ),
-                                child: const Text(
-                                  'Remove Alternative Email',
-                                  style: TextStyle(
+                                child: Text(
+                                  t('remove_alternative_email'),
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.red,
@@ -747,9 +756,9 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                                           Colors.white),
                                     ),
                                   )
-                                : const Text(
-                                    'Send Verification Code',
-                                    style: TextStyle(
+                                : Text(
+                                    t('send_verification_code'),
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
@@ -766,25 +775,27 @@ class _AlternativeEmailPageState extends State<AlternativeEmailPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
+                        color: AppThemeColors.tinted(context,
+                            light: Colors.blue.withValues(alpha: 0.1),
+                            dark: const Color(0xFF1A2733)),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            'Why add an alternative email?',
-                            style: TextStyle(
+                            t('why_add_alt_email'),
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: Colors.blue,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            '• Account recovery if you lose access to your primary email\n• Backup notifications for important transactions\n• Enhanced security for your account\n• Alternative contact method for support',
-                            style: TextStyle(
+                            t('alt_email_benefits_list'),
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.blue,
                             ),

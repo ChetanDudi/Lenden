@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminAnalyticsSettingsPage extends StatefulWidget {
   const AdminAnalyticsSettingsPage({super.key});
@@ -139,8 +141,9 @@ class _AdminAnalyticsSettingsPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: transparentAppBar(context, title: 'Analytics Settings', actions: [
           if (!_isLoading)
             TextButton(
@@ -151,9 +154,9 @@ class _AdminAnalyticsSettingsPageState
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
+                  : Text(
+                      t('save'),
+                      style: const TextStyle(
                         color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
@@ -173,7 +176,7 @@ class _AdminAnalyticsSettingsPageState
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -192,20 +195,20 @@ class _AdminAnalyticsSettingsPageState
                           color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Analytics & Reports',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Configure analytics tracking and reporting preferences',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -384,9 +387,9 @@ class _AdminAnalyticsSettingsPageState
                         border:
                             Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                       ),
-                      child: Column(
+                      child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Row(
                             children: [
                               Icon(
@@ -423,35 +426,37 @@ class _AdminAnalyticsSettingsPageState
   }
 
   Widget _buildSettingsSection(String title, List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.cyan,
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.cyan,
+                ),
               ),
             ),
-          ),
-          ...children,
-        ],
+            ...children,
+          ],
+        ),
       ),
     );
   }
@@ -463,29 +468,31 @@ class _AdminAnalyticsSettingsPageState
     bool value,
     ValueChanged<bool> onChanged,
   ) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.cyan),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
+    return Builder(
+      builder: (context) => ListTile(
+        leading: Icon(icon, color: AppColors.cyan),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: AppThemeColors.primaryText(context),
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.grey,
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppThemeColors.secondaryText(context),
+          ),
         ),
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: AppColors.cyan,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: AppColors.cyan,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
@@ -497,35 +504,37 @@ class _AdminAnalyticsSettingsPageState
     Map<String, String> options,
     ValueChanged<String?> onChanged,
   ) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.cyan),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
+    return Builder(
+      builder: (context) => ListTile(
+        leading: Icon(icon, color: AppColors.cyan),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: AppThemeColors.primaryText(context),
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.grey,
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppThemeColors.secondaryText(context),
+          ),
         ),
+        trailing: DropdownButton<String>(
+          value: value,
+          onChanged: onChanged,
+          underline: Container(),
+          items: options.entries.map((entry) {
+            return DropdownMenuItem<String>(
+              value: entry.key,
+              child: Text(entry.value),
+            );
+          }).toList(),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
-      trailing: DropdownButton<String>(
-        value: value,
-        onChanged: onChanged,
-        underline: Container(),
-        items: options.entries.map((entry) {
-          return DropdownMenuItem<String>(
-            value: entry.key,
-            child: Text(entry.value),
-          );
-        }).toList(),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
@@ -537,41 +546,43 @@ class _AdminAnalyticsSettingsPageState
     ValueChanged<String> onChanged, {
     TextInputType? keyboardType,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.cyan),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.grey,
-        ),
-      ),
-      trailing: SizedBox(
-        width: 200,
-        child: TextField(
-          controller: TextEditingController(text: value),
-          onChanged: onChanged,
-          keyboardType: keyboardType,
-          decoration: const InputDecoration(
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-          ),
-          style: const TextStyle(
-            fontSize: 14,
+    return Builder(
+      builder: (context) => ListTile(
+        leading: Icon(icon, color: AppColors.cyan),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            color: AppThemeColors.primaryText(context),
           ),
         ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppThemeColors.secondaryText(context),
+          ),
+        ),
+        trailing: SizedBox(
+          width: 200,
+          child: TextField(
+            controller: TextEditingController(text: value),
+            onChanged: onChanged,
+            keyboardType: keyboardType,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppThemeColors.primaryText(context),
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 }

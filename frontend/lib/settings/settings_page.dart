@@ -13,6 +13,14 @@ import 'terms_of_service_page.dart';
 import 'privacy_policy_page.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../user/budget/lending_budget_page.dart';
+import '../user/calendar/due_date_calendar_page.dart';
+import '../user/statements/export_statement_page.dart';
+import 'app_lock_setup_page.dart';
+import '../utils/theme_provider.dart';
+import '../utils/locale_provider.dart';
+import '../l10n/app_localizations.dart';
+import '../utils/theme_helper.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -25,14 +33,15 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context);
+    final t = AppLocalizations.of(context).t;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: transparentAppBar(context, title: 'Settings'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('settings')),
       body: Stack(
         children: [
-          cyanWaveHeader(height: context.sh(156)),
+          cyanWaveHeader(context, height: context.sh(156)),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -45,7 +54,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      color: AppColors.warmCardBg,
+                      color: AppThemeColors.tinted(context,
+                          light: AppColors.warmCardBg,
+                          dark: const Color(0xFF2A2218)),
                       child: Row(
                         children: [
                           Container(
@@ -105,11 +116,11 @@ class _SettingsPageState extends State<SettingsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  session.user?['name'] ?? 'User',
+                                  session.user?['name'] ?? t('user_fallback'),
                                   style: TextStyle(
                                     fontSize: context.sp(16),
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                                    color: AppThemeColors.primaryText(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -117,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   session.user?['email'] ?? 'user@example.com',
                                   style: TextStyle(
                                     fontSize: context.sp(13),
-                                    color: Colors.grey,
+                                    color: AppThemeColors.secondaryText(context),
                                   ),
                                 ),
                                 if (session.user?['altEmail'] != null &&
@@ -129,7 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                       const Icon(Icons.check_circle, size: 12, color: Colors.green),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Alternative email set',
+                                        t('alternative_email_set'),
                                         style: TextStyle(
                                           fontSize: context.sp(9),
                                           color: Colors.green,
@@ -154,11 +165,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 24),
 
                   // Account Settings
-                  sectionLabel('Account Settings'),
+                  sectionLabel(t('account_settings')),
                   const SizedBox(height: 8),
                   _buildTile(
                     context,
-                    title: 'Change Password',
+                    title: t('change_password'),
                     icon: Icons.lock_outline,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const ChangePasswordPage()))
@@ -168,13 +179,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     context,
                     title: session.user?['altEmail'] != null &&
                             (session.user!['altEmail'] as String).isNotEmpty
-                        ? 'Change Alternative Email'
-                        : 'Add Alternative Email',
+                        ? t('change_alternative_email')
+                        : t('add_alternative_email'),
                     icon: Icons.email_outlined,
                     subtitle: session.user?['altEmail'] != null &&
                             (session.user!['altEmail'] as String).isNotEmpty
                         ? session.user!['altEmail'] as String
-                        : 'Add a backup email for account recovery',
+                        : t('add_backup_email_for_account_recovery'),
                     showStatus: true,
                     isActive: session.user?['altEmail'] != null &&
                         (session.user!['altEmail'] as String).isNotEmpty,
@@ -184,21 +195,29 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   _buildTile(
                     context,
-                    title: 'Account Information',
+                    title: t('account_information'),
                     icon: Icons.person_outline,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const AccountSettingsPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  _buildTile(
+                    context,
+                    title: t('app_lock'),
+                    icon: Icons.lock_outline,
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const AppLockSetupPage()))
                         .then((_) => setState(() {})),
                   ),
 
                   const SizedBox(height: 16),
 
                   // Preferences
-                  sectionLabel('Preferences'),
+                  sectionLabel(t('preferences')),
                   const SizedBox(height: 8),
                   _buildTile(
                     context,
-                    title: 'Notification Settings',
+                    title: t('notification_settings'),
                     icon: Icons.notifications_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const NotificationSettingsPage()))
@@ -206,42 +225,157 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   _buildTile(
                     context,
-                    title: 'Privacy Settings',
+                    title: t('privacy_settings'),
                     icon: Icons.privacy_tip_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const PrivacySettingsPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, _) {
+                      final t = AppLocalizations.of(context).t;
+                      final modeLabel = {
+                        ThemeMode.system: t('system_default'),
+                        ThemeMode.light: t('light'),
+                        ThemeMode.dark: t('dark'),
+                      }[themeProvider.themeMode]!;
+                      return _buildTile(
+                        context,
+                        title: t('dark_mode'),
+                        icon: Icons.dark_mode_outlined,
+                        subtitle: modeLabel,
+                        onTap: () async {
+                          final selected = await showDialog<ThemeMode>(
+                            context: context,
+                            builder: (context) => SimpleDialog(
+                              title: Text(t('dark_mode')),
+                              children: [
+                                for (final mode in ThemeMode.values)
+                                  RadioListTile<ThemeMode>(
+                                    title: Text({
+                                      ThemeMode.system: t('system_default'),
+                                      ThemeMode.light: t('light'),
+                                      ThemeMode.dark: t('dark'),
+                                    }[mode]!),
+                                    value: mode,
+                                    groupValue: themeProvider.themeMode,
+                                    activeColor: AppColors.cyan,
+                                    onChanged: (v) => Navigator.pop(context, v),
+                                  ),
+                              ],
+                            ),
+                          );
+                          if (selected != null) {
+                            await themeProvider.setThemeMode(selected);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  Consumer<LocaleProvider>(
+                    builder: (context, localeProvider, _) {
+                      final t = AppLocalizations.of(context).t;
+                      final current = localeProvider.locale?.languageCode;
+                      final label = current == 'hi'
+                          ? t('hindi')
+                          : current == 'en'
+                              ? t('english')
+                              : t('system_default');
+                      return _buildTile(
+                        context,
+                        title: t('language'),
+                        icon: Icons.language_outlined,
+                        subtitle: label,
+                        onTap: () async {
+                          final selected = await showDialog<String?>(
+                            context: context,
+                            builder: (context) => SimpleDialog(
+                              title: Text(t('language')),
+                              children: [
+                                RadioListTile<String?>(
+                                  title: Text(t('system_default')),
+                                  value: null,
+                                  groupValue: current,
+                                  activeColor: AppColors.cyan,
+                                  onChanged: (v) => Navigator.pop(context, v),
+                                ),
+                                RadioListTile<String?>(
+                                  title: Text(t('english')),
+                                  value: 'en',
+                                  groupValue: current,
+                                  activeColor: AppColors.cyan,
+                                  onChanged: (v) => Navigator.pop(context, v),
+                                ),
+                                RadioListTile<String?>(
+                                  title: Text(t('hindi')),
+                                  value: 'hi',
+                                  groupValue: current,
+                                  activeColor: AppColors.cyan,
+                                  onChanged: (v) => Navigator.pop(context, v),
+                                ),
+                              ],
+                            ),
+                          );
+                          await localeProvider.setLocale(
+                              selected == null ? null : Locale(selected));
+                        },
+                      );
+                    },
+                  ),
+                  _buildTile(
+                    context,
+                    title: t('monthly_lending_budget'),
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const LendingBudgetPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  _buildTile(
+                    context,
+                    title: t('due_date_calendar'),
+                    icon: Icons.calendar_month_outlined,
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const DueDateCalendarPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  _buildTile(
+                    context,
+                    title: t('export_statement'),
+                    icon: Icons.download_outlined,
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ExportStatementPage()))
                         .then((_) => setState(() {})),
                   ),
 
                   const SizedBox(height: 16),
 
                   // Support & About
-                  sectionLabel('Support & About'),
+                  sectionLabel(t('support_and_about')),
                   const SizedBox(height: 8),
                   _buildTile(
                     context,
-                    title: 'Help & Support',
+                    title: t('help_and_support'),
                     icon: Icons.help_outline,
                     onTap: () => Navigator.push(
                         context, MaterialPageRoute(builder: (_) => HelpSupportPage())),
                   ),
                   _buildTile(
                     context,
-                    title: 'About LenDen',
+                    title: t('about_lenden'),
                     icon: Icons.info_outline,
                     onTap: () => Navigator.push(
                         context, MaterialPageRoute(builder: (_) => const AboutPage())),
                   ),
                   _buildTile(
                     context,
-                    title: 'Terms of Service',
+                    title: t('terms_of_service'),
                     icon: Icons.description_outlined,
                     onTap: () => Navigator.push(
                         context, MaterialPageRoute(builder: (_) => const TermsOfServicePage())),
                   ),
                   _buildTile(
                     context,
-                    title: 'Privacy Policy',
+                    title: t('privacy_policy'),
                     icon: Icons.security_outlined,
                     onTap: () => Navigator.push(
                         context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
@@ -265,7 +399,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         padding: EdgeInsets.symmetric(vertical: context.sh(14)),
                       ),
                       child: Text(
-                        'Logout',
+                        t('logout'),
                         style: TextStyle(
                           fontSize: context.sp(15),
                           fontWeight: FontWeight.bold,
@@ -296,7 +430,7 @@ class _SettingsPageState extends State<SettingsPage> {
       radius: 16,
       margin: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
@@ -332,20 +466,23 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: TextStyle(
                           fontSize: context.sp(15),
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
-                          style: TextStyle(fontSize: context.sp(11), color: Colors.grey),
+                          style: TextStyle(
+                              fontSize: context.sp(11),
+                              color: AppThemeColors.secondaryText(context)),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                Icon(Icons.arrow_forward_ios,
+                    color: AppThemeColors.mutedText(context), size: 16),
               ],
             ),
           ),

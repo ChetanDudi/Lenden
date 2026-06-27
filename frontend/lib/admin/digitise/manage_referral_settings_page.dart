@@ -5,6 +5,8 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ReferralSettingsPage extends StatefulWidget {
   const ReferralSettingsPage({super.key});
@@ -52,11 +54,11 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
         });
       } else {
         setState(() => _loading = false);
-        _showMsg('Failed to load referral settings.', isError: true);
+        _showMsg(AppLocalizations.of(context).t('failed_load_referral_settings'), isError: true);
       }
     } catch (_) {
       setState(() => _loading = false);
-      _showMsg('Network error while loading referral settings.', isError: true);
+      _showMsg(AppLocalizations.of(context).t('network_error_loading_referral_settings'), isError: true);
     }
   }
 
@@ -64,7 +66,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
     final inviter = int.tryParse(_inviterRewardController.text.trim());
     final referee = int.tryParse(_refereeRewardController.text.trim());
     if (inviter == null || inviter < 0 || referee == null || referee < 0) {
-      _showMsg('Reward coins must be non-negative integers.', isError: true);
+      _showMsg(AppLocalizations.of(context).t('reward_coins_non_negative'), isError: true);
       return;
     }
 
@@ -92,15 +94,19 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
       final res = await ApiClient.put('/api/admin/referral-config', body: payload);
       setState(() => _saving = false);
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        _showMsg('Referral settings saved.');
+        _showMsg(AppLocalizations.of(context).t('referral_settings_saved'));
         await _loadConfig();
       } else {
         final data = jsonDecode(res.body);
-        _showMsg(data['error']?.toString() ?? 'Failed to save referral settings.', isError: true);
+        _showMsg(
+            data['error']?.toString() ??
+                AppLocalizations.of(context).t('failed_to_save_referral_settings'),
+            isError: true);
       }
     } catch (_) {
       setState(() => _saving = false);
-      _showMsg('Network error while saving referral settings.', isError: true);
+      _showMsg(AppLocalizations.of(context).t('network_error_saving_referral_settings'),
+          isError: true);
     }
   }
 
@@ -111,41 +117,45 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
     final templateCtrl = TextEditingController(text: (existing?['urlTemplate'] ?? '').toString());
     bool enabled = existing?['enabled'] != false;
 
+    final t = AppLocalizations.of(context).t;
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
+        final dt = AppLocalizations.of(dialogContext).t;
         return StatefulBuilder(
-          builder: (context, setLocalState) => AlertDialog(
-            title: Text(existing == null ? 'Add Share Option' : 'Edit Share Option'),
+          builder: (dialogContext, setLocalState) => AlertDialog(
+            backgroundColor: AppThemeColors.cardBg(dialogContext),
+            title: Text(existing == null ? dt('add_share_option') : dt('edit_share_option')),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: keyCtrl, decoration: const InputDecoration(labelText: 'Key')),
-                  TextField(controller: labelCtrl, decoration: const InputDecoration(labelText: 'Label')),
-                  TextField(controller: iconCtrl, decoration: const InputDecoration(labelText: 'Icon name')),
+                  TextField(controller: keyCtrl, decoration: InputDecoration(labelText: dt('key_label'))),
+                  TextField(controller: labelCtrl, decoration: InputDecoration(labelText: dt('label_field'))),
+                  TextField(controller: iconCtrl, decoration: InputDecoration(labelText: dt('icon_name'))),
                   TextField(
                     controller: templateCtrl,
-                    decoration: const InputDecoration(labelText: 'URL Template'),
+                    decoration: InputDecoration(labelText: dt('url_template')),
                   ),
                   SwitchListTile(
                     value: enabled,
                     onChanged: (v) => setLocalState(() => enabled = v),
-                    title: const Text('Enabled'),
+                    title: Text(dt('enabled')),
                     contentPadding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Use placeholders: {message}, {inviteLink}, {subject}. Use copy:{message} for copy option.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  Text(
+                    dt('share_option_placeholders_hint'),
+                    style: TextStyle(
+                        fontSize: 12, color: AppThemeColors.secondaryText(dialogContext)),
                   ),
                 ],
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(dt('cancel')),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -156,9 +166,9 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                     'urlTemplate': templateCtrl.text.trim(),
                     'enabled': enabled,
                   };
-                  Navigator.pop(context, item);
+                  Navigator.pop(dialogContext, item);
                 },
-                child: const Text('Save'),
+                child: Text(dt('save')),
               ),
             ],
           ),
@@ -175,7 +185,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
     if ((result['key'] ?? '').toString().isEmpty ||
         (result['label'] ?? '').toString().isEmpty ||
         (result['urlTemplate'] ?? '').toString().isEmpty) {
-      _showMsg('Key, label, and URL template are required.', isError: true);
+      _showMsg(t('key_label_url_required'), isError: true);
       return;
     }
 
@@ -193,8 +203,9 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -205,11 +216,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
-                ),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -221,14 +228,18 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Referral Settings',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            t('referral_settings'),
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
@@ -246,12 +257,16 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Invite Link', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                  Text(t('invite_link'),
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppThemeColors.primaryText(context))),
                                   const SizedBox(height: 8),
                                   TextField(
                                     controller: _inviteBaseUrlController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Invite Base URL',
+                                    decoration: InputDecoration(
+                                      labelText: t('invite_base_url'),
                                       hintText: 'https://your-domain.com/app',
                                     ),
                                   ),
@@ -263,18 +278,22 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Referral Reward Coins', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                  Text(t('referral_reward_coins'),
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppThemeColors.primaryText(context))),
                                   const SizedBox(height: 8),
                                   TextField(
                                     controller: _inviterRewardController,
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(labelText: 'Inviter Reward Coins'),
+                                    decoration: InputDecoration(labelText: t('inviter_reward_coins')),
                                   ),
                                   const SizedBox(height: 10),
                                   TextField(
                                     controller: _refereeRewardController,
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(labelText: 'Referee Reward Coins'),
+                                    decoration: InputDecoration(labelText: t('referee_reward_coins')),
                                   ),
                                 ],
                               ),
@@ -287,17 +306,23 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text('Share Options', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                      Text(t('share_options'),
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppThemeColors.primaryText(context))),
                                       ElevatedButton.icon(
                                         onPressed: () => _editOption(),
                                         icon: const Icon(Icons.add),
-                                        label: const Text('Add'),
+                                        label: Text(t('add')),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
                                   if (_shareOptions.isEmpty)
-                                    const Text('No share options configured.')
+                                    Text(t('no_share_options_configured'),
+                                        style: TextStyle(
+                                            color: AppThemeColors.secondaryText(context)))
                                   else
                                     ..._shareOptions.asMap().entries.map((entry) {
                                       final i = entry.key;
@@ -306,7 +331,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                                         margin: const EdgeInsets.only(bottom: 8),
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
+                                          color: AppThemeColors.surfaceBg(context),
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Row(
@@ -317,14 +342,22 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                                                 children: [
                                                   Text(
                                                     '${opt['label']} (${opt['key']})',
-                                                    style: const TextStyle(fontWeight: FontWeight.w700),
+                                                    style: TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                        color: AppThemeColors.primaryText(
+                                                            context)),
                                                   ),
                                                   Text(
                                                     '${opt['icon']} | ${opt['urlTemplate']}',
-                                                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: AppThemeColors.secondaryText(
+                                                            context)),
                                                   ),
                                                   Text(
-                                                    (opt['enabled'] != false) ? 'Enabled' : 'Disabled',
+                                                    (opt['enabled'] != false)
+                                                        ? t('enabled')
+                                                        : t('disabled'),
                                                     style: TextStyle(
                                                       color: (opt['enabled'] != false) ? Colors.green : Colors.orange,
                                                       fontWeight: FontWeight.w600,
@@ -384,7 +417,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                       )
                                     : const Icon(Icons.save),
-                                label: Text(_saving ? 'Saving...' : 'Save Referral Settings'),
+                                label: Text(_saving ? t('saving') : t('save_referral_settings')),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.cyan,
                                   foregroundColor: Colors.white,
@@ -416,7 +449,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(14),
         ),
         child: child,

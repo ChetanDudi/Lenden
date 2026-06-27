@@ -384,6 +384,147 @@ exports.login = async (req, res) => {
   }
 };
 
+async function generateUniqueUsernameFromEmail(email) {
+  const base = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
+  let candidate = base;
+  let suffix = 0;
+  while (await User.findOne({ username: candidate }) || await Admin.findOne({ username: candidate })) {
+    suffix += 1;
+    candidate = `${base}${suffix}`;
+  }
+  return candidate;
+}
+
+// Sign in (or auto-register) with a Google ID token
+exports.googleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ error: 'idToken is required' });
+    }
+    if (!process.env.GOOGLE_WEB_CLIENT_ID) {
+      console.error('GOOGLE_WEB_CLIENT_ID is not configured on the server.');
+      return res.status(500).json({ error: 'Google Sign-In is not configured on the server.' });
+    }
+
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_WEB_CLIENT_ID);
+
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_WEB_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('Google ID token verification failed:', verifyErr.message);
+      return res.status(401).json({ error: 'Invalid Google credential.' });
+    }
+
+    if (!payload?.email || payload.email_verified !== true) {
+      return res.status(401).json({ error: 'Google account email is not verified.' });
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const googleId = payload.sub;
+
+    const adminWithEmail = await Admin.findOne({ email });
+    if (adminWithEmail) {
+      return res.status(403).json({ error: 'This email belongs to an admin account. Please use admin login.' });
+    }
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (!user) {
+      const username = await generateUniqueUsernameFromEmail(email);
+      const uniqueReferralCode = await generateUniqueReferralCode();
+      user = new User({
+        name: payload.name || email.split('@')[0],
+        username,
+        email,
+        authProvider: 'google',
+        googleId,
+        isVerified: true,
+        referralCode: uniqueReferralCode,
+        memberSince: new Date(),
+      });
+      await user.save();
+    } else if (!user.googleId) {
+      // Existing local account signing in with Google for the first time — link it.
+      // authProvider stays 'local' so the account still requires its original
+      // password for non-Google logins; googleId alone is enough to allow Google sign-in.
+      user.googleId = googleId;
+    }
+
+    if (user.deactivatedAccount) {
+      return res.status(403).json({
+        error: 'This account has been deactivated. Would you like to recover it?',
+        canRecover: true,
+        email: user.email,
+        username: user.username,
+      });
+    }
+
+    const deviceId = req.body.deviceId || uuidv4();
+    const deviceName = req.body.deviceName || req.get('User-Agent');
+    const ipAddress = req.ip;
+
+    const accessToken = TokenService.generateAccessToken({
+      _id: user._id,
+      email: user.email,
+      role: 'user',
+      deviceId,
+    });
+    const refreshToken = TokenService.generateRefreshToken();
+    await TokenService.saveRefreshToken({
+      token: refreshToken,
+      userId: user._id,
+      userType: 'user',
+      deviceId,
+      deviceName,
+      ipAddress,
+      userAgent: req.get('User-Agent'),
+      expiresAt: TokenService.calculateTokenExpiry(),
+    });
+
+    try {
+      await logProfileActivity(user._id, 'login', { ipAddress, userAgent: req.get('User-Agent') });
+    } catch (e) {
+      console.error('Failed to log Google login activity:', e);
+    }
+
+    if (user.deviceManagement === false) {
+      if (user.devices && user.devices.length > 0 && user.devices[0].deviceId !== deviceId) {
+        return res.status(409).json({ error: 'This account is already logged in on another device.' });
+      }
+      user.devices = [];
+    }
+    const now = new Date();
+    user.devices = (user.devices || []).filter((d) => d.deviceId !== deviceId);
+    user.devices.push({ deviceId, userAgent: deviceName, ipAddress, lastActive: now, createdAt: now });
+
+    const dailyReward = applyDailyLoginReward(user);
+    await user.save();
+    await recordDailyLoginRewardIfNeeded(user, dailyReward);
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json({
+      message: 'Login successful',
+      user: userResponse,
+      accessToken,
+      refreshToken,
+      deviceId,
+      dailyLoginReward: dailyReward,
+    });
+  } catch (err) {
+    console.error('❌ Google login error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 // Check if username is unique across users and admins
 exports.checkUsername = async (req, res) => {
   try {

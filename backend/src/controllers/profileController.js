@@ -1,5 +1,6 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
+const { computeTrustScore } = require('../utils/trustScore');
 
 exports.getUserProfile = async (req, res) => {
   try {
@@ -9,6 +10,7 @@ exports.getUserProfile = async (req, res) => {
     if (userObj.profileImage) {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;
     }
+    userObj.trustScore = await computeTrustScore(user.email);
     res.json(userObj);
   } catch (err) {
     console.error(err);
@@ -112,6 +114,7 @@ exports.getUserProfileByEmail = async (req, res) => {
     if (userObj.profileImage) {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;
     }
+    userObj.trustScore = await computeTrustScore(user.email);
     res.json(userObj);
   } catch (err) {
     console.error('Error in getUserProfileByEmail:', err);

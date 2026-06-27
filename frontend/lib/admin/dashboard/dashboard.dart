@@ -15,6 +15,7 @@ import '../track_users/track_user_activity_page.dart';
 import '../support/manage_contact_page.dart';
 import '../support/manage_support_queries_page.dart';
 import '../../widgets/notification_icon.dart';
+import '../../utils/theme_helper.dart';
 import '../digitise/manage_subscriptions_page.dart';
 import '../digitise/manage_gift_cards_page.dart';
 import '../digitise/manage_referral_settings_page.dart';
@@ -26,6 +27,8 @@ import '../ads_and_updates/manage_updates_page.dart';
 import '../ads_and_updates/manage_ads_page.dart';
 import '../audit/audit_logs_page.dart';
 import '../support/contact_messages_page.dart';
+import '../disputes/manage_disputes_page.dart';
+import '../disputes/fraud_alerts_page.dart';
 import '../../utils/responsive.dart';
 
 class AdminDashboardPage extends StatefulWidget {
@@ -469,6 +472,38 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           },
         ),
         _AdminDashboardItem(
+          id: 'manage_disputes',
+          permissionKey: 'canManageSupport',
+          icon: Icons.gavel_rounded,
+          label: 'Manage Disputes',
+          caption: 'Review and resolve transaction disputes',
+          actionLabel: 'Disputes',
+          backgroundColor: const Color(0xFFFCEEE6),
+          iconColor: const Color(0xFFD2691E),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ManageDisputesPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'fraud_alerts',
+          permissionKey: 'canManageTransactions',
+          icon: Icons.security_rounded,
+          label: 'Fraud Alerts',
+          caption: 'Automated anomaly and fraud detection',
+          actionLabel: 'Alerts',
+          backgroundColor: const Color(0xFFFDEAEA),
+          iconColor: const Color(0xFFB71C1C),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FraudAlertsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
           id: 'content_analytics',
           permissionKey: 'canManageContent',
           icon: Icons.query_stats_rounded,
@@ -772,7 +807,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ],
           ),
         ),
-        backgroundColor: const Color(0xFFF8F6FA),
+        backgroundColor: AppThemeColors.scaffoldBg(context),
         body: Stack(
           children: [
             // Main content area
@@ -794,7 +829,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: TextField(
@@ -848,7 +883,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           'Switch between detailed cards or compact admin grid.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[600],
+                            color: AppThemeColors.secondaryText(context),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -872,7 +907,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
@@ -919,7 +954,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: context.sh(78),
-                  color: AppColors.cyan,
+                  color: AppThemeColors.waveSolid(context),
                 ),
               ),
             ),

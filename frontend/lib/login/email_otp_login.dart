@@ -6,6 +6,8 @@ import '../utils/api_client.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class EmailOtpLogin {
   static Future<Map<String, dynamic>> sendOtp({
@@ -19,6 +21,7 @@ class EmailOtpLogin {
         timeout: const Duration(seconds: 90),
       );
 
+      final t = AppLocalizations.of(context).t;
       if (response.statusCode == 200) {
         return {'success': true};
       } else {
@@ -26,18 +29,18 @@ class EmailOtpLogin {
         final raw = (responseData['error'] ?? '').toString().toLowerCase();
         String errorMsg;
         if (response.statusCode == 408 || raw.contains('timeout') || raw.contains('timed out')) {
-          errorMsg = 'Server is starting up. Please wait a moment and try again.';
+          errorMsg = t('server_starting_up');
         } else if (response.statusCode == 503 || raw.contains('unavailable')) {
-          errorMsg = 'Could not send OTP email. Please check your email address and try again.';
+          errorMsg = t('could_not_send_otp_email');
         } else {
-          errorMsg = responseData['error'] ?? 'User not found';
+          errorMsg = responseData['error'] ?? t('user_not_found');
         }
         return {'success': false, 'error': errorMsg};
       }
     } catch (e) {
       return {
         'success': false,
-        'error': 'Failed to send OTP. Please try again.'
+        'error': AppLocalizations.of(context).t('failed_to_send_otp_retry')
       };
     }
   }
@@ -121,13 +124,13 @@ class EmailOtpLogin {
       } else {
         return {
           'success': false,
-          'error': responseData['error'] ?? 'OTP verification failed.'
+          'error': responseData['error'] ?? AppLocalizations.of(context).t('otp_verification_failed')
         };
       }
     } catch (e) {
       return {
         'success': false,
-        'error': 'OTP verification failed. Please try again.'
+        'error': AppLocalizations.of(context).t('otp_verification_failed_retry')
       };
     }
   }
@@ -137,23 +140,26 @@ class EmailOtpLogin {
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (ctx) {
+        final t = AppLocalizations.of(ctx).t;
         return AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          backgroundColor: const Color(0xFFF8F6FA),
+          backgroundColor: AppThemeColors.cardBg(ctx),
           title: Row(
-            children: const [
-              Icon(Icons.lock_clock, color: AppColors.cyan, size: 28),
-              SizedBox(width: 8),
-              Text('Enter OTP', style: TextStyle(color: Colors.black)),
+            children: [
+              const Icon(Icons.lock_clock, color: AppColors.cyan, size: 28),
+              const SizedBox(width: 8),
+              Text(t('enter_otp_title'),
+                  style: TextStyle(color: AppThemeColors.primaryText(ctx))),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter the 6-digit OTP sent to your email:',
-                  style: TextStyle(fontSize: 16)),
+              Text(t('enter_6_digit_otp'),
+                  style: TextStyle(
+                      fontSize: 16, color: AppThemeColors.primaryText(ctx))),
               const SizedBox(height: 16),
               OtpInput(
                 onChanged: (val) => otpValue = val,
@@ -164,16 +170,16 @@ class EmailOtpLogin {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.deepPurple)),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(t('cancel'),
+                  style: const TextStyle(color: Colors.deepPurple)),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
               },
-              child: const Text('Verify',
-                  style: TextStyle(
+              child: Text(t('verify'),
+                  style: const TextStyle(
                       color: AppColors.cyan, fontWeight: FontWeight.bold)),
             ),
           ],
@@ -186,16 +192,22 @@ class EmailOtpLogin {
   static void showErrorDialog(BuildContext context, String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final t = AppLocalizations.of(ctx).t;
+        return AlertDialog(
+          backgroundColor: AppThemeColors.cardBg(ctx),
+          title: Text(t('error'),
+              style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+          content: Text(message,
+              style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(t('ok')),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminNotesPage extends StatefulWidget {
   const AdminNotesPage({Key? key}) : super(key: key);
@@ -82,7 +84,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
         });
       } else {
         setState(() {
-          error = 'Failed to load notes';
+          error = AppLocalizations.of(context).t('failed_to_load_notes');
           loading = false;
         });
       }
@@ -102,6 +104,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (context) {
+        final t = AppLocalizations.of(context).t;
         return Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -110,7 +113,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -126,11 +129,11 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Text(
-                      isEdit ? 'Edit Note' : 'New Note',
+                      isEdit ? t('edit_note') : t('new_note'),
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                   ),
@@ -138,21 +141,21 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: TextField(
                       controller: titleController,
-                      style: TextStyle(color: Colors.black87),
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
                       decoration: InputDecoration(
-                        hintText: 'Title',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintText: t('title'),
+                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: AppThemeColors.surfaceBg(context),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderSide: BorderSide(color: AppThemeColors.border(context)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black87),
+                          borderSide: BorderSide(color: AppThemeColors.primaryText(context)),
                         ),
-                        counterStyle: TextStyle(color: Colors.grey[600]),
+                        counterStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
                       ),
                       maxLength: 50,
                     ),
@@ -162,20 +165,20 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: TextField(
                       controller: contentController,
-                      style: TextStyle(color: Colors.black87),
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Enter note...',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintText: t('enter_note'),
+                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: AppThemeColors.surfaceBg(context),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderSide: BorderSide(color: AppThemeColors.border(context)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black87),
+                          borderSide: BorderSide(color: AppThemeColors.primaryText(context)),
                         ),
                       ),
                     ),
@@ -188,14 +191,14 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel',
+                          child: Text(t('cancel'),
                               style: TextStyle(
-                                  color: Colors.grey[600], fontSize: 16)),
+                                  color: AppThemeColors.secondaryText(context), fontSize: 16)),
                         ),
                         SizedBox(width: 10),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
+                            backgroundColor: AppThemeColors.primaryText(context),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                             padding: EdgeInsets.symmetric(
@@ -209,9 +212,9 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                 context, {'title': title, 'content': content});
                           },
                           child: Text(
-                            isEdit ? 'Update' : 'Create',
+                            isEdit ? t('update') : t('create'),
                             style: TextStyle(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold),
                           ),
@@ -267,7 +270,10 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
   Future<void> deleteNote(String id) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) {
+        final t = AppLocalizations.of(context).t;
+        return AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -280,13 +286,16 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               child: Icon(Icons.delete_outline, color: Colors.red, size: 24),
             ),
             SizedBox(width: 12),
-            Text('Delete Note',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            Text(t('delete_note'),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: AppThemeColors.primaryText(context))),
           ],
         ),
         content: Text(
-          'Are you sure you want to delete this note? This action cannot be undone.',
-          style: TextStyle(fontSize: 15, color: Colors.grey[700]),
+          t('delete_note_confirm'),
+          style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(context)),
         ),
         actions: [
           TextButton(
@@ -294,9 +303,9 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
             style: TextButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text('Cancel',
+            child: Text(t('cancel'),
                 style: TextStyle(
-                    color: Colors.grey[600],
+                    color: AppThemeColors.secondaryText(context),
                     fontSize: 15,
                     fontWeight: FontWeight.w600)),
           ),
@@ -309,14 +318,15 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               elevation: 0,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Delete',
+            child: Text(t('delete'),
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
                     fontWeight: FontWeight.w600)),
           ),
         ],
-      ),
+      );
+      },
     );
 
     if (confirmed == true) {
@@ -359,9 +369,11 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (context) {
+        final t = AppLocalizations.of(context).t;
+        return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
@@ -375,7 +387,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppThemeColors.divider(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -393,27 +405,28 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'Sort By',
+                    t('sort_by'),
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87),
+                        color: AppThemeColors.primaryText(context)),
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, thickness: 1, color: Colors.grey[200]),
+            Divider(height: 1, thickness: 1, color: AppThemeColors.divider(context)),
             _buildSortOption(
-                'created_desc', 'Newest First', Icons.new_releases),
-            _buildSortOption('created_asc', 'Oldest First', Icons.access_time),
-            _buildSortOption('updated_desc', 'Recently Updated', Icons.update),
-            _buildSortOption('updated_asc', 'Least Updated', Icons.history),
-            _buildSortOption('title_az', 'Title A-Z', Icons.sort_by_alpha),
-            _buildSortOption('title_za', 'Title Z-A', Icons.sort_by_alpha),
+                'created_desc', t('newest_first'), Icons.new_releases),
+            _buildSortOption('created_asc', t('oldest_first'), Icons.access_time),
+            _buildSortOption('updated_desc', t('recently_updated'), Icons.update),
+            _buildSortOption('updated_asc', t('least_updated'), Icons.history),
+            _buildSortOption('title_az', t('title_a_z'), Icons.sort_by_alpha),
+            _buildSortOption('title_za', t('title_z_a'), Icons.sort_by_alpha),
             SizedBox(height: 20),
           ],
         ),
-      ),
+      );
+      },
     );
   }
 
@@ -443,7 +456,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.blue : Colors.grey[600],
+              color: isSelected ? Colors.blue : AppThemeColors.secondaryText(context),
               size: 20,
             ),
             SizedBox(width: 16),
@@ -452,7 +465,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                 label,
                 style: TextStyle(
                   fontSize: 15,
-                  color: isSelected ? Colors.blue : Colors.grey[800],
+                  color: isSelected ? Colors.blue : AppThemeColors.primaryText(context),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -467,8 +480,9 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -479,10 +493,13 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                        ),
                 ),
               ),
             ),
@@ -497,7 +514,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                    icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                     onPressed: () {
                       Navigator.pushReplacementNamed(
                           context, '/admin/dashboard');
@@ -506,11 +523,11 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   Expanded(
                     child: Center(
                       child: Text(
-                        'Admin Notes',
+                        t('admin_notes'),
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppThemeColors.iconOnWave(context),
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -545,31 +562,31 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: Colors.grey[400], size: 20),
+                      Icon(Icons.search, color: AppThemeColors.mutedText(context), size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           onChanged: filterNotes,
                           decoration: InputDecoration(
-                            hintText: 'Search notes...',
+                            hintText: t('search_notes'),
                             hintStyle: TextStyle(
-                                color: Colors.grey[400], fontSize: 15),
+                                color: AppThemeColors.mutedText(context), fontSize: 15),
                             border: InputBorder.none,
                             contentPadding:
                                 const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          style: const TextStyle(fontSize: 15),
+                          style: TextStyle(fontSize: 15, color: AppThemeColors.primaryText(context)),
                         ),
                       ),
                       if (searchQuery.isNotEmpty)
                         IconButton(
                           icon: Icon(Icons.clear,
-                              color: Colors.grey[400], size: 20),
+                              color: AppThemeColors.mutedText(context), size: 20),
                           onPressed: () => filterNotes(''),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -611,19 +628,19 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.filter_list,
-                                color: Colors.black87, size: 18),
+                                color: AppThemeColors.primaryText(context), size: 18),
                             SizedBox(width: 6),
                             Text(
-                              'Sort',
+                              t('sort'),
                               style: TextStyle(
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -642,8 +659,8 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
             // Notes List
             Expanded(
               child: loading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.black87))
+                  ? Center(
+                      child: CircularProgressIndicator(color: AppThemeColors.primaryText(context)))
                   : error != null
                       ? Center(
                           child: Text(error!,
@@ -654,20 +671,20 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.note_outlined,
-                                      size: 64, color: Colors.grey[300]),
+                                      size: 64, color: AppThemeColors.mutedText(context)),
                                   SizedBox(height: 16),
                                   Text(
-                                    'No notes yet',
+                                    t('no_notes_yet'),
                                     style: TextStyle(
-                                        color: Colors.grey[400],
+                                        color: AppThemeColors.mutedText(context),
                                         fontSize: 18,
                                         fontWeight: FontWeight.w500),
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    'Tap + to create your first note',
+                                    t('tap_plus_to_create_note'),
                                     style: TextStyle(
-                                        color: Colors.grey[400], fontSize: 14),
+                                        color: AppThemeColors.mutedText(context), fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -785,14 +802,14 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                             ),
                                                             SizedBox(width: 12),
                                                             Text(
-                                                              'Edit Note',
+                                                              t('edit_note'),
                                                               style: TextStyle(
                                                                 fontSize: 15,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w500,
-                                                                color: Colors
-                                                                    .black87,
+                                                                color: AppThemeColors
+                                                                    .primaryText(context),
                                                               ),
                                                             ),
                                                           ],
@@ -837,7 +854,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                             ),
                                                             SizedBox(width: 12),
                                                             Text(
-                                                              'Delete Note',
+                                                              t('delete_note'),
                                                               style: TextStyle(
                                                                 fontSize: 15,
                                                                 fontWeight:
@@ -869,7 +886,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                     color: Colors.grey[600]),
                                                 SizedBox(width: 4),
                                                 Text(
-                                                  'Created: ${_formatDate(note['createdAt'])}',
+                                                  '${t('created')}: ${_formatDate(note['createdAt'])}',
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     color: Colors.grey[600],
@@ -881,7 +898,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                     color: Colors.grey[600]),
                                                 SizedBox(width: 4),
                                                 Text(
-                                                  'Updated: ${_formatDate(note['updatedAt'])}',
+                                                  '${t('updated')}: ${_formatDate(note['updatedAt'])}',
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     color: Colors.grey[600],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class TermsOfServicePage extends StatelessWidget {
   const TermsOfServicePage({super.key});
@@ -9,9 +11,10 @@ class TermsOfServicePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Terms of Service'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('terms_of_service')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -34,16 +37,16 @@ class TermsOfServicePage extends StatelessWidget {
                   const Icon(Icons.description_rounded,
                       color: Colors.white, size: 40),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Terms of Service',
-                    style: TextStyle(
+                  Text(
+                    t('terms_of_service'),
+                    style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Last updated: $_lastUpdated',
+                    '${t('tos_last_updated_prefix')} $_lastUpdated',
                     style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 13),
@@ -54,98 +57,84 @@ class TermsOfServicePage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            _buildSection('1. Acceptance of Terms', [
-              'By accessing or using LenDen ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.',
-              'These terms apply to all users of the App, including users who are also contributors of content, information, and other materials or services.',
+            _buildSection(context, t('tos_s1_title'),
+                [t('tos_s1_p1'), t('tos_s1_p2')]),
+
+            _buildSection(context, t('tos_s2_title'), [
+              t('tos_s2_p1'),
+              t('tos_s2_p2'),
+              t('tos_s2_p3'),
+              t('tos_s2_p4'),
+              t('tos_s2_p5'),
+              t('tos_s2_p6'),
             ]),
 
-            _buildSection('2. Description of Service', [
-              'LenDen is a peer-to-peer money management application that allows users to:',
-              '• Record and track financial transactions with other users',
-              '• Split group expenses among multiple participants',
-              '• Manage a digital wallet for in-app payments',
-              '• Make payments via integrated payment gateways',
-              '• View analytics and history of financial activity',
+            _buildSection(context, t('tos_s3_title'), [
+              t('tos_s3_p1'),
+              t('tos_s3_p2'),
+              t('tos_s3_p3'),
+              t('tos_s3_p4'),
             ]),
 
-            _buildSection('3. User Accounts', [
-              'You must create an account to use LenDen. You are responsible for maintaining the confidentiality of your account credentials.',
-              'You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate.',
-              'You are responsible for all activity that occurs under your account. Notify us immediately of any unauthorized use.',
-              'Users must be at least 18 years of age to use LenDen.',
+            _buildSection(context, t('tos_s4_title'), [
+              t('tos_s4_p1'),
+              t('tos_s4_p2'),
+              t('tos_s4_p3'),
+              t('tos_s4_p4'),
             ]),
 
-            _buildSection('4. Financial Transactions', [
-              'LenDen acts as a record-keeping and facilitation platform. We are not a bank or licensed financial institution.',
-              'All transactions between users are the sole responsibility of the parties involved. LenDen does not guarantee that counterparties will fulfill their payment obligations.',
-              'Wallet top-ups and payments are processed through Razorpay. By making payments, you agree to Razorpay\'s Terms of Service.',
-              'You agree not to use LenDen for illegal transactions, money laundering, or any fraudulent activity.',
+            _buildSection(context, t('tos_s5_title'), [
+              t('tos_s5_p1'),
+              t('tos_s5_p2'),
+              t('tos_s5_p3'),
+              t('tos_s5_p4'),
             ]),
 
-            _buildSection('5. Wallet & Payments', [
-              'The LenDen Wallet is an in-app balance that can be used for peer-to-peer payments and subscription purchases.',
-              'Wallet balances are not insured or guaranteed by any government scheme.',
-              'Withdrawals to bank accounts or UPI are subject to processing times and may require identity verification.',
-              'In test mode, withdrawals are simulated and no actual funds are transferred.',
+            _buildSection(context, t('tos_s6_title'), [
+              t('tos_s6_p1'),
+              t('tos_s6_p2'),
+              t('tos_s6_p3'),
+              t('tos_s6_p4'),
+              t('tos_s6_p5'),
+              t('tos_s6_p6'),
+              t('tos_s6_p7'),
+              t('tos_s6_p8'),
             ]),
 
-            _buildSection('6. Prohibited Conduct', [
-              'You agree not to:',
-              '• Use the App for any unlawful purpose',
-              '• Attempt to gain unauthorized access to any part of the App',
-              '• Harass, abuse, or harm other users',
-              '• Submit false or misleading transaction information',
-              '• Reverse engineer, decompile, or disassemble the App',
-              '• Use automated tools (bots, scrapers) against the App',
-              '• Share your account credentials with third parties',
+            _buildSection(context, t('tos_s7_title'),
+                [t('tos_s7_p1'), t('tos_s7_p2')]),
+
+            _buildSection(context, t('tos_s8_title'),
+                [t('tos_s8_p1'), t('tos_s8_p2')]),
+
+            _buildSection(context, t('tos_s9_title'), [
+              t('tos_s9_p1'),
+              t('tos_s9_p2'),
+              t('tos_s9_p3'),
             ]),
 
-            _buildSection('7. Privacy', [
-              'Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the App, to understand our practices.',
-              'By using LenDen, you consent to the collection and use of your data as described in our Privacy Policy.',
+            _buildSection(context, t('tos_s10_title'), [
+              t('tos_s10_p1'),
+              t('tos_s10_p2'),
+              t('tos_s10_p3'),
             ]),
 
-            _buildSection('8. Intellectual Property', [
-              'The App and its original content, features, and functionality are owned by LenDen and are protected by applicable intellectual property laws.',
-              'You may not reproduce, distribute, modify, or create derivative works from any part of the App without our explicit written permission.',
+            _buildSection(context, t('tos_s11_title'), [
+              t('tos_s11_p1'),
+              t('tos_s11_p2'),
+              t('tos_s11_p3'),
             ]),
 
-            _buildSection('9. Subscription Plans', [
-              'LenDen offers paid subscription plans that unlock additional features. Subscriptions are billed according to the plan selected.',
-              'Subscriptions are non-refundable unless required by applicable law.',
-              'We reserve the right to modify subscription pricing with reasonable advance notice.',
-            ]),
+            _buildSection(context, t('tos_s12_title'),
+                [t('tos_s12_p1'), t('tos_s12_p2')]),
 
-            _buildSection('10. Termination', [
-              'We may terminate or suspend your account at any time for violation of these Terms or for any other reason at our discretion.',
-              'Upon termination, your right to use the App will immediately cease. Any outstanding transaction records will be retained as required by law.',
-              'You may deactivate your account at any time through the Privacy Settings page, subject to clearing any outstanding financial obligations.',
-            ]),
+            _buildSection(context, t('tos_s13_title'),
+                [t('tos_s13_p1'), t('tos_s13_p2')]),
 
-            _buildSection('11. Disclaimers', [
-              'The App is provided "as is" and "as available" without warranties of any kind, either express or implied.',
-              'We do not warrant that the App will be uninterrupted, error-free, or free of viruses or other harmful components.',
-              'We are not responsible for any financial losses resulting from transactions between users.',
-            ]),
+            _buildSection(context, t('tos_s14_title'),
+                [t('tos_s14_p1'), t('tos_s14_p2')]),
 
-            _buildSection('12. Limitation of Liability', [
-              'To the maximum extent permitted by law, LenDen shall not be liable for any indirect, incidental, special, consequential, or punitive damages.',
-              'Our total liability to you for any claims arising from your use of the App shall not exceed the amount you paid to us in the twelve months preceding the claim.',
-            ]),
-
-            _buildSection('13. Changes to Terms', [
-              'We reserve the right to modify these Terms at any time. We will notify users of significant changes through the App.',
-              'Your continued use of the App after changes are posted constitutes your acceptance of the modified Terms.',
-            ]),
-
-            _buildSection('14. Governing Law', [
-              'These Terms shall be governed by and construed in accordance with the laws of India.',
-              'Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the courts located in India.',
-            ]),
-
-            _buildSection('15. Contact Us', [
-              'If you have questions about these Terms of Service, please contact us through the Help & Support section of the App.',
-            ]),
+            _buildSection(context, t('tos_s15_title'), [t('tos_s15_p1')]),
 
             const SizedBox(height: 24),
           ],
@@ -154,7 +143,8 @@ class TermsOfServicePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(String title, List<String> paragraphs) {
+  Widget _buildSection(
+      BuildContext context, String title, List<String> paragraphs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -162,7 +152,7 @@ class TermsOfServicePage extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -188,9 +178,9 @@ class TermsOfServicePage extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
                       p,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 13,
-                          color: Colors.black87,
+                          color: AppThemeColors.primaryText(context),
                           height: 1.5),
                     ),
                   )),

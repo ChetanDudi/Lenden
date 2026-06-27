@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../utils/api_client.dart';
 import '../../../api_config.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -131,16 +133,18 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       body: {'email': email.trim().toLowerCase()},
     );
     if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     final body = jsonDecode(res.body);
     if (res.statusCode == 200 || res.statusCode == 201) {
-      _showSnack('Member added successfully', success: true);
+      _showSnack(t('member_added_message'), success: true);
       _refresh();
     } else {
-      _showError(body['error'] ?? 'Failed to add member');
+      _showError(body['error'] ?? t('failed_to_add_member_message'));
     }
   }
 
   Future<void> _removeMember(String email) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
@@ -148,7 +152,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
         child: _tricolorBorderBox(
           radius: 20,
           child: Container(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -157,18 +161,18 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 Row(children: [
                   const Icon(Icons.person_remove_rounded, color: Colors.red),
                   const SizedBox(width: 8),
-                  const Text('Remove Member',
-                      style: TextStyle(
+                  Text(t('remove_member_title'),
+                      style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.red)),
                 ]),
                 const SizedBox(height: 12),
-                Text('Remove $email from this group?',
+                Text(t('remove_member_confirm_message').replaceFirst('{email}', email),
                     style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 8),
                 Text(
-                  'Their balance will be auto-settled across all expenses.',
+                  t('balance_auto_settled_message'),
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 20),
@@ -177,7 +181,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                   children: [
                     TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel')),
+                        child: Text(t('cancel'))),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -185,8 +189,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12))),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Remove',
-                          style: TextStyle(color: Colors.white)),
+                      child: Text(t('remove'),
+                          style: const TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -204,21 +208,22 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     );
     if (!mounted) return;
     if (res.statusCode == 200) {
-      _showSnack('Member removed', success: true);
+      _showSnack(t('member_removed_message'), success: true);
       _refresh();
     } else {
       setState(() => _loading = false);
       final body = jsonDecode(res.body);
-      _showError(body['error'] ?? 'Failed to remove member');
+      _showError(body['error'] ?? t('failed_to_remove_member_message'));
     }
   }
 
   void _showAddMemberSheet() {
     _addEmailCtrl.clear();
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -254,8 +259,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                       color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text('Add Member',
-                    style: TextStyle(
+                Text(t('add_member_label'),
+                    style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold)),
               ],
             ),
@@ -264,10 +269,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 controller: _addEmailCtrl,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  hintText: 'Enter member email address',
+                  hintText: t('enter_member_email_hint'),
                   prefixIcon: const Icon(Icons.email_outlined),
                   filled: true,
-                  fillColor: Colors.grey[100],
+                  fillColor: AppThemeColors.surfaceBg(context),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -293,12 +298,12 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                     ),
                     icon: const Icon(Icons.person_add_rounded,
                         color: Colors.white),
-                    label: const Text('Add Member',
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                    label: Text(t('add_member_label'),
+                        style: const TextStyle(color: Colors.white, fontSize: 16)),
                     onPressed: () {
                       final email = _addEmailCtrl.text.trim();
                       if (email.isEmpty || !email.contains('@')) {
-                        _showError('Enter a valid email address');
+                        _showError(t('enter_a_valid_email_message'));
                         return;
                       }
                       Navigator.pop(ctx);
@@ -373,6 +378,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final activeCount =
         _members.where((m) => m['leftAt'] == null).length;
     final leftCount =
@@ -380,15 +386,15 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     final filtered = _filtered;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0FF),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Members',
-                style: TextStyle(
+            Text(t('members_title_label'),
+                style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold)),
             Text(widget.groupTitle,
                 style: const TextStyle(
@@ -433,12 +439,12 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _statPill('$activeCount Active', Colors.white),
+                      _statPill(t('active_count_label').replaceFirst('{count}', '$activeCount'), Colors.white),
                       const SizedBox(width: 8),
-                      _statPill('$leftCount Left', Colors.white70),
+                      _statPill(t('left_count_label').replaceFirst('{count}', '$leftCount'), Colors.white70),
                       const SizedBox(width: 8),
                       _statPill(
-                          '${_members.length} Total', Colors.white60),
+                          t('total_count_label').replaceFirst('{count}', '${_members.length}'), Colors.white60),
                     ],
                   ),
                 ),
@@ -448,18 +454,18 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
           // Filter chips
           Container(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _filterChip('Active', 'active'),
+                  _filterChip(t('active_label'), 'active'),
                   const SizedBox(width: 8),
-                  _filterChip('Left', 'left'),
+                  _filterChip(t('left_label'), 'left'),
                   const SizedBox(width: 8),
-                  _filterChip('All', 'all'),
+                  _filterChip(t('filter_all_label'), 'all'),
                 ],
               ),
             ),
@@ -473,11 +479,11 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.people_outline,
-                            color: Colors.grey[300], size: 64),
+                            color: AppThemeColors.mutedText(context), size: 64),
                         const SizedBox(height: 8),
-                        Text('No members in this view',
+                        Text(t('no_members_in_view_message'),
                             style: TextStyle(
-                                color: Colors.grey[500])),
+                                color: AppThemeColors.secondaryText(context))),
                       ],
                     ),
                   )
@@ -504,7 +510,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                         radius: 18,
                         borderWidth: 2,
                         child: Container(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 10),
@@ -587,16 +593,16 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                               fontSize: 14,
                                               color: isLeft
                                                   ? Colors.grey
-                                                  : Colors.black87,
+                                                  : AppThemeColors.primaryText(context),
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           if (isGroupCreator)
-                                            _badge('Creator',
+                                            _badge(t('creator_label'),
                                                 const Color(0xFFFF9933),
                                                 Colors.white),
                                           if (isMe)
-                                            _badge('You',
+                                            _badge(t('you_label'),
                                                 const Color(0xFF1565C0),
                                                 Colors.white),
                                         ],
@@ -605,7 +611,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                         Text(email,
                                             style: TextStyle(
                                                 fontSize: 12,
-                                                color: Colors.grey[600]),
+                                                color: AppThemeColors.secondaryText(context)),
                                             overflow: TextOverflow.ellipsis),
                                       const SizedBox(height: 4),
                                       _statusBadge(isLeft),
@@ -651,7 +657,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            isLeft ? 'Re-add' : 'Remove',
+                                            isLeft ? t('re_add_label') : t('remove'),
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 12,
@@ -685,8 +691,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 elevation: 0,
                 icon: const Icon(Icons.person_add_rounded,
                     color: Colors.white),
-                label: const Text('Add Member',
-                    style: TextStyle(color: Colors.white)),
+                label: Text(t('add_member_label'),
+                    style: const TextStyle(color: Colors.white)),
               ),
             )
           : null,
@@ -707,6 +713,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   }
 
   Widget _statusBadge(bool isLeft) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -714,7 +721,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        isLeft ? 'Left' : 'Active',
+        isLeft ? t('left_label') : t('active_label'),
         style: TextStyle(
           fontSize: 11,
           color: isLeft ? Colors.grey[600] : Colors.green[700],
@@ -768,12 +775,12 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppThemeColors.surfaceBg(context),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(label,
                   style: TextStyle(
-                      color: Colors.grey[700],
+                      color: AppThemeColors.secondaryText(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 13)),
             ),

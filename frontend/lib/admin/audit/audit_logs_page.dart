@@ -6,6 +6,8 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AuditLogsPage extends StatefulWidget {
   const AuditLogsPage({Key? key}) : super(key: key);
@@ -70,13 +72,13 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
       } else {
         final data = jsonDecode(response.body);
         setState(() {
-          _error = (data['message'] ?? 'Failed to load audit logs').toString();
+          _error = (data['message'] ?? AppLocalizations.of(context).t('failed_to_load_audit_logs')).toString();
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Error: $e';
+        _error = '${AppLocalizations.of(context).t('error_prefix')} $e';
         _isLoading = false;
       });
     }
@@ -111,9 +113,9 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: isSelected ? color : Colors.white,
+            color: isSelected ? color : AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isSelected ? color : Colors.grey.shade300),
+            border: Border.all(color: isSelected ? color : AppThemeColors.border(context)),
             boxShadow: isSelected
                 ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6)]
                 : [],
@@ -123,7 +125,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.white : Colors.grey[700],
+              color: isSelected ? Colors.white : AppThemeColors.secondaryText(context),
             ),
           ),
         ),
@@ -132,12 +134,13 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   }
 
   Widget _buildLogCard(Map<String, dynamic> log) {
+    final t = AppLocalizations.of(context).t;
     final severity = (log['severity'] as String?) ?? 'info';
     final color = _severityColors[severity] ?? AppColors.cyan;
     final icon = _severityIcons[severity] ?? Icons.info_outline_rounded;
     final action = (log['action'] as String?) ?? '';
     final summary = (log['summary'] as String?) ?? '';
-    final adminEmail = (log['adminEmail'] as String?) ?? 'Unknown admin';
+    final adminEmail = (log['adminEmail'] as String?) ?? t('unknown_admin');
     final targetType = (log['targetType'] as String?) ?? '';
     final ipAddress = (log['ipAddress'] as String?) ?? '';
     final createdAt = (log['createdAt'] as String?);
@@ -145,7 +148,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
         boxShadow: [
@@ -178,14 +181,15 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                     children: [
                       Text(
                         _actionLabel(action),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       Text(
                         adminEmail,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
                       ),
                     ],
                   ),
@@ -212,7 +216,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
               const SizedBox(height: 8),
               Text(
                 summary,
-                style: TextStyle(fontSize: 13, color: Colors.grey[800]),
+                style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context)),
               ),
             ],
             const SizedBox(height: 8),
@@ -221,13 +225,13 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
               children: [
                 if (targetType.isNotEmpty)
                   _buildMetaChip(Icons.category_outlined,
-                      targetType.toUpperCase(), Colors.grey),
+                      targetType.toUpperCase(), AppThemeColors.secondaryText(context)),
                 if (ipAddress.isNotEmpty)
                   _buildMetaChip(Icons.location_on_outlined, _cleanIp(ipAddress),
                       Colors.blueGrey),
                 if (createdAt != null)
                   _buildMetaChip(Icons.access_time_rounded,
-                      _formatTime(createdAt), Colors.grey),
+                      _formatTime(createdAt), AppThemeColors.secondaryText(context)),
               ],
             ),
           ],
@@ -249,8 +253,9 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -261,10 +266,13 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                        ),
                 ),
               ),
             ),
@@ -280,16 +288,18 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Audit Logs',
+                            t('audit_logs'),
                             style: TextStyle(
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold),
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
@@ -308,23 +318,24 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                               decoration: BoxDecoration(
                                 color: _actor == 'mine'
                                     ? AppColors.cyan
-                                    : Colors.white.withValues(alpha: 0.8),
+                                    : AppThemeColors.cardBg(context).withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
-                                _actor == 'mine' ? 'Mine' : 'All',
+                                _actor == 'mine' ? t('mine') : t('all'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: _actor == 'mine'
                                       ? Colors.white
-                                      : Colors.black87,
+                                      : AppThemeColors.primaryText(context),
                                 ),
                               ),
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.refresh_rounded),
+                            icon: Icon(Icons.refresh_rounded,
+                                color: AppThemeColors.iconOnWave(context)),
                             onPressed: _fetchLogs,
                           ),
                         ],
@@ -342,21 +353,21 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.search, color: Colors.grey[500], size: 20),
+                          Icon(Icons.search, color: AppThemeColors.secondaryText(context), size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
                               controller: _searchController,
                               onSubmitted: (_) => _fetchLogs(),
+                              style: TextStyle(color: AppThemeColors.primaryText(context)),
                               decoration: InputDecoration(
-                                hintText:
-                                    'Search action, admin, summary...',
-                                hintStyle: TextStyle(color: Colors.grey[400]),
+                                hintText: t('search_action_admin_summary'),
+                                hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                                 border: InputBorder.none,
                                 contentPadding:
                                     const EdgeInsets.symmetric(vertical: 4),
@@ -370,7 +381,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                                 _fetchLogs();
                               },
                               child: Icon(Icons.clear,
-                                  color: Colors.grey[400], size: 18),
+                                  color: AppThemeColors.mutedText(context), size: 18),
                             ),
                         ],
                       ),
@@ -386,10 +397,10 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      _buildSeverityChip('all', 'All'),
-                      _buildSeverityChip('info', 'Info'),
-                      _buildSeverityChip('warning', 'Warning'),
-                      _buildSeverityChip('critical', 'Critical'),
+                      _buildSeverityChip('all', t('all')),
+                      _buildSeverityChip('info', t('info_label')),
+                      _buildSeverityChip('warning', t('warning')),
+                      _buildSeverityChip('critical', t('critical')),
                     ],
                   ),
                 ),
@@ -400,10 +411,10 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                     padding:
                         const EdgeInsets.fromLTRB(20, 8, 20, 4),
                     child: Text(
-                      '${_logs.length} log${_logs.length == 1 ? '' : 's'}',
+                      '${_logs.length} ${_logs.length == 1 ? t('log_singular') : t('log_plural')}',
                       style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[600],
+                          color: AppThemeColors.secondaryText(context),
                           fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -430,7 +441,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                                   const SizedBox(height: 16),
                                   ElevatedButton(
                                     onPressed: _fetchLogs,
-                                    child: const Text('Retry'),
+                                    child: Text(t('retry')),
                                   ),
                                 ],
                               ),
@@ -444,13 +455,13 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                                       Icon(
                                           Icons.history_toggle_off_rounded,
                                           size: 64,
-                                          color: Colors.grey[300]),
+                                          color: AppThemeColors.mutedText(context)),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'No audit logs found',
+                                        t('no_audit_logs_found'),
                                         style: TextStyle(
                                             fontSize: 17,
-                                            color: Colors.grey[500]),
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                     ],
                                   ),

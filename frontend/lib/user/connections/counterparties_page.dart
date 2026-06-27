@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class CounterpartiesPage extends StatefulWidget {
   const CounterpartiesPage({super.key});
@@ -180,6 +182,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     String? email,
     bool closeDialogOnSuccess = true,
   }) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final body = userId != null ? {'userId': userId} : {'query': email};
       final res = await ApiClient.post('/api/friends/request', body: body);
@@ -191,22 +194,22 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
           setState(() {});
         }
         ElegantNotification.success(
-          title: const Text('Request Sent'),
-          description: const Text('Friend request sent successfully.'),
+          title: Text(t('request_sent_title')),
+          description: Text(t('friend_request_sent_success')),
         ).show(context);
         if (closeDialogOnSuccess) {
           Navigator.of(context, rootNavigator: true).maybePop();
         }
       } else {
-        final err = jsonDecode(res.body)['error'] ?? 'Failed to send request';
+        final err = jsonDecode(res.body)['error'] ?? t('failed_to_send_request');
         ElegantNotification.error(
-          title: const Text('Error'),
+          title: Text(t('error')),
           description: Text(err.toString()),
         ).show(context);
       }
     } catch (e) {
       ElegantNotification.error(
-        title: const Text('Error'),
+        title: Text(t('error')),
         description: Text(e.toString()),
       ).show(context);
     }
@@ -244,13 +247,13 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? AppColors.cyan : Colors.white,
+          color: selected ? AppColors.cyan : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: selected ? AppColors.cyan : Colors.grey.withValues(alpha: 0.35)),
         ),
         child: Text(label,
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : Colors.grey[700])),
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context))),
       ),
     );
   }
@@ -276,6 +279,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   }
 
   Future<void> _openCounterparty(Map<String, dynamic> counterparty) async {
+    final t = AppLocalizations.of(context).t;
     final name = counterparty['name'] ?? 'Unknown';
     final avatar = _buildAvatarProvider(counterparty);
     final isPrivate = counterparty['profileIsPrivate'] == true;
@@ -306,7 +310,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     showDialog(
       context: context,
       builder: (_) => _StylishProfileDialog(
-        title: 'Counterparty',
+        title: t('counterparty_label'),
         name: name,
         avatarProvider: avatar,
         email: counterparty['email']?.toString(),
@@ -330,10 +334,11 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _filteredCounterparties;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE0F7FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -344,9 +349,9 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                    colors: AppThemeColors.waveGradient(context),
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -363,22 +368,22 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Counterparties',
+                          t('counterparties'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () =>
                             _fetchCounterparties(forceRefresh: true),
                       ),
@@ -400,11 +405,12 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: TextField(
                         controller: _searchController,
+                        style: TextStyle(color: AppThemeColors.primaryText(context)),
                         onChanged: (value) {
                           setState(() => _searchQuery = value);
                         },
@@ -412,7 +418,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                           border: InputBorder.none,
                           icon: const Icon(Icons.search,
                               color: AppColors.cyan),
-                          hintText: 'Search counterparties',
+                          hintText: t('search_counterparties'),
                           suffixIcon: _searchQuery.isEmpty
                               ? null
                               : IconButton(
@@ -431,11 +437,11 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
                   child: Row(
                     children: [
-                      Text('${filtered.length} shown',
-                        style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('${filtered.length} ${t('shown_suffix')}',
+                        style: TextStyle(color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600, fontSize: 13)),
                       const Spacer(),
-                      Text('${_counterparties.length} total',
-                        style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('${_counterparties.length} ${t('total_suffix')}',
+                        style: TextStyle(color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -443,15 +449,15 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                   child: Row(
                     children: [
-                      Icon(Icons.sort_rounded, size: 15, color: Colors.grey[600]),
+                      Icon(Icons.sort_rounded, size: 15, color: AppThemeColors.secondaryText(context)),
                       const SizedBox(width: 6),
-                      Text('Sort:', style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w600)),
+                      Text(t('sort_colon'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
-                      _sortChip('Most', 'count'),
+                      _sortChip(t('most_label'), 'count'),
                       const SizedBox(width: 6),
-                      _sortChip('A-Z', 'name_asc'),
+                      _sortChip(t('a_z_label'), 'name_asc'),
                       const SizedBox(width: 6),
-                      _sortChip('Least', 'count_asc'),
+                      _sortChip(t('least_label'), 'count_asc'),
                     ],
                   ),
                 ),
@@ -464,12 +470,13 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F7FA),
+                      color: AppThemeColors.tinted(context,
+                          light: const Color(0xFFE8F7FA), dark: const Color(0xFF163A42)),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Text(
-                      'Tap any counterparty card to open profile details.',
-                      style: TextStyle(
+                    child: Text(
+                      t('tap_counterparty_card_hint'),
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF0B8FAC),
@@ -492,14 +499,14 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.people_outline,
-                                      size: 72, color: Colors.grey[400]),
+                                      size: 72, color: AppThemeColors.mutedText(context)),
                                   const SizedBox(height: 14),
                                   Text(
                                     _counterparties.isEmpty
-                                        ? 'No counterparties yet'
-                                        : 'No counterparties match your search',
+                                        ? t('no_counterparties_yet')
+                                        : t('no_counterparties_match_search'),
                                     style: TextStyle(
-                                      color: Colors.grey[600],
+                                      color: AppThemeColors.secondaryText(context),
                                       fontSize: 16,
                                     ),
                                   ),
@@ -567,6 +574,7 @@ class _CounterpartyGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final name = (counterparty['name'] ?? 'Unknown').toString();
     final isPrivate = counterparty['profileIsPrivate'] == true;
     final isDeactivated = counterparty['deactivatedAccount'] == true;
@@ -592,7 +600,7 @@ class _CounterpartyGridCard extends StatelessWidget {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -645,10 +653,10 @@ class _CounterpartyGridCard extends StatelessWidget {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -666,8 +674,8 @@ class _CounterpartyGridCard extends StatelessWidget {
                         ),
                         child: Text(
                           isDeactivated
-                              ? 'Account inactive'
-                              : 'Private profile',
+                              ? t('account_inactive')
+                              : t('private_profile'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -729,22 +737,24 @@ class _PrivateProfileDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     String message;
     IconData icon;
 
     if (isDeactivated) {
-      message = 'This user account is deactivated.';
+      message = t('user_account_deactivated_msg');
       icon = Icons.visibility_off;
     } else if (isPrivate) {
-      message = 'This user\'s profile is private.';
+      message = t('user_profile_private_msg');
       icon = Icons.lock;
     } else {
-      message = 'This profile is not available.';
+      message = t('profile_not_available_msg');
       icon = Icons.error;
     }
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: AppThemeColors.cardBg(context),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -779,7 +789,7 @@ class _PrivateProfileDialog extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  style: TextStyle(fontSize: 16, color: AppThemeColors.secondaryText(context)),
                 ),
               ],
             ),
@@ -794,7 +804,7 @@ class _PrivateProfileDialog extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Close'),
+              child: Text(t('close')),
             ),
           ),
         ],
@@ -832,8 +842,10 @@ class _StylishProfileDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: AppThemeColors.cardBg(context),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -876,7 +888,7 @@ class _StylishProfileDialog extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                           child: Text(email!,
-                              style: const TextStyle(fontSize: 16))),
+                              style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context)))),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -886,7 +898,7 @@ class _StylishProfileDialog extends StatelessWidget {
                     children: [
                       const Icon(Icons.phone, size: 18, color: Colors.teal),
                       const SizedBox(width: 8),
-                      Text(phone!, style: const TextStyle(fontSize: 16)),
+                      Text(phone!, style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context))),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -897,51 +909,52 @@ class _StylishProfileDialog extends StatelessWidget {
                       const Icon(Icons.transgender,
                           size: 18, color: Colors.teal),
                       const SizedBox(width: 8),
-                      Text(gender!, style: const TextStyle(fontSize: 16)),
+                      Text(gender!, style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context))),
                     ],
                   ),
                   const SizedBox(height: 10),
                 ],
                 if (stats != null) ...[
                   Row(
-                    children: const [
-                      Icon(Icons.insights, size: 18, color: Colors.teal),
-                      SizedBox(width: 8),
+                    children: [
+                      const Icon(Icons.insights, size: 18, color: Colors.teal),
+                      const SizedBox(width: 8),
                       Text(
-                        'Interactions',
+                        t('interactions_label'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Trxns: ${stats?['userTransactions'] ?? 0} • Quick: ${stats?['quickTransactions'] ?? 0} • Groups: ${stats?['groups'] ?? 0}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    '${t('trxns_label')}: ${stats?['userTransactions'] ?? 0} • ${t('quick_label')}: ${stats?['quickTransactions'] ?? 0} • ${t('groups_label')}: ${stats?['groups'] ?? 0}',
+                    style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
                   ),
                   const SizedBox(height: 10),
                 ],
                 if (isFriend) ...[
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.check_circle, size: 18, color: Colors.green),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check_circle, size: 18, color: Colors.green),
+                      const SizedBox(width: 8),
                       Text(
-                        'Already a friend',
-                        style: TextStyle(fontSize: 16, color: Colors.green),
+                        t('already_a_friend'),
+                        style: const TextStyle(fontSize: 16, color: Colors.green),
                       ),
                     ],
                   ),
                 ] else if (requestPending) ...[
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.hourglass_top, size: 18, color: Colors.orange),
-                      SizedBox(width: 8),
+                      const Icon(Icons.hourglass_top, size: 18, color: Colors.orange),
+                      const SizedBox(width: 8),
                       Text(
-                        'Request pending',
-                        style: TextStyle(fontSize: 16, color: Colors.orange),
+                        t('request_pending'),
+                        style: const TextStyle(fontSize: 16, color: Colors.orange),
                       ),
                     ],
                   ),
@@ -965,7 +978,7 @@ class _StylishProfileDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Add Friend'),
+                      child: Text(t('add_friend')),
                     ),
                   ),
                 ElevatedButton(
@@ -976,7 +989,7 @@ class _StylishProfileDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Close'),
+                  child: Text(t('close')),
                 ),
               ],
             ),

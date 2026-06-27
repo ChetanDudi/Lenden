@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminSecuritySettingsPage extends StatefulWidget {
   const AdminSecuritySettingsPage({super.key});
@@ -88,7 +90,8 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
+        final t = AppLocalizations.of(context).t;
+        showSnack(context, '${t('error_loading_settings')} ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -131,12 +134,12 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          showSnack(context, 'Security settings saved successfully!');
+          showSnack(context, AppLocalizations.of(context).t('security_settings_saved_success'));
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
+          showSnack(context, errorData['message'] ?? AppLocalizations.of(context).t('failed_save_settings'), isError: true);
         }
       }
     } catch (e) {
@@ -172,9 +175,10 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: transparentAppBar(context, title: 'Security Settings', actions: [
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('security_settings_title'), actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _isSaving ? null : _saveSecuritySettings,
@@ -184,9 +188,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
+                  : Text(
+                      t('save'),
+                      style: const TextStyle(
                         color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
@@ -206,7 +210,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -225,20 +229,20 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                           color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Security Settings',
+                        Text(
+                          t('security_settings_title'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Configure admin security and access controls',
+                        Text(
+                          t('configure_admin_security_subtitle'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -250,19 +254,22 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
 
                   // Authentication Section
                   _buildSettingsSection(
-                    'Authentication',
+                    context,
+                    t('authentication_section'),
                     [
                       _buildSwitchTile(
-                        'Require Two-Factor Auth',
-                        'Force all admins to use 2FA',
+                        context,
+                        t('require_two_factor_auth_title'),
+                        t('require_two_factor_auth_desc'),
                         Icons.verified_user_outlined,
                         _requireTwoFactorAuth,
                         (value) =>
                             setState(() => _requireTwoFactorAuth = value),
                       ),
                       _buildSwitchTile(
-                        'Enable Session Timeout',
-                        'Automatically log out inactive sessions',
+                        context,
+                        t('enable_session_timeout_title'),
+                        t('enable_session_timeout_desc'),
                         Icons.timer_outlined,
                         _enableSessionTimeout,
                         (value) =>
@@ -270,8 +277,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                       ),
                       if (_enableSessionTimeout)
                         _buildInputTile(
-                          'Session Timeout (minutes)',
-                          'Minutes before session expires',
+                          context,
+                          t('session_timeout_minutes_title'),
+                          t('minutes_before_session_expires_desc'),
                           Icons.access_time,
                           _sessionTimeoutMinutes,
                           (value) =>
@@ -279,24 +287,27 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                           keyboardType: TextInputType.number,
                         ),
                       _buildSwitchTile(
-                        'Login Notifications',
-                        'Notify on successful admin logins',
+                        context,
+                        t('login_notifications_title'),
+                        t('notify_successful_admin_logins_desc'),
                         Icons.notifications_outlined,
                         _enableLoginNotifications,
                         (value) =>
                             setState(() => _enableLoginNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Failed Login Alerts',
-                        'Alert on failed login attempts',
+                        context,
+                        t('failed_login_alerts_title'),
+                        t('alert_failed_login_attempts_desc'),
                         Icons.warning_outlined,
                         _enableFailedLoginAlerts,
                         (value) =>
                             setState(() => _enableFailedLoginAlerts = value),
                       ),
                       _buildInputTile(
-                        'Max Failed Attempts',
-                        'Maximum failed login attempts',
+                        context,
+                        t('max_failed_attempts_title'),
+                        t('max_failed_attempts_desc'),
                         Icons.block_outlined,
                         _maxFailedAttempts.toString(),
                         (value) => setState(() =>
@@ -304,8 +315,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                         keyboardType: TextInputType.number,
                       ),
                       _buildInputTile(
-                        'Lockout Duration (minutes)',
-                        'Account lockout duration',
+                        context,
+                        t('lockout_duration_minutes_title'),
+                        t('account_lockout_duration_desc'),
                         Icons.lock_clock_outlined,
                         _lockoutDuration,
                         (value) => setState(() => _lockoutDuration = value),
@@ -318,26 +330,30 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
 
                   // Access Control Section
                   _buildSettingsSection(
-                    'Access Control',
+                    context,
+                    t('access_control_section'),
                     [
                       _buildSwitchTile(
-                        'IP Whitelist',
-                        'Restrict access to specific IP addresses',
+                        context,
+                        t('ip_whitelist_title'),
+                        t('ip_whitelist_desc'),
                         Icons.location_on_outlined,
                         _enableIpWhitelist,
                         (value) => setState(() => _enableIpWhitelist = value),
                       ),
                       if (_enableIpWhitelist)
                         _buildInputTile(
-                          'Allowed IPs',
-                          'Comma-separated IP addresses',
+                          context,
+                          t('allowed_ips_title'),
+                          t('allowed_ips_desc'),
                           Icons.computer_outlined,
                           _allowedIps,
                           (value) => setState(() => _allowedIps = value),
                         ),
                       _buildSwitchTile(
-                        'Geolocation Restriction',
-                        'Restrict access by country',
+                        context,
+                        t('geolocation_restriction_title'),
+                        t('geolocation_restriction_desc'),
                         Icons.public_outlined,
                         _enableGeolocationRestriction,
                         (value) => setState(
@@ -345,15 +361,17 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                       ),
                       if (_enableGeolocationRestriction)
                         _buildInputTile(
-                          'Allowed Countries',
-                          'Comma-separated country codes',
+                          context,
+                          t('allowed_countries_title'),
+                          t('allowed_countries_desc'),
                           Icons.flag_outlined,
                           _allowedCountries,
                           (value) => setState(() => _allowedCountries = value),
                         ),
                       _buildSwitchTile(
-                        'Time-Based Access',
-                        'Restrict access to specific hours',
+                        context,
+                        t('time_based_access_title'),
+                        t('time_based_access_desc'),
                         Icons.schedule_outlined,
                         _enableTimeBasedAccess,
                         (value) =>
@@ -361,15 +379,17 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                       ),
                       if (_enableTimeBasedAccess) ...[
                         _buildTimeTile(
-                          'Access Start Time',
-                          'Start time for admin access',
+                          context,
+                          t('access_start_time_title'),
+                          t('access_start_time_desc'),
                           Icons.access_time,
                           _accessStartTime,
                           () => _selectTime(context, true),
                         ),
                         _buildTimeTile(
-                          'Access End Time',
-                          'End time for admin access',
+                          context,
+                          t('access_end_time_title'),
+                          t('access_end_time_desc'),
                           Icons.access_time,
                           _accessEndTime,
                           () => _selectTime(context, false),
@@ -382,19 +402,22 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
 
                   // Password Policy Section
                   _buildSettingsSection(
-                    'Password Policy',
+                    context,
+                    t('password_policy_section'),
                     [
                       _buildSwitchTile(
-                        'Require Strong Passwords',
-                        'Enforce password complexity requirements',
+                        context,
+                        t('require_strong_passwords_title'),
+                        t('require_strong_passwords_desc'),
                         Icons.password_outlined,
                         _requireStrongPasswords,
                         (value) =>
                             setState(() => _requireStrongPasswords = value),
                       ),
                       _buildSwitchTile(
-                        'Enable Password Expiry',
-                        'Force password changes periodically',
+                        context,
+                        t('enable_password_expiry_title'),
+                        t('enable_password_expiry_desc'),
                         Icons.schedule_outlined,
                         _enablePasswordExpiry,
                         (value) =>
@@ -402,8 +425,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                       ),
                       if (_enablePasswordExpiry)
                         _buildInputTile(
-                          'Password Expiry (days)',
-                          'Days before password expires',
+                          context,
+                          t('password_expiry_days_title'),
+                          t('password_expiry_days_desc'),
                           Icons.calendar_today_outlined,
                           _passwordExpiryDays,
                           (value) =>
@@ -411,8 +435,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                           keyboardType: TextInputType.number,
                         ),
                       _buildSwitchTile(
-                        'Prevent Password Reuse',
-                        'Prevent reusing recent passwords',
+                        context,
+                        t('prevent_password_reuse_title'),
+                        t('prevent_password_reuse_desc'),
                         Icons.history_outlined,
                         _preventPasswordReuse,
                         (value) =>
@@ -420,8 +445,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                       ),
                       if (_preventPasswordReuse)
                         _buildInputTile(
-                          'Password History Count',
-                          'Number of recent passwords to remember',
+                          context,
+                          t('password_history_count_title'),
+                          t('password_history_count_desc'),
                           Icons.list_outlined,
                           _passwordHistoryCount.toString(),
                           (value) => setState(() =>
@@ -429,8 +455,9 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                           keyboardType: TextInputType.number,
                         ),
                       _buildSwitchTile(
-                        'Enable Account Lockout',
-                        'Lock accounts after failed attempts',
+                        context,
+                        t('enable_account_lockout_title'),
+                        t('enable_account_lockout_desc'),
                         Icons.lock_outlined,
                         _enableAccountLockout,
                         (value) =>
@@ -452,18 +479,18 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.security,
                               color: Colors.green,
                               size: 20,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
-                              'Security Status: Active',
-                              style: TextStyle(
+                              t('security_status_active_title'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
@@ -471,10 +498,10 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          'All security measures are properly configured and active.',
-                          style: TextStyle(
+                          t('security_measures_configured_desc'),
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Colors.green,
                           ),
@@ -488,10 +515,11 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
     );
   }
 
-  Widget _buildSettingsSection(String title, List<Widget> children) {
+  Widget _buildSettingsSection(
+      BuildContext context, String title, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -523,6 +551,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -533,17 +562,17 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Switch(
@@ -556,6 +585,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
   }
 
   Widget _buildInputTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -567,17 +597,17 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: SizedBox(
@@ -591,10 +621,10 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            color: AppThemeColors.primaryText(context),
           ),
         ),
       ),
@@ -603,6 +633,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
   }
 
   Widget _buildTimeTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -613,17 +644,17 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: InkWell(

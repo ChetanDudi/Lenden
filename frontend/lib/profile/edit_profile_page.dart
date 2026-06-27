@@ -9,6 +9,8 @@ import 'dart:convert';
 import '../utils/http_interceptor.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -45,7 +47,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _emailController = TextEditingController(text: user?['email'] ?? '');
     _passwordController = TextEditingController();
     _addressController = TextEditingController(text: user?['address'] ?? '');
-    _gender = user?['gender'] ?? 'Other';
+    _gender = user?['gender'] ?? 'Other'; // raw backend value, not display text
   }
 
   @override
@@ -80,7 +82,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
         });
       }
     } catch (e) {
-      showSnack(context, 'Error picking image: $e', isError: true);
+      if (!mounted) return;
+      showSnack(context,
+          '${AppLocalizations.of(context).t('error_picking_image_prefix')} $e',
+          isError: true);
     }
   }
 
@@ -94,6 +99,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    final t = AppLocalizations.of(context).t;
 
     setState(() {
       _isUpdating = true;
@@ -133,23 +139,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _isUpdating = false;
         });
 
-        showSnack(context, 'Profile updated successfully!');
+        showSnack(context, t('profile_updated_successfully'));
       } else {
         setState(() {
           _isUpdating = false;
         });
-        showSnack(context, 'Failed to update profile', isError: true);
+        showSnack(context, t('failed_to_update_profile'), isError: true);
       }
     } catch (e) {
       setState(() {
         _isUpdating = false;
       });
-      showSnack(context, 'Error updating profile: $e', isError: true);
+      showSnack(context, '${t('error_updating_profile_prefix')} $e', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final user = Provider.of<SessionProvider>(context).user;
     final gender = _gender ?? 'Other';
     final imageUrl = user?['profileImage'];
@@ -196,7 +203,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -206,8 +213,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Edit Profile',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+        title: Text(t('edit_profile_title'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
         centerTitle: true,
       ),
       body: Stack(
@@ -274,7 +281,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 color: _isUpdating
                                     ? Colors.grey
                                     : AppColors.cyan),
-                            label: Text('Upload',
+                            label: Text(t('upload'),
                                 style: TextStyle(
                                     color: _isUpdating
                                         ? Colors.grey
@@ -285,7 +292,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             onPressed: _isUpdating ? null : _removeProfileImage,
                             icon: Icon(Icons.delete,
                                 color: _isUpdating ? Colors.grey : Colors.red),
-                            label: Text('Remove',
+                            label: Text(t('remove'),
                                 style: TextStyle(
                                     color: _isUpdating
                                         ? Colors.grey
@@ -294,23 +301,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      _editField(Icons.person, 'Name', _nameController),
-                      _editField(Icons.account_circle, 'Username',
+                      _editField(Icons.person, t('name'), _nameController),
+                      _editField(Icons.account_circle, t('username'),
                           TextEditingController(text: user?['username'] ?? ''),
                           readOnly: true),
-                      _editField(Icons.email, 'Email', _emailController,
+                      _editField(Icons.email, t('email'), _emailController,
                           keyboardType: TextInputType.emailAddress,
                           readOnly: true),
-                      _editField(Icons.alternate_email, 'Alternate Email',
+                      _editField(Icons.alternate_email, t('alternate_email'),
                           TextEditingController(text: user?['altEmail'] ?? ''),
                           readOnly: true),
                       _editGenderField(),
-                      _editField(Icons.cake, 'Birthday', _birthdayController),
-                      _editField(Icons.home, 'Address', _addressController),
-                      _editField(Icons.phone, 'Phone', _phoneController),
+                      _editField(Icons.cake, t('birthday'), _birthdayController,
+                          isBirthday: true),
+                      _editField(Icons.home, t('address'), _addressController,
+                          isOptional: true),
+                      _editField(Icons.phone, t('phone'), _phoneController,
+                          isOptional: true),
                       _editField(
                           Icons.calendar_today,
-                          'Member Since',
+                          t('member_since'),
                           TextEditingController(
                               text: (user?['createdAt'] ?? '')
                                   .toString()
@@ -333,7 +343,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     Expanded(
                                         child: _editField(
                                             Icons.star,
-                                            'Avg. Rating',
+                                            t('avg_rating'),
                                             TextEditingController(
                                                 text: avgRating),
                                             readOnly: true)),
@@ -372,10 +382,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: _isUpdating
-                            ? const Row(
+                            ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  SizedBox(
+                                  const SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
@@ -384,14 +394,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                           Colors.white),
                                     ),
                                   ),
-                                  SizedBox(width: 12),
-                                  Text('Saving...',
+                                  const SizedBox(width: 12),
+                                  Text(t('saving_ellipsis'),
                                       style: TextStyle(
                                           fontSize: 18, color: Colors.white)),
                                 ],
                               )
-                            : const Text('Save',
-                                style: TextStyle(
+                            : Text(t('save'),
+                                style: const TextStyle(
                                     fontSize: 18, color: Colors.white)),
                       ),
                       const SizedBox(height: 12),
@@ -402,9 +412,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               borderRadius: BorderRadius.circular(24)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Cancel',
-                            style:
-                                TextStyle(fontSize: 18, color: Colors.black87)),
+                        child: Text(t('cancel'),
+                            style: TextStyle(
+                                fontSize: 18,
+                                color: AppThemeColors.primaryText(context))),
                       ),
                     ],
                   ),
@@ -440,11 +451,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _editField(
       IconData icon, String label, TextEditingController controller,
       {TextInputType keyboardType = TextInputType.text,
-      bool readOnly = false}) {
+      bool readOnly = false,
+      bool isBirthday = false,
+      bool isOptional = false}) {
+    final t = AppLocalizations.of(context).t;
     return _tricolorBorder(
       child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: Colors.white,
+      color: AppThemeColors.cardBg(context),
       child: Row(
         children: [
           Icon(icon, color: AppColors.cyan),
@@ -453,11 +467,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: TextFormField(
               controller: controller,
               keyboardType: keyboardType,
-              readOnly: readOnly || label == 'Birthday',
+              readOnly: readOnly || isBirthday,
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
               decoration: InputDecoration(
                 labelText: label,
                 border: InputBorder.none,
-                suffixIcon: label == 'Birthday'
+                suffixIcon: isBirthday
                     ? IconButton(
                         icon: const Icon(Icons.calendar_today),
                         onPressed: () async {
@@ -479,14 +494,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     : null,
               ),
               validator: (val) {
-                if (readOnly ||label == 'Birthday' ||
-                    label == 'Phone' ||
-                    label == 'Address') {
+                if (readOnly || isBirthday || isOptional) {
                   return null; // Not required
                 }
-                return val == null || val.isEmpty ? 'Required' : null;
+                return val == null || val.isEmpty ? t('required') : null;
               },
-              onTap: label == 'Birthday'
+              onTap: isBirthday
                   ? () async {
                       final picked = await showDatePicker(
                         context: context,
@@ -512,10 +525,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _editGenderField() {
+    final t = AppLocalizations.of(context).t;
     return _tricolorBorder(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         child: Row(
           children: [
             const Icon(Icons.transgender, color: AppColors.cyan),
@@ -523,17 +537,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _gender,
-                decoration: const InputDecoration(
-                  labelText: 'Gender',
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
+                  labelText: t('gender'),
                   border: InputBorder.none,
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'Male', child: Text('Male')),
-                  DropdownMenuItem(value: 'Female', child: Text('Female')),
-                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                items: [
+                  DropdownMenuItem(value: 'Male', child: Text(t('male'))),
+                  DropdownMenuItem(value: 'Female', child: Text(t('female'))),
+                  DropdownMenuItem(value: 'Other', child: Text(t('other'))),
                 ],
                 onChanged: (val) => setState(() => _gender = val),
-                validator: (val) => val == null ? 'Required' : null,
+                validator: (val) => val == null ? t('required') : null,
               ),
             ),
           ],

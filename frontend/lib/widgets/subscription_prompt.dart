@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import '../user/digitise/subscriptions_page.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 void showSubscriptionPrompt(BuildContext context) {
+  final t = AppLocalizations.of(context).t;
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return const SubscriptionPrompt(
-        title: 'Go Premium!',
-        subtitle:
-            'You have reached your limit. Subscribe to enjoy unlimited access to all features.',
+      return SubscriptionPrompt(
+        title: t('go_premium'),
+        subtitle: t('go_premium_subtitle'),
         showUseCoins: false,
       );
     },
@@ -30,7 +32,9 @@ class SubscriptionPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return AlertDialog(
+      backgroundColor: AppThemeColors.cardBg(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -48,7 +52,8 @@ class SubscriptionPrompt extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFCE4EC),
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFFCE4EC), dark: const Color(0xFF332530)),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -66,20 +71,21 @@ class SubscriptionPrompt extends StatelessWidget {
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
               ),
               const SizedBox(height: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextButton(
-                    child: const Text('Cancel'),
+                    child: Text(t('cancel')),
                     onPressed: () {
                       Navigator.of(context).pop(false);
                     },
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    child: const Text('Subscribe'),
+                    child: Text(t('subscribe')),
                     onPressed: () {
                       Navigator.of(context).pop(false);
                       Navigator.push(
@@ -96,7 +102,7 @@ class SubscriptionPrompt extends StatelessWidget {
                   if (showUseCoins) ...[
                     const SizedBox(height: 8),
                     ElevatedButton(
-                      child: const Text('Use Coins'),
+                      child: Text(t('use_coins')),
                       onPressed: () {
                         Navigator.of(context).pop(true);
                       },

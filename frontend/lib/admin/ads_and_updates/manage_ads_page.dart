@@ -9,6 +9,8 @@ import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageAdsPage extends StatefulWidget {
   const ManageAdsPage({super.key});
@@ -60,7 +62,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
         (data['error'] ?? data['message'] ?? '').toString().trim();
     if (message.isNotEmpty) return message;
     if (body.trimLeft().startsWith('<!DOCTYPE html>')) {
-      return 'The server returned an unexpected upload error page. Please try again.';
+      return AppLocalizations.of(context).t('unexpected_upload_error');
     }
     return fallback;
   }
@@ -169,11 +171,11 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       helpText: helpText,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.light(
             primary: AppColors.cyan,
             onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: Colors.black87,
+            surface: AppThemeColors.cardBg(context),
+            onSurface: AppThemeColors.primaryText(context),
           ),
           dialogTheme: DialogThemeData(
             shape: RoundedRectangleBorder(
@@ -195,11 +197,11 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       helpText: '$helpText Time',
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.light(
             primary: AppColors.cyan,
             onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: Colors.black87,
+            surface: AppThemeColors.cardBg(context),
+            onSurface: AppThemeColors.primaryText(context),
           ),
           dialogTheme: DialogThemeData(
             shape: RoundedRectangleBorder(
@@ -225,11 +227,12 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     required ValueChanged<DateTime> onPick,
     VoidCallback? onClear,
   }) {
+    final t = AppLocalizations.of(context).t;
     return InkWell(
       onTap: () async {
         final picked = await _pickDateTimeStyled(
           initial: value,
-          helpText: 'Select $label',
+          helpText: '${t('select')} $label',
         );
         if (picked != null) onPick(picked);
       },
@@ -238,7 +241,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
         decoration: InputDecoration(
           labelText: label,
           helperText: helperText,
-          hintText: 'Tap to choose date and time',
+          hintText: t('tap_to_choose_date_time'),
           border: const OutlineInputBorder(),
           prefixIcon: const Icon(Icons.calendar_month_outlined, color: AppColors.cyan),
           suffixIcon: Row(
@@ -255,7 +258,9 @@ class _ManageAdsPageState extends State<ManageAdsPage>
         child: Text(
           value != null ? _formatAdDateTime(value) : '',
           style: TextStyle(
-            color: value != null ? Colors.black87 : Colors.grey,
+            color: value != null
+                ? AppThemeColors.primaryText(context)
+                : AppThemeColors.secondaryText(context),
             fontSize: 15,
           ),
         ),

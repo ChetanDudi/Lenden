@@ -5,6 +5,8 @@ import '../../profile/profile_page.dart' hide TopWaveClipper;
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminRatingsPage extends StatefulWidget {
   const AdminRatingsPage({Key? key}) : super(key: key);
@@ -42,13 +44,13 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
         });
       } else {
         setState(() {
-          _error = 'Failed to load ratings';
+          _error = AppLocalizations.of(context).t('failed_to_load_ratings');
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Error: $e';
+        _error = '${AppLocalizations.of(context).t('error')}: $e';
         _isLoading = false;
       });
     }
@@ -96,6 +98,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
   }
 
   Widget _buildStatsSection() {
+    final t = AppLocalizations.of(context).t;
     final dist = _starDistribution;
     final avg = _avgRating;
     final total = _ratings.length;
@@ -104,7 +107,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -139,8 +142,8 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                '$total rating${total == 1 ? '' : 's'}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                '$total ${total == 1 ? t('rating') : t('ratings')}',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)),
               ),
             ],
           ),
@@ -157,7 +160,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                     children: [
                       Text('$star',
                           style: TextStyle(
-                              fontSize: 11, color: Colors.grey[600])),
+                              fontSize: 11, color: AppThemeColors.secondaryText(context))),
                       const SizedBox(width: 4),
                       const Icon(Icons.star, size: 11, color: Colors.amber),
                       const SizedBox(width: 6),
@@ -166,7 +169,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: ratio,
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: AppThemeColors.divider(context),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                                 Colors.amber),
                             minHeight: 7,
@@ -179,7 +182,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                         child: Text(
                           '$count',
                           style: TextStyle(
-                              fontSize: 11, color: Colors.grey[600]),
+                              fontSize: 11, color: AppThemeColors.secondaryText(context)),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -195,6 +198,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
   }
 
   Widget _buildFilterBar() {
+    final t = AppLocalizations.of(context).t;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
@@ -218,23 +222,23 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppColors.cyan
-                              : Colors.white,
+                              : AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.cyan
-                                : Colors.grey.shade300,
+                                : AppThemeColors.border(context),
                           ),
                         ),
                         child: star == 0
                             ? Text(
-                                'All',
+                                t('all'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: isSelected
                                       ? Colors.white
-                                      : Colors.grey[700],
+                                      : AppThemeColors.primaryText(context),
                                 ),
                               )
                             : Row(
@@ -247,7 +251,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                                       fontWeight: FontWeight.w600,
                                       color: isSelected
                                           ? Colors.white
-                                          : Colors.grey[700],
+                                          : AppThemeColors.primaryText(context),
                                     ),
                                   ),
                                   const SizedBox(width: 3),
@@ -272,24 +276,24 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: AppThemeColors.border(context)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.sort_rounded,
-                      size: 16, color: Colors.grey[700]),
+                      size: 16, color: AppThemeColors.secondaryText(context)),
                   const SizedBox(width: 4),
                   Text(
                     _sortBy == 'newest'
-                        ? 'Newest'
+                        ? t('newest')
                         : _sortBy == 'highest'
-                            ? 'Highest'
-                            : 'Lowest',
+                            ? t('highest')
+                            : t('lowest'),
                     style: TextStyle(
-                        fontSize: 13, color: Colors.grey[700]),
+                        fontSize: 13, color: AppThemeColors.secondaryText(context)),
                   ),
                 ],
               ),
@@ -304,10 +308,12 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (sheetContext) {
+        final t = AppLocalizations.of(sheetContext).t;
+        return Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(sheetContext),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -317,28 +323,31 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppThemeColors.divider(sheetContext),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(20),
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Sort by',
+                child: Text(t('sort_by'),
                     style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(sheetContext))),
               ),
             ),
-            _buildSortTile('newest', 'Newest First', Icons.access_time),
+            _buildSortTile('newest', t('newest_first'), Icons.access_time),
             _buildSortTile(
-                'highest', 'Highest Rating', Icons.arrow_upward),
+                'highest', t('highest_rating'), Icons.arrow_upward),
             _buildSortTile(
-                'lowest', 'Lowest Rating', Icons.arrow_downward),
+                'lowest', t('lowest_rating'), Icons.arrow_downward),
             const SizedBox(height: 24),
           ],
         ),
-      ),
+      );
+      },
     );
   }
 
@@ -346,12 +355,12 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
     final isSelected = _sortBy == value;
     return ListTile(
       leading: Icon(icon,
-          color: isSelected ? AppColors.cyan : Colors.grey),
+          color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context)),
       title: Text(label,
           style: TextStyle(
             color: isSelected
                 ? AppColors.cyan
-                : Colors.grey[800],
+                : AppThemeColors.primaryText(context),
             fontWeight:
                 isSelected ? FontWeight.bold : FontWeight.normal,
           )),
@@ -367,6 +376,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
   }
 
   Widget _buildRatingCard(Map<String, dynamic> rating) {
+    final t = AppLocalizations.of(context).t;
     final stars = (rating['rating'] as num?)?.toInt() ?? 0;
     final review = rating['review'] as String?;
     final dateStr = rating['createdAt']?.toString();
@@ -378,7 +388,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -413,14 +423,15 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(rating['userName'] ?? 'User',
-                          style: const TextStyle(
+                      Text(rating['userName'] ?? t('username'),
+                          style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 15)),
+                              fontSize: 15,
+                              color: AppThemeColors.primaryText(context))),
                       if (rating['userEmail'] != null)
                         Text(rating['userEmail'],
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
+                            style: TextStyle(
+                                fontSize: 12, color: AppThemeColors.secondaryText(context))),
                     ],
                   ),
                 ),
@@ -429,8 +440,8 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                   children: [
                     if (formattedDate != null)
                       Text(formattedDate,
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey)),
+                          style: TextStyle(
+                              fontSize: 11, color: AppThemeColors.secondaryText(context))),
                     const SizedBox(height: 4),
                     Row(
                       children: List.generate(
@@ -451,22 +462,22 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: AppThemeColors.surfaceBg(context),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: AppThemeColors.border(context)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.format_quote_rounded,
-                        size: 16, color: Colors.grey[400]),
+                        size: 16, color: AppThemeColors.mutedText(context)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         review,
                         style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[700],
+                            color: AppThemeColors.secondaryText(context),
                             height: 1.4),
                       ),
                     ),
@@ -477,7 +488,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
             const SizedBox(height: 8),
             TextButton.icon(
               icon: const Icon(Icons.person_outline, size: 16),
-              label: const Text('View Profile'),
+              label: Text(t('view_profile')),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.cyan,
                 padding:
@@ -503,9 +514,10 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _filteredRatings;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -516,10 +528,13 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                        ),
                 ),
               ),
             ),
@@ -535,22 +550,23 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'User Ratings',
+                            t('user_ratings'),
                             style: TextStyle(
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold),
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh_rounded),
-                        tooltip: 'Refresh',
+                        icon: Icon(Icons.refresh_rounded, color: AppThemeColors.iconOnWave(context)),
+                        tooltip: t('refresh'),
                         onPressed: _fetchRatings,
                       ),
                     ],
@@ -576,7 +592,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                                   const SizedBox(height: 16),
                                   ElevatedButton(
                                     onPressed: _fetchRatings,
-                                    child: const Text('Retry'),
+                                    child: Text(t('retry')),
                                   ),
                                 ],
                               ),
@@ -589,12 +605,12 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                                     children: [
                                       Icon(Icons.star_border_rounded,
                                           size: 72,
-                                          color: Colors.grey[300]),
+                                          color: AppThemeColors.mutedText(context)),
                                       const SizedBox(height: 16),
-                                      Text('No ratings yet',
+                                      Text(t('no_ratings_yet'),
                                           style: TextStyle(
                                               fontSize: 18,
-                                              color: Colors.grey[500])),
+                                              color: AppThemeColors.mutedText(context))),
                                     ],
                                   ),
                                 )
@@ -609,11 +625,11 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                                         alignment:
                                             Alignment.centerLeft,
                                         child: Text(
-                                          '${filtered.length} rating${filtered.length == 1 ? '' : 's'}'
-                                          '${_starFilter > 0 ? ' — $_starFilter★ only' : ''}',
+                                          '${filtered.length} ${filtered.length == 1 ? t('rating') : t('ratings')}'
+                                          '${_starFilter > 0 ? ' — $_starFilter★ ${t('only')}' : ''}',
                                           style: TextStyle(
                                               fontSize: 13,
-                                              color: Colors.grey[600],
+                                              color: AppThemeColors.secondaryText(context),
                                               fontWeight:
                                                   FontWeight.w500),
                                         ),
@@ -631,23 +647,23 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                                                       Icons
                                                           .filter_list_off_rounded,
                                                       size: 48,
-                                                      color: Colors
-                                                          .grey[300]),
+                                                      color: AppThemeColors
+                                                          .mutedText(context)),
                                                   const SizedBox(
                                                       height: 12),
                                                   Text(
-                                                    'No $_starFilter-star ratings',
+                                                    '${t('no')} $_starFilter-${t('star_ratings')}',
                                                     style: TextStyle(
-                                                        color: Colors
-                                                            .grey[500]),
+                                                        color: AppThemeColors
+                                                            .mutedText(context)),
                                                   ),
                                                   TextButton(
                                                     onPressed: () =>
                                                         setState(() =>
                                                             _starFilter =
                                                                 0),
-                                                    child: const Text(
-                                                        'Show all'),
+                                                    child: Text(
+                                                        t('show_all')),
                                                   ),
                                                 ],
                                               ),

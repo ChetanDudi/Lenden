@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/theme_helper.dart';
 
 class TricolorBorderTextField extends StatelessWidget {
   final Widget child;
@@ -26,7 +27,7 @@ class TricolorBorderTextField extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(16),
         ),
         child: child,

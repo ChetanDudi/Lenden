@@ -8,6 +8,8 @@ import '../digitise/offers_page.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserNotificationsPage extends StatefulWidget {
   const UserNotificationsPage({Key? key}) : super(key: key);
@@ -26,19 +28,33 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   bool _isShowingAll = false;
   int _unreadCount = 0;
 
-  final List<_UserNotificationTab> _tabs = const [
-    _UserNotificationTab(label: 'All', category: 'all'),
-    _UserNotificationTab(label: 'Requests', category: 'friend'),
-    _UserNotificationTab(label: 'Offers', category: 'offer'),
-    _UserNotificationTab(label: 'Transactions', category: 'transaction'),
-    _UserNotificationTab(label: 'Groups', category: 'group'),
-    _UserNotificationTab(label: 'General', category: 'general'),
+  static const List<String> _tabCategories = [
+    'all', 'friend', 'offer', 'transaction', 'group', 'general',
   ];
+
+  String t(String key) => AppLocalizations.of(context).t(key);
+
+  String _tabLabel(String category) {
+    switch (category) {
+      case 'friend':
+        return t('requests_tab_label');
+      case 'offer':
+        return t('offers');
+      case 'transaction':
+        return t('transactions');
+      case 'group':
+        return t('groups');
+      case 'general':
+        return t('general_label');
+      default:
+        return t('all');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(length: _tabCategories.length, vsync: this);
     _fetchNotifications();
     _fetchFriendRequests();
     _markNotificationsAsRead();
@@ -188,7 +204,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     final userId = session.user!['_id'];
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -199,7 +215,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(78),
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -211,17 +227,17 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Notifications',
+                          t('notifications'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
@@ -239,7 +255,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                   child: tricolorBorder(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.96),
+                        color: AppThemeColors.cardBg(context).withValues(alpha: 0.96),
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: TabBar(
@@ -254,8 +270,8 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                         dividerColor: Colors.transparent,
                         overlayColor:
                             WidgetStateProperty.all(Colors.transparent),
-                        tabs: _tabs
-                            .map((tab) => Tab(text: tab.label))
+                        tabs: _tabCategories
+                            .map((cat) => Tab(text: _tabLabel(cat)))
                             .toList(growable: false),
                       ),
                     ),
@@ -271,9 +287,9 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                         )
                       : TabBarView(
                           controller: _tabController,
-                          children: _tabs
+                          children: _tabCategories
                               .map(
-                                (tab) => RefreshIndicator(
+                                (cat) => RefreshIndicator(
                                   onRefresh: () async {
                                     await _fetchNotifications(
                                       viewAll: _isShowingAll,
@@ -282,7 +298,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                                   },
                                   child: _buildNotificationList(
                                     userId: userId,
-                                    category: tab.category,
+                                    category: cat,
                                   ),
                                 ),
                               )
@@ -302,7 +318,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -316,7 +332,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
         children: [
           Expanded(
             child: _buildStatTile(
-              title: 'Unread',
+              title: t('unread_label'),
               value: '$_unreadCount',
               color: AppColors.cyan,
               icon: Icons.mark_email_unread_outlined,
@@ -325,7 +341,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatTile(
-              title: 'Requests',
+              title: t('requests_tab_label'),
               value: '${_incomingRequests.length}',
               color: Colors.orange,
               icon: Icons.person_add_alt_1_outlined,
@@ -334,7 +350,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatTile(
-              title: 'Alerts',
+              title: t('alerts_label'),
               value: '${_notifications.length}',
               color: Colors.green,
               icon: Icons.notifications_active_outlined,
@@ -374,7 +390,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade700,
+              color: AppThemeColors.secondaryText(context),
             ),
           ),
         ],
@@ -392,20 +408,20 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     if (items.isEmpty && (!showRequests || _incomingRequests.isEmpty)) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 120),
+        children: [
+          const SizedBox(height: 120),
           Center(
             child: Column(
               children: [
                 Icon(
                   Icons.notifications_off_outlined,
                   size: 72,
-                  color: Colors.grey,
+                  color: AppThemeColors.divider(context),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'No notifications in this tab.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  t('no_notifications_in_tab'),
+                  style: TextStyle(fontSize: 16, color: AppThemeColors.secondaryText(context)),
                 ),
               ],
             ),
@@ -447,7 +463,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('View All Notifications'),
+                child: Text(t('view_all_notifications')),
               ),
             ),
           ),
@@ -462,21 +478,22 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
         child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF4E6),
+          color: AppThemeColors.tinted(context, light: const Color(0xFFFFF4E6), dark: const Color(0xFF2A2113)),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.people_alt_outlined, color: AppColors.cyan),
-                SizedBox(width: 8),
+                const Icon(Icons.people_alt_outlined, color: AppColors.cyan),
+                const SizedBox(width: 8),
                 Text(
-                  'Friend Requests',
+                  t('friend_requests_title'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ],
@@ -486,7 +503,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
               final from = request['from'] ?? {};
               final isRemoving = _removingRequestIds.contains(request['_id']);
               final title =
-                  (from['name'] ?? from['username'] ?? 'New request').toString();
+                  (from['name'] ?? from['username'] ?? t('new_request_label')).toString();
               final subtitle = (from['email'] ?? '').toString();
               return AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
@@ -495,7 +512,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.88),
+                    color: AppThemeColors.cardBg(context).withValues(alpha: 0.88),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(
@@ -503,15 +520,16 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: TextStyle(color: AppThemeColors.secondaryText(context)),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -521,7 +539,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                               onPressed: isRemoving
                                   ? null
                                   : () => _declineRequest(request['_id']),
-                              child: const Text('Decline'),
+                              child: Text(t('decline')),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -534,7 +552,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                                 backgroundColor: AppColors.cyan,
                                 foregroundColor: Colors.white,
                               ),
-                              child: const Text('Accept'),
+                              child: Text(t('accept')),
                             ),
                           ),
                         ],
@@ -570,7 +588,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _getNoteColor(index),
+            color: AppThemeColors.isDark(context) ? AppThemeColors.surfaceBg(context) : _getNoteColor(index),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -616,10 +634,11 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                     const SizedBox(height: 6),
                     Text(
                       message,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         height: 1.35,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -627,7 +646,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                       _formatTime(notification['createdAt']),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade700,
+                        color: AppThemeColors.secondaryText(context),
                       ),
                     ),
                   ],
@@ -674,48 +693,38 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   String _labelForCategory(String category) {
     switch (category) {
       case 'friend':
-        return 'FRIENDS';
+        return t('friends_category_label');
       case 'offer':
-        return 'OFFERS';
+        return t('offers_category_label');
       case 'transaction':
-        return 'TRANSACTIONS';
+        return t('transactions_category_label');
       case 'group':
-        return 'GROUPS';
+        return t('groups_category_label');
       default:
-        return 'GENERAL';
+        return t('general_category_label');
     }
   }
 
   String _prettifyMessage(String message) {
     final normalized = message.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (normalized.isEmpty) {
-      return 'You have a new notification.';
+      return t('new_notification_default_msg');
     }
     return normalized[0].toUpperCase() + normalized.substring(1);
   }
 
   String _formatTime(dynamic rawDate) {
-    if (rawDate == null) return 'Recently';
+    if (rawDate == null) return t('recently_label');
     final createdAt = DateTime.tryParse(rawDate.toString())?.toLocal();
-    if (createdAt == null) return 'Recently';
+    if (createdAt == null) return t('recently_label');
 
     final diff = DateTime.now().difference(createdAt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) return '${diff.inHours} hr ago';
-    if (diff.inDays < 7) return '${diff.inDays} day ago';
+    if (diff.inMinutes < 1) return t('just_now_label');
+    if (diff.inMinutes < 60) return '${diff.inMinutes} ${t('min_ago_suffix')}';
+    if (diff.inHours < 24) return '${diff.inHours} ${t('hr_ago_suffix')}';
+    if (diff.inDays < 7) return '${diff.inDays} ${t('day_ago_suffix')}';
     return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
   }
-}
-
-class _UserNotificationTab {
-  final String label;
-  final String category;
-
-  const _UserNotificationTab({
-    required this.label,
-    required this.category,
-  });
 }
 
 class TopWaveClipper extends CustomClipper<Path> {

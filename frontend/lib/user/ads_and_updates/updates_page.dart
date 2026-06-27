@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserUpdatesPage extends StatefulWidget {
   const UserUpdatesPage({super.key});
@@ -71,6 +73,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   }
 
   Future<void> _loadUpdates() async {
+    final t = AppLocalizations.of(context).t;
     setState(() {
       _loading = true;
       _error = null;
@@ -80,7 +83,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       final res = await ApiClient.get('/api/app-updates');
       final data = _decodeJson(res.body);
       if (res.statusCode != 200) {
-        throw Exception((data['error'] ?? 'Failed to load updates').toString());
+        throw Exception((data['error'] ?? t('failed_to_load_updates_message')).toString());
       }
       setState(() {
         _updates = List<Map<String, dynamic>>.from(
@@ -126,25 +129,26 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF0F6FC),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'App Updates',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        title: Text(
+          t('app_updates_label'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
         actions: [
           if (_unreadCount > 0)
             TextButton.icon(
               onPressed: _markAllRead,
               icon: const Icon(Icons.done_all, color: Colors.white, size: 18),
-              label: const Text(
-                'Mark all read',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+              label: Text(
+                t('mark_all_read_label'),
+                style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
         ],
@@ -187,7 +191,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                   else if (_error != null)
                     _buildStateCard(_error!, Colors.redAccent)
                   else if (_filteredUpdates.isEmpty)
-                    _buildStateCard('No updates matched this filter.', Colors.black54)
+                    _buildStateCard(t('no_updates_matched_filter_message'), Colors.black54)
                   else
                     ..._filteredUpdates.map(_buildUpdateCard),
                 ],
@@ -200,10 +204,11 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   }
 
   Widget _buildHeroCard() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
@@ -229,17 +234,17 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                 child: const Icon(Icons.system_update_rounded, color: Colors.white, size: 26),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'What\'s New',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                      t('whats_new_label'),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(context)),
                     ),
                     Text(
-                      'Features, fixes & security notices',
-                      style: TextStyle(color: Colors.black54, fontSize: 13),
+                      t('features_fixes_security_message'),
+                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13),
                     ),
                   ],
                 ),
@@ -249,12 +254,12 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _statBox(_updates.length.toString(), 'Total', _sky),
+              _statBox(_updates.length.toString(), t('total_label'), _sky),
               const SizedBox(width: 10),
-              _statBox(_unreadCount.toString(), 'Unread',
+              _statBox(_unreadCount.toString(), t('unread_label'),
                   _unreadCount > 0 ? Colors.redAccent : Colors.green),
               const SizedBox(width: 10),
-              _statBox(_criticalCount.toString(), 'Critical',
+              _statBox(_criticalCount.toString(), t('critical_label'),
                   _criticalCount > 0 ? Colors.orange : Colors.green),
             ],
           ),
@@ -294,6 +299,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   }
 
   Widget _buildSearchCard() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -306,10 +312,11 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       ),
       child: TextField(
         controller: _searchController,
+        style: TextStyle(color: AppThemeColors.primaryText(context)),
         decoration: InputDecoration(
-          hintText: 'Search updates, tags, or version…',
+          hintText: t('search_updates_hint'),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppThemeColors.cardBg(context),
           prefixIcon: const Icon(Icons.search, color: _sky),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -328,17 +335,18 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   }
 
   Widget _buildFilterRow() {
+    final t = AppLocalizations.of(context).t;
     return SizedBox(
       height: 38,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildFilterChip('all', 'All', Icons.list_rounded),
-          _buildFilterChip('unread', 'Unread', Icons.mark_email_unread_rounded),
-          _buildFilterChip('critical', 'Critical', Icons.warning_amber_rounded),
-          _buildFilterChip('feature', 'Features', Icons.star_rounded),
-          _buildFilterChip('security', 'Security', Icons.security_rounded),
-          _buildFilterChip('bug_fix', 'Bug Fixes', Icons.bug_report_rounded),
+          _buildFilterChip('all', t('all_label'), Icons.list_rounded),
+          _buildFilterChip('unread', t('unread_label'), Icons.mark_email_unread_rounded),
+          _buildFilterChip('critical', t('critical_label'), Icons.warning_amber_rounded),
+          _buildFilterChip('feature', t('features_filter_label'), Icons.star_rounded),
+          _buildFilterChip('security', t('security_filter_label'), Icons.security_rounded),
+          _buildFilterChip('bug_fix', t('bug_fixes_filter_label'), Icons.bug_report_rounded),
         ],
       ),
     );
@@ -360,9 +368,9 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
           selected: selected,
           onSelected: (_) => setState(() => _filter = value),
           selectedColor: _sky,
-          backgroundColor: Colors.white,
+          backgroundColor: AppThemeColors.cardBg(context),
           labelStyle: TextStyle(
-            color: selected ? Colors.white : Colors.black87,
+            color: selected ? Colors.white : AppThemeColors.primaryText(context),
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
@@ -380,7 +388,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -409,6 +417,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   }
 
   Widget _buildUpdateCard(Map<String, dynamic> update) {
+    final t = AppLocalizations.of(context).t;
     final pinned = update['pinned'] == true;
     final isRead = update['isRead'] == true;
     final importance = (update['importance'] ?? 'normal').toString();
@@ -440,7 +449,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isRead ? Colors.white : const Color(0xFFF0FAFF),
+            color: isRead ? AppThemeColors.cardBg(context) : const Color(0xFFF0FAFF),
             borderRadius: BorderRadius.circular(22),
           ),
           child: Column(
@@ -468,17 +477,17 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isRead ? Colors.black87 : const Color(0xFF0B1F33),
+                        color: isRead ? AppThemeColors.primaryText(context) : const Color(0xFF0B1F33),
                       ),
                     ),
                   ),
                   if (pinned) ...[
                     const SizedBox(width: 6),
-                    _pill('Pinned', const Color(0xFF0E5A8A)),
+                    _pill(t('pinned_label'), const Color(0xFF0E5A8A)),
                   ],
                   if (!isRead) ...[
                     const SizedBox(width: 6),
-                    _pill('New', _sky),
+                    _pill(t('new_label'), _sky),
                   ],
                 ],
               ),
@@ -487,8 +496,8 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  _infoTag(_categoryLabel(category), _sky),
-                  _infoTag(importance, importanceColor),
+                  _infoTag(_categoryLabel(category, t), _sky),
+                  _infoTag(_importanceLabel(importance, t), importanceColor),
                   if ((update['versionTag'] ?? '').toString().trim().isNotEmpty)
                     _infoTag('v${update['versionTag']}', _deepBlue),
                 ],
@@ -507,7 +516,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
               const SizedBox(height: 8),
               Text(
                 (update['body'] ?? '').toString(),
-                style: const TextStyle(height: 1.5, color: Colors.black87, fontSize: 14),
+                style: TextStyle(height: 1.5, color: isRead ? AppThemeColors.primaryText(context) : const Color(0xFF0B1F33), fontSize: 14),
               ),
               if (tags.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -524,7 +533,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      _formatDate(update['publishedAt']),
+                      _formatDate(update['publishedAt'], t),
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontWeight: FontWeight.w500,
@@ -542,9 +551,9 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: _sky.withValues(alpha: 0.30)),
                         ),
-                        child: const Text(
-                          'Mark read',
-                          style: TextStyle(
+                        child: Text(
+                          t('mark_read_label'),
+                          style: const TextStyle(
                             color: _sky,
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
@@ -576,20 +585,31 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     }
   }
 
-  String _categoryLabel(String category) {
+  String _categoryLabel(String category, String Function(String) t) {
     switch (category) {
       case 'bug_fix':
-        return 'Bug Fix';
+        return t('bug_fix_label');
       case 'feature':
-        return 'Feature';
+        return t('feature_label');
       case 'security':
-        return 'Security';
+        return t('security_category_label');
       case 'maintenance':
-        return 'Maintenance';
+        return t('maintenance_label');
       case 'general':
-        return 'General';
+        return t('general_label');
       default:
         return category[0].toUpperCase() + category.substring(1);
+    }
+  }
+
+  String _importanceLabel(String importance, String Function(String) t) {
+    switch (importance) {
+      case 'critical':
+        return t('critical_label');
+      case 'important':
+        return t('important_label');
+      default:
+        return t('normal_label');
     }
   }
 
@@ -645,9 +665,9 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     );
   }
 
-  String _formatDate(dynamic value) {
+  String _formatDate(dynamic value, String Function(String) t) {
     final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
-    if (date == null) return 'Unknown date';
+    if (date == null) return t('unknown_date_label');
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',

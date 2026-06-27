@@ -35,6 +35,79 @@ exports.sendAdminWelcomeEmail = async (to, adminInfo) => {
   });
 };
 
+exports.sendAdminDigestEmail = async (to, period, stats) => {
+  const periodLabel = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' }[period] || 'Periodic';
+  const rows = [
+    ['New users', stats.newUsers],
+    ['New secure transactions', `${stats.newSecureTx} (₹${stats.secureVolume.toLocaleString('en-IN')})`],
+    ['New quick transactions', `${stats.newQuickTx} (₹${stats.quickVolume.toLocaleString('en-IN')})`],
+    ['New expense groups', stats.newGroups],
+    ['Open support queries', stats.openSupportQueries],
+    ['New disputes', stats.newDisputes],
+    ['Open disputes', stats.openDisputes],
+    ['New fraud alerts', stats.newFraudAlerts],
+    ['Open fraud alerts', stats.openFraudAlerts],
+  ];
+
+  const rowsHtml = rows.map(([label, value]) => `
+    <tr>
+      <td style="padding: 8px 0; color: #555;">${label}</td>
+      <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #222;">${value}</td>
+    </tr>
+  `).join('');
+
+  await sendEmail({
+    to,
+    subject: `LenDen ${periodLabel} Admin Digest`,
+    text: rows.map(([label, value]) => `${label}: ${value}`).join('\n'),
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #00B4D8 0%, #0077B5 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">${periodLabel} Admin Digest</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">Platform activity summary</p>
+        </div>
+        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <table style="width: 100%; border-collapse: collapse;">${rowsHtml}</table>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #666; font-size: 12px;">
+          <p>&copy; 2024 Lenden App. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+};
+
+exports.sendFraudAlertSummaryEmail = async (to, alerts) => {
+  const rows = alerts.map((a) => `
+    <li style="margin-bottom: 10px;">
+      <strong>[${a.severity.toUpperCase()}] ${a.type.replace(/_/g, ' ')}</strong> — ${a.description}
+    </li>
+  `).join('');
+
+  await sendEmail({
+    to,
+    subject: `LenDen Fraud Scan: ${alerts.length} new alert${alerts.length === 1 ? '' : 's'}`,
+    text: `The automated fraud scan found ${alerts.length} new alert(s):\n\n${alerts.map((a) => `[${a.severity.toUpperCase()}] ${a.description}`).join('\n')}`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #ff4b4b 0%, #ff7676 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Fraud Scan Alert</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">${alerts.length} new alert${alerts.length === 1 ? '' : 's'} found</p>
+        </div>
+        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <ul style="color: #555; margin: 0; padding-left: 20px;">${rows}</ul>
+          </div>
+          <p style="color: #555;">Review and resolve these in the admin dashboard under <strong>Manage Disputes &amp; Fraud Alerts</strong>.</p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: #666; font-size: 12px;">
+          <p>&copy; 2024 Lenden App. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+};
+
 exports.sendAdminRemovalEmail = async (to, adminName) => {
   await sendEmail({
     to,

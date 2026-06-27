@@ -6,6 +6,8 @@ import 'custom_warning_widget.dart';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -70,8 +72,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        CustomWarningWidget.showAnimatedError(
-            context, 'Error loading settings: ${e.toString()}');
+        CustomWarningWidget.showAnimatedError(context,
+            '${AppLocalizations.of(context).t('error_loading_settings')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -124,13 +126,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         });
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'Notification settings saved successfully!');
+              context, AppLocalizations.of(context).t('notification_settings_saved'));
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          CustomWarningWidget.showAnimatedError(
-              context, errorData['message'] ?? 'Failed to save settings');
+          CustomWarningWidget.showAnimatedError(context,
+              errorData['message'] ?? AppLocalizations.of(context).t('failed_save_settings'));
         }
       }
     } catch (e) {
@@ -168,9 +170,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Notification Settings', actions: [
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('notification_settings'), actions: [
         if (!_isLoading)
           TextButton(
             onPressed: _isSaving ? null : _saveNotificationSettings,
@@ -180,9 +183,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    'Save',
-                    style: TextStyle(
+                : Text(
+                    t('save'),
+                    style: const TextStyle(
                       color: AppColors.cyan,
                       fontWeight: FontWeight.bold,
                     ),
@@ -201,7 +204,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -220,20 +223,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                           color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Notification Preferences',
+                        Text(
+                          t('notification_preferences_title'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Customize how and when you receive notifications',
+                        Text(
+                          t('customize_notifications_subtitle'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -245,33 +248,38 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
                   // Notification Types Section
                   _buildSettingsSection(
-                    'Notification Types',
+                    context,
+                    t('notification_types'),
                     [
                       _buildSwitchTile(
-                        'Transaction Notifications',
-                        'Get notified about new transactions and updates',
+                        context,
+                        t('transaction_notifications_title'),
+                        t('transaction_notifications_desc'),
                         Icons.receipt_long,
                         _transactionNotifications,
                         (value) =>
                             setState(() => _transactionNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Payment Reminders',
-                        'Receive reminders for upcoming payments',
+                        context,
+                        t('payment_reminders_title'),
+                        t('payment_reminders_desc'),
                         Icons.schedule,
                         _paymentReminders,
                         (value) => setState(() => _paymentReminders = value),
                       ),
                       _buildSwitchTile(
-                        'Group Notifications',
-                        'Receive updates about group activities',
+                        context,
+                        t('group_notifications_title'),
+                        t('group_notifications_desc'),
                         Icons.group_outlined,
                         _groupNotifications,
                         (value) => setState(() => _groupNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Chat Notifications',
-                        'Get notified when you receive new messages',
+                        context,
+                        t('chat_notifications_title'),
+                        t('chat_notifications_desc'),
                         Icons.chat_bubble_outline,
                         _chatNotifications,
                         (value) => setState(() => _chatNotifications = value),
@@ -283,32 +291,37 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
                   // Notification Channels Section
                   _buildSettingsSection(
-                    'Notification Channels',
+                    context,
+                    t('notification_channels'),
                     [
                       _buildSwitchTile(
-                        'Email Notifications',
-                        'Receive notifications via email',
+                        context,
+                        t('email_notifications_title'),
+                        t('email_notifications_desc'),
                         Icons.email_outlined,
                         _emailNotifications,
                         (value) => setState(() => _emailNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Push App Notifications',
-                        'Receive notifications in the app',
+                        context,
+                        t('push_app_notifications_title'),
+                        t('push_app_notifications_desc'),
                         Icons.notifications_active_outlined,
                         _pushNotifications,
                         (value) => setState(() => _pushNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'SMS Notifications',
-                        'Receive notifications via text message',
+                        context,
+                        t('sms_notifications_title'),
+                        t('sms_notifications_desc'),
                         Icons.sms_outlined,
                         _smsNotifications,
                         (value) => setState(() => _smsNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Display Notification Count',
-                        'Show the number of unread notifications',
+                        context,
+                        t('display_notification_count_title'),
+                        t('display_notification_count_desc'),
                         Icons.looks_one,
                         _displayNotificationCount,
                         (value) =>
@@ -321,17 +334,19 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
                   // Reminder Frequency Section
                   _buildSettingsSection(
-                    'Reminder Settings',
+                    context,
+                    t('reminder_settings'),
                     [
                       _buildDropdownTile(
-                        'Reminder Frequency',
-                        'How often to send payment reminders',
+                        context,
+                        t('reminder_frequency_title'),
+                        t('reminder_frequency_desc'),
                         Icons.repeat,
                         _reminderFrequency,
                         {
-                          'daily': 'Daily',
-                          'weekly': 'Weekly',
-                          'monthly': 'Monthly',
+                          'daily': t('daily'),
+                          'weekly': t('weekly'),
+                          'monthly': t('monthly'),
                         },
                         (value) => setState(() => _reminderFrequency = value!),
                       ),
@@ -342,26 +357,30 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
                   // Quiet Hours Section
                   _buildSettingsSection(
-                    'Quiet Hours',
+                    context,
+                    t('quiet_hours'),
                     [
                       _buildSwitchTile(
-                        'Enable Quiet Hours',
-                        'Mute notifications during specific hours',
+                        context,
+                        t('enable_quiet_hours_title'),
+                        t('enable_quiet_hours_desc'),
                         Icons.bedtime_outlined,
                         _quietHoursEnabled,
                         (value) => setState(() => _quietHoursEnabled = value),
                       ),
                       if (_quietHoursEnabled) ...[
                         _buildTimeTile(
-                          'Start Time',
-                          'When quiet hours begin',
+                          context,
+                          t('start_time'),
+                          t('start_time_desc'),
                           Icons.access_time,
                           _quietHoursStart,
                           () => _selectTime(context, true),
                         ),
                         _buildTimeTile(
-                          'End Time',
-                          'When quiet hours end',
+                          context,
+                          t('end_time'),
+                          t('end_time_desc'),
                           Icons.access_time,
                           _quietHoursEnd,
                           () => _selectTime(context, false),
@@ -377,25 +396,27 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: AppThemeColors.tinted(context,
+                          light: Colors.blue.withValues(alpha: 0.1),
+                          dark: Colors.blue.withValues(alpha: 0.22)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Notification Tips:',
-                          style: TextStyle(
+                          t('notification_tips_title'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.blue,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          '• Enable push notifications for instant updates\n• Use quiet hours to avoid disturbances\n• Email notifications provide a backup record\n• SMS notifications work even without internet',
-                          style: TextStyle(
+                          t('notification_tips_body'),
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Colors.blue,
                           ),
@@ -409,10 +430,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     );
   }
 
-  Widget _buildSettingsSection(String title, List<Widget> children) {
+  Widget _buildSettingsSection(
+      BuildContext context, String title, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -444,6 +466,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -454,17 +477,17 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Switch(
@@ -477,6 +500,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 
   Widget _buildDropdownTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -488,17 +512,17 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: DropdownButton<String>(
@@ -517,6 +541,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 
   Widget _buildTimeTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -527,17 +552,17 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: GestureDetector(

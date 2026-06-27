@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({Key? key}) : super(key: key);
@@ -18,7 +20,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
   List<Map<String, dynamic>> _userFeedbacks = [];
   bool _isLoading = false;
 
-  static const _bg = Color(0xFFFAF9F6);
   static const _cyan = AppColors.cyan;
   static const _blue = Color(0xFF0077B6);
 
@@ -35,6 +36,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   void _showStylishPopup(String message, {bool isError = false}) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -45,7 +47,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
             Icon(isError ? Icons.error_outline : Icons.check_circle_outline,
                 color: isError ? Colors.red : Colors.green),
             const SizedBox(width: 8),
-            Text(isError ? 'Error' : 'Success',
+            Text(isError ? t('error') : t('success'),
                 style: TextStyle(
                   color: isError ? Colors.red : Colors.green,
                   fontWeight: FontWeight.bold,
@@ -59,7 +61,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(t('ok')),
           ),
         ],
       ),
@@ -67,8 +69,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   Future<void> _submitAppRating() async {
+    final t = AppLocalizations.of(context).t;
     if (_selectedAppRating == 0) {
-      _showStylishPopup('Please select a rating.', isError: true);
+      _showStylishPopup(t('please_select_rating_message'), isError: true);
       return;
     }
     setState(() => _isLoading = true);
@@ -78,19 +81,20 @@ class _FeedbackPageState extends State<FeedbackPage> {
         body: {'rating': _selectedAppRating},
       );
       if (response.statusCode == 200) {
-        _showStylishPopup('App rating submitted!');
+        _showStylishPopup(t('app_rating_submitted_message'));
         setState(() => _hasAppRated = true);
       } else {
-        _showStylishPopup('Error: ${response.body}', isError: true);
+        _showStylishPopup(t('error_colon_label').replaceFirst('{error}', response.body), isError: true);
       }
     } catch (e) {
-      _showStylishPopup('Error: $e', isError: true);
+      _showStylishPopup(t('error_colon_label').replaceFirst('{error}', '$e'), isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _submitFeedback() async {
+    final t = AppLocalizations.of(context).t;
     if (_feedbackController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
@@ -99,17 +103,17 @@ class _FeedbackPageState extends State<FeedbackPage> {
         body: {'feedback': _feedbackController.text},
       );
       if (response.statusCode == 200) {
-        _showStylishPopup('Feedback submitted!');
+        _showStylishPopup(t('feedback_submitted_message'));
         _feedbackController.clear();
         await _fetchUserFeedbacks();
       } else {
         final body =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showStylishPopup('Error: ${body?['error'] ?? response.body}',
+        _showStylishPopup(t('error_colon_label').replaceFirst('{error}', '${body?['error'] ?? response.body}'),
             isError: true);
       }
     } catch (e) {
-      _showStylishPopup('Error: $e', isError: true);
+      _showStylishPopup(t('error_colon_label').replaceFirst('{error}', '$e'), isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -205,6 +209,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   Widget _buildFeedbackList() {
+    final t = AppLocalizations.of(context).t;
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
@@ -212,14 +217,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
       );
     }
     if (_userFeedbacks.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           children: [
-            Icon(Icons.feedback_outlined, color: Colors.grey, size: 48),
-            SizedBox(height: 8),
-            Text('No feedbacks yet.',
-                style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const Icon(Icons.feedback_outlined, color: Colors.grey, size: 48),
+            const SizedBox(height: 8),
+            Text(t('no_feedbacks_yet_message'),
+                style: const TextStyle(fontSize: 16, color: Colors.grey)),
           ],
         ),
       );
@@ -249,7 +254,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           padding: const EdgeInsets.only(bottom: 12),
           child: _tricolorBorder(
             child: Container(
-              color: _bg,
+              color: AppThemeColors.scaffoldBg(context),
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
@@ -301,8 +306,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         const SizedBox(height: 6),
                         Text(
                           feedback['feedback'] ?? '',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black87),
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: AppThemeColors.primaryText(context)),
                         ),
                       ],
                     ),
@@ -318,12 +324,13 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: _bg,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Feedback',
-            style: TextStyle(
+        title: Text(t('feedback'),
+            style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -351,9 +358,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Share your experience and rate the app',
-                    style: TextStyle(fontSize: 15, color: Colors.grey),
+                  Text(
+                    t('share_experience_rate_app_message'),
+                    style: const TextStyle(fontSize: 15, color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
@@ -361,7 +368,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   // ── Rate the app card ──────────────────────────────────────
                   _tricolorBorder(
                     child: Container(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -379,8 +386,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                                     color: _cyan, size: 18),
                               ),
                               const SizedBox(width: 10),
-                              const Text('Rate the App',
-                                  style: TextStyle(
+                              Text(t('rate_the_app_label'),
+                                  style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: _blue)),
@@ -411,8 +418,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                                           color: Colors.white))
                                   : Text(
                                       _hasAppRated
-                                          ? 'App Rated ✓'
-                                          : 'Submit Rating',
+                                          ? t('app_rated_check_label')
+                                          : t('submit_rating_label'),
                                       style: const TextStyle(
                                           fontWeight: FontWeight.bold)),
                             ),
@@ -426,12 +433,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   // ── Feedback text field ────────────────────────────────────
                   _tricolorBorder(
                     child: Container(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       child: TextField(
                         controller: _feedbackController,
                         maxLines: 4,
+                        style: TextStyle(
+                            color: AppThemeColors.primaryText(context)),
                         decoration: InputDecoration(
-                          hintText: 'Your feedback or suggestions...',
+                          hintText: t('your_feedback_suggestions_hint'),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.all(16),
                           prefixIcon: const Padding(
@@ -451,8 +460,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                       onPressed: _isLoading ? null : _submitFeedback,
                       icon: const Icon(Icons.send_rounded,
                           color: Colors.white, size: 18),
-                      label: const Text('Submit Feedback',
-                          style: TextStyle(
+                      label: Text(t('submit_feedback_label'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 15)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _cyan,
@@ -478,8 +487,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         color: _cyan),
                     label: Text(
                       _showFeedbacks
-                          ? 'Hide Your Feedbacks'
-                          : 'View Your Feedbacks',
+                          ? t('hide_your_feedbacks_label')
+                          : t('view_your_feedbacks_label'),
                       style: const TextStyle(color: _cyan),
                     ),
                     style: OutlinedButton.styleFrom(

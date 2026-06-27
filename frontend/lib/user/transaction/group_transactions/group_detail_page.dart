@@ -8,6 +8,8 @@ import '../../../utils/api_client.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _kCardColors = [
   Color(0xFFFFF4E6), Color(0xFFE8F5E9), Color(0xFFFCE4EC),
@@ -122,6 +124,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   // Called after a successful payment — marks the current user's splits settled,
   // then updates local group state so balances and expense badges reflect the change.
   Future<void> _selfSettle(BuildContext snackCtx, {required String toEmail, required double amount}) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final res = await ApiClient.post(
         '/api/group-transactions/${widget.groupId}/record-payment',
@@ -131,14 +134,14 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         setState(() => _group = Map<String, dynamic>.from(data['group'] as Map));
-        ScaffoldMessenger.of(snackCtx).showSnackBar(const SnackBar(
-          content: Text('Payment sent and recorded!'),
+        ScaffoldMessenger.of(snackCtx).showSnackBar(SnackBar(
+          content: Text(t('payment_sent_and_recorded_message')),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ));
       } else {
-        ScaffoldMessenger.of(snackCtx).showSnackBar(const SnackBar(
-          content: Text('Payment sent! Refresh to see updated balances.'),
+        ScaffoldMessenger.of(snackCtx).showSnackBar(SnackBar(
+          content: Text(t('payment_sent_refresh_status_message')),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ));
@@ -183,11 +186,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _updateColor() async {
+    final t = AppLocalizations.of(context).t;
     Color picked = _groupColor;
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Change Group Color'),
+        title: Text(t('change_group_color_label')),
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: picked,
@@ -199,7 +203,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+              child: Text(t('cancel'))),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -211,7 +215,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               );
               _refresh();
             },
-            child: const Text('Apply'),
+            child: Text(t('apply_label')),
           ),
         ],
       ),
@@ -219,6 +223,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _confirmDeleteGroup() async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -226,21 +231,21 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         title: Row(children: [
           const Icon(Icons.warning_rounded, color: Colors.red),
           const SizedBox(width: 8),
-          const Text('Delete Group', style: TextStyle(color: Colors.red)),
+          Text(t('delete_group_title'), style: const TextStyle(color: Colors.red)),
         ]),
         content: Text(
-          'Delete "${_group['title']}"? This cannot be undone.',
+          t('delete_group_confirm_message').replaceFirst('{title}', '${_group['title']}'),
           style: const TextStyle(fontSize: 15),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+              child: Text(t('cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
             child:
-                const Text('Delete', style: TextStyle(color: Colors.white)),
+                Text(t('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -254,11 +259,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     if (res.statusCode == 200) {
       Navigator.pop(context, 'deleted');
     } else {
-      _showError(jsonDecode(res.body)['error'] ?? 'Failed to delete');
+      _showError(jsonDecode(res.body)['error'] ?? t('failed_to_delete_group_message'));
     }
   }
 
   Future<void> _confirmLeave() async {
+    final t = AppLocalizations.of(context).t;
     // Check pending expenses
     final expenses = List<dynamic>.from(_group['expenses'] ?? []);
     double pendingAmount = 0;
@@ -280,7 +286,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         child: _tricolorBorderBox(
           radius: 22,
           child: Container(
-            decoration: const BoxDecoration(color: Colors.white),
+            decoration: BoxDecoration(color: AppThemeColors.cardBg(context)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -299,7 +305,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           color: Colors.white, size: 22),
                       const SizedBox(width: 10),
                       Text(
-                        'Leave "${_group['title']}"?',
+                        t('leave_group_title_message').replaceFirst('{title}', '${_group['title']}'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 17,
@@ -318,19 +324,19 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       // Info items
                       _leaveInfoRow(
                         Icons.people_outline_rounded,
-                        'You will be marked as "Left" in the group.',
+                        t('marked_as_left_in_group_message'),
                         Colors.blueGrey,
                       ),
                       const SizedBox(height: 8),
                       _leaveInfoRow(
                         Icons.receipt_long_rounded,
-                        'Your balance across all expenses will be auto-settled.',
+                        t('balance_auto_settled_message'),
                         Colors.green[700]!,
                       ),
                       const SizedBox(height: 8),
                       _leaveInfoRow(
                         Icons.person_add_rounded,
-                        'The creator can re-add you later — your history is preserved.',
+                        t('creator_can_readd_later_message'),
                         Colors.purple[700]!,
                       ),
                       if (pendingAmount > 0) ...[
@@ -351,7 +357,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'You have ₹${pendingAmount.toStringAsFixed(2)} in pending expenses. They will be auto-settled when you leave.',
+                                  t('pending_expenses_auto_settle_message').replaceFirst('{amount}', pendingAmount.toStringAsFixed(2)),
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.orange[800]),
@@ -368,7 +374,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           TextButton(
                             onPressed: () =>
                                 Navigator.pop(context, false),
-                            child: const Text('Cancel'),
+                            child: Text(t('cancel')),
                           ),
                           const SizedBox(width: 8),
                           Container(
@@ -393,8 +399,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                   Icons.exit_to_app_rounded,
                                   color: Colors.white,
                                   size: 18),
-                              label: const Text('Leave',
-                                  style: TextStyle(
+                              label: Text(t('leave_label'),
+                                  style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold)),
                               onPressed: () =>
@@ -420,7 +426,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (res.statusCode == 200) {
-      _showSnack('You have left the group.', success: true);
+      _showSnack(t('you_have_left_the_group_message'), success: true);
       await Future.delayed(const Duration(milliseconds: 800));
       if (mounted) Navigator.pop(context, 'left');
     } else {
@@ -429,9 +435,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
           (body['error'] ?? '').toString().contains('pending')) {
         await ApiClient.post(
             '/api/group-transactions/${widget.groupId}/send-leave-request');
-        _showSnack('Leave request sent to group members.', success: true);
+        _showSnack(t('leave_request_sent_to_members_message'), success: true);
       } else {
-        _showError(body['error'] ?? 'Failed to leave group');
+        _showError(body['error'] ?? t('failed_to_leave_group_message'));
       }
     }
   }
@@ -444,7 +450,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(text,
-              style: TextStyle(fontSize: 13, color: Colors.grey[800])),
+              style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
         ),
       ],
     );
@@ -637,7 +643,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -664,7 +670,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   fontSize: 22, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
           Text(label,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
               textAlign: TextAlign.center),
         ],
       ),
@@ -673,16 +679,17 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final members =
         List<dynamic>.from(_group['members'] ?? []);
     final activeMembers =
         members.where((m) => m['leftAt'] == null).length;
     final expenses =
         List<dynamic>.from(_group['expenses'] ?? []);
-    final title = _group['title'] ?? 'Group';
+    final title = _group['title'] ?? t('group_label');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0FF),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           // Header wave
@@ -740,7 +747,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       IconButton(
                         icon: const Icon(Icons.refresh, color: Colors.white),
                         onPressed: _refresh,
-                        tooltip: 'Refresh',
+                        tooltip: t('refresh_label'),
                       ),
                     ],
                   ),
@@ -763,7 +770,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
@@ -801,16 +808,17 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(title,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 17,
-                                      fontWeight: FontWeight.bold),
+                                      fontWeight: FontWeight.bold,
+                                      color: AppThemeColors.primaryText(context)),
                                   overflow: TextOverflow.ellipsis),
                               const SizedBox(height: 2),
                               Text(
-                                'by ${_emailOf(_group['creator'])}',
+                                t('by_creator_label').replaceFirst('{creator}', _emailOf(_group['creator'])),
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[600]),
+                                    color: AppThemeColors.mutedText(context)),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               if (_isCreator)
@@ -822,7 +830,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                     color: _groupColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Text('You are the creator',
+                                  child: Text(t('you_are_the_creator_label'),
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: _groupColor,
@@ -848,7 +856,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                     children: [
                       _serviceChip(
                         icon: Icons.people_alt_rounded,
-                        label: 'Members',
+                        label: t('members_label'),
                         color: const Color(0xFF1565C0),
                         badge: activeMembers,
                         onTap: () async {
@@ -870,7 +878,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                       _serviceChip(
                         icon: Icons.receipt_long_rounded,
-                        label: 'Expenses',
+                        label: t('expenses_label'),
                         color: const Color(0xFF2E7D32),
                         badge: expenses.length,
                         onTap: () async {
@@ -893,7 +901,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                       _serviceChip(
                         icon: Icons.add_circle_rounded,
-                        label: 'Add Expense',
+                        label: t('add_expense_label'),
                         color: const Color(0xFF00838F),
                         onTap: () async {
                           await Navigator.push(
@@ -916,7 +924,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                       _serviceChip(
                         icon: Icons.person_add_alt_1_rounded,
-                        label: 'Add Member',
+                        label: t('add_member_label'),
                         color: const Color(0xFF6A1B9A),
                         onTap: () async {
                           await Navigator.push(
@@ -939,21 +947,21 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       if (_isCreator)
                         _serviceChip(
                           icon: Icons.color_lens_rounded,
-                          label: 'Color',
+                          label: t('color_label'),
                           color: _groupColor,
                           onTap: _updateColor,
                         ),
                       if (!_isCreator)
                         _serviceChip(
                           icon: Icons.exit_to_app_rounded,
-                          label: 'Leave',
+                          label: t('leave_label'),
                           color: Colors.orange.shade700,
                           onTap: _confirmLeave,
                         ),
                       if (_isCreator)
                         _serviceChip(
                           icon: Icons.delete_rounded,
-                          label: 'Delete',
+                          label: t('delete'),
                           color: const Color(0xFFD32F2F),
                           onTap: _confirmDeleteGroup,
                         ),
@@ -972,16 +980,16 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         const EdgeInsets.symmetric(horizontal: 16),
                     children: [
                       _statCard(
-                          '$activeMembers', 'Members',
+                          '$activeMembers', t('members_label'),
                           Icons.people_rounded,
                           const Color(0xFF1565C0)),
                       _statCard(
-                          '${expenses.length}', 'Expenses',
+                          '${expenses.length}', t('expenses_label'),
                           Icons.receipt_rounded,
                           const Color(0xFF2E7D32)),
                       _statCard(
                           '${members.where((m) => m['leftAt'] != null).length}',
-                          'Left',
+                          t('left_label'),
                           Icons.person_off_rounded,
                           Colors.orange),
                     ],
@@ -1018,7 +1026,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFFFF8000), size: 18),
                           ),
                           const SizedBox(width: 8),
-                          const Text('Who Owes What', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          Text(t('who_owes_what_title'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         ]),
                       ),
                       const SizedBox(height: 10),
@@ -1065,13 +1073,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Text(
-                                            isMe ? 'You' : shortName,
+                                            isMe ? t('you_label') : shortName,
                                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                             maxLines: 1, overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 3),
                                           Text(
-                                            isOwes ? 'owes' : 'is owed',
+                                            isOwes ? t('owes_label') : t('is_owed_label'),
                                             style: TextStyle(fontSize: 11, color: amtColor, fontWeight: FontWeight.w500),
                                           ),
                                           const SizedBox(height: 4),
@@ -1104,12 +1112,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                     ctx,
                                                     counterpartyEmail: toAddr,
                                                     amount: toAmt,
-                                                    description: 'Group expense repayment',
+                                                    description: t('group_expense_repayment_label'),
                                                     counterpartyPhone: null,
                                                     onSuccess: () => _selfSettle(ctx, toEmail: toAddr, amount: toAmt),
                                                   );
                                                 },
-                                                child: const Text('Pay Now', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                child: Text(t('pay_now_label'), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                               ),
                                             ),
                                           ],
@@ -1128,8 +1136,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 child: Row(children: [
                                   const Icon(Icons.swap_horiz_rounded, size: 15, color: AppColors.cyan),
                                   const SizedBox(width: 6),
-                                  const Text('How to Settle',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.cyan)),
+                                  Text(t('how_to_settle_label'),
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.cyan)),
                                 ]),
                               ),
                               const SizedBox(height: 8),
@@ -1138,7 +1146,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 final to = d['to'] as String;
                                 final amt = d['amount'] as double;
                                 final fromMe = from.toLowerCase() == myEmail;
-                                final fromShort = fromMe ? 'You' : from.split('@').first;
+                                final fromShort = fromMe ? t('you_label') : from.split('@').first;
                                 final toShort = to.split('@').first;
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
@@ -1176,7 +1184,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                       color: fromMe ? AppColors.cyan : Colors.black87,
                                                     ),
                                                   ),
-                                                  const TextSpan(text: ' pays '),
+                                                  TextSpan(text: ' ${t('pays_label')} '),
                                                   TextSpan(
                                                     text: toShort,
                                                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -1209,11 +1217,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                   ctx,
                                                   counterpartyEmail: to,
                                                   amount: amt,
-                                                  description: 'Group expense repayment',
+                                                  description: t('group_expense_repayment_label'),
                                                   counterpartyPhone: null,
                                                   onSuccess: () => _selfSettle(ctx, toEmail: to, amount: amt),
                                                 ),
-                                                child: const Text('Pay', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                child: Text(t('pay_label'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                                               ),
                                             ),
                                           ],
@@ -1238,8 +1246,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      const Text('Recent Expenses',
-                          style: TextStyle(
+                      Text(t('recent_expenses_label'),
+                          style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold)),
                       const Spacer(),
@@ -1261,9 +1269,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           );
                           _refresh();
                         },
-                        child: const Text('See all →',
+                        child: Text('${t('see_all_label')} →',
                             style:
-                                TextStyle(color: AppColors.cyan)),
+                                const TextStyle(color: AppColors.cyan)),
                       ),
                     ],
                   ),
@@ -1277,10 +1285,10 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.receipt_long,
-                              color: Colors.grey[300], size: 64),
+                              color: AppThemeColors.mutedText(context), size: 64),
                           const SizedBox(height: 8),
-                          Text('No expenses yet',
-                              style: TextStyle(color: Colors.grey[500])),
+                          Text(t('no_expenses_yet_label'),
+                              style: TextStyle(color: AppThemeColors.mutedText(context))),
                         ],
                       ),
                     ),
@@ -1345,7 +1353,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                               TextOverflow.ellipsis,
                                         ),
                                         Text(
-                                          'by ${_resolveEmail(e['addedBy'])}',
+                                          t('by_creator_label').replaceFirst('{creator}', _resolveEmail(e['addedBy'])),
                                           style: TextStyle(
                                               fontSize: 11,
                                               color: Colors.grey[500]),

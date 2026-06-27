@@ -7,6 +7,8 @@ import '../../widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -161,11 +163,11 @@ class _ActivityPageState extends State<ActivityPage> {
         _calculateActivityInsights();
       } else {
         setState(() => loading = false);
-        _showErrorDialog('Failed to load activities');
+        _showErrorDialog(AppLocalizations.of(context).t('failed_to_load_activities'));
       }
     } catch (e) {
       setState(() => loading = false);
-      _showErrorDialog('Error: $e');
+      _showErrorDialog('${AppLocalizations.of(context).t('error_prefix')} $e');
     }
   }
 
@@ -202,15 +204,19 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   void _showErrorDialog(String message) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
+        backgroundColor: AppThemeColors.cardBg(context),
+        title: Text(t('error'),
+            style: TextStyle(color: AppThemeColors.primaryText(context))),
+        content: Text(message,
+            style: TextStyle(color: AppThemeColors.primaryText(context))),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(t('ok')),
           ),
         ],
       ),
@@ -262,85 +268,86 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   String _getActivityTypeDisplayName(String type) {
+    final t = AppLocalizations.of(context).t;
     switch (type) {
       case 'transaction_created':
-        return 'Transaction Created';
+        return t('activity_type_transaction_created');
       case 'transaction_cleared':
-        return 'Transaction Cleared';
+        return t('activity_type_transaction_cleared');
       case 'partial_payment_made':
-        return 'Partial Payment Made';
+        return t('activity_type_partial_payment_made');
       case 'partial_payment_received':
-        return 'Partial Payment Received';
+        return t('activity_type_partial_payment_received');
       case 'group_created':
-        return 'Group Created';
+        return t('activity_type_group_created');
       case 'group_joined':
-        return 'Joined Group';
+        return t('activity_type_group_joined');
       case 'group_left':
-        return 'Left Group';
+        return t('activity_type_group_left');
       case 'member_added':
-        return 'Member Added';
+        return t('activity_type_member_added');
       case 'member_removed':
-        return 'Member Removed';
+        return t('activity_type_member_removed');
       case 'expense_added':
-        return 'Expense Added';
+        return t('activity_type_expense_added');
       case 'expense_edited':
-        return 'Expense Edited';
+        return t('activity_type_expense_edited');
       case 'expense_deleted':
-        return 'Expense Deleted';
+        return t('activity_type_expense_deleted');
       case 'expense_settled':
-        return 'Expense Settled';
+        return t('activity_type_expense_settled');
       case 'note_created':
-        return 'Note Created';
+        return t('activity_type_note_created');
       case 'note_edited':
-        return 'Note Edited';
+        return t('activity_type_note_edited');
       case 'note_deleted':
-        return 'Note Deleted';
+        return t('activity_type_note_deleted');
       case 'profile_updated':
-        return 'Profile Updated';
+        return t('activity_type_profile_updated');
       case 'password_changed':
-        return 'Password Changed';
+        return t('activity_type_password_changed');
       case 'login':
-        return 'Login';
+        return t('activity_type_login');
       case 'logout':
-        return 'Logout';
+        return t('activity_type_logout');
       case 'app_rated':
-        return 'App Rated';
+        return t('activity_type_app_rated');
       case 'feedback_submitted':
-        return 'Feedback Submitted';
+        return t('activity_type_feedback_submitted');
       case 'user_rated':
-        return 'User Rated';
+        return t('activity_type_user_rated');
       case 'user_rating_received':
-        return 'User Rating Received';
+        return t('activity_type_user_rating_received');
       case 'receipt_generated':
-        return 'Receipt Generated';
+        return t('activity_type_receipt_generated');
       case 'quick_transaction_created':
-        return 'Quick Transaction Created';
+        return t('activity_type_quick_transaction_created');
       case 'quick_transaction_updated':
-        return 'Quick Transaction Updated';
+        return t('activity_type_quick_transaction_updated');
       case 'quick_transaction_deleted':
-        return 'Quick Transaction Deleted';
+        return t('activity_type_quick_transaction_deleted');
       case 'quick_transaction_cleared':
-        return 'Quick Transaction Cleared';
+        return t('activity_type_quick_transaction_cleared');
       case 'quick_transaction_cleared_all':
-        return 'All Quick Transactions Cleared';
+        return t('activity_type_quick_transaction_cleared_all');
       case 'friend_request_sent':
-        return 'Friend Request Sent';
+        return t('activity_type_friend_request_sent');
       case 'friend_request_received':
-        return 'Friend Request Received';
+        return t('activity_type_friend_request_received');
       case 'friend_request_accepted':
-        return 'Friend Request Accepted';
+        return t('activity_type_friend_request_accepted');
       case 'friend_request_declined':
-        return 'Friend Request Declined';
+        return t('activity_type_friend_request_declined');
       case 'friend_request_canceled':
-        return 'Friend Request Canceled';
+        return t('activity_type_friend_request_canceled');
       case 'friend_removed':
-        return 'Friend Removed';
+        return t('activity_type_friend_removed');
       case 'user_blocked':
-        return 'User Blocked';
+        return t('activity_type_user_blocked');
       case 'user_unblocked':
-        return 'User Unblocked';
+        return t('activity_type_user_unblocked');
       case 'offer_accepted':
-        return 'Offer Accepted';
+        return t('activity_type_offer_accepted');
       default:
         return type.replaceAll('_', ' ').toUpperCase();
     }
@@ -484,6 +491,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   String _formatDate(String dateString, {String? activityType}) {
+    final t = AppLocalizations.of(context).t;
     try {
       final date = DateTime.parse(dateString);
       final now = DateTime.now();
@@ -496,13 +504,13 @@ class _ActivityPageState extends State<ActivityPage> {
 
       if (difference.inDays == 0) {
         if (difference.inHours == 0) {
-          return '${difference.inMinutes} minutes ago';
+          return '${difference.inMinutes} ${t('minutes_ago')}';
         }
-        return '${difference.inHours} hours ago';
+        return '${difference.inHours} ${t('hours_ago')}';
       } else if (difference.inDays == 1) {
-        return 'Yesterday';
+        return t('yesterday');
       } else if (difference.inDays < 7) {
-        return '${difference.inDays} days ago';
+        return '${difference.inDays} ${t('days_ago')}';
       } else {
         return DateFormat('MMM dd, yyyy').format(date);
       }
@@ -512,6 +520,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   String _formatActivityDescription(Map<String, dynamic> activity) {
+    final t = AppLocalizations.of(context).t;
     final type = activity['type'] as String;
     final description = activity['description']?.toString() ?? '';
     final metadata = activity['metadata'] ?? {};
@@ -522,29 +531,37 @@ class _ActivityPageState extends State<ActivityPage> {
 
     switch (type) {
       case 'friend_request_sent':
-        return toUser != null ? 'Sent friend request to $toUser' : description;
+        return toUser != null
+            ? '${t('sent_friend_request_to')} $toUser'
+            : description;
       case 'friend_request_received':
         return fromUser != null
-            ? 'Received friend request from $fromUser'
+            ? '${t('received_friend_request_from')} $fromUser'
             : description;
       case 'friend_request_accepted':
         return withUser != null
-            ? 'Friend request accepted with $withUser'
+            ? '${t('friend_request_accepted_with')} $withUser'
             : description;
       case 'friend_request_declined':
         return withUser != null
-            ? 'Friend request declined with $withUser'
+            ? '${t('friend_request_declined_with')} $withUser'
             : description;
       case 'friend_request_canceled':
         return withUser != null
-            ? 'Friend request canceled with $withUser'
+            ? '${t('friend_request_canceled_with')} $withUser'
             : description;
       case 'friend_removed':
-        return withUser != null ? 'Friend removed: $withUser' : description;
+        return withUser != null
+            ? '${t('friend_removed_colon')} $withUser'
+            : description;
       case 'user_blocked':
-        return byUser != null ? 'Blocked by $byUser' : 'User blocked';
+        return byUser != null
+            ? '${t('blocked_by')} $byUser'
+            : t('user_blocked_text');
       case 'user_unblocked':
-        return byUser != null ? 'Unblocked by $byUser' : 'User unblocked';
+        return byUser != null
+            ? '${t('unblocked_by')} $byUser'
+            : t('user_unblocked_text');
       default:
         return description;
     }
@@ -552,12 +569,13 @@ class _ActivityPageState extends State<ActivityPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-        title: const Text('Activity Log'),
+        foregroundColor: AppThemeColors.iconOnWave(context),
+        title: Text(t('activity_log_title')),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -572,7 +590,7 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
         ],
       ),
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -583,12 +601,15 @@ class _ActivityPageState extends State<ActivityPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                 ),
               ),
             ),
@@ -644,6 +665,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildSearchBar() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(2), // This creates the border width
@@ -665,14 +687,14 @@ class _ActivityPageState extends State<ActivityPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(25), // Inner radius
         ),
         child: Row(
           children: [
             Icon(
               Icons.search,
-              color: Colors.grey[600],
+              color: AppThemeColors.secondaryText(context),
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -680,17 +702,19 @@ class _ActivityPageState extends State<ActivityPage> {
               child: TextField(
                 onChanged: _performSearch,
                 decoration: InputDecoration(
-                  hintText: 'Search activities...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintText: t('search_activities_placeholder'),
+                  hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 ),
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(
+                    fontSize: 16, color: AppThemeColors.primaryText(context)),
               ),
             ),
             if (searchQuery.isNotEmpty)
               IconButton(
-                icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                icon: Icon(Icons.clear,
+                    color: AppThemeColors.secondaryText(context), size: 20),
                 onPressed: _clearSearch,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -702,11 +726,12 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildStatsSection() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -719,9 +744,9 @@ class _ActivityPageState extends State<ActivityPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Activity Summary',
-            style: TextStyle(
+          Text(
+            t('activity_summary_title'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppColors.cyan,
@@ -732,7 +757,7 @@ class _ActivityPageState extends State<ActivityPage> {
             children: [
               Expanded(
                 child: _buildStatCard(
-                  'Total Activities',
+                  t('total_activities_label'),
                   '${stats['totalActivities'] ?? 0}',
                   Icons.timeline,
                   Colors.blue,
@@ -741,7 +766,7 @@ class _ActivityPageState extends State<ActivityPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  'Recent (7 days)',
+                  t('recent_7_days_label'),
                   '${stats['recentActivities'] ?? 0}',
                   Icons.trending_up,
                   Colors.green,
@@ -779,7 +804,7 @@ class _ActivityPageState extends State<ActivityPage> {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: AppThemeColors.secondaryText(context),
             ),
             textAlign: TextAlign.center,
           ),
@@ -789,6 +814,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildActivityInsights() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
@@ -821,9 +847,9 @@ class _ActivityPageState extends State<ActivityPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Activity Insights',
-                style: TextStyle(
+              Text(
+                t('activity_insights_title'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -838,9 +864,9 @@ class _ActivityPageState extends State<ActivityPage> {
           // Top Activity Types
           if (activityTypeCounts.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Text(
-              'Top Activity Types',
-              style: TextStyle(
+            Text(
+              t('top_activity_types_title'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -861,7 +887,7 @@ class _ActivityPageState extends State<ActivityPage> {
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -869,23 +895,23 @@ class _ActivityPageState extends State<ActivityPage> {
         children: [
           Icon(
             _getActivityIcon(type),
-            color: Colors.black,
+            color: AppThemeColors.primaryText(context),
             size: 16,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _getActivityTypeDisplayName(type),
-              style: const TextStyle(
-                color: Colors.black,
+              style: TextStyle(
+                color: AppThemeColors.primaryText(context),
                 fontSize: 12,
               ),
             ),
           ),
           Text(
             '$count',
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: AppThemeColors.primaryText(context),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -896,6 +922,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildFilterChips() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Wrap(
@@ -903,14 +930,14 @@ class _ActivityPageState extends State<ActivityPage> {
         children: [
           if (searchQuery.isNotEmpty)
             Chip(
-              label: Text('Search: "$searchQuery"'),
+              label: Text('${t('search')}: "$searchQuery"'),
               onDeleted: _clearSearch,
               backgroundColor: Colors.purple.withValues(alpha: 0.2),
               deleteIcon: const Icon(Icons.clear, size: 18),
             ),
           if (_showBookmarkedOnly)
             Chip(
-              label: const Text('Bookmarked'),
+              label: Text(t('bookmarked_label')),
               onDeleted: () {
                 setState(() => _showBookmarkedOnly = false);
                 fetchActivities(refresh: true);
@@ -928,7 +955,8 @@ class _ActivityPageState extends State<ActivityPage> {
             ),
           if (startDate != null)
             Chip(
-              label: Text('From: ${DateFormat('MMM dd').format(startDate!)}'),
+              label: Text(
+                  '${t('from_colon_label')} ${DateFormat('MMM dd').format(startDate!)}'),
               onDeleted: () {
                 setState(() => startDate = null);
                 fetchActivities(refresh: true);
@@ -937,7 +965,8 @@ class _ActivityPageState extends State<ActivityPage> {
             ),
           if (endDate != null)
             Chip(
-              label: Text('To: ${DateFormat('MMM dd').format(endDate!)}'),
+              label: Text(
+                  '${t('to_colon_label')} ${DateFormat('MMM dd').format(endDate!)}'),
               onDeleted: () {
                 setState(() => endDate = null);
                 fetchActivities(refresh: true);
@@ -950,6 +979,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildEmptyState() {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -957,22 +987,22 @@ class _ActivityPageState extends State<ActivityPage> {
           Icon(
             Icons.timeline,
             size: 64,
-            color: Colors.grey[400],
+            color: AppThemeColors.mutedText(context),
           ),
           const SizedBox(height: 16),
           Text(
-            'No activities found',
+            t('no_activities_found'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: AppThemeColors.secondaryText(context),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Your activities will appear here',
+            t('activities_will_appear_here'),
             style: TextStyle(
-              color: Colors.grey[500],
+              color: AppThemeColors.mutedText(context),
             ),
           ),
         ],
@@ -988,6 +1018,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildActivityCard(Map<String, dynamic> activity) {
+    final t = AppLocalizations.of(context).t;
     final type = activity['type'] as String;
     final title = activity['title'] as String;
     final createdAt = activity['createdAt'] as String;
@@ -1004,6 +1035,7 @@ class _ActivityPageState extends State<ActivityPage> {
 
     return Card(
       elevation: 2,
+      color: AppThemeColors.cardBg(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
@@ -1054,7 +1086,9 @@ class _ActivityPageState extends State<ActivityPage> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: isRating ? Colors.amber[900] : Colors.black,
+                            color: isRating
+                                ? Colors.amber[900]
+                                : AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
@@ -1101,7 +1135,9 @@ class _ActivityPageState extends State<ActivityPage> {
                   Text(
                     displayDescription,
                     style: TextStyle(
-                      color: isRating ? Colors.amber[800] : Colors.grey[600],
+                      color: isRating
+                          ? Colors.amber[800]
+                          : AppThemeColors.secondaryText(context),
                       fontSize: 14,
                     ),
                   ),
@@ -1112,7 +1148,7 @@ class _ActivityPageState extends State<ActivityPage> {
                         child: Text(
                           _formatDate(createdAt, activityType: type),
                           style: TextStyle(
-                            color: Colors.grey[500],
+                            color: AppThemeColors.mutedText(context),
                             fontSize: 12,
                           ),
                         ),
@@ -1131,11 +1167,12 @@ class _ActivityPageState extends State<ActivityPage> {
                         itemBuilder: (BuildContext context) {
                           final isBookmarked = activity['bookmarked'] ?? false;
                           return <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: 'details',
                               child: ListTile(
-                                leading: Icon(Icons.info, color: Colors.blue),
-                                title: Text('View Details'),
+                                leading: const Icon(Icons.info,
+                                    color: Colors.blue),
+                                title: Text(t('view_details')),
                               ),
                             ),
                             PopupMenuItem<String>(
@@ -1146,14 +1183,17 @@ class _ActivityPageState extends State<ActivityPage> {
                                         ? Colors.red
                                         : Colors.orange),
                                 title: Text(
-                                    isBookmarked ? 'Unbookmark' : 'Bookmark'),
+                                    isBookmarked
+                                        ? t('unbookmark')
+                                        : t('bookmark')),
                               ),
                             ),
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: 'delete',
                               child: ListTile(
-                                leading: Icon(Icons.delete, color: Colors.red),
-                                title: Text('Delete'),
+                                leading: const Icon(Icons.delete,
+                                    color: Colors.red),
+                                title: Text(t('delete')),
                               ),
                             ),
                           ];
@@ -1171,6 +1211,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildLoadMoreButton() {
+    final t = AppLocalizations.of(context).t;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Center(
@@ -1183,7 +1224,7 @@ class _ActivityPageState extends State<ActivityPage> {
             backgroundColor: AppColors.cyan,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Load More'),
+          child: Text(t('load_more')),
         ),
       ),
     );
@@ -1191,6 +1232,7 @@ class _ActivityPageState extends State<ActivityPage> {
 
   // Swipe Action Methods
   void _showActivityDetails(Map<String, dynamic> activity) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1213,7 +1255,9 @@ class _ActivityPageState extends State<ActivityPage> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
-              color: const Color(0xFFFCE4EC), // Light pink
+              color: AppThemeColors.tinted(context,
+                  light: const Color(0xFFFCE4EC),
+                  dark: const Color(0xFF3A1F2A)),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -1227,30 +1271,45 @@ class _ActivityPageState extends State<ActivityPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(activity['title'] ?? 'Activity Details',
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(activity['title'] ?? t('activity_details_title'),
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
                 const SizedBox(height: 16),
-                Text('Type: ${_getActivityTypeDisplayName(activity['type'])}'),
-                const SizedBox(height: 8),
-                Text('Description: ${_formatActivityDescription(activity)}'),
+                Text(
+                    '${t('type_label')}: ${_getActivityTypeDisplayName(activity['type'])}',
+                    style:
+                        TextStyle(color: AppThemeColors.primaryText(context))),
                 const SizedBox(height: 8),
                 Text(
-                    'Date: ${_formatDate(activity['createdAt'], activityType: activity['type'])}'),
+                    '${t('description')}: ${_formatActivityDescription(activity)}',
+                    style:
+                        TextStyle(color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 8),
+                Text(
+                    '${t('date_label')}: ${_formatDate(activity['createdAt'], activityType: activity['type'])}',
+                    style:
+                        TextStyle(color: AppThemeColors.primaryText(context))),
                 if (activity['amount'] != null) ...[
                   const SizedBox(height: 8),
-                  Text('Amount: ${activity['currency']}${activity['amount']}'),
+                  Text(
+                      '${t('amount_label')}: ${activity['currency']}${activity['amount']}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                 ],
                 if (activity['metadata'] != null) ...[
                   const SizedBox(height: 8),
-                  Text('Additional Info: ${activity['metadata']}'),
+                  Text('${t('additional_info_label')}: ${activity['metadata']}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                 ],
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Close'),
+                    child: Text(t('close')),
                   ),
                 ),
               ],
@@ -1262,12 +1321,15 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   void _bookmarkActivity(Map<String, dynamic> activity) async {
+    final t = AppLocalizations.of(context).t;
     final activityId = activity['_id'];
     final isBookmarked = activity['bookmarked'] ?? false;
 
     ElegantNotification.info(
-      title: Text(isBookmarked ? "Unbookmarking" : "Bookmarking"),
-      description: const Text("Please wait..."),
+      title: Text(isBookmarked
+          ? t('unbookmarking_label')
+          : t('bookmarking_label')),
+      description: Text(t('please_wait_ellipsis')),
     ).show(context);
 
     setState(() {
@@ -1282,26 +1344,27 @@ class _ActivityPageState extends State<ActivityPage> {
 
       if (response.statusCode == 200) {
         ElegantNotification.success(
-          title: const Text("Success"),
+          title: Text(t('success')),
           description: Text(isBookmarked
-              ? "Removed from bookmarks"
-              : "Bookmarked successfully"),
+              ? t('removed_from_bookmarks')
+              : t('bookmarked_successfully')),
         ).show(context);
       } else {
         setState(() {
           activity['bookmarked'] = isBookmarked; // Revert on failure
         });
-        _showErrorDialog('Failed to update bookmark status');
+        _showErrorDialog(t('failed_to_update_bookmark_status'));
       }
     } catch (e) {
       setState(() {
         activity['bookmarked'] = isBookmarked; // Revert on failure
       });
-      _showErrorDialog('Error: $e');
+      _showErrorDialog('${t('error_prefix')} $e');
     }
   }
 
   void _deleteActivity(Map<String, dynamic> activity) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -1315,7 +1378,7 @@ class _ActivityPageState extends State<ActivityPage> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             shape: BoxShape.rectangle,
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -1358,9 +1421,9 @@ class _ActivityPageState extends State<ActivityPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Delete Activity',
-                      style: TextStyle(
+                    Text(
+                      t('delete_activity_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -1368,7 +1431,7 @@ class _ActivityPageState extends State<ActivityPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'This action cannot be undone',
+                      t('action_cannot_be_undone'),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
@@ -1400,11 +1463,11 @@ class _ActivityPageState extends State<ActivityPage> {
 
                     // Activity Title
                     Text(
-                      activity['title'] ?? 'Unknown Activity',
-                      style: const TextStyle(
+                      activity['title'] ?? t('unknown_activity_label'),
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: AppThemeColors.primaryText(context),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -1432,10 +1495,10 @@ class _ActivityPageState extends State<ActivityPage> {
 
                     // Confirmation Text
                     Text(
-                      'Are you sure you want to delete this activity? This action cannot be undone.',
+                      t('confirm_delete_activity_message'),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: AppThemeColors.secondaryText(context),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -1453,9 +1516,9 @@ class _ActivityPageState extends State<ActivityPage> {
                       child: TextButton.icon(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.cancel, color: Colors.grey),
-                        label: const Text(
-                          'Cancel',
-                          style: TextStyle(
+                        label: Text(
+                          t('cancel'),
+                          style: const TextStyle(
                               color: Colors.grey, fontWeight: FontWeight.w600),
                         ),
                         style: TextButton.styleFrom(
@@ -1490,20 +1553,20 @@ class _ActivityPageState extends State<ActivityPage> {
                               });
                               _calculateActivityInsights();
 
-                              showSnack(context, 'Activity deleted successfully');
+                              showSnack(context, t('activity_deleted_successfully'));
                             } else {
                               final errorData = json.decode(response.body);
-                              showSnack(context, errorData['error'] ?? 'Failed to delete activity', isError: true);
+                              showSnack(context, errorData['error'] ?? t('failed_to_delete_activity'), isError: true);
                             }
                           } catch (e) {
-                            showSnack(context, 'Error: $e', isError: true);
+                            showSnack(context, '${t('error_prefix')} $e', isError: true);
                           }
                         },
                         icon: const Icon(Icons.delete_forever,
                             color: Colors.white),
-                        label: const Text(
-                          'Delete',
-                          style: TextStyle(
+                        label: Text(
+                          t('delete'),
+                          style: const TextStyle(
                               color: Colors.white, fontWeight: FontWeight.w600),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -1528,7 +1591,7 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   void _showFilterDialog() {
-    print('Filter dialog opened'); // Debug print
+    final t = AppLocalizations.of(context).t;
     String? tempSelectedType = selectedType;
     DateTime? tempStartDate = startDate;
     DateTime? tempEndDate = endDate;
@@ -1560,24 +1623,28 @@ class _ActivityPageState extends State<ActivityPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF4FBFE),
+                              color: AppThemeColors.tinted(sheetContext,
+                                  light: const Color(0xFFF4FBFE),
+                                  dark: const Color(0xFF13242A)),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.category,
+                                const Icon(Icons.category,
                                     color: AppColors.cyan, size: 20),
-                                SizedBox(width: 10),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: SingleChildScrollView(
                                     scrollDirection: Axis.horizontal,
                                     child: Text(
-                                      'Select Activity Type',
+                                      t('select_activity_type'),
                                       maxLines: 1,
                                       softWrap: false,
                                       style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 16,
+                                        color: AppThemeColors.primaryText(
+                                            sheetContext),
                                       ),
                                     ),
                                   ),
@@ -1592,7 +1659,7 @@ class _ActivityPageState extends State<ActivityPage> {
                               shrinkWrap: true,
                               children: [
                                 _buildActivityTypeOption(
-                                  label: 'All Types',
+                                  label: t('all_types'),
                                   value: null,
                                   selectedValue: tempSelectedType,
                                   icon: Icons.all_inclusive,
@@ -1640,7 +1707,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     shape: BoxShape.rectangle,
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -1709,9 +1776,9 @@ class _ActivityPageState extends State<ActivityPage> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Filter Activities',
-                            style: TextStyle(
+                          Text(
+                            t('filter_activities_title'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -1719,7 +1786,7 @@ class _ActivityPageState extends State<ActivityPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Customize your activity view',
+                            t('customize_activity_view'),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 14,
@@ -1754,7 +1821,7 @@ class _ActivityPageState extends State<ActivityPage> {
                               ),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: InkWell(
@@ -1791,9 +1858,9 @@ class _ActivityPageState extends State<ActivityPage> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              const Text(
-                                                'Activity Type',
-                                                style: TextStyle(
+                                              Text(
+                                                t('activity_type_label'),
+                                                style: const TextStyle(
                                                   color: AppColors.cyan,
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 13,
@@ -1804,14 +1871,15 @@ class _ActivityPageState extends State<ActivityPage> {
                                                 scrollDirection: Axis.horizontal,
                                                 child: Text(
                                                   tempSelectedType == null
-                                                      ? 'All Types'
+                                                      ? t('all_types')
                                                       : _getActivityTypeDisplayName(
                                                           tempSelectedType!),
                                                   maxLines: 1,
                                                   softWrap: false,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 16,
-                                                    color: Colors.black87,
+                                                    color: AppThemeColors
+                                                        .primaryText(context),
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
@@ -1833,7 +1901,7 @@ class _ActivityPageState extends State<ActivityPage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                     color: Colors.grey.withValues(alpha: 0.18)),
@@ -1856,13 +1924,14 @@ class _ActivityPageState extends State<ActivityPage> {
                                   Expanded(
                                     child: SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
-                                      child: const Text(
-                                        'Show Bookmarked Only',
+                                      child: Text(
+                                        t('show_bookmarked_only'),
                                         maxLines: 1,
                                         softWrap: false,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: Colors.black87,
+                                          color: AppThemeColors.primaryText(
+                                              context),
                                         ),
                                       ),
                                     ),
@@ -1875,7 +1944,7 @@ class _ActivityPageState extends State<ActivityPage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                     color: Colors.grey.withValues(alpha: 0.18)),
@@ -1897,13 +1966,14 @@ class _ActivityPageState extends State<ActivityPage> {
                                   Expanded(
                                     child: SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
-                                      child: const Text(
-                                        'Friends Activity Only',
+                                      child: Text(
+                                        t('friends_activity_only'),
                                         maxLines: 1,
                                         softWrap: false,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: Colors.black87,
+                                          color: AppThemeColors.primaryText(
+                                              context),
                                         ),
                                       ),
                                     ),
@@ -1942,12 +2012,13 @@ class _ActivityPageState extends State<ActivityPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      const Text(
-                                        'Date Range',
+                                      Text(
+                                        t('date_range_label'),
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: AppThemeColors.primaryText(
+                                              context),
                                         ),
                                       ),
                                     ],
@@ -1961,7 +2032,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                     children: [
                                       _buildDateButton(
                                         context: context,
-                                        label: 'Start Date',
+                                        label: t('start_date'),
                                         date: tempStartDate,
                                         onPressed: () async {
                                           final date = await showDatePicker(
@@ -1974,14 +2045,32 @@ class _ActivityPageState extends State<ActivityPage> {
                                               return Theme(
                                                 data: Theme.of(context)
                                                     .copyWith(
-                                                  colorScheme:
-                                                      const ColorScheme.light(
-                                                    primary:
-                                                        AppColors.cyan,
-                                                    onPrimary: Colors.white,
-                                                    surface: Colors.white,
-                                                    onSurface: Colors.black,
-                                                  ),
+                                                  colorScheme: AppThemeColors
+                                                          .isDark(context)
+                                                      ? ColorScheme.dark(
+                                                          primary:
+                                                              AppColors.cyan,
+                                                          onPrimary:
+                                                              Colors.white,
+                                                          surface:
+                                                              AppThemeColors
+                                                                  .cardBg(
+                                                                      context),
+                                                          onSurface:
+                                                              AppThemeColors
+                                                                  .primaryText(
+                                                                      context),
+                                                        )
+                                                      : const ColorScheme.light(
+                                                          primary:
+                                                              AppColors.cyan,
+                                                          onPrimary:
+                                                              Colors.white,
+                                                          surface:
+                                                              Colors.white,
+                                                          onSurface:
+                                                              Colors.black,
+                                                        ),
                                                 ),
                                                 child: child!,
                                               );
@@ -2003,7 +2092,7 @@ class _ActivityPageState extends State<ActivityPage> {
                                       const SizedBox(width: 8),
                                       _buildDateButton(
                                         context: context,
-                                        label: 'End Date',
+                                        label: t('end_date'),
                                         date: tempEndDate,
                                         onPressed: () async {
                                           final date = await showDatePicker(
@@ -2016,14 +2105,32 @@ class _ActivityPageState extends State<ActivityPage> {
                                               return Theme(
                                                 data: Theme.of(context)
                                                     .copyWith(
-                                                  colorScheme:
-                                                      const ColorScheme.light(
-                                                    primary:
-                                                        AppColors.cyan,
-                                                    onPrimary: Colors.white,
-                                                    surface: Colors.white,
-                                                    onSurface: Colors.black,
-                                                  ),
+                                                  colorScheme: AppThemeColors
+                                                          .isDark(context)
+                                                      ? ColorScheme.dark(
+                                                          primary:
+                                                              AppColors.cyan,
+                                                          onPrimary:
+                                                              Colors.white,
+                                                          surface:
+                                                              AppThemeColors
+                                                                  .cardBg(
+                                                                      context),
+                                                          onSurface:
+                                                              AppThemeColors
+                                                                  .primaryText(
+                                                                      context),
+                                                        )
+                                                      : const ColorScheme.light(
+                                                          primary:
+                                                              AppColors.cyan,
+                                                          onPrimary:
+                                                              Colors.white,
+                                                          surface:
+                                                              Colors.white,
+                                                          onSurface:
+                                                              Colors.black,
+                                                        ),
                                                 ),
                                                 child: child!,
                                               );
@@ -2065,9 +2172,9 @@ class _ActivityPageState extends State<ActivityPage> {
                               },
                               icon: const Icon(Icons.clear_all,
                                   color: Colors.red),
-                              label: const Text(
-                                'Clear All',
-                                style: TextStyle(
+                              label: Text(
+                                t('clear_all'),
+                                style: const TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.w600),
                               ),
@@ -2100,9 +2207,9 @@ class _ActivityPageState extends State<ActivityPage> {
                               },
                               icon:
                                   const Icon(Icons.check, color: Colors.white),
-                              label: const Text(
-                                'Apply Filters',
-                                style: TextStyle(
+                              label: Text(
+                                t('apply_filters'),
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600),
                               ),
@@ -2160,7 +2267,9 @@ class _ActivityPageState extends State<ActivityPage> {
               maxLines: 1,
               softWrap: false,
               style: TextStyle(
-                color: date != null ? Colors.black87 : Colors.grey[600],
+                color: date != null
+                    ? AppThemeColors.primaryText(context)
+                    : AppThemeColors.secondaryText(context),
               ),
             ),
           ),
@@ -2185,7 +2294,11 @@ class _ActivityPageState extends State<ActivityPage> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE9F8FC) : Colors.white,
+          color: selected
+              ? AppThemeColors.tinted(context,
+                  light: const Color(0xFFE9F8FC),
+                  dark: const Color(0xFF13242A))
+              : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected
@@ -2221,7 +2334,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ),

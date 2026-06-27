@@ -6,6 +6,8 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class TrackUserActivityPage extends StatefulWidget {
   @override
@@ -55,6 +57,21 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
     'profile': 'Profile',
   };
 
+  static const Map<String, String> _categoryLabelKeys = {
+    'all': 'all',
+    'auth': 'category_auth',
+    'transactions': 'transactions',
+    'groups': 'groups',
+    'expenses': 'category_expenses',
+    'notes': 'category_notes',
+    'profile': 'profile',
+  };
+
+  String _categoryLabel(String key) {
+    final t = AppLocalizations.of(context).t;
+    return t(_categoryLabelKeys[key] ?? key);
+  }
+
   static const Map<String, IconData> _categoryIcons = {
     'all': Icons.apps_rounded,
     'auth': Icons.login_rounded,
@@ -94,60 +111,61 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
       } else {
         final data = jsonDecode(response.body);
         setState(() {
-          _error = data['error'] ?? 'Failed to load activities.';
+          _error = data['error'] ?? AppLocalizations.of(context).t('failed_to_load_activities');
           _loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'An error occurred: $e';
+        _error = '${AppLocalizations.of(context).t('an_error_occurred')}: $e';
         _loading = false;
       });
     }
   }
 
   String _getActivityTypeDisplayName(String type) {
+    final t = AppLocalizations.of(context).t;
     switch (type) {
       case 'transaction_created':
-        return 'Transaction Created';
+        return t('activity_transaction_created');
       case 'transaction_cleared':
-        return 'Transaction Cleared';
+        return t('activity_transaction_cleared');
       case 'partial_payment_made':
-        return 'Partial Payment Made';
+        return t('activity_partial_payment_made');
       case 'partial_payment_received':
-        return 'Partial Payment Received';
+        return t('activity_partial_payment_received');
       case 'group_created':
-        return 'Group Created';
+        return t('activity_group_created');
       case 'group_joined':
-        return 'Joined Group';
+        return t('activity_joined_group');
       case 'group_left':
-        return 'Left Group';
+        return t('activity_left_group');
       case 'member_added':
-        return 'Member Added';
+        return t('activity_member_added');
       case 'member_removed':
-        return 'Member Removed';
+        return t('activity_member_removed');
       case 'expense_added':
-        return 'Expense Added';
+        return t('activity_expense_added');
       case 'expense_edited':
-        return 'Expense Edited';
+        return t('activity_expense_edited');
       case 'expense_deleted':
-        return 'Expense Deleted';
+        return t('activity_expense_deleted');
       case 'expense_settled':
-        return 'Expense Settled';
+        return t('activity_expense_settled');
       case 'note_created':
-        return 'Note Created';
+        return t('activity_note_created');
       case 'note_edited':
-        return 'Note Edited';
+        return t('activity_note_edited');
       case 'note_deleted':
-        return 'Note Deleted';
+        return t('activity_note_deleted');
       case 'profile_updated':
-        return 'Profile Updated';
+        return t('activity_profile_updated');
       case 'password_changed':
-        return 'Password Changed';
+        return t('activity_password_changed');
       case 'login':
-        return 'Login';
+        return t('login');
       case 'logout':
-        return 'Logout';
+        return t('logout');
       default:
         return type.replaceAll('_', ' ').toUpperCase();
     }
@@ -224,6 +242,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   }
 
   String _formatDate(String dateString, {String? activityType}) {
+    final t = AppLocalizations.of(context).t;
     try {
       final date = DateTime.parse(dateString);
       final now = DateTime.now();
@@ -235,13 +254,13 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
 
       if (difference.inDays == 0) {
         if (difference.inHours == 0) {
-          return '${difference.inMinutes} minutes ago';
+          return '${difference.inMinutes} ${t('minutes_ago')}';
         }
-        return '${difference.inHours} hours ago';
+        return '${difference.inHours} ${t('hours_ago')}';
       } else if (difference.inDays == 1) {
-        return 'Yesterday';
+        return t('yesterday');
       } else if (difference.inDays < 7) {
-        return '${difference.inDays} days ago';
+        return '${difference.inDays} ${t('days_ago')}';
       } else {
         return DateFormat('MMM dd, yyyy').format(date);
       }
@@ -252,9 +271,10 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _filteredActivities;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -265,10 +285,13 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                        ),
                 ),
               ),
             ),
@@ -284,24 +307,25 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Track User Activity',
+                            t('track_user_activity'),
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
+                              color: AppThemeColors.iconOnWave(context),
                             ),
                           ),
                         ),
                       ),
                       if (_searchedTerm != null && _activities.isNotEmpty)
                         IconButton(
-                          icon: const Icon(Icons.refresh_rounded),
-                          tooltip: 'Refresh',
+                          icon: Icon(Icons.refresh_rounded, color: AppThemeColors.iconOnWave(context)),
+                          tooltip: t('refresh'),
                           onPressed: () =>
                               _fetchUserActivity(_searchedTerm!),
                         )
@@ -325,11 +349,11 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
                     child: Text(
-                      '${filtered.length} activit${filtered.length == 1 ? 'y' : 'ies'}'
-                      '${_selectedCategory != 'all' ? ' in ${_categoryLabels[_selectedCategory]}' : ''}',
+                      '${filtered.length} ${filtered.length == 1 ? t('activity') : t('activities')}'
+                      '${_selectedCategory != 'all' ? ' ${t('in_category')} ${_categoryLabel(_selectedCategory)}' : ''}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -369,18 +393,19 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   }
 
   Widget _buildSearchBar() {
+    final t = AppLocalizations.of(context).t;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: tricolorBorder(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
             children: [
-              Icon(Icons.search, color: Colors.grey[600], size: 20),
+              Icon(Icons.search, color: AppThemeColors.secondaryText(context), size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
@@ -391,19 +416,19 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                     }
                   },
                   decoration: InputDecoration(
-                    hintText: 'Search by Email or Username...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    hintText: t('search_by_email_or_username'),
+                    hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
                     border: InputBorder.none,
                     contentPadding:
                         const EdgeInsets.symmetric(vertical: 8),
                   ),
-                  style: const TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context)),
                 ),
               ),
               if (_searchController.text.isNotEmpty)
                 IconButton(
                   icon:
-                      Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                      Icon(Icons.clear, color: AppThemeColors.secondaryText(context), size: 20),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
@@ -429,9 +454,9 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                     color: AppColors.cyan,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
-                    'Search',
-                    style: TextStyle(
+                  child: Text(
+                    t('search'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -465,12 +490,12 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.cyan
-                      : Colors.white,
+                      : AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
                         ? AppColors.cyan
-                        : Colors.grey.shade300,
+                        : AppThemeColors.border(context),
                   ),
                   boxShadow: isSelected
                       ? [
@@ -491,11 +516,11 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                       size: 15,
                       color: isSelected
                           ? Colors.white
-                          : Colors.grey[600],
+                          : AppThemeColors.secondaryText(context),
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      _categoryLabels[key]!,
+                      _categoryLabel(key),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: isSelected
@@ -503,7 +528,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                             : FontWeight.normal,
                         color: isSelected
                             ? Colors.white
-                            : Colors.grey[700],
+                            : AppThemeColors.primaryText(context),
                       ),
                     ),
                   ],
@@ -517,17 +542,19 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   }
 
   Widget _buildActivityCard(Map<String, dynamic> activity) {
+    final t = AppLocalizations.of(context).t;
     final type = activity['type'] as String? ?? 'unknown';
     final title =
         activity['title'] as String? ?? _getActivityTypeDisplayName(type);
     final description =
-        activity['description'] as String? ?? 'No description';
+        activity['description'] as String? ?? t('no_description');
     final createdAt = activity['timestamp'] as String? ??
         DateTime.now().toIso8601String();
     final amount = activity['amount'];
     final currency = activity['currency'];
 
     return Card(
+      color: AppThemeColors.cardBg(context),
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
@@ -570,9 +597,10 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
@@ -604,7 +632,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                   Text(
                     description,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: AppThemeColors.secondaryText(context),
                       fontSize: 14,
                     ),
                   ),
@@ -612,7 +640,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                   Text(
                     _formatDate(createdAt, activityType: type),
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      color: AppThemeColors.mutedText(context),
                       fontSize: 12,
                     ),
                   ),
@@ -626,30 +654,31 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   }
 
   Widget _buildEmptyState() {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.manage_search_rounded,
-              size: 72, color: Colors.grey[300]),
+              size: 72, color: AppThemeColors.mutedText(context)),
           const SizedBox(height: 16),
           Text(
             _searchedTerm == null
-                ? 'Search for a user to view activities'
-                : 'No activities found for "$_searchedTerm"',
+                ? t('search_user_to_view_activities')
+                : '${t('no_activities_found_for')} "$_searchedTerm"',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: AppThemeColors.secondaryText(context),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             _searchedTerm == null
-                ? 'Enter an email or username in the search bar above'
-                : 'Try a different search term or check the spelling',
-            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                ? t('enter_email_or_username_above')
+                : t('try_different_search_term'),
+            style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],
@@ -658,26 +687,27 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   }
 
   Widget _buildNoFilterResults() {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.filter_list_off_rounded,
-              size: 64, color: Colors.grey[300]),
+              size: 64, color: AppThemeColors.mutedText(context)),
           const SizedBox(height: 16),
           Text(
-            'No ${_categoryLabels[_selectedCategory]} activities',
+            '${t('no')} ${_categoryLabel(_selectedCategory)} ${t('activities')}',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: AppThemeColors.secondaryText(context),
             ),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () =>
                 setState(() => _selectedCategory = 'all'),
-            child: const Text('Show all activities'),
+            child: Text(t('show_all_activities')),
           ),
         ],
       ),

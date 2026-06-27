@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -9,9 +11,10 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Privacy Policy'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('privacy_policy')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -34,23 +37,23 @@ class PrivacyPolicyPage extends StatelessWidget {
                   const Icon(Icons.privacy_tip_rounded,
                       color: Colors.white, size: 40),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Privacy Policy',
-                    style: TextStyle(
+                  Text(
+                    t('privacy_policy'),
+                    style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Last updated: $_lastUpdated',
+                    '${t('pp_last_updated_prefix')} $_lastUpdated',
                     style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 13),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'We are committed to protecting your personal information and your right to privacy.',
+                    t('pp_header_intro'),
                     style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 13),
@@ -62,142 +65,110 @@ class PrivacyPolicyPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            _buildSection('1. Information We Collect', Icons.storage_rounded,
+            _buildSection(context, t('pp_s1_title'), Icons.storage_rounded,
                 Colors.blue, [
-              _buildParagraph(
-                  'We collect information you provide directly to us when you:'),
-              _buildBullet('Create an account (name, email, phone, address)'),
-              _buildBullet('Complete your profile (gender, birthday, photo)'),
-              _buildBullet('Record transactions with other users'),
-              _buildBullet('Make payments or top-up your wallet'),
-              _buildBullet('Contact support or submit feedback'),
+              _buildParagraph(context, t('pp_s1_p1')),
+              _buildBullet(context, t('pp_s1_b1')),
+              _buildBullet(context, t('pp_s1_b2')),
+              _buildBullet(context, t('pp_s1_b3')),
+              _buildBullet(context, t('pp_s1_b4')),
+              _buildBullet(context, t('pp_s1_b5')),
               const SizedBox(height: 10),
-              _buildParagraph('We also automatically collect:'),
-              _buildBullet('Device information (device type, OS version)'),
-              _buildBullet('IP address and location data'),
-              _buildBullet(
-                  'Usage data (features used, screens visited, session duration)'),
-              _buildBullet('Transaction history and wallet activity'),
+              _buildParagraph(context, t('pp_s1_p2')),
+              _buildBullet(context, t('pp_s1_b6')),
+              _buildBullet(context, t('pp_s1_b7')),
+              _buildBullet(context, t('pp_s1_b8')),
+              _buildBullet(context, t('pp_s1_b9')),
             ]),
 
             _buildSection(
-                '2. How We Use Your Information', Icons.psychology_rounded,
+                context, t('pp_s2_title'), Icons.psychology_rounded,
                 Colors.purple, [
-              _buildParagraph('We use the information we collect to:'),
-              _buildBullet('Create and manage your account'),
-              _buildBullet('Process and record financial transactions'),
-              _buildBullet('Send notifications about your account activity'),
-              _buildBullet('Provide customer support'),
-              _buildBullet('Improve and personalize the App experience'),
-              _buildBullet('Detect and prevent fraud and abuse'),
-              _buildBullet('Comply with legal obligations'),
-              _buildBullet('Send promotional communications (with your consent)'),
+              _buildParagraph(context, t('pp_s2_p1')),
+              _buildBullet(context, t('pp_s2_b1')),
+              _buildBullet(context, t('pp_s2_b2')),
+              _buildBullet(context, t('pp_s2_b3')),
+              _buildBullet(context, t('pp_s2_b4')),
+              _buildBullet(context, t('pp_s2_b5')),
+              _buildBullet(context, t('pp_s2_b6')),
+              _buildBullet(context, t('pp_s2_b7')),
+              _buildBullet(context, t('pp_s2_b8')),
             ]),
 
             _buildSection(
-                '3. Information Sharing', Icons.share_rounded, Colors.orange, [
-              _buildParagraph(
-                  'We do not sell your personal information. We may share information in the following circumstances:'),
-              _buildBullet(
-                  'With other users: Your name and email are visible to users you transact with.'),
-              _buildBullet(
-                  'Service providers: Razorpay (payment processing), email delivery services.'),
-              _buildBullet(
-                  'Legal requirements: When required by law or to protect our rights.'),
-              _buildBullet(
-                  'Business transfers: In the event of a merger or acquisition.'),
+                context, t('pp_s3_title'), Icons.share_rounded, Colors.orange, [
+              _buildParagraph(context, t('pp_s3_p1')),
+              _buildBullet(context, t('pp_s3_b1')),
+              _buildBullet(context, t('pp_s3_b2')),
+              _buildBullet(context, t('pp_s3_b3')),
+              _buildBullet(context, t('pp_s3_b4')),
               const SizedBox(height: 8),
-              _buildParagraph(
-                  'Your contact information is only shared based on your "Contact Sharing" privacy setting.'),
+              _buildParagraph(context, t('pp_s3_p2')),
             ]),
 
             _buildSection(
-                '4. Data Security', Icons.shield_rounded, Colors.green, [
-              _buildParagraph(
-                  'We implement industry-standard security measures to protect your information:'),
-              _buildBullet('AES-256 encryption for data in transit (HTTPS)'),
-              _buildBullet('bcrypt hashing for passwords'),
-              _buildBullet('JWT tokens with short expiry periods'),
-              _buildBullet('Regular security audits'),
-              _buildBullet('Database access controls and monitoring'),
+                context, t('pp_s4_title'), Icons.shield_rounded, Colors.green, [
+              _buildParagraph(context, t('pp_s4_p1')),
+              _buildBullet(context, t('pp_s4_b1')),
+              _buildBullet(context, t('pp_s4_b2')),
+              _buildBullet(context, t('pp_s4_b3')),
+              _buildBullet(context, t('pp_s4_b4')),
+              _buildBullet(context, t('pp_s4_b5')),
               const SizedBox(height: 8),
-              _buildParagraph(
-                  'While we strive to protect your information, no method of transmission over the internet is 100% secure.'),
+              _buildParagraph(context, t('pp_s4_p2')),
             ]),
 
-            _buildSection('5. Your Privacy Rights', Icons.person_rounded,
+            _buildSection(context, t('pp_s5_title'), Icons.person_rounded,
                 AppColors.cyan, [
-              _buildParagraph('You have the following rights over your data:'),
-              _buildBullet(
-                  'Access: Request a copy of the personal data we hold about you.'),
-              _buildBullet(
-                  'Correction: Update inaccurate or incomplete information via your profile.'),
-              _buildBullet(
-                  'Deletion: Request deletion of your account and associated data.'),
-              _buildBullet(
-                  'Portability: Export your data via the Privacy Settings page.'),
-              _buildBullet(
-                  'Opt-out: Unsubscribe from marketing emails at any time.'),
-              _buildBullet(
-                  'Visibility: Control who can see your profile and contact information.'),
+              _buildParagraph(context, t('pp_s5_p1')),
+              _buildBullet(context, t('pp_s5_b1')),
+              _buildBullet(context, t('pp_s5_b2')),
+              _buildBullet(context, t('pp_s5_b3')),
+              _buildBullet(context, t('pp_s5_b4')),
+              _buildBullet(context, t('pp_s5_b5')),
+              _buildBullet(context, t('pp_s5_b6')),
             ]),
 
             _buildSection(
-                '6. Data Retention', Icons.history_rounded, Colors.brown, [
-              _buildParagraph(
-                  'We retain your personal data for as long as your account is active or as needed to provide services.'),
-              _buildParagraph(
-                  'Transaction records may be retained for up to 7 years for legal and accounting purposes, even after account deletion.'),
-              _buildParagraph(
-                  'When you deactivate your account, your personal profile data is preserved but your account is suspended. Permanent deletion may be requested by contacting support.'),
+                context, t('pp_s6_title'), Icons.history_rounded, Colors.brown, [
+              _buildParagraph(context, t('pp_s6_p1')),
+              _buildParagraph(context, t('pp_s6_p2')),
+              _buildParagraph(context, t('pp_s6_p3')),
             ]),
 
-            _buildSection('7. Cookies & Tracking', Icons.cookie_rounded,
+            _buildSection(context, t('pp_s7_title'), Icons.cookie_rounded,
                 Colors.teal, [
-              _buildParagraph(
-                  'LenDen is a mobile application and does not use browser cookies. We use:'),
-              _buildBullet(
-                  'Secure device storage for authentication tokens and preferences.'),
-              _buildBullet(
-                  'Device identifiers to manage your active sessions and enable device management features.'),
-              _buildBullet(
-                  'Analytics data to understand App usage patterns (anonymized).'),
+              _buildParagraph(context, t('pp_s7_p1')),
+              _buildBullet(context, t('pp_s7_b1')),
+              _buildBullet(context, t('pp_s7_b2')),
+              _buildBullet(context, t('pp_s7_b3')),
             ]),
 
-            _buildSection('8. Children\'s Privacy', Icons.child_care_rounded,
+            _buildSection(context, t('pp_s8_title'), Icons.child_care_rounded,
                 Colors.pink, [
-              _buildParagraph(
-                  'LenDen is not intended for children under 18 years of age. We do not knowingly collect personal information from children under 18.'),
-              _buildParagraph(
-                  'If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.'),
+              _buildParagraph(context, t('pp_s8_p1')),
+              _buildParagraph(context, t('pp_s8_p2')),
             ]),
 
             _buildSection(
-                '9. Third-Party Services', Icons.link_rounded, Colors.indigo, [
-              _buildParagraph(
-                  'Our App integrates with the following third-party services:'),
-              _buildBullet(
-                  'Razorpay: Payment processing. Subject to Razorpay\'s Privacy Policy.'),
-              _buildBullet(
-                  'Email providers: For sending OTPs, notifications, and account emails.'),
-              _buildParagraph(
-                  'These third parties have their own privacy policies and data practices which we do not control.'),
+                context, t('pp_s9_title'), Icons.link_rounded, Colors.indigo, [
+              _buildParagraph(context, t('pp_s9_p1')),
+              _buildBullet(context, t('pp_s9_b1')),
+              _buildBullet(context, t('pp_s9_b2')),
+              _buildParagraph(context, t('pp_s9_p2')),
             ]),
 
             _buildSection(
-                '10. Changes to This Policy', Icons.update_rounded, Colors.red,
+                context, t('pp_s10_title'), Icons.update_rounded, Colors.red,
                 [
-                  _buildParagraph(
-                      'We may update this Privacy Policy from time to time. We will notify you of significant changes via the App.'),
-                  _buildParagraph(
-                      'Your continued use of LenDen after changes are posted constitutes your acceptance of the updated policy.'),
+                  _buildParagraph(context, t('pp_s10_p1')),
+                  _buildParagraph(context, t('pp_s10_p2')),
                 ]),
 
-            _buildSection('11. Contact Us', Icons.mail_rounded, Colors.teal, [
-              _buildParagraph(
-                  'If you have questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact us through:'),
-              _buildBullet('The Help & Support section in the App'),
-              _buildBullet('Your registered email address'),
+            _buildSection(context, t('pp_s11_title'), Icons.mail_rounded, Colors.teal, [
+              _buildParagraph(context, t('pp_s11_p1')),
+              _buildBullet(context, t('pp_s11_b1')),
+              _buildBullet(context, t('pp_s11_b2')),
             ]),
 
             const SizedBox(height: 24),
@@ -207,15 +178,15 @@ class PrivacyPolicyPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(
-      String title, IconData icon, Color color, List<Widget> children) {
+  Widget _buildSection(BuildContext context, String title, IconData icon,
+      Color color, List<Widget> children) {
     return Column(
       children: [
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -260,16 +231,18 @@ class PrivacyPolicyPage extends StatelessWidget {
     );
   }
 
-  Widget _buildParagraph(String text) {
+  Widget _buildParagraph(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(text,
-          style: const TextStyle(
-              fontSize: 13, color: Colors.black87, height: 1.5)),
+          style: TextStyle(
+              fontSize: 13,
+              color: AppThemeColors.primaryText(context),
+              height: 1.5)),
     );
   }
 
-  Widget _buildBullet(String text) {
+  Widget _buildBullet(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 5, left: 4),
       child: Row(
@@ -282,7 +255,8 @@ class PrivacyPolicyPage extends StatelessWidget {
                   fontSize: 15)),
           Expanded(
             child: Text(text,
-                style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                style: TextStyle(
+                    fontSize: 13, color: AppThemeColors.primaryText(context))),
           ),
         ],
       ),

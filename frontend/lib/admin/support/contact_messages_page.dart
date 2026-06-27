@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ContactMessagesPage extends StatefulWidget {
   const ContactMessagesPage({Key? key}) : super(key: key);
@@ -179,6 +181,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
       ip.startsWith('::ffff:') ? ip.substring(7) : ip;
 
   void _showMessageDetail(Map<String, dynamic> msg) {
+    final t = AppLocalizations.of(context).t;
     final replyController = TextEditingController(
         text: (msg['replyNote'] as String?) ?? '');
     final id = msg['_id'] as String;
@@ -198,10 +201,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.88,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(context),
             borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -210,7 +213,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: AppThemeColors.divider(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -244,15 +247,16 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                   CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  msg['name'] ?? 'Unknown',
-                                  style: const TextStyle(
+                                  msg['name'] ?? t('unknown'),
+                                  style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16),
+                                      fontSize: 16,
+                                      color: AppThemeColors.primaryText(context)),
                                 ),
                                 Text(
                                   msg['email'] ?? '',
-                                  style: const TextStyle(
-                                      fontSize: 13, color: Colors.grey),
+                                  style: TextStyle(
+                                      fontSize: 13, color: AppThemeColors.secondaryText(context)),
                                 ),
                               ],
                             ),
@@ -263,10 +267,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                       const SizedBox(height: 16),
 
                       // Subject & Category
-                      const Text('Subject',
+                      Text(t('subject'),
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey,
+                              color: AppThemeColors.secondaryText(context),
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Row(
@@ -274,10 +278,11 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              msg['subject'] ?? 'General Inquiry',
-                              style: const TextStyle(
+                              msg['subject'] ?? t('general_inquiry'),
+                              style: TextStyle(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w600),
+                                  fontWeight: FontWeight.w600,
+                                  color: AppThemeColors.primaryText(context)),
                             ),
                           ),
                           if ((msg['category'] as String?) != null &&
@@ -308,25 +313,25 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                       const SizedBox(height: 16),
 
                       // Message
-                      const Text('Message',
+                      Text(t('message'),
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey,
+                              color: AppThemeColors.secondaryText(context),
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
+                          color: AppThemeColors.surfaceBg(context),
                           borderRadius: BorderRadius.circular(12),
                           border:
-                              Border.all(color: Colors.grey.shade200),
+                              Border.all(color: AppThemeColors.border(context)),
                         ),
                         child: Text(
                           msg['message'] ?? '',
                           style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[800],
+                              color: AppThemeColors.primaryText(context),
                               height: 1.5),
                         ),
                       ),
@@ -336,22 +341,22 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                       Row(
                         children: [
                           Icon(Icons.access_time_rounded,
-                              size: 13, color: Colors.grey[500]),
+                              size: 13, color: AppThemeColors.mutedText(context)),
                           const SizedBox(width: 4),
                           Text(
                             _formatTime(msg['createdAt'] as String?),
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[500]),
+                                fontSize: 12, color: AppThemeColors.mutedText(context)),
                           ),
                           if (msg['ipAddress'] != null) ...[
                             const SizedBox(width: 12),
                             Icon(Icons.location_on_outlined,
-                                size: 13, color: Colors.grey[500]),
+                                size: 13, color: AppThemeColors.mutedText(context)),
                             const SizedBox(width: 4),
                             Text(
                               _cleanIp(msg['ipAddress'].toString()),
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[500]),
+                                  fontSize: 12, color: AppThemeColors.mutedText(context)),
                             ),
                           ],
                         ],
@@ -363,10 +368,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                         // Already replied — show read-only view
                         Row(
                           children: [
-                            const Text('Reply Sent',
+                            Text(t('reply_sent'),
                                 style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey,
+                                    color: AppThemeColors.secondaryText(context),
                                     fontWeight: FontWeight.w600)),
                             const SizedBox(width: 8),
                             Container(
@@ -378,14 +383,14 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                 border: Border.all(
                                     color: Colors.green.withValues(alpha: 0.4)),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.check_circle_outline_rounded,
+                                  const Icon(Icons.check_circle_outline_rounded,
                                       size: 11, color: Colors.green),
-                                  SizedBox(width: 4),
-                                  Text('Sent',
-                                      style: TextStyle(
+                                  const SizedBox(width: 4),
+                                  Text(t('sent'),
+                                      style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.green)),
@@ -413,7 +418,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                       size: 14, color: Colors.green),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Admin replied to ${msg['email'] ?? 'user'}',
+                                    '${t('admin_replied_to')} ${msg['email'] ?? t('user_label')}',
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: Colors.green.shade700,
@@ -440,20 +445,20 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: AppThemeColors.surfaceBg(context),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
                             children: [
                               Icon(Icons.lock_outline_rounded,
-                                  size: 14, color: Colors.grey.shade500),
+                                  size: 14, color: AppThemeColors.mutedText(context)),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'A reply has already been sent. Only one reply is allowed per message.',
+                                  t('reply_already_sent_notice'),
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600),
+                                      color: AppThemeColors.secondaryText(context)),
                                 ),
                               ),
                             ],
@@ -461,22 +466,22 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                         ),
                       ] else ...[
                         // Not yet replied — show input
-                        const Text('Reply to User',
+                        Text(t('reply_to_user'),
                             style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey,
+                                color: AppThemeColors.secondaryText(context),
                                 fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
                         TextField(
                           controller: replyController,
                           maxLines: 4,
+                          style: TextStyle(color: AppThemeColors.primaryText(context)),
                           decoration: InputDecoration(
-                            hintText:
-                                'Write your reply here — it will be emailed to the user...',
+                            hintText: t('write_reply_hint'),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide:
-                                  BorderSide(color: Colors.grey.shade300),
+                                  BorderSide(color: AppThemeColors.border(context)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -497,9 +502,9 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                         replyController.text.trim();
                                     if (text.isEmpty) {
                                       ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
+                                          .showSnackBar(SnackBar(
                                         content: Text(
-                                            'Write a reply before sending.'),
+                                            t('write_reply_before_sending')),
                                         backgroundColor: Colors.orange,
                                         behavior: SnackBarBehavior.floating,
                                       ));
@@ -518,7 +523,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                         ScaffoldMessenger.of(ctx)
                                             .showSnackBar(SnackBar(
                                           content: Text(
-                                              'Reply sent to ${msg['email']}'),
+                                              '${t('reply_sent_to')} ${msg['email']}'),
                                           backgroundColor: Colors.green,
                                           behavior:
                                               SnackBarBehavior.floating,
@@ -542,8 +547,8 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                 : const Icon(Icons.send_rounded,
                                     size: 18),
                             label: Text(sendingReply
-                                ? 'Sending...'
-                                : 'Send Reply via Email'),
+                                ? t('sending')
+                                : t('send_reply_via_email')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.cyan,
                               foregroundColor: Colors.white,
@@ -559,10 +564,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                       const SizedBox(height: 20),
 
                       // Status actions
-                      const Text('Update Status',
+                      Text(t('update_status'),
                           style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey,
+                              color: AppThemeColors.secondaryText(context),
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       Wrap(
@@ -667,6 +672,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
   }
 
   Widget _buildMessageCard(Map<String, dynamic> msg) {
+    final t = AppLocalizations.of(context).t;
     final status = (msg['status'] as String?) ?? 'new';
     final isNew = status == 'new';
     final category = (msg['category'] as String?) ?? '';
@@ -679,8 +685,8 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
           radius: 16,
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFAF9F6),
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -709,12 +715,13 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  msg['name'] ?? 'Unknown',
+                                  msg['name'] ?? t('unknown'),
                                   style: TextStyle(
                                     fontWeight: isNew
                                         ? FontWeight.bold
                                         : FontWeight.w600,
                                     fontSize: 14,
+                                    color: AppThemeColors.primaryText(context),
                                   ),
                                 ),
                               ),
@@ -723,8 +730,8 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                           ),
                           Text(
                             msg['email'] ?? '',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                                fontSize: 12, color: AppThemeColors.secondaryText(context)),
                           ),
                         ],
                       ),
@@ -736,9 +743,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        msg['subject'] ?? 'General Inquiry',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 13),
+                        msg['subject'] ?? t('general_inquiry'),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13,
+                            color: AppThemeColors.primaryText(context)),
                       ),
                     ),
                     if (category.isNotEmpty)
@@ -767,12 +775,12 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                   msg['message'] ?? '',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _formatTime(msg['createdAt'] as String?),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
                 ),
               ],
             ),
@@ -791,8 +799,9 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -803,11 +812,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
-                ),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -822,21 +827,24 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Contact Messages',
+                            t('contact_messages'),
                             style: TextStyle(
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold),
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh_rounded),
+                        icon: Icon(Icons.refresh_rounded,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => _fetchMessages(reset: true),
                       ),
                     ],
@@ -866,12 +874,12 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? color : Colors.white,
+                              color: isSelected ? color : AppThemeColors.cardBg(context),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                   color: isSelected
                                       ? color
-                                      : Colors.grey.shade300),
+                                      : AppThemeColors.border(context)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -892,7 +900,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                         : FontWeight.normal,
                                     color: isSelected
                                         ? Colors.white
-                                        : Colors.grey[700],
+                                        : AppThemeColors.secondaryText(context),
                                   ),
                                 ),
                               ],
@@ -909,10 +917,10 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                     child: Text(
-                      '${_messages.length} message${_messages.length == 1 ? '' : 's'}',
+                      '${_messages.length} ${_messages.length == 1 ? t('message_singular') : t('message_plural')}',
                       style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[600],
+                          color: AppThemeColors.secondaryText(context),
                           fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -940,7 +948,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                   ElevatedButton(
                                     onPressed: () =>
                                         _fetchMessages(reset: true),
-                                    child: const Text('Retry'),
+                                    child: Text(t('retry')),
                                   ),
                                 ],
                               ),
@@ -953,15 +961,15 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                     children: [
                                       Icon(Icons.inbox_rounded,
                                           size: 64,
-                                          color: Colors.grey[300]),
+                                          color: AppThemeColors.mutedText(context)),
                                       const SizedBox(height: 16),
                                       Text(
                                         _statusFilter == 'all'
-                                            ? 'No contact messages'
-                                            : 'No ${_statusFilter} messages',
+                                            ? t('no_contact_messages')
+                                            : '${t('no_status_messages')} ($_statusFilter)',
                                         style: TextStyle(
                                             fontSize: 17,
-                                            color: Colors.grey[500]),
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                     ],
                                   ),

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../api_config.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -142,24 +144,27 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       if (!mounted) return;
 
       if (res.statusCode == 200 || res.statusCode == 201) {
+        final t = AppLocalizations.of(context).t;
         final data = jsonDecode(res.body);
         final message = (data['message'] ?? 'Request sent').toString();
         await _loadFriendState();
         if (!mounted) return;
+        final rowName = (row['name'] ?? t('this_user_label')).toString();
         _showStylishMessage(
-          title: 'Friend Request',
+          title: t('friend_request_title'),
           message: message == 'Already friends'
-              ? '${row['name'] ?? 'This user'} is already in your friends list.'
+              ? '$rowName ${t('already_in_friends_list_msg')}'
               : message == 'Request already pending'
-                  ? 'A friend request is already pending for ${row['name'] ?? 'this user'}.'
-                  : 'Your friend request has been sent to ${row['name'] ?? 'this user'}.',
+                  ? '${t('friend_request_pending_for_msg')} $rowName.'
+                  : '${t('friend_request_sent_to_msg')} $rowName.',
           icon: message == 'Already friends'
               ? Icons.people_alt_rounded
               : Icons.person_add_alt_1_rounded,
           color: AppColors.cyan,
         );
       } else {
-        String message = 'Could not send friend request right now.';
+        final t = AppLocalizations.of(context).t;
+        String message = t('could_not_send_friend_request_msg');
         try {
           final data = jsonDecode(res.body);
           final backendMessage =
@@ -169,7 +174,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           }
         } catch (_) {}
         _showStylishMessage(
-          title: 'Unable To Add',
+          title: t('unable_to_add_title'),
           message: message,
           icon: Icons.error_outline,
           color: Colors.redAccent,
@@ -177,9 +182,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       }
     } catch (_) {
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       _showStylishMessage(
-        title: 'Network Error',
-        message: 'Could not send friend request right now.',
+        title: t('network_error'),
+        message: t('could_not_send_friend_request_msg'),
         icon: Icons.wifi_off_rounded,
         color: Colors.redAccent,
       );
@@ -211,11 +217,16 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   String _friendActionLabel(dynamic row) {
+    final t = AppLocalizations.of(context).t;
     final userId = row?['userId']?.toString();
     if (userId == null || userId.isEmpty || _isCurrentUser(row)) return '';
-    if (_friendIds.contains(userId)) return 'Friend';
-    if (_incomingRequestUserIds.contains(userId)) return 'Requested You';
-    if (_outgoingRequestUserIds.contains(userId)) return 'Requested';
+    if (_friendIds.contains(userId)) return t('friend_chip_label');
+    if (_incomingRequestUserIds.contains(userId)) {
+      return t('requested_you_chip_label');
+    }
+    if (_outgoingRequestUserIds.contains(userId)) {
+      return t('requested_chip_label');
+    }
     return '';
   }
 
@@ -225,6 +236,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     setState(() => _loading = true);
     final path =
         '/api/leaderboard?type=$_activeType&range=$_range&friendsOnly=$_friendsOnly';
+    final t = AppLocalizations.of(context).t;
     try {
       final res = await ApiClient.get(path);
       if (res.statusCode == 200) {
@@ -237,22 +249,21 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         });
         if (users.isEmpty && mounted) {
           _showStylishMessage(
-            title: 'No Rankings Yet',
-            message:
-                'No users are ranked for this filter right now. Rankings update as activity happens.',
+            title: t('no_rankings_yet_title'),
+            message: t('no_rankings_yet_msg'),
             icon: Icons.info_outline,
             color: AppColors.cyan,
           );
         }
       } else {
-        final msg = 'Failed to load leaderboard (${res.statusCode}).';
+        final msg = '${t('failed_to_load_leaderboard_msg')} (${res.statusCode}).';
         setState(() {
           _fetchError = msg;
           _loading = false;
         });
         if (mounted) {
           _showStylishMessage(
-            title: 'Load Failed',
+            title: t('load_failed_title'),
             message: msg,
             icon: Icons.error_outline,
             color: Colors.redAccent,
@@ -260,14 +271,14 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         }
       }
     } catch (_) {
-      const msg = 'Unable to load leaderboard right now. Please try again.';
+      final msg = t('unable_to_load_leaderboard_msg');
       setState(() {
         _fetchError = msg;
         _loading = false;
       });
       if (mounted) {
         _showStylishMessage(
-          title: 'Network Error',
+          title: t('network_error'),
           message: msg,
           icon: Icons.wifi_off_rounded,
           color: Colors.redAccent,
@@ -278,27 +289,30 @@ class _LeaderboardPageState extends State<LeaderboardPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final rows = _rowsByType[_activeType] ?? [];
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FAFD),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text(
-          'Leaderboard',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+        title: Text(
+          t('leaderboard'),
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppThemeColors.primaryText(context)),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.cyan,
           labelColor: AppColors.cyan,
-          unselectedLabelColor: Colors.black54,
-          tabs: const [
-            Tab(text: 'Quick'),
-            Tab(text: 'Group'),
-            Tab(text: 'Secure'),
+          unselectedLabelColor: AppThemeColors.secondaryText(context),
+          tabs: [
+            Tab(text: t('lb_quick_tab')),
+            Tab(text: t('lb_group_tab')),
+            Tab(text: t('lb_secure_tab')),
           ],
         ),
       ),
@@ -310,9 +324,9 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             right: 0,
             child: Container(
               height: 150,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.cyan, Color(0xFF4CC9F0)],
+                  colors: AppThemeColors.waveGradient(context),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -327,8 +341,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                       await _loadLeaderboard();
                       if (mounted && _fetchError == null) {
                         _showStylishMessage(
-                          title: 'Refreshed',
-                          message: 'Leaderboard updated for selected filters.',
+                          title: t('refreshed_title'),
+                          message: t('leaderboard_updated_msg'),
                           icon: Icons.refresh,
                           color: AppColors.cyan,
                         );
@@ -354,6 +368,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildMyPositionCard(List<dynamic> rows) {
+    final t = AppLocalizations.of(context).t;
     final myId = Provider.of<SessionProvider>(context, listen: false).user?['_id']?.toString();
     dynamic myRow;
     if (myId != null && myId.isNotEmpty) {
@@ -366,7 +381,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: myRow != null ? const Color(0xFFE6F7FF) : Colors.white,
+          color: myRow != null
+              ? AppThemeColors.tinted(context,
+                  light: const Color(0xFFE6F7FF), dark: const Color(0xFF163A42))
+              : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(14),
           border: myRow != null ? Border.all(color: AppColors.cyan, width: 1.2) : null,
         ),
@@ -383,12 +401,18 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             const SizedBox(width: 12),
             Expanded(
               child: myRow == null
-                  ? const Text('You are not ranked in this period.',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey))
+                  ? Text(t('not_ranked_period_msg'),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: AppThemeColors.secondaryText(context)))
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Your Position', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text(t('your_position_label'),
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppThemeColors.secondaryText(context))),
                         const SizedBox(height: 2),
                         Text(
                           'Rank #${myRow['rank']} · ${myRow['points']} pts',
@@ -405,21 +429,22 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildFilters() {
+    final t = AppLocalizations.of(context).t;
     return _triBorderCard(
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           children: [
             SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'daily', label: Text('Daily')),
-                ButtonSegment(value: 'weekly', label: Text('Weekly')),
-                ButtonSegment(value: 'monthly', label: Text('Monthly')),
+              segments: [
+                ButtonSegment(value: 'daily', label: Text(t('daily'))),
+                ButtonSegment(value: 'weekly', label: Text(t('weekly'))),
+                ButtonSegment(value: 'monthly', label: Text(t('monthly'))),
               ],
               selected: {_range},
               onSelectionChanged: (value) {
@@ -435,10 +460,12 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                 const Icon(Icons.people_alt_outlined,
                     size: 18, color: Color(0xFF005F73)),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Friends only',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    t('friends_only_label'),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppThemeColors.primaryText(context)),
                   ),
                 ),
                 Switch(
@@ -465,7 +492,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFDFDFD),
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -497,8 +524,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(_rankLabel(displayedRank),
-              style:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+              style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: AppThemeColors.primaryText(context))),
           const SizedBox(height: 4),
           _avatar(row, radius),
           const SizedBox(height: 6),
@@ -507,7 +536,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             maxLines: 2,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                color: AppThemeColors.primaryText(context)),
           ),
           const SizedBox(height: 2),
           Text('$points pts',
@@ -529,12 +561,13 @@ class _LeaderboardPageState extends State<LeaderboardPage>
   }
 
   Widget _buildHintButtons(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: ElevatedButton(
         onPressed: () {
           _showStylishMessage(
-            title: 'How Points Work',
-            message: 'Each transaction gives 10 points. Equal points share the same rank.',
+            title: t('how_points_work_title'),
+            message: t('how_points_work_msg'),
             icon: Icons.stars_rounded,
             color: AppColors.cyan,
           );
@@ -543,25 +576,28 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           backgroundColor: const Color(0xFF4CC9F0),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-        child: const Text('How to earn points', style: TextStyle(color: Colors.white)),
+        child: Text(t('how_to_earn_points_btn'), style: const TextStyle(color: Colors.white)),
       ),
     );
   }
 
   Widget _buildTopList(List<dynamic> rows) {
+    final t = AppLocalizations.of(context).t;
     final others = rows.length > 3 ? rows.sublist(3) : <dynamic>[];
     if (others.isEmpty) {
       return _triBorderCard(
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: const Center(
+          child: Center(
             child: Text(
-              'No more users in this ranking window.',
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey),
+              t('no_more_users_ranking_msg'),
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppThemeColors.secondaryText(context)),
             ),
           ),
         ),
@@ -571,7 +607,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     return _triBorderCard(
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -582,13 +618,17 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             final buttonLabel = isMe
                 ? ''
                 : actionLabel.isEmpty
-                    ? 'Add+'
+                    ? t('add_plus_label')
                     : actionLabel;
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe ? const Color(0xFFE6F7FF) : const Color(0xFFF1F5F9),
+                color: isMe
+                    ? AppThemeColors.tinted(context,
+                        light: const Color(0xFFE6F7FF), dark: const Color(0xFF163A42))
+                    : AppThemeColors.tinted(context,
+                        light: const Color(0xFFF1F5F9), dark: const Color(0xFF24272C)),
                 border: isMe
                     ? Border.all(color: AppColors.cyan, width: 1.2)
                     : null,
@@ -599,19 +639,21 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   Row(
                     children: [
                       Text('${row['rank']}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.w800,
-                              color: Colors.black54)),
+                              color: AppThemeColors.secondaryText(context))),
                       const SizedBox(width: 10),
                       _avatar(row, 14),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          row['name']?.toString() ?? 'Unknown User',
+                          row['name']?.toString() ?? t('unknown_user_label'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: AppThemeColors.primaryText(context)),
                         ),
                       ),
                       _movementWidget(row),
@@ -633,11 +675,11 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                     children: [
                       _chip('Q ${breakdown['quick'] ?? 0}'),
                       const SizedBox(width: 6),
-                      _chip('G ${breakdown['group'] ?? 0}'),
+                      _chip('${t('group_breakdown_label')} ${breakdown['group'] ?? 0}'),
                       const SizedBox(width: 6),
-                      _chip('T ${breakdown['trxns'] ?? 0}'),
+                      _chip('${t('trxns_breakdown_label')} ${breakdown['trxns'] ?? 0}'),
                       const SizedBox(width: 6),
-                      _chip('All ${(breakdown['totalPoints'] ?? 0)} pts'),
+                      _chip('${t('all_breakdown_label')} ${(breakdown['totalPoints'] ?? 0)} pts'),
                     ],
                   ),
                 ],
@@ -701,7 +743,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           vertical: compact ? 6 : 5,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(compact ? 999 : 10),
           border: Border.all(color: const Color(0xFFD7DEE8)),
         ),
@@ -725,7 +767,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.zero,
                 side: const BorderSide(color: AppColors.cyan),
-                backgroundColor: Colors.white,
+                backgroundColor: AppThemeColors.cardBg(context),
                 shape: const CircleBorder(),
               ),
               child: isLoading
@@ -748,7 +790,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             onPressed: isLoading ? null : () => _sendFriendRequest(row),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.cyan,
-              backgroundColor: Colors.white,
+              backgroundColor: AppThemeColors.cardBg(context),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               side: const BorderSide(color: AppColors.cyan),
               shape:
@@ -771,7 +813,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFD7DEE8)),
       ),
@@ -792,7 +834,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
     final delta = (movement['delta'] ?? 0) as int;
 
     IconData icon = Icons.horizontal_rule;
-    Color color = Colors.grey;
+    Color color = AppThemeColors.secondaryText(context);
     String label = '0';
     if (direction == 'up') {
       icon = Icons.arrow_upward_rounded;
@@ -924,7 +966,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -944,7 +986,9 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   Text(
                     message,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: Colors.grey[800]),
+                    style: TextStyle(
+                        fontSize: 15,
+                        color: AppThemeColors.secondaryText(context)),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
@@ -955,8 +999,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child:
-                        const Text('OK', style: TextStyle(color: Colors.white)),
+                    child: Text(AppLocalizations.of(context).t('ok'),
+                        style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),

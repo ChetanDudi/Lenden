@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 // Model for Gift Card
 class GiftCard {
@@ -107,7 +109,8 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
             _isLoading = false;
           });
         }
-        showStylishSnackBar(context, 'Failed to fetch gift cards', isError: true);
+        if (!mounted) return;
+        showStylishSnackBar(context, AppLocalizations.of(context).t('failed_to_fetch_gift_cards'), isError: true);
       }
     } catch (e) {
       if(mounted){
@@ -115,7 +118,8 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
         _isLoading = false;
       });
       }
-      showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+      if (!mounted) return;
+      showStylishSnackBar(context, '${AppLocalizations.of(context).t('an_error_occurred')}: $e', isError: true);
     }
   }
   
@@ -161,7 +165,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -175,13 +179,14 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
   }
 
   void _showSortOptions() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         margin: EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(20)
         ),
         child: SingleChildScrollView(
@@ -189,21 +194,21 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
             children: <Widget>[
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text('Sort By', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                child: Text(t('sort_by'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppThemeColors.primaryText(context))),
               ),
-              _buildSortOption('Date (Newest First)', 'createdAt_desc', Icons.arrow_downward),
-              _buildSortOption('Date (Oldest First)', 'createdAt_asc', Icons.arrow_upward),
-              _buildSortOption('Name (A-Z)', 'name_asc', Icons.sort_by_alpha),
-              _buildSortOption('Name (Z-A)', 'name_desc', Icons.sort_by_alpha),
-              _buildSortOption('Value (High-Low)', 'value_desc', Icons.trending_up),
-              _buildSortOption('Value (Low-High)', 'value_asc', Icons.trending_down),
+              _buildSortOption(t('date_newest_first'), 'createdAt_desc', Icons.arrow_downward),
+              _buildSortOption(t('date_oldest_first'), 'createdAt_asc', Icons.arrow_upward),
+              _buildSortOption(t('name_a_z'), 'name_asc', Icons.sort_by_alpha),
+              _buildSortOption(t('name_z_a'), 'name_desc', Icons.sort_by_alpha),
+              _buildSortOption(t('value_high_low'), 'value_desc', Icons.trending_up),
+              _buildSortOption(t('value_low_high'), 'value_asc', Icons.trending_down),
             ],
           ),
         ),
       ),
     );
   }
-  
+
   Widget _buildSortOption(String title, String value, IconData icon) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -218,12 +223,14 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
       child: Container(
         margin: EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: _sortBy == value ? Color(0xFFE3F2FD) : Colors.white,
+          color: _sortBy == value
+              ? AppThemeColors.tinted(context, light: const Color(0xFFE3F2FD), dark: const Color(0xFF1B3A4A))
+              : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(13)
         ),
         child: ListTile(
-          leading: Icon(icon, color: _sortBy == value ? AppColors.cyan : Colors.grey),
-          title: Text(title, style: TextStyle(fontWeight: _sortBy == value ? FontWeight.bold : FontWeight.normal)),
+          leading: Icon(icon, color: _sortBy == value ? AppColors.cyan : AppThemeColors.secondaryText(context)),
+          title: Text(title, style: TextStyle(fontWeight: _sortBy == value ? FontWeight.bold : FontWeight.normal, color: AppThemeColors.primaryText(context))),
           onTap: () => _setSortBy(value),
         ),
       ),
@@ -239,13 +246,14 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
   }
 
   void _showEditDialog(GiftCard giftCard) {
+    final t = AppLocalizations.of(context).t;
     final _nameController = TextEditingController(text: giftCard.name);
     final _valueController = TextEditingController(text: giftCard.value.toString());
     final _formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: EdgeInsets.all(16),
@@ -262,7 +270,8 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
             child: Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Color(0xFFFCE4EC), // Light pink
+                color: AppThemeColors.tinted(dialogContext,
+                    light: const Color(0xFFFCE4EC), dark: const Color(0xFF3A2230)), // Light pink
                 borderRadius: BorderRadius.circular(17),
               ),
               child: Form(
@@ -271,21 +280,21 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Edit Gift Card', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    Text(t('edit_gift_card'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(dialogContext))),
                     SizedBox(height: 24),
                     _buildStylishEditTextField(
                       controller: _nameController,
-                      label: 'Gift Card Name',
-                      validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+                      label: t('gift_card_name'),
+                      validator: (value) => value!.isEmpty ? t('please_enter_a_name') : null,
                     ),
                     SizedBox(height: 16),
                     _buildStylishEditTextField(
                       controller: _valueController,
-                      label: 'LenDen Coins Value',
+                      label: t('lenden_coins_value'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value!.isEmpty) return 'Please enter a value';
-                        if (int.tryParse(value) == null) return 'Enter a valid number';
+                        if (value!.isEmpty) return t('please_enter_a_value');
+                        if (int.tryParse(value) == null) return t('enter_a_valid_number');
                         return null;
                       },
                     ),
@@ -294,18 +303,18 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text('Cancel', style: TextStyle(color: Colors.grey.shade800)),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
                         ),
                         SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
-                              Navigator.of(context).pop();
+                              Navigator.of(dialogContext).pop();
                               await _updateGiftCard(giftCard.id, _nameController.text, int.parse(_valueController.text));
                             }
                           },
-                          child: Text('Save'),
+                          child: Text(t('save')),
                            style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.cyan,
                             shape: RoundedRectangleBorder(
@@ -351,7 +360,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: TextFormField(
@@ -360,7 +369,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
             labelText: label,
             border: InputBorder.none,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppThemeColors.cardBg(context),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           keyboardType: keyboardType,
@@ -377,21 +386,25 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
         body: {'name': name, 'value': value},
       );
       if (response.statusCode == 200) {
-        showStylishSnackBar(context, 'Gift card updated successfully');
+        if (!mounted) return;
+        showStylishSnackBar(context, AppLocalizations.of(context).t('gift_card_updated_successfully'));
         _fetchGiftCards();
       } else {
         final body = json.decode(response.body);
-        showStylishSnackBar(context, 'Failed to update gift card: ${body['message']}', isError: true);
+        if (!mounted) return;
+        showStylishSnackBar(context, '${AppLocalizations.of(context).t('failed_to_update_gift_card')}: ${body['message']}', isError: true);
       }
     } catch (e) {
-      showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+      if (!mounted) return;
+      showStylishSnackBar(context, '${AppLocalizations.of(context).t('an_error_occurred')}: $e', isError: true);
     }
   }
 
   Future<void> _deleteGiftCard(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: EdgeInsets.all(16),
@@ -408,28 +421,29 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
             child: Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.yellow[100],
+                color: AppThemeColors.tinted(dialogContext,
+                    light: Colors.yellow[100]!, dark: const Color(0xFF3A3420)),
                 borderRadius: BorderRadius.circular(17),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Delete Gift Card', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  Text(t('delete_gift_card'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(dialogContext))),
                   SizedBox(height: 16),
-                  Text('Are you sure you want to delete this gift card? This action cannot be undone.', style: TextStyle(color: Colors.black87, fontSize: 16)),
+                  Text(t('delete_gift_card_confirm'), style: TextStyle(color: AppThemeColors.primaryText(dialogContext), fontSize: 16)),
                   SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: Text('Cancel', style: TextStyle(color: Colors.grey.shade800)),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
                       ),
                       SizedBox(width: 8),
                       ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: Text('Delete'),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        child: Text(t('delete')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           shape: RoundedRectangleBorder(
@@ -451,20 +465,23 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
       try {
         final response = await ApiClient.delete('/api/admin/giftcards/$id');
         if (response.statusCode == 200) {
-          showStylishSnackBar(context, 'Gift card deleted successfully');
+          if (!mounted) return;
+          showStylishSnackBar(context, AppLocalizations.of(context).t('gift_card_deleted_successfully'));
           _fetchGiftCards();
         } else {
           final body = json.decode(response.body);
-          showStylishSnackBar(context, 'Failed to delete gift card: ${body['message']}', isError: true);
+          if (!mounted) return;
+          showStylishSnackBar(context, '${AppLocalizations.of(context).t('failed_to_delete_gift_card')}: ${body['message']}', isError: true);
         }
       } catch (e) {
-        showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+        if (!mounted) return;
+        showStylishSnackBar(context, '${AppLocalizations.of(context).t('an_error_occurred')}: $e', isError: true);
       }
     }
   }
 
   Color _getGiftCardColor(int index) {
-    final colors = [
+    final lightColors = [
       Color(0xFFFFF4E6), // Cream
       Color(0xFFE8F5E9), // Light green
       Color(0xFFFCE4EC), // Light pink
@@ -472,11 +489,22 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
       Color(0xFFFFF9C4), // Light yellow
       Color(0xFFF3E5F5), // Light purple
     ];
-    return colors[index % colors.length];
+    final darkColors = [
+      Color(0xFF3A3120), // Cream (dark)
+      Color(0xFF1E3324), // Light green (dark)
+      Color(0xFF3A2230), // Light pink (dark)
+      Color(0xFF1B3A4A), // Light blue (dark)
+      Color(0xFF3A3420), // Light yellow (dark)
+      Color(0xFF332A3A), // Light purple (dark)
+    ];
+    return AppThemeColors.isDark(context)
+        ? darkColors[index % darkColors.length]
+        : lightColors[index % lightColors.length];
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Column(
       children: [
         Padding(
@@ -496,10 +524,10 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildOverviewChip('Cards', '${_allGiftCards.length}'),
-              _buildOverviewChip('Visible', '${_filteredGiftCards.length}'),
+              _buildOverviewChip(t('cards_label'), '${_allGiftCards.length}'),
+              _buildOverviewChip(t('visible_label'), '${_filteredGiftCards.length}'),
               _buildOverviewChip(
-                'Total Value',
+                t('total_value_label'),
                 '${_allGiftCards.fold<int>(0, (sum, card) => sum + card.value)}',
               ),
             ],
@@ -513,16 +541,16 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+                          Icon(Icons.inbox, size: 80, color: AppThemeColors.mutedText(context)),
                           SizedBox(height: 16),
                           Text(
-                            'No Gift Cards Found',
-                            style: TextStyle(fontSize: 20, color: Colors.grey[600], fontWeight: FontWeight.bold),
+                            t('no_gift_cards_found'),
+                            style: TextStyle(fontSize: 20, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.bold),
                           ),
                           SizedBox(height: 8),
                           Text(
-                            _searchController.text.isNotEmpty ? 'Try a different search.' : 'Create the first gift card from the "Add" tab.',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                            _searchController.text.isNotEmpty ? t('try_a_different_search') : t('create_first_gift_card_hint'),
+                            style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -562,11 +590,11 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                                   children: [
                                     Text(
                                       giftCard.name,
-                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
                                     ),
                                     SizedBox(height: 8),
                                     Text(
-                                      'Value: ${giftCard.value} LenDen Coins',
+                                      '${t('value_label')}: ${giftCard.value} ${t('lenden_coins_label')}',
                                       style: TextStyle(fontSize: 16, color: Colors.green.shade700),
                                     ),
                                     SizedBox(height: 12),
@@ -579,13 +607,13 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Created By: ${giftCard.createdByName}',
-                                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                              '${t('created_by_label')} ${giftCard.createdByName}',
+                                              style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              'Created At: ${DateFormat.yMMMd().format(giftCard.createdAt)}',
-                                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                              '${t('created_at_label')} ${DateFormat.yMMMd().format(giftCard.createdAt)}',
+                                              style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
                                             ),
                                           ],
                                         ),
@@ -618,6 +646,7 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
   }
 
   Widget _buildStylishSearchBar() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: EdgeInsets.all(8),
       padding: const EdgeInsets.all(2),
@@ -629,13 +658,14 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(13),
         ),
         child: TextField(
           controller: _searchController,
+          style: TextStyle(color: AppThemeColors.primaryText(context)),
           decoration: InputDecoration(
-            hintText: 'Search by name or creator...',
+            hintText: t('search_by_name_or_creator'),
             prefixIcon: Icon(Icons.search),
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15)
@@ -657,11 +687,11 @@ class _ViewGiftCardsTabState extends State<ViewGiftCardsTab> {
       ),
       child: Container(
          decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(13),
         ),
         child: IconButton(
-          icon: Icon(Icons.sort),
+          icon: Icon(Icons.sort, color: AppThemeColors.primaryText(context)),
           onPressed: _showSortOptions,
         ),
       ),
@@ -701,17 +731,20 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
         );
 
         if (response.statusCode == 201) {
-          showStylishSnackBar(context, 'Gift card created successfully');
+          if (!mounted) return;
+          showStylishSnackBar(context, AppLocalizations.of(context).t('gift_card_created_successfully'));
           _nameController.clear();
           _valueController.clear();
           widget.onViewGiftCards();
           widget.tabController.animateTo(1);
         } else {
           final body = json.decode(response.body);
-          showStylishSnackBar(context, 'Failed to create gift card: ${body['message']}', isError: true);
+          if (!mounted) return;
+          showStylishSnackBar(context, '${AppLocalizations.of(context).t('failed_to_create_gift_card')}: ${body['message']}', isError: true);
         }
       } catch (e) {
-        showStylishSnackBar(context, 'An error occurred: $e', isError: true);
+        if (!mounted) return;
+        showStylishSnackBar(context, '${AppLocalizations.of(context).t('an_error_occurred')}: $e', isError: true);
       } finally {
         if (mounted) {
           setState(() {
@@ -724,6 +757,7 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -735,20 +769,20 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
             children: [
               _buildStylishTextField(
                 controller: _nameController,
-                label: 'Gift Card Name',
-                validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+                label: t('gift_card_name'),
+                validator: (value) => value!.isEmpty ? t('please_enter_a_name') : null,
               ),
               SizedBox(height: 16),
               _buildStylishTextField(
                 controller: _valueController,
-                label: 'LenDen Coins Value',
+                label: t('lenden_coins_value'),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value!.isEmpty) {
-                    return 'Please enter a value';
+                    return t('please_enter_a_value');
                   }
                   if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
+                    return t('please_enter_a_valid_number');
                   }
                   return null;
                 },
@@ -777,7 +811,7 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : Text('Create Gift Card', style: TextStyle(color: Colors.white, fontSize: 16)),
+                        : Text(t('create_gift_card'), style: TextStyle(color: Colors.white, fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.transparent,
@@ -812,7 +846,7 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: TextFormField(
@@ -824,7 +858,7 @@ class _AddGiftCardTabState extends State<AddGiftCardTab> {
               borderSide: BorderSide.none,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppThemeColors.cardBg(context),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           keyboardType: keyboardType,
@@ -860,23 +894,25 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Manage Gift Cards',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(t('manage_gift_cards'),
+            style: TextStyle(color: AppThemeColors.iconOnWave(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.iconOnWave(context)),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.black54,
+          labelColor: AppThemeColors.iconOnWave(context),
+          unselectedLabelColor: AppThemeColors.iconOnWave(context).withValues(alpha: 0.7),
           indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
-            Tab(text: 'Add Gift Card', icon: Icon(Icons.add_card)),
-            Tab(text: 'View Gift Cards', icon: Icon(Icons.card_giftcard)),
+            Tab(text: t('add_gift_card_tab'), icon: Icon(Icons.add_card)),
+            Tab(text: t('view_gift_cards_tab'), icon: Icon(Icons.card_giftcard)),
           ],
         ),
       ),
@@ -890,7 +926,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -902,7 +938,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
               clipper: BottomWaveClipper(),
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.13,
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),

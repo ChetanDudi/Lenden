@@ -5,6 +5,8 @@ import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class CreateEditQuickTransactionPage extends StatefulWidget {
   final Map<String, dynamic>? transaction;
@@ -189,6 +191,7 @@ class _CreateEditQuickTransactionPageState
   }
 
   Future<void> _pickFriend() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final res = await ApiClient.get('/api/friends');
       if (res.statusCode != 200) return;
@@ -220,10 +223,10 @@ class _CreateEditQuickTransactionPageState
                 minChildSize: 0.4,
                 maxChildSize: 0.92,
                 builder: (_, scrollController) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(ctx),
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(28)),
+                        const BorderRadius.vertical(top: Radius.circular(28)),
                   ),
                   child: Column(
                     children: [
@@ -233,7 +236,7 @@ class _CreateEditQuickTransactionPageState
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey[300],
+                          color: AppThemeColors.divider(ctx),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -257,19 +260,21 @@ class _CreateEditQuickTransactionPageState
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Select Friend',
+                                Text(
+                                  t('select_friend_title'),
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: AppThemeColors.primaryText(ctx),
                                   ),
                                 ),
                                 Text(
-                                  '${allFriends.length} friend${allFriends.length == 1 ? '' : 's'}',
+                                  allFriends.length == 1
+                                      ? t('one_friend_label')
+                                      : '${allFriends.length} ${t('friends_count_label')}',
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[500]),
+                                      color: AppThemeColors.secondaryText(ctx)),
                                 ),
                               ],
                             ),
@@ -277,7 +282,7 @@ class _CreateEditQuickTransactionPageState
                             IconButton(
                               onPressed: () => Navigator.pop(ctx),
                               icon: Icon(Icons.close,
-                                  color: Colors.grey[600], size: 22),
+                                  color: AppThemeColors.secondaryText(ctx), size: 22),
                             ),
                           ],
                         ),
@@ -289,19 +294,20 @@ class _CreateEditQuickTransactionPageState
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: AppThemeColors.surfaceBg(ctx),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: TextField(
                             autofocus: false,
+                            style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                             onChanged: (v) =>
                                 setSheetState(() => searchQuery = v),
                             decoration: InputDecoration(
-                              hintText: 'Search by name or email…',
+                              hintText: t('search_by_name_or_email_placeholder'),
                               hintStyle: TextStyle(
-                                  color: Colors.grey[400], fontSize: 14),
+                                  color: AppThemeColors.mutedText(ctx), fontSize: 14),
                               prefixIcon: Icon(Icons.search,
-                                  color: Colors.grey[400], size: 20),
+                                  color: AppThemeColors.mutedText(ctx), size: 20),
                               border: InputBorder.none,
                               contentPadding:
                                   const EdgeInsets.symmetric(vertical: 12),
@@ -311,7 +317,7 @@ class _CreateEditQuickTransactionPageState
                       ),
                       const SizedBox(height: 8),
 
-                      const Divider(height: 1),
+                      Divider(height: 1, color: AppThemeColors.divider(ctx)),
 
                       // Friend list
                       Expanded(
@@ -324,12 +330,12 @@ class _CreateEditQuickTransactionPageState
                                       children: [
                                         Icon(Icons.search_off,
                                             size: 48,
-                                            color: Colors.grey[300]),
+                                            color: AppThemeColors.mutedText(ctx)),
                                         const SizedBox(height: 12),
                                         Text(
-                                          'No match for "$searchQuery"',
+                                          '${t('no_match_for_label')} "$searchQuery"',
                                           style: TextStyle(
-                                              color: Colors.grey[400],
+                                              color: AppThemeColors.mutedText(ctx),
                                               fontSize: 14),
                                         ),
                                       ],
@@ -364,7 +370,7 @@ class _CreateEditQuickTransactionPageState
                                           if (isBlocked) {
                                             Navigator.pop(ctx);
                                             showSnack(context,
-                                                'This user is blocked.',
+                                                t('this_user_is_blocked'),
                                                 isError: true);
                                             return;
                                           }
@@ -382,14 +388,14 @@ class _CreateEditQuickTransactionPageState
                                             color: isBlocked
                                                 ? Colors.red
                                                     .withValues(alpha: 0.04)
-                                                : Colors.grey[50],
+                                                : AppThemeColors.surfaceBg(ctx),
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             border: Border.all(
                                               color: isBlocked
                                                   ? Colors.red
                                                       .withValues(alpha: 0.2)
-                                                  : Colors.grey[200]!,
+                                                  : AppThemeColors.border(ctx),
                                             ),
                                           ),
                                           child: Row(
@@ -438,7 +444,8 @@ class _CreateEditQuickTransactionPageState
                                                             FontWeight.w600,
                                                         color: isBlocked
                                                             ? Colors.red[700]
-                                                            : Colors.black87,
+                                                            : AppThemeColors
+                                                                .primaryText(ctx),
                                                       ),
                                                       maxLines: 1,
                                                       overflow: TextOverflow
@@ -451,8 +458,8 @@ class _CreateEditQuickTransactionPageState
                                                         email,
                                                         style: TextStyle(
                                                           fontSize: 12,
-                                                          color: Colors
-                                                              .grey[500],
+                                                          color: AppThemeColors
+                                                              .secondaryText(ctx),
                                                         ),
                                                         maxLines: 1,
                                                         overflow: TextOverflow
@@ -479,9 +486,9 @@ class _CreateEditQuickTransactionPageState
                                                         color: Colors
                                                             .red.shade200),
                                                   ),
-                                                  child: const Text(
-                                                    'Blocked',
-                                                    style: TextStyle(
+                                                  child: Text(
+                                                    t('blocked_label'),
+                                                    style: const TextStyle(
                                                       color: Colors.red,
                                                       fontSize: 11,
                                                       fontWeight:
@@ -493,7 +500,7 @@ class _CreateEditQuickTransactionPageState
                                                 Icon(
                                                   Icons.arrow_forward_ios,
                                                   size: 14,
-                                                  color: Colors.grey[400],
+                                                  color: AppThemeColors.mutedText(ctx),
                                                 ),
                                             ],
                                           ),
@@ -514,6 +521,7 @@ class _CreateEditQuickTransactionPageState
   }
 
   Widget _emptyFriendsState() {
+    final t = AppLocalizations.of(context).t;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -528,17 +536,17 @@ class _CreateEditQuickTransactionPageState
                 size: 40, color: AppColors.cyan),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No friends yet',
+          Text(
+            t('no_friends_yet'),
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87),
+                color: AppThemeColors.primaryText(context)),
           ),
           const SizedBox(height: 6),
           Text(
-            'Add friends to quickly select them here',
-            style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+            t('add_friends_to_quickly_select_them_here'),
+            style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
             textAlign: TextAlign.center,
           ),
         ],
@@ -547,10 +555,11 @@ class _CreateEditQuickTransactionPageState
   }
 
   Future<void> _submit() async {
+    final t = AppLocalizations.of(context).t;
     final isEditing = widget.transaction != null;
     if (!_formKey.currentState!.validate()) return;
     if (_isBlockedEmail(_counterpartyEmailController.text)) {
-      showSnack(context, 'This user is blocked.', isError: true);
+      showSnack(context, t('this_user_is_blocked'), isError: true);
       return;
     }
     setState(() => _isLoading = true);
@@ -593,9 +602,9 @@ class _CreateEditQuickTransactionPageState
   Widget _buildStylishField({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: AppThemeColors.border(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -610,6 +619,7 @@ class _CreateEditQuickTransactionPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final userEmail = _userEmail;
     final isEditing = widget.transaction != null;
     final limitReached = !widget.useCoins &&
@@ -620,14 +630,16 @@ class _CreateEditQuickTransactionPageState
 
     if (userEmail == null) {
       return Scaffold(
+        backgroundColor: AppThemeColors.scaffoldBg(context),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Error: User not logged in.'),
+              Text(t('error_user_not_logged_in'),
+                  style: TextStyle(color: AppThemeColors.primaryText(context))),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Go Back'),
+                child: Text(t('go_back_label')),
               ),
             ],
           ),
@@ -636,7 +648,7 @@ class _CreateEditQuickTransactionPageState
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -666,8 +678,8 @@ class _CreateEditQuickTransactionPageState
                   Expanded(
                     child: Text(
                       isEditing
-                          ? 'Edit Quick Transaction'
-                          : 'New Quick Transaction',
+                          ? t('edit_quick_transaction_title')
+                          : t('new_quick_transaction_title'),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -694,7 +706,9 @@ class _CreateEditQuickTransactionPageState
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE3F2FD),
+                            color: AppThemeColors.tinted(context,
+                                light: const Color(0xFFE3F2FD),
+                                dark: const Color(0xFF1B3A57)),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.blue.shade200),
                           ),
@@ -704,9 +718,10 @@ class _CreateEditQuickTransactionPageState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Daily quick transactions remaining: ${widget.dailyRemaining}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600),
+                                  '${t('daily_quick_transactions_remaining_label')}: ${widget.dailyRemaining}',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppThemeColors.primaryText(context)),
                                 ),
                               ),
                             ],
@@ -721,20 +736,24 @@ class _CreateEditQuickTransactionPageState
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3E0),
+                            color: AppThemeColors.tinted(context,
+                                light: const Color(0xFFFFF3E0),
+                                dark: const Color(0xFF4A3F1F)),
                             borderRadius: BorderRadius.circular(12),
                             border:
                                 Border.all(color: Colors.orange.shade300),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.warning_amber_rounded,
+                              const Icon(Icons.warning_amber_rounded,
                                   color: Colors.orange),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Daily free limit is exhausted. This will spend 5 LenDen coins.',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                  t('daily_free_limit_exhausted_coins_message'),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppThemeColors.primaryText(context)),
                                 ),
                               ),
                             ],
@@ -755,7 +774,7 @@ class _CreateEditQuickTransactionPageState
                           onChanged: (val) =>
                               setState(() => _currency = val ?? 'INR'),
                           decoration: InputDecoration(
-                            labelText: 'Currency',
+                            labelText: t('currency'),
                             prefixIcon: Icon(Icons.currency_exchange,
                                 color: AppColors.cyan),
                             border: InputBorder.none,
@@ -769,7 +788,7 @@ class _CreateEditQuickTransactionPageState
                         child: TextFormField(
                           controller: _amountController,
                           decoration: InputDecoration(
-                            labelText: 'Amount (${_currencySymbol()})',
+                            labelText: '${t('amount')} (${_currencySymbol()})',
                             prefixIcon: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Text(
@@ -786,7 +805,7 @@ class _CreateEditQuickTransactionPageState
                           keyboardType: TextInputType.number,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter an amount';
+                              return t('please_enter_an_amount');
                             }
                             return null;
                           },
@@ -798,16 +817,16 @@ class _CreateEditQuickTransactionPageState
                       _buildStylishField(
                         child: TextFormField(
                           controller: _descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            prefixIcon:
-                                Icon(Icons.description, color: AppColors.cyan),
+                          decoration: InputDecoration(
+                            labelText: t('description'),
+                            prefixIcon: const Icon(Icons.description,
+                                color: AppColors.cyan),
                             border: InputBorder.none,
                           ),
                           maxLines: 2,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter a description';
+                              return t('please_enter_a_description');
                             }
                             return null;
                           },
@@ -820,10 +839,10 @@ class _CreateEditQuickTransactionPageState
                         child: TextFormField(
                           initialValue: userEmail,
                           enabled: false,
-                          decoration: const InputDecoration(
-                            labelText: 'Your Email',
+                          decoration: InputDecoration(
+                            labelText: t('your_email'),
                             prefixIcon:
-                                Icon(Icons.person, color: Colors.grey),
+                                const Icon(Icons.person, color: Colors.grey),
                             border: InputBorder.none,
                           ),
                         ),
@@ -836,7 +855,7 @@ class _CreateEditQuickTransactionPageState
                           controller: _counterpartyEmailController,
                           enabled: !isEditing,
                           decoration: InputDecoration(
-                            labelText: 'Counterparty Email',
+                            labelText: t('counterparty_email'),
                             prefixIcon: Icon(Icons.person_outline,
                                 color: isEditing
                                     ? Colors.grey
@@ -852,10 +871,11 @@ class _CreateEditQuickTransactionPageState
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter a counterparty email';
+                              return t('please_enter_counterparty_email');
                             }
                             if (value == userEmail) {
-                              return 'Counterparty cannot be the same as your email';
+                              return t(
+                                  'counterparty_cannot_be_same_as_your_email');
                             }
                             return null;
                           },
@@ -891,22 +911,22 @@ class _CreateEditQuickTransactionPageState
                       _buildStylishField(
                         child: DropdownButtonFormField<String>(
                           value: _role,
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 'lender',
-                              child: Text('Lending (You gave money)'),
+                              child: Text(t('lending_you_gave_money')),
                             ),
                             DropdownMenuItem(
                               value: 'borrower',
-                              child: Text('Borrowing (You took money)'),
+                              child: Text(t('borrowing_you_took_money')),
                             ),
                           ],
                           onChanged: (val) =>
                               setState(() => _role = val ?? 'lender'),
-                          decoration: const InputDecoration(
-                            labelText: 'Your Position',
-                            prefixIcon:
-                                Icon(Icons.people, color: AppColors.cyan),
+                          decoration: InputDecoration(
+                            labelText: t('your_position'),
+                            prefixIcon: const Icon(Icons.people,
+                                color: AppColors.cyan),
                             border: InputBorder.none,
                           ),
                         ),
@@ -922,9 +942,9 @@ class _CreateEditQuickTransactionPageState
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: AppThemeColors.surfaceBg(context),
                 border: Border(
-                  top: BorderSide(color: Colors.grey[200]!),
+                  top: BorderSide(color: AppThemeColors.divider(context)),
                 ),
               ),
               child: Row(
@@ -939,9 +959,10 @@ class _CreateEditQuickTransactionPageState
                         ),
                       ),
                       child: Text(
-                        'Cancel',
-                        style:
-                            TextStyle(color: Colors.grey[700], fontSize: 16),
+                        t('cancel'),
+                        style: TextStyle(
+                            color: AppThemeColors.secondaryText(context),
+                            fontSize: 16),
                       ),
                     ),
                   ),
@@ -968,7 +989,7 @@ class _CreateEditQuickTransactionPageState
                               ),
                             )
                           : Text(
-                              isEditing ? 'Update' : 'Create',
+                              isEditing ? t('update') : t('create'),
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,

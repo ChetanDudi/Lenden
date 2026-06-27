@@ -8,6 +8,8 @@ import '../utils/api_client.dart';
 import '../session.dart';
 import '../admin/widgets/top_wave_clipper.dart';
 import '../utils/responsive.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminManagementPage extends StatefulWidget {
   const AdminManagementPage({Key? key}) : super(key: key);
@@ -56,7 +58,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
     } catch (e) {
       setState(() => isLoading = false);
       _showStylishSnackBar(
-        message: 'Failed to fetch admins',
+        message: AppLocalizations.of(context).t('failed_to_fetch_admins'),
         isSuccess: false,
         icon: Icons.sync_problem,
       );
@@ -72,6 +74,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
   }
 
   Future<void> addAdmin() async {
+    final t = AppLocalizations.of(context).t;
     final formKey = GlobalKey<FormState>();
     String name = '';
     String email = '';
@@ -85,14 +88,14 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
     await showDialog(
       context: context,
       barrierDismissible: false, // Prevent dismissing while submitting
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Dialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setState) => Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
+            width: MediaQuery.of(ctx).size.width * 0.9,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(ctx),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -116,7 +119,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           clipper: TopWaveClipper(),
                           child: Container(
                             height: 100,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [AppColors.cyan, Color(0xFF48CAE4)],
                                 begin: Alignment.topLeft,
@@ -131,11 +134,11 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           right: 0,
                           child: Column(
                             children: [
-                              Icon(Icons.admin_panel_settings,
+                              const Icon(Icons.admin_panel_settings,
                                   color: Colors.white, size: 40),
                               Text(
-                                'Add New Admin',
-                                style: TextStyle(
+                                t('add_new_admin'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -151,7 +154,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                     // Input Fields with enhanced styling
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(ctx),
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
@@ -162,19 +165,20 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         ],
                       ),
                       child: TextFormField(
+                        style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                         decoration: InputDecoration(
-                          labelText: 'Name',
+                          labelText: t('name'),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: AppColors.cyan),
+                            borderSide: const BorderSide(color: AppColors.cyan),
                           ),
                           prefixIcon:
-                              Icon(Icons.person, color: AppColors.cyan),
+                              const Icon(Icons.person, color: AppColors.cyan),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: AppThemeColors.cardBg(ctx),
                         ),
                         validator: (value) =>
-                            value?.isEmpty ?? true ? 'Required' : null,
+                            value?.isEmpty ?? true ? t('required') : null,
                         onSaved: (value) => name = value ?? '',
                       ),
                     ),
@@ -186,7 +190,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppThemeColors.cardBg(ctx),
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
@@ -197,8 +201,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             ],
                           ),
                           child: TextFormField(
+                            style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                             decoration: InputDecoration(
-                              labelText: 'Email',
+                              labelText: t('email'),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: BorderSide(
@@ -212,10 +217,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                       ? Colors.red
                                       : AppColors.cyan),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: AppThemeColors.cardBg(ctx),
                             ),
                             validator: (value) =>
-                                value?.isEmpty ?? true ? 'Required' : null,
+                                value?.isEmpty ?? true ? t('required') : null,
                             onSaved: (value) => email = value ?? '',
                           ),
                         ),
@@ -224,7 +229,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             padding: const EdgeInsets.only(top: 6, left: 16),
                             child: Text(
                               emailError ?? '',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.red,
                                 fontSize: 12,
                               ),
@@ -240,7 +245,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppThemeColors.cardBg(ctx),
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
@@ -251,8 +256,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             ],
                           ),
                           child: TextFormField(
+                            style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                             decoration: InputDecoration(
-                              labelText: 'Username',
+                              labelText: t('username'),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: BorderSide(
@@ -266,10 +272,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                       ? Colors.red
                                       : AppColors.cyan),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: AppThemeColors.cardBg(ctx),
                             ),
                             validator: (value) =>
-                                value?.isEmpty ?? true ? 'Required' : null,
+                                value?.isEmpty ?? true ? t('required') : null,
                             onSaved: (value) => username = value ?? '',
                           ),
                         ),
@@ -278,7 +284,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             padding: const EdgeInsets.only(top: 6, left: 16),
                             child: Text(
                               usernameError ?? '',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.red,
                                 fontSize: 12,
                               ),
@@ -290,7 +296,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
 
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(ctx),
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
@@ -302,24 +308,24 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                       ),
                       child: TextFormField(
                         obscureText: true,
+                        style: TextStyle(color: AppThemeColors.primaryText(ctx)),
                         decoration: InputDecoration(
-                          labelText: 'Password',
+                          labelText: t('password'),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: AppColors.cyan),
+                            borderSide: const BorderSide(color: AppColors.cyan),
                           ),
                           prefixIcon:
-                              Icon(Icons.lock, color: AppColors.cyan),
+                              const Icon(Icons.lock, color: AppColors.cyan),
                           filled: true,
-                          fillColor: Colors.white,
-                          helperText:
-                              'Must be 8-30 characters with uppercase, lowercase, and special character',
+                          fillColor: AppThemeColors.cardBg(ctx),
+                          helperText: t('password_requirements_short'),
                           helperMaxLines: 2,
                         ),
                         validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Required';
+                          if (value?.isEmpty ?? true) return t('required');
                           if (!isPasswordValid(value!)) {
-                            return 'Password must meet requirements';
+                            return t('password_requirements_short');
                           }
                           return null;
                         },
@@ -331,7 +337,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                     // Gender Selection
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(ctx),
                         borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
@@ -344,15 +350,15 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                       child: DropdownButtonFormField<String>(
                         value: gender,
                         decoration: InputDecoration(
-                          labelText: 'Gender',
+                          labelText: t('gender'),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: AppColors.cyan),
+                            borderSide: const BorderSide(color: AppColors.cyan),
                           ),
                           prefixIcon:
-                              Icon(Icons.people, color: AppColors.cyan),
+                              const Icon(Icons.people, color: AppColors.cyan),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: AppThemeColors.cardBg(ctx),
                         ),
                         items: ['Male', 'Female', 'Other'].map((String value) {
                           return DropdownMenuItem<String>(
@@ -376,9 +382,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         TextButton(
                           onPressed: isSubmitting
                               ? null
-                              : () => Navigator.pop(context),
-                          child: Text('Cancel',
-                              style: TextStyle(color: Colors.grey[600])),
+                              : () => Navigator.pop(dialogContext),
+                          child: Text(t('cancel'),
+                              style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
                         ),
                         ElevatedButton(
                           onPressed: isSubmitting
@@ -409,11 +415,11 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                           json.decode(response.body);
 
                                       if (response.statusCode == 201) {
-                                        Navigator.pop(context);
+                                        Navigator.pop(dialogContext);
                                         fetchAdmins();
                                         _showStylishSnackBar(
                                           message: responseData['message'] ??
-                                              'Admin added successfully',
+                                              t('admin_added_successfully'),
                                           icon: Icons.person_add,
                                         );
                                       } else {
@@ -429,12 +435,12 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                 responseData['message'];
                                           } else {
                                             // Show general error
-                                            ScaffoldMessenger.of(context)
+                                            ScaffoldMessenger.of(dialogContext)
                                                 .showSnackBar(
                                               SnackBar(
                                                 content: Text(
                                                     responseData['message'] ??
-                                                        'Failed to add admin'),
+                                                        t('failed_to_add_admin')),
                                                 backgroundColor: Colors.red,
                                               ),
                                             );
@@ -445,11 +451,11 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                       setState(() {
                                         isSubmitting = false;
                                       });
-                                      ScaffoldMessenger.of(context)
+                                      ScaffoldMessenger.of(dialogContext)
                                           .showSnackBar(
                                         SnackBar(
                                           content:
-                                              Text('Error: ${e.toString()}'),
+                                              Text('${t('error')}: ${e.toString()}'),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -460,7 +466,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             backgroundColor: AppColors.cyan,
                             disabledBackgroundColor:
                                 AppColors.cyan.withValues(alpha: 0.5),
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 30, vertical: 15),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -470,7 +476,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    SizedBox(
+                                    const SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
@@ -478,12 +484,12 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                         strokeWidth: 2,
                                       ),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text('Adding admin...',
-                                        style: TextStyle(color: Colors.white)),
+                                    const SizedBox(width: 12),
+                                    Text(t('adding_admin_ellipsis'),
+                                        style: const TextStyle(color: Colors.white)),
                                   ],
                                 )
-                              : Text('Add Admin'),
+                              : Text(t('add_admin')),
                         ),
                       ],
                     ),
@@ -503,80 +509,83 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
     return user?['isSuperAdmin'] == true;
   }
 
-  static const List<Map<String, dynamic>> _permissionDefs = [
+  List<Map<String, dynamic>> _permissionDefs(String Function(String) t) => [
     {
       'key': 'canManageUsers',
-      'label': 'Manage Users',
+      'label': t('manage_users'),
       'icon': Icons.people_alt_rounded,
-      'color': Color(0xFF304E96),
+      'color': const Color(0xFF304E96),
     },
     {
       'key': 'canManageTransactions',
-      'label': 'Manage Transactions',
+      'label': t('manage_transactions'),
       'icon': Icons.receipt_long_rounded,
-      'color': Color(0xFF1E6B3B),
+      'color': const Color(0xFF1E6B3B),
     },
     {
       'key': 'canManageSupport',
-      'label': 'Manage Support',
+      'label': t('manage_support'),
       'icon': Icons.support_agent_rounded,
-      'color': Color(0xFF11806A),
+      'color': const Color(0xFF11806A),
     },
     {
       'key': 'canManageContent',
-      'label': 'Manage Content',
+      'label': t('manage_content'),
       'icon': Icons.campaign_rounded,
-      'color': Color(0xFF3157B7),
+      'color': const Color(0xFF3157B7),
     },
     {
       'key': 'canManageDigitise',
-      'label': 'Manage Digitise',
+      'label': t('manage_digitise'),
       'icon': Icons.card_giftcard_rounded,
-      'color': Color(0xFF9B5B21),
+      'color': const Color(0xFF9B5B21),
     },
     {
       'key': 'canManageSettings',
-      'label': 'Manage Settings',
+      'label': t('manage_settings'),
       'icon': Icons.settings_rounded,
-      'color': Color(0xFF296D4E),
+      'color': const Color(0xFF296D4E),
     },
     {
       'key': 'canViewAuditLogs',
-      'label': 'View Audit Logs',
+      'label': t('view_audit_logs'),
       'icon': Icons.history_rounded,
-      'color': Color(0xFF5B2D8E),
+      'color': const Color(0xFF5B2D8E),
     },
   ];
 
   Future<void> _toggleSuperAdmin(
       String adminId, bool currentValue) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: AppThemeColors.cardBg(ctx),
         title: Text(
-          currentValue ? 'Revoke Super Admin?' : 'Grant Super Admin?',
+          currentValue ? t('revoke_super_admin_question') : t('grant_super_admin_question'),
           style: TextStyle(
               fontWeight: FontWeight.bold,
               color: currentValue ? Colors.red : Colors.green),
         ),
         content: Text(
           currentValue
-              ? 'This admin will lose all super admin privileges.'
-              : 'This admin will gain full super admin access to all features.',
+              ? t('admin_lose_super_privileges')
+              : t('admin_gain_super_access'),
+          style: TextStyle(color: AppThemeColors.primaryText(ctx)),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(t('cancel'))),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: currentValue ? Colors.red : Colors.green,
             ),
             child: Text(
-              currentValue ? 'Revoke' : 'Grant',
+              currentValue ? t('revoke') : t('grant'),
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -593,21 +602,21 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
         fetchAdmins();
         _showStylishSnackBar(
           message: !currentValue
-              ? 'Super admin privileges granted'
-              : 'Super admin privileges revoked',
+              ? t('super_admin_privileges_granted')
+              : t('super_admin_privileges_revoked'),
           icon: Icons.admin_panel_settings,
         );
       } else {
         final data = json.decode(response.body);
         _showStylishSnackBar(
-          message: (data['message'] ?? 'Failed to update').toString(),
+          message: (data['message'] ?? t('failed_to_update')).toString(),
           isSuccess: false,
           icon: Icons.error_outline,
         );
       }
     } catch (_) {
       _showStylishSnackBar(
-        message: 'Failed to update super admin status',
+        message: t('failed_to_update_super_admin_status'),
         isSuccess: false,
         icon: Icons.error_outline,
       );
@@ -616,6 +625,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
 
   Future<void> _savePermissions(
       String adminId, Map<String, bool> permissions) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.patch(
         '/api/admin/admins/$adminId/permissions',
@@ -624,13 +634,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
       if (response.statusCode == 200) {
         fetchAdmins();
         _showStylishSnackBar(
-          message: 'Permissions updated successfully',
+          message: t('permissions_updated_successfully'),
           icon: Icons.check_circle,
         );
       } else {
         final data = json.decode(response.body);
         _showStylishSnackBar(
-          message: (data['message'] ?? 'Failed to update permissions')
+          message: (data['message'] ?? t('failed_to_update_permissions'))
               .toString(),
           isSuccess: false,
           icon: Icons.error_outline,
@@ -638,7 +648,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
       }
     } catch (_) {
       _showStylishSnackBar(
-        message: 'Failed to update permissions',
+        message: t('failed_to_update_permissions'),
         isSuccess: false,
         icon: Icons.error_outline,
       );
@@ -646,6 +656,8 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
   }
 
   void _showPermissionsEditor(Map<String, dynamic> admin) {
+    final t = AppLocalizations.of(context).t;
+    final permissionDefs = _permissionDefs(t);
     final isSuperAdmin = admin['isSuperAdmin'] == true;
     final existingPerms =
         (admin['permissions'] is Map)
@@ -653,7 +665,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
             : <String, dynamic>{};
 
     final perms = <String, bool>{};
-    for (final def in _permissionDefs) {
+    for (final def in permissionDefs) {
       final key = def['key'] as String;
       perms[key] = existingPerms[key] != false;
     }
@@ -662,13 +674,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
+      builder: (sheetContext) => StatefulBuilder(
         builder: (ctx, setSheet) => Container(
-          height: MediaQuery.of(context).size.height * 0.82,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          height: MediaQuery.of(sheetContext).size.height * 0.82,
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(ctx),
             borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -708,14 +720,15 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                         children: [
                           Text(
                             admin['name'] ?? '',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16),
+                                fontSize: 16,
+                                color: AppThemeColors.primaryText(ctx)),
                           ),
                           Text(
                             admin['email'] ?? '',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                                fontSize: 12, color: AppThemeColors.secondaryText(ctx)),
                           ),
                         ],
                       ),
@@ -744,17 +757,18 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             color: Colors.amber, size: 20),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Super Admin',
+                            Text(t('super_admin'),
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 15)),
-                            Text('Full access to all features',
+                                    fontSize: 15,
+                                    color: AppThemeColors.primaryText(ctx))),
+                            Text(t('full_access_all_features'),
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
+                                    fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
                           ],
                         ),
                       ),
@@ -788,15 +802,15 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           border: Border.all(
                               color: Colors.amber.withValues(alpha: 0.3)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.info_outline,
+                            const Icon(Icons.info_outline,
                                 color: Colors.amber, size: 18),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Super admins have all permissions automatically.',
-                                style: TextStyle(
+                                t('super_admins_have_all_permissions'),
+                                style: const TextStyle(
                                     color: Colors.amber,
                                     fontSize: 13),
                               ),
@@ -804,7 +818,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           ],
                         ),
                       ),
-                    ...(_permissionDefs.map((def) {
+                    ...(permissionDefs.map((def) {
                       final key = def['key'] as String;
                       final color = def['color'] as Color;
                       final icon = def['icon'] as IconData;
@@ -825,9 +839,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             Expanded(
                               child: Text(
                                 label,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w500),
+                                    fontWeight: FontWeight.w500,
+                                    color: AppThemeColors.primaryText(ctx)),
                               ),
                             ),
                             Switch(
@@ -864,9 +879,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Save Permissions',
-                        style: TextStyle(
+                      child: Text(
+                        t('save_permissions'),
+                        style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 15),
@@ -881,15 +896,16 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
     );
   }
 
-  Widget _buildPermissionIcons(Map<String, dynamic> admin) {
+  Widget _buildPermissionIcons(Map<String, dynamic> admin, String Function(String) t) {
+    final permissionDefs = _permissionDefs(t);
     final perms = (admin['permissions'] is Map)
         ? Map<String, dynamic>.from(admin['permissions'] as Map)
         : <String, dynamic>{};
 
-    final granted = _permissionDefs
+    final granted = permissionDefs
         .where((d) => perms[d['key']] != false)
         .toList();
-    final denied = _permissionDefs.length - granted.length;
+    final denied = permissionDefs.length - granted.length;
 
     return Row(
       children: [
@@ -906,7 +922,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               style: TextStyle(fontSize: 11, color: Colors.grey[500])),
         if (denied > 0) ...[
           const SizedBox(width: 4),
-          Text('($denied restricted)',
+          Text('($denied ${t('restricted_suffix')})',
               style: TextStyle(fontSize: 10, color: Colors.red[300])),
         ],
       ],
@@ -914,6 +930,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
   }
 
   Future<void> removeAdmin(String adminId) async {
+    final t = AppLocalizations.of(context).t;
     setState(() => adminBeingRemoved = adminId);
     try {
       final response = await ApiClient.delete('/api/admin/admins/$adminId');
@@ -921,13 +938,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
       if (response.statusCode == 200) {
         fetchAdmins();
         _showStylishSnackBar(
-          message: 'Admin removed successfully',
+          message: t('admin_removed_successfully'),
           icon: Icons.person_remove,
         );
       }
     } catch (e) {
       _showStylishSnackBar(
-        message: 'Failed to remove admin',
+        message: t('failed_to_remove_admin'),
         isSuccess: false,
         icon: Icons.error_outline,
       );
@@ -967,8 +984,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           // Top wave background
@@ -980,7 +998,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(78),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],
                     begin: Alignment.topLeft,
@@ -1001,13 +1019,13 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back,
+                        icon: const Icon(Icons.arrow_back,
                             color: Colors.white, size: 24),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
-                        'Manage Admins',
-                        style: TextStyle(
+                        t('manage_admins'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -1023,40 +1041,41 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(
                   controller: _searchController,
+                  style: TextStyle(color: AppThemeColors.primaryText(context)),
                   decoration: InputDecoration(
-                    hintText: 'Search admins...',
-                    prefixIcon: Icon(Icons.search),
+                    hintText: t('search_admins'),
+                    prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppThemeColors.cardBg(context),
                   ),
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
               // Admin list container with margin from wave
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(top: 20),
+                  margin: const EdgeInsets.only(top: 20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(30)),
+                        const BorderRadius.vertical(top: Radius.circular(30)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
-                        offset: Offset(0, -5),
+                        offset: const Offset(0, -5),
                       ),
                     ],
                   ),
                   child: ClipRRect(
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(30)),
+                        const BorderRadius.vertical(top: Radius.circular(30)),
                     child: isLoading
-                        ? Center(child: CircularProgressIndicator())
+                        ? const Center(child: CircularProgressIndicator())
                         : admins.isEmpty
                             ? Center(
                                 child: Column(
@@ -1067,12 +1086,12 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                       size: 64,
                                       color: Colors.grey[400],
                                     ),
-                                    SizedBox(height: 16),
+                                    const SizedBox(height: 16),
                                     Text(
-                                      'No admins found',
+                                      t('no_admins_found'),
                                       style: TextStyle(
                                         fontSize: 18,
-                                        color: Colors.grey[600],
+                                        color: AppThemeColors.secondaryText(context),
                                       ),
                                     ),
                                   ],
@@ -1083,7 +1102,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                   Expanded(
                                     child: ListView.builder(
                                       padding:
-                                          EdgeInsets.fromLTRB(16, 24, 16, 16),
+                                          const EdgeInsets.fromLTRB(16, 24, 16, 16),
                                       itemCount: isSearchMode
                                           ? filteredAdmins.length
                                           : (showAllAdmins
@@ -1097,9 +1116,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                             'chetandudi791@gmail.com';
 
                                         return Container(
-                                          margin: EdgeInsets.only(bottom: 16),
+                                          margin: const EdgeInsets.only(bottom: 16),
                                           decoration: BoxDecoration(
-                                            color: Colors.white,
+                                            color: AppThemeColors.cardBg(context),
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             border: Border.all(
@@ -1113,7 +1132,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                     .withValues(alpha: 0.03),
                                                 blurRadius: 10,
                                                 spreadRadius: 0,
-                                                offset: Offset(0, 2),
+                                                offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
@@ -1125,7 +1144,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                   right: 8,
                                                   child: Container(
                                                     padding:
-                                                        EdgeInsets.symmetric(
+                                                        const EdgeInsets.symmetric(
                                                             horizontal: 12,
                                                             vertical: 4),
                                                     decoration: BoxDecoration(
@@ -1144,9 +1163,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                             size: 16,
                                                             color: Colors
                                                                 .grey.shade700),
-                                                        SizedBox(width: 4),
+                                                        const SizedBox(width: 4),
                                                         Text(
-                                                          'Protected',
+                                                          t('protected_label'),
                                                           style: TextStyle(
                                                             color: Colors
                                                                 .grey.shade700,
@@ -1160,7 +1179,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                   ),
                                                 ),
                                               Padding(
-                                                padding: EdgeInsets.all(16),
+                                                padding: const EdgeInsets.all(16),
                                                 child: Row(
                                                   children: [
                                                     CircleAvatar(
@@ -1170,7 +1189,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                       child: Text(
                                                         admin['name'][0]
                                                             .toUpperCase(),
-                                                        style: TextStyle(
+                                                        style: const TextStyle(
                                                           fontSize: 24,
                                                           color: Colors.white,
                                                           fontWeight:
@@ -1178,7 +1197,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                         ),
                                                       ),
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Column(
                                                         crossAxisAlignment:
@@ -1190,11 +1209,12 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                               Expanded(
                                                                 child: Text(
                                                                   admin['name'],
-                                                                  style: const TextStyle(
+                                                                  style: TextStyle(
                                                                     fontSize: 17,
                                                                     fontWeight:
                                                                         FontWeight
                                                                             .bold,
+                                                                    color: AppThemeColors.primaryText(context),
                                                                   ),
                                                                 ),
                                                               ),
@@ -1220,24 +1240,24 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                                             .amber
                                                                             .withValues(alpha: 0.4)),
                                                                   ),
-                                                                  child: const Row(
+                                                                  child: Row(
                                                                     mainAxisSize:
                                                                         MainAxisSize
                                                                             .min,
                                                                     children: [
-                                                                      Icon(
+                                                                      const Icon(
                                                                           Icons
                                                                               .star_rounded,
                                                                           color:
                                                                               Colors.amber,
                                                                           size:
                                                                               12),
-                                                                      SizedBox(
+                                                                      const SizedBox(
                                                                           width:
                                                                               3),
                                                                       Text(
-                                                                        'Super',
-                                                                        style: TextStyle(
+                                                                        t('super_badge'),
+                                                                        style: const TextStyle(
                                                                             fontSize:
                                                                                 10,
                                                                             fontWeight: FontWeight
@@ -1254,16 +1274,14 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                           Text(
                                                             admin['email'],
                                                             style: TextStyle(
-                                                              color: Colors.grey
-                                                                  .shade600,
+                                                              color: AppThemeColors.secondaryText(context),
                                                               fontSize: 13,
                                                             ),
                                                           ),
                                                           Text(
                                                             '@${admin['username']}',
                                                             style: TextStyle(
-                                                              color: Colors.grey
-                                                                  .shade500,
+                                                              color: AppThemeColors.mutedText(context),
                                                               fontSize: 12,
                                                             ),
                                                           ),
@@ -1272,7 +1290,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                             const SizedBox(
                                                                 height: 6),
                                                             _buildPermissionIcons(
-                                                                admin),
+                                                                admin, t),
                                                           ],
                                                         ],
                                                       ),
@@ -1286,7 +1304,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                               color: Color(
                                                                   0xFF00B4D8)),
                                                           tooltip:
-                                                              'Edit Permissions',
+                                                              t('edit_permissions_tooltip'),
                                                           onPressed: () =>
                                                               _showPermissionsEditor(
                                                                   admin),
@@ -1313,7 +1331,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                 Positioned.fill(
                                                   child: Container(
                                                     decoration: BoxDecoration(
-                                                      color: Colors.white
+                                                      color: AppThemeColors.cardBg(context)
                                                           .withValues(alpha: 0.7),
                                                       borderRadius:
                                                           BorderRadius.circular(
@@ -1324,7 +1342,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                         mainAxisSize:
                                                             MainAxisSize.min,
                                                         children: [
-                                                          SizedBox(
+                                                          const SizedBox(
                                                             width: 24,
                                                             height: 24,
                                                             child:
@@ -1337,10 +1355,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                                           0xFF00B4D8)),
                                                             ),
                                                           ),
-                                                          SizedBox(height: 8),
+                                                          const SizedBox(height: 8),
                                                           Text(
-                                                            'Removing admin...',
-                                                            style: TextStyle(
+                                                            t('removing_admin_ellipsis'),
+                                                            style: const TextStyle(
                                                               color: Color(
                                                                   0xFF00B4D8),
                                                               fontSize: 12,
@@ -1373,7 +1391,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.cyan,
-                                          padding: EdgeInsets.symmetric(
+                                          padding: const EdgeInsets.symmetric(
                                               horizontal: 30, vertical: 15),
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
@@ -1381,8 +1399,8 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                           ),
                                         ),
                                         child: Text(
-                                          'View All Admins',
-                                          style: TextStyle(
+                                          t('view_all_admins'),
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -1408,16 +1426,16 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               FocusScope.of(context).unfocus();
               fetchAdmins();
             },
-            backgroundColor: Color(0xFF48CAE4),
-            child: Icon(Icons.people_outline),
+            backgroundColor: const Color(0xFF48CAE4),
+            child: const Icon(Icons.people_outline),
             mini: true,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           FloatingActionButton.extended(
             heroTag: 'addAdmin',
             onPressed: addAdmin,
-            icon: Icon(Icons.person_add),
-            label: Text('Add Admin'),
+            icon: const Icon(Icons.person_add),
+            label: Text(t('add_admin')),
             backgroundColor: AppColors.cyan,
           ),
         ],
@@ -1426,10 +1444,11 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
   }
 
   void _showDeleteConfirmation(dynamic admin) {
+    final t = AppLocalizations.of(context).t;
     showGeneralDialog(
       context: context,
       pageBuilder: (context, animation, secondaryAnimation) => Container(),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
         final curvedAnimation = CurvedAnimation(
           parent: animation,
           curve: Curves.easeInOut,
@@ -1443,9 +1462,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               backgroundColor: Colors.transparent,
               contentPadding: EdgeInsets.zero,
               content: Container(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppThemeColors.cardBg(dialogContext),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -1469,69 +1488,69 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.warning_rounded,
                           color: Colors.red,
                           size: 40,
                         ),
                       ],
                     ),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     Text(
-                      'Remove Admin Access',
-                      style: TextStyle(
+                      t('remove_admin_access_title'),
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.red,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'Are you sure you want to remove',
+                      t('are_you_sure_remove'),
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppThemeColors.secondaryText(dialogContext),
                         fontSize: 16,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       admin['name'],
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: AppThemeColors.primaryText(dialogContext),
                       ),
                     ),
                     Text(
-                      'as admin?',
+                      t('as_admin_question'),
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppThemeColors.secondaryText(dialogContext),
                         fontSize: 16,
                       ),
                     ),
-                    SizedBox(height: 32),
+                    const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: Text(
-                            'Cancel',
+                            t('cancel'),
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: AppThemeColors.secondaryText(dialogContext),
                               fontSize: 16,
                             ),
                           ),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.pop(context);
+                            Navigator.pop(dialogContext);
                             removeAdmin(admin['_id']);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 32,
                               vertical: 12,
                             ),
@@ -1541,8 +1560,8 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                             elevation: 2,
                           ),
                           child: Text(
-                            'Remove Access',
-                            style: TextStyle(fontSize: 16),
+                            t('remove_access'),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
                       ],
@@ -1554,7 +1573,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
           ),
         );
       },
-      transitionDuration: Duration(milliseconds: 300),
+      transitionDuration: const Duration(milliseconds: 300),
     );
   }
 }

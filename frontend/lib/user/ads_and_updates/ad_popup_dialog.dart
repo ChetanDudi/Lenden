@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../utils/api_client.dart';
 import '../digitise/subscriptions_page.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserAdPopupDialog extends StatefulWidget {
   final Map<String, dynamic> ad;
@@ -65,6 +67,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
   }
 
   Future<void> _reportAd(BuildContext context) async {
+    final t = AppLocalizations.of(context).t;
     final controller = TextEditingController();
     final shouldReport = await showDialog<bool>(
       context: context,
@@ -83,22 +86,22 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(dialogContext),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Report This Ad',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                Text(
+                  t('report_this_ad_label'),
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Tell us what feels wrong about this ad. This helps admins review and improve what users see.',
+                  t('report_ad_help_message'),
                   style: TextStyle(
-                    color: Colors.grey.shade700,
+                    color: AppThemeColors.secondaryText(dialogContext),
                     fontWeight: FontWeight.w600,
                     height: 1.35,
                   ),
@@ -107,10 +110,11 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                 TextField(
                   controller: controller,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Reason',
-                    hintText: 'Example: irrelevant, repeated too often, misleading',
-                    border: OutlineInputBorder(),
+                  style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                  decoration: InputDecoration(
+                    labelText: t('reason_label'),
+                    hintText: t('example_irrelevant_repeated_hint'),
+                    border: const OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -120,7 +124,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(dialogContext, false),
-                        child: const Text('Cancel'),
+                        child: Text(t('cancel')),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -130,7 +134,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.cyan,
                         ),
-                        child: const Text('Report'),
+                        child: Text(t('report_label')),
                       ),
                     ),
                   ],
@@ -160,14 +164,15 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
         },
       );
       if (!mounted) return;
-      showSnack(context, 'Ad reported. Thanks for the feedback.');
+      showSnack(context, t('ad_reported_thanks_message'));
     } catch (_) {
       if (!mounted) return;
-      showSnack(context, 'Could not report this ad right now.', isError: true);
+      showSnack(context, t('could_not_report_ad_message'), isError: true);
     }
   }
 
   Future<void> _hideForAWeek(BuildContext context) async {
+    final t = AppLocalizations.of(context).t;
     final controller = TextEditingController();
     final shouldHide = await showDialog<bool>(
       context: context,
@@ -186,22 +191,22 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(dialogContext),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Not Interested',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                Text(
+                  t('not_interested_label'),
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'We can hide this ad from your screen for a week. You can optionally tell us why.',
+                  t('hide_ad_week_help_message'),
                   style: TextStyle(
-                    color: Colors.grey.shade700,
+                    color: AppThemeColors.secondaryText(dialogContext),
                     fontWeight: FontWeight.w600,
                     height: 1.35,
                   ),
@@ -210,10 +215,11 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                 TextField(
                   controller: controller,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Optional reason',
-                    hintText: 'Example: not relevant to me',
-                    border: OutlineInputBorder(),
+                  style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                  decoration: InputDecoration(
+                    labelText: t('optional_reason_label'),
+                    hintText: t('example_not_relevant_hint'),
+                    border: const OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -223,7 +229,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(dialogContext, false),
-                        child: const Text('Cancel'),
+                        child: Text(t('cancel')),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -233,7 +239,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.cyan,
                         ),
-                        child: const Text('Hide 7 Days'),
+                        child: Text(t('hide_7_days_label')),
                       ),
                     ),
                   ],
@@ -258,15 +264,16 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      showSnack(context, 'This ad will stay hidden for 7 days.');
+      showSnack(context, t('ad_hidden_7_days_message'));
     } catch (_) {
       if (!mounted) return;
-      showSnack(context, 'Could not hide this ad right now.', isError: true);
+      showSnack(context, t('could_not_hide_ad_message'), isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final ad = widget.ad;
     final mediaKind = (ad['mediaKind'] ?? 'none').toString();
     final mediaUrl = (ad['mediaUrl'] ?? '').toString();
@@ -319,9 +326,9 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                             border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.4)),
                           ),
-                          child: const Text(
-                            'Sponsored',
-                            style: TextStyle(
+                          child: Text(
+                            t('sponsored_label'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 12,
@@ -351,8 +358,8 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                     const SizedBox(height: 6),
                     Text(
                       allowImmediateClose
-                          ? 'You can close this ad anytime.'
-                          : 'Close unlocks after ${_closeUnlockLabel(videoCloseAtPercent)}.',
+                          ? t('close_anytime_message')
+                          : t('close_unlocks_after_message').replaceFirst('{label}', _closeUnlockLabel(videoCloseAtPercent, t)),
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -364,7 +371,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
               ),
               // Content area
               Container(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,16 +379,17 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
                     if ((ad['title'] ?? '').toString().trim().isNotEmpty)
                       Text(
                         ad['title'].toString(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                     if ((ad['body'] ?? '').toString().trim().isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Text(
                         ad['body'].toString(),
-                        style: const TextStyle(height: 1.45),
+                        style: TextStyle(height: 1.45, color: AppThemeColors.primaryText(context)),
                       ),
                     ],
                     if (mediaKind != 'none' && mediaUrl.isNotEmpty) ...[
@@ -445,6 +453,7 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
   }
 
   Widget _buildOptionsMenu(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, color: Colors.white),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -469,42 +478,42 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
         }
       },
       itemBuilder: (_) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'hide_today',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.visibility_off_outlined, size: 20),
-            title: Text('Hide Today', style: TextStyle(fontSize: 14)),
+            leading: const Icon(Icons.visibility_off_outlined, size: 20),
+            title: Text(t('hide_today_label'), style: const TextStyle(fontSize: 14)),
             dense: true,
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'not_interested',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.thumb_down_outlined, size: 20),
-            title: Text('Not Interested', style: TextStyle(fontSize: 14)),
+            leading: const Icon(Icons.thumb_down_outlined, size: 20),
+            title: Text(t('not_interested_label'), style: const TextStyle(fontSize: 14)),
             dense: true,
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'report',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.flag_outlined, size: 20),
-            title: Text('Report Ad', style: TextStyle(fontSize: 14)),
+            leading: const Icon(Icons.flag_outlined, size: 20),
+            title: Text(t('report_ad_menu_label'), style: const TextStyle(fontSize: 14)),
             dense: true,
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'subscribe',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.workspace_premium_outlined,
+            leading: const Icon(Icons.workspace_premium_outlined,
                 size: 20, color: Color(0xFF0077B6)),
             title: Text(
-              'Subscribe',
-              style: TextStyle(
+              t('subscribe_label'),
+              style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF0077B6),
                 fontWeight: FontWeight.w700,
@@ -524,16 +533,16 @@ class _UserAdPopupDialogState extends State<UserAdPopupDialog> {
     );
   }
 
-  String _closeUnlockLabel(int percent) {
+  String _closeUnlockLabel(int percent, String Function(String) t) {
     switch (percent) {
       case 25:
-        return '25% of the video has played';
+        return t('video_played_percent_message').replaceFirst('{percent}', '25');
       case 50:
-        return '50% of the video has played';
+        return t('video_played_percent_message').replaceFirst('{percent}', '50');
       case 75:
-        return '75% of the video has played';
+        return t('video_played_percent_message').replaceFirst('{percent}', '75');
       default:
-        return 'the video ends';
+        return t('video_ends_label');
     }
   }
 }
@@ -665,6 +674,7 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     if (!_ready) {
       return Container(
         height: 210,
@@ -679,31 +689,31 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
                     const Icon(Icons.videocam_off_outlined,
                         size: 40, color: Colors.black45),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Video failed to load.',
-                      style: TextStyle(
+                    Text(
+                      t('video_failed_to_load_message'),
+                      style: const TextStyle(
                           fontWeight: FontWeight.w700, color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(
                       onPressed: _retry,
                       icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Retry'),
+                      label: Text(t('retry')),
                     ),
                   ] else ...[
                     const CircularProgressIndicator(),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Loading video...',
-                      style: TextStyle(
+                    Text(
+                      t('loading_video_message'),
+                      style: const TextStyle(
                           fontWeight: FontWeight.w700, color: Colors.black87),
                     ),
                   ],
                   const SizedBox(height: 6),
                   Text(
                     _closeUnlocked
-                        ? 'You can close this ad now.'
-                        : 'Close unlocks in ${_fallbackUnlockSeconds.clamp(0, 999)}s.',
+                        ? t('close_available_now_message')
+                        : t('close_unlocks_in_seconds_message').replaceFirst('{seconds}', '${_fallbackUnlockSeconds.clamp(0, 999)}'),
                     style: TextStyle(
                       color: Colors.grey.shade700,
                       fontWeight: FontWeight.w600,
@@ -788,10 +798,10 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
             ),
             child: Text(
               _closeUnlocked
-                  ? 'Close button is now available.'
+                  ? t('close_button_available_message')
                   : widget.closeAtPercent == 100
-                      ? 'Close will appear after the video finishes.'
-                      : 'Close unlocks in ${closeRemainingSeconds}s.',
+                      ? t('close_after_video_finishes_message')
+                      : t('close_unlocks_in_seconds_message').replaceFirst('{seconds}', '$closeRemainingSeconds'),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,

@@ -8,6 +8,8 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import './create_edit_quick_transaction_page.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class QuickTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -118,11 +120,11 @@ class _QuickTransactionDetailPageState
   // ─── API calls ──────────────────────────────────────────────────────────────
 
   Future<void> _deleteTransaction() async {
+    final t = AppLocalizations.of(context).t;
     final confirm = await _showConfirmDialog(
-      title: 'Delete Transaction',
-      message:
-          'Are you sure you want to delete this transaction? This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t('delete_transaction_title'),
+      message: t('confirm_delete_transaction_irreversible_message'),
+      confirmLabel: t('delete'),
       isDestructive: true,
     );
     if (!confirm) return;
@@ -132,10 +134,10 @@ class _QuickTransactionDetailPageState
       if (!mounted) return;
       if (res.statusCode == 200) {
         _didMutate = true;
-        showSnack(context, 'Transaction deleted');
+        showSnack(context, t('transaction_deleted_message'));
         Navigator.pop(context, true);
       } else {
-        final msg = jsonDecode(res.body)['error'] ?? 'Delete failed';
+        final msg = jsonDecode(res.body)['error'] ?? t('delete_failed_message');
         showSnack(context, msg.toString(), isError: true);
         setState(() => _isLoading = false);
       }
@@ -159,11 +161,11 @@ class _QuickTransactionDetailPageState
   }
 
   Future<void> _clearTransaction() async {
+    final t = AppLocalizations.of(context).t;
     final confirm = await _showConfirmDialog(
-      title: 'Mark as Cleared',
-      message:
-          'Mark this transaction as cleared? This indicates the debt has been settled.',
-      confirmLabel: 'Clear',
+      title: t('mark_as_cleared_title'),
+      message: t('mark_transaction_cleared_confirm_message'),
+      confirmLabel: t('clear'),
     );
     if (!confirm) return;
     setState(() => _isLoading = true);
@@ -184,9 +186,9 @@ class _QuickTransactionDetailPageState
           });
         }
         _didMutate = true;
-        showSnack(context, 'Transaction cleared');
+        showSnack(context, t('transaction_cleared_message'));
       } else {
-        final msg = jsonDecode(res.body)['error'] ?? 'Clear failed';
+        final msg = jsonDecode(res.body)['error'] ?? t('clear_failed_message');
         showSnack(context, msg.toString(), isError: true);
         setState(() => _isLoading = false);
       }
@@ -198,6 +200,7 @@ class _QuickTransactionDetailPageState
   }
 
   Future<void> _requestSettlement() async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _isLoading = true);
     try {
       final res = await ApiClient.post(
@@ -213,9 +216,9 @@ class _QuickTransactionDetailPageState
           setState(() => _isLoading = false);
         }
         _didMutate = true;
-        showSnack(context, 'Settlement request sent');
+        showSnack(context, t('settlement_request_sent_message'));
       } else {
-        final msg = jsonDecode(res.body)['error'] ?? 'Request failed';
+        final msg = jsonDecode(res.body)['error'] ?? t('request_failed_message');
         showSnack(context, msg.toString(), isError: true);
         setState(() => _isLoading = false);
       }
@@ -227,6 +230,7 @@ class _QuickTransactionDetailPageState
   }
 
   Future<void> _respondSettlement(bool accept) async {
+    final t = AppLocalizations.of(context).t;
     if (!accept) {
       // Reject — no payment, update backend directly and stay on this page
       setState(() => _isLoading = true);
@@ -248,9 +252,9 @@ class _QuickTransactionDetailPageState
             });
           }
           _didMutate = true;
-          showSnack(context, 'Settlement rejected');
+          showSnack(context, t('settlement_rejected_message'));
         } else {
-          final msg = jsonDecode(res.body)['error'] ?? 'Response failed';
+          final msg = jsonDecode(res.body)['error'] ?? t('response_failed_message');
           showSnack(context, msg.toString(), isError: true);
           setState(() => _isLoading = false);
         }
@@ -291,6 +295,7 @@ class _QuickTransactionDetailPageState
   }
 
   void _duplicateTransaction() async {
+    final t = AppLocalizations.of(context).t;
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -305,24 +310,27 @@ class _QuickTransactionDetailPageState
     );
     if (result != null) {
       _didMutate = true;
-      showSnack(context, 'Transaction duplicated');
+      if (!mounted) return;
+      showSnack(context, t('transaction_duplicated_success_message'));
     }
   }
 
   void _shareTransaction() {
-    final roleLabel = _myRole == 'lender' ? 'lent' : 'borrowed';
+    final t = AppLocalizations.of(context).t;
+    final roleLabel = _myRole == 'lender' ? t('lent_label') : t('borrowed_label');
     final msg =
-        'Quick Transaction Summary\n'
+        '${t('quick_transaction_summary_title')}\n'
         '${_formatAmount()} - $_currency\n'
-        'You $roleLabel to/from $_counterpartyEmail\n'
-        'Description: $_description\n'
-        'Status: ${_cleared ? "Cleared" : "Pending"}\n'
-        'Settlement: $_settlementStatus';
+        '${t('you_role_to_from_counterparty_label').replaceFirst('{role}', roleLabel).replaceFirst('{counterparty}', _counterpartyEmail)}\n'
+        '${t('description_colon_label')} $_description\n'
+        '${t('status_colon_label')} ${_cleared ? t('cleared') : t('pending_label')}\n'
+        '${t('settlement_colon_label')} $_settlementStatus';
     Share.share(msg);
   }
 
   // Direct "Pay Now" — no prior settlement request; just clears the transaction
   void _payNow() {
+    final t = AppLocalizations.of(context).t;
     LendenPaymentHelper.showPaymentSheet(
       context,
       counterpartyEmail: _counterpartyEmail,
@@ -340,7 +348,7 @@ class _QuickTransactionDetailPageState
         });
         _didMutate = true;
         showSnack(context,
-            res.statusCode == 200 ? 'Payment successful!' : 'Paid locally.');
+            res.statusCode == 200 ? t('payment_successful_exclaim') : t('paid_locally_message'));
       },
     );
   }
@@ -349,6 +357,7 @@ class _QuickTransactionDetailPageState
   // Payment screen opens first; backend is only marked settled after payment succeeds.
   // If payment is cancelled/fails nothing changes (stays 'pending').
   void _payNowForSettlement() {
+    final t = AppLocalizations.of(context).t;
     LendenPaymentHelper.showPaymentSheet(
       context,
       counterpartyEmail: _counterpartyEmail,
@@ -391,7 +400,7 @@ class _QuickTransactionDetailPageState
           });
         }
         _didMutate = true;
-        if (mounted) showSnack(context, 'Payment successful! Settlement complete.');
+        if (mounted) showSnack(context, t('payment_successful_settlement_complete_message'));
       },
     );
   }
@@ -404,16 +413,23 @@ class _QuickTransactionDetailPageState
     required String confirmLabel,
     bool isDestructive = false,
   }) async {
+    final t = AppLocalizations.of(context).t;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(ctx),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(message),
+        title: Text(title,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(ctx))),
+        content: Text(message,
+            style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -439,7 +455,7 @@ class _QuickTransactionDetailPageState
         if (!didPop) Navigator.pop(context, _didMutate);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: AppThemeColors.scaffoldBg(context),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
@@ -474,6 +490,7 @@ class _QuickTransactionDetailPageState
   }
 
   Widget _buildSliverAppBar() {
+    final t = AppLocalizations.of(context).t;
     final isLender = _myRole == 'lender';
     return SliverAppBar(
       expandedHeight: 200,
@@ -515,7 +532,7 @@ class _QuickTransactionDetailPageState
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  isLender ? 'You lent money' : 'You borrowed money',
+                  isLender ? t('you_lent_money_label') : t('you_borrowed_money_label'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -547,36 +564,36 @@ class _QuickTransactionDetailPageState
           },
           itemBuilder: (_) => [
             if (_canEdit)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
-                  leading: Icon(Icons.edit, color: AppColors.cyan),
-                  title: Text('Edit'),
+                  leading: const Icon(Icons.edit, color: AppColors.cyan),
+                  title: Text(t('edit')),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'duplicate',
               child: ListTile(
-                leading: Icon(Icons.copy, color: Colors.blue),
-                title: Text('Duplicate'),
+                leading: const Icon(Icons.copy, color: Colors.blue),
+                title: Text(t('duplicate_label')),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'share',
               child: ListTile(
-                leading: Icon(Icons.share, color: Colors.green),
-                title: Text('Share'),
+                leading: const Icon(Icons.share, color: Colors.green),
+                title: Text(t('share')),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
             if (_cleared)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
-                  leading: Icon(Icons.delete, color: Colors.red),
-                  title: Text('Delete'),
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: Text(t('delete')),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -587,17 +604,18 @@ class _QuickTransactionDetailPageState
   }
 
   Widget _buildStatusRow() {
+    final t = AppLocalizations.of(context).t;
     return Row(
       children: [
         _statusChip(
-          label: _cleared ? 'Cleared' : 'Pending',
+          label: _cleared ? t('cleared') : t('pending_label'),
           color: _cleared ? Colors.green : Colors.orange,
           icon: _cleared ? Icons.check_circle : Icons.pending,
         ),
         const SizedBox(width: 8),
         _statusChip(
           label: _settlementStatus == 'none'
-              ? 'No Settlement'
+              ? t('no_settlement_label')
               : _settlementStatus[0].toUpperCase() +
                   _settlementStatus.substring(1),
           color: _settlementStatus == 'accepted'
@@ -612,7 +630,7 @@ class _QuickTransactionDetailPageState
         if ((_tx['settledViaPayment'] ?? false) == true) ...[
           const SizedBox(width: 8),
           _statusChip(
-            label: 'Paid',
+            label: t('paid_label'),
             color: Colors.blue,
             icon: Icons.payment,
           ),
@@ -648,6 +666,7 @@ class _QuickTransactionDetailPageState
   }
 
   Widget _buildDetailsCard() {
+    final t = AppLocalizations.of(context).t;
     final dateStr = (_tx['date'] ?? '').toString();
     final timeStr = (_tx['time'] ?? '').toString();
     String displayDate = dateStr;
@@ -657,28 +676,31 @@ class _QuickTransactionDetailPageState
     } catch (_) {}
 
     return _card(
-      title: 'Transaction Details',
+      title: t('transaction_details_title'),
       icon: Icons.receipt_long,
       children: [
-        _infoRow('Description', _description, Icons.description),
-        _infoRow('Amount', _formatAmount(), Icons.currency_exchange),
-        _infoRow('Currency', _currency, Icons.language),
-        _infoRow('Date', displayDate, Icons.calendar_today),
-        if (timeStr.isNotEmpty) _infoRow('Time', timeStr, Icons.access_time),
+        _infoRow(t('description_label'), _description, Icons.description),
+        _infoRow(t('amount_label'), _formatAmount(), Icons.currency_exchange),
+        _infoRow(t('currency_label'), _currency, Icons.language),
+        _infoRow(t('date_label'), displayDate, Icons.calendar_today),
+        if (timeStr.isNotEmpty) _infoRow(t('time_label'), timeStr, Icons.access_time),
         _infoRow(
-            'Your Role', _myRole == 'lender' ? 'Lender (Gave)' : 'Borrower (Took)', Icons.people),
+            t('your_role_label'),
+            _myRole == 'lender' ? t('lender_gave_label') : t('borrower_took_label'),
+            Icons.people),
       ],
     );
   }
 
   Widget _buildParticipantsCard() {
+    final t = AppLocalizations.of(context).t;
     return _card(
-      title: 'Participants',
+      title: t('participants_title'),
       icon: Icons.people,
       children: [
-        _infoRow('You', _currentUserEmail ?? '', Icons.person),
+        _infoRow(t('you_label'), _currentUserEmail ?? '', Icons.person),
         _infoRow(
-          _counterpartyName.isNotEmpty ? _counterpartyName : 'Counterparty',
+          _counterpartyName.isNotEmpty ? _counterpartyName : t('counterparty_label'),
           _counterpartyEmail,
           Icons.person_outline,
         ),
@@ -687,6 +709,7 @@ class _QuickTransactionDetailPageState
   }
 
   Widget _buildSettlementCard() {
+    final t = AppLocalizations.of(context).t;
     final requestedBy = (_tx['settlementRequestedBy'] ?? '').toString();
     final requestedAt = (_tx['settlementRequestedAt'] ?? '').toString();
     final respondedBy = (_tx['settlementRespondedBy'] ?? '').toString();
@@ -708,64 +731,65 @@ class _QuickTransactionDetailPageState
     } catch (_) {}
 
     return _card(
-      title: 'Settlement History',
+      title: t('settlement_history_title'),
       icon: Icons.handshake,
       children: [
-        _infoRow('Status', _settlementStatus, Icons.info_outline),
+        _infoRow(t('status_label'), _settlementStatus, Icons.info_outline),
         if (requestedBy.isNotEmpty)
-          _infoRow('Requested by', requestedBy, Icons.person),
+          _infoRow(t('requested_by_label'), requestedBy, Icons.person),
         if (reqDate.isNotEmpty && requestedBy.isNotEmpty)
-          _infoRow('Requested at', reqDate, Icons.calendar_today),
+          _infoRow(t('requested_at_label'), reqDate, Icons.calendar_today),
         if (respondedBy.isNotEmpty)
-          _infoRow('Responded by', respondedBy, Icons.person),
+          _infoRow(t('responded_by_label'), respondedBy, Icons.person),
         if (respDate.isNotEmpty && respondedBy.isNotEmpty)
-          _infoRow('Responded at', respDate, Icons.calendar_today),
+          _infoRow(t('responded_at_label'), respDate, Icons.calendar_today),
       ],
     );
   }
 
   Widget _buildActionsCard() {
+    final t = AppLocalizations.of(context).t;
     return _card(
-      title: 'Actions',
+      title: t('actions_title'),
       icon: Icons.touch_app,
       children: [
         if (_canEdit)
           _actionTile(
             icon: Icons.edit,
             color: AppColors.cyan,
-            label: 'Edit Transaction',
-            subtitle: 'Modify amount, description, or role',
+            label: t('edit_transaction_label'),
+            subtitle: t('modify_amount_description_role_message'),
             onTap: _editTransaction,
           ),
         if (_canPayNow)
           _actionTile(
             icon: Icons.payment,
             color: Colors.green,
-            label: 'Pay Now',
-            subtitle: 'Settle via LenDen Wallet or Razorpay',
+            label: t('pay_now_label'),
+            subtitle: t('settle_via_wallet_or_razorpay_message'),
             onTap: _payNow,
           ),
         if (_canRequestSettle)
           _actionTile(
             icon: Icons.handshake,
             color: Colors.orange,
-            label: 'Request Settlement',
-            subtitle: 'Ask the other party to confirm settlement',
+            label: t('request_settlement_label'),
+            subtitle: t('ask_other_party_confirm_settlement_message'),
             onTap: _requestSettlement,
           ),
         if (_canRespondToSettle) ...[
           _actionTile(
             icon: Icons.check_circle,
             color: Colors.green,
-            label: 'Accept Settlement',
-            subtitle: 'Confirm the settlement request',
+            label: t('accept_settlement_label'),
+            subtitle: t('confirm_settlement_request_message'),
             onTap: () => _respondSettlement(true),
           ),
           _actionTile(
             icon: Icons.cancel,
             color: Colors.red,
-            label: 'Reject Settlement',
-            subtitle: 'Decline the settlement request',
+            label: t('reject_settlement_label'),
+            subtitle: t('decline_settlement_request_message'),
             onTap: () => _respondSettlement(false),
           ),
         ],
@@ -773,30 +797,30 @@ class _QuickTransactionDetailPageState
           _actionTile(
             icon: Icons.done_all,
             color: Colors.teal,
-            label: 'Mark as Cleared',
-            subtitle: 'Mark this transaction as manually settled',
+            label: t('mark_as_cleared_title'),
+            subtitle: t('mark_transaction_manually_settled_message'),
             onTap: _clearTransaction,
           ),
         _actionTile(
           icon: Icons.copy,
           color: Colors.blue,
-          label: 'Duplicate',
-          subtitle: 'Create a new transaction with same details',
+          label: t('duplicate_label'),
+          subtitle: t('create_transaction_same_details_message'),
           onTap: _duplicateTransaction,
         ),
         _actionTile(
           icon: Icons.share,
           color: Colors.indigo,
-          label: 'Share',
-          subtitle: 'Share transaction summary',
+          label: t('share'),
+          subtitle: t('share_transaction_summary_message'),
           onTap: _shareTransaction,
         ),
         if (_cleared)
           _actionTile(
             icon: Icons.delete_outline,
             color: Colors.red,
-            label: 'Delete Transaction',
-            subtitle: 'Permanently remove this transaction',
+            label: t('delete_transaction_title'),
+            subtitle: t('permanently_remove_transaction_message'),
             onTap: _deleteTransaction,
           ),
       ],
@@ -812,7 +836,7 @@ class _QuickTransactionDetailPageState
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -833,16 +857,16 @@ class _QuickTransactionDetailPageState
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: AppThemeColors.divider(context)),
           ...children,
           const SizedBox(height: 4),
         ],
@@ -856,7 +880,7 @@ class _QuickTransactionDetailPageState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey[500]),
+          Icon(icon, size: 16, color: AppThemeColors.mutedText(context)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -865,12 +889,14 @@ class _QuickTransactionDetailPageState
                 Text(label,
                     style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey[500],
+                        color: AppThemeColors.mutedText(context),
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(value.isNotEmpty ? value : '—',
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500)),
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppThemeColors.primaryText(context))),
               ],
             ),
           ),
@@ -908,15 +934,17 @@ class _QuickTransactionDetailPageState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context))),
                   Text(subtitle,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey[500])),
+                          fontSize: 11, color: AppThemeColors.mutedText(context))),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
+            Icon(Icons.chevron_right, color: AppThemeColors.mutedText(context)),
           ],
         ),
       ),

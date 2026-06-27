@@ -20,6 +20,9 @@ import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../utils/responsive.dart';
+import '../../../utils/receipt_ocr_service.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class TopWaveClipper extends CustomClipper<Path> {
   @override
@@ -67,6 +70,7 @@ class _TransactionPageState extends State<TransactionPage> {
   TimeOfDay? _selectedTime;
   final TextEditingController _placeController = TextEditingController();
   List<PlatformFile> _pickedFiles = [];
+  bool _scanningReceipt = false;
   final TextEditingController _counterpartyEmailController =
       TextEditingController();
   final TextEditingController _userEmailController = TextEditingController();
@@ -182,17 +186,22 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   String _repaymentTenureLabel() {
+    final t = AppLocalizations.of(context).t;
     if (_expectedReturnDate == null) {
-      return 'No interest applied';
+      return t('no_interest_applied_label');
     }
     final days = _expectedReturnDate!
         .difference(_previewStartDate())
         .inDays
         .clamp(0, 36500);
-    if (days == 0) return 'Same-day return';
-    if (days < 30) return '$days day${days == 1 ? '' : 's'}';
+    if (days == 0) return t('same_day_return_label');
+    if (days < 30) {
+      return days == 1
+          ? t('days_count_singular_label').replaceFirst('{count}', '$days')
+          : t('days_count_plural_label').replaceFirst('{count}', '$days');
+    }
     final months = (days / 30).toStringAsFixed(1);
-    return '$months months';
+    return t('months_count_label').replaceFirst('{count}', months);
   }
 
   int? _remainingDaysCount() {
@@ -202,19 +211,22 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   String _remainingDaysLabel() {
+    final t = AppLocalizations.of(context).t;
     final days = _remainingDaysCount();
-    if (days == null) return 'Not scheduled';
-    if (days < 0) return '${days.abs()} day(s) overdue';
-    return '$days day(s) remaining';
+    if (days == null) return t('not_scheduled_label');
+    if (days < 0) return t('days_overdue_label').replaceFirst('{count}', '${days.abs()}');
+    return t('days_remaining_label').replaceFirst('{count}', '$days');
   }
 
   String _draftStatusLabel() {
     final savedAt = _lastDraftSavedAt;
     if (savedAt == null) return _draftStatusMessage;
-    return 'Draft saved ${DateFormat('hh:mm a').format(savedAt)}';
+    final t = AppLocalizations.of(context).t;
+    return t('draft_saved_at_label').replaceFirst('{time}', DateFormat('hh:mm a').format(savedAt));
   }
 
   Widget _buildRepaymentPreviewCard() {
+    final t = AppLocalizations.of(context).t;
     final principal = _parsedPrincipalAmount();
     final repayment = _estimatedRepaymentAmount();
     if (principal == null || repayment == null) return const SizedBox.shrink();
@@ -235,7 +247,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -256,12 +268,13 @@ class _TransactionPageState extends State<TransactionPage> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Repayment Preview',
+                    t('repayment_preview_title'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                 ),
@@ -272,19 +285,19 @@ class _TransactionPageState extends State<TransactionPage> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                _buildPreviewStat('Principal', _formatPreviewAmount(principal)),
+                _buildPreviewStat(t('principal_label'), _formatPreviewAmount(principal)),
                 _buildPreviewStat(
-                  'Est. Interest',
+                  t('est_interest_label'),
                   _formatPreviewAmount(interestValue),
                 ),
-                _buildPreviewStat('Est. Repayment', _formatPreviewAmount(repayment)),
-                _buildPreviewStat('Tenure', _repaymentTenureLabel()),
+                _buildPreviewStat(t('est_repayment_label'), _formatPreviewAmount(repayment)),
+                _buildPreviewStat(t('tenure_label'), _repaymentTenureLabel()),
               ],
             ),
             if (needsReturnDate) ...[
               const SizedBox(height: 12),
               Text(
-                'Pick an expected return date to calculate interest more accurately.',
+                t('pick_expected_return_date_message'),
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.orange.shade800,
@@ -300,6 +313,7 @@ class _TransactionPageState extends State<TransactionPage> {
 
   Widget _buildRepaymentTimelineCard() {
     if (_expectedReturnDate == null) return const SizedBox.shrink();
+    final t = AppLocalizations.of(context).t;
 
     final startDate = _previewStartDate();
     final estimatedRepayment =
@@ -332,17 +346,17 @@ class _TransactionPageState extends State<TransactionPage> {
                   title,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: AppThemeColors.secondaryText(context),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ],
@@ -365,27 +379,30 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Repayment Timeline',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              t('repayment_timeline_title'),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(height: 12),
             item(
               icon: Icons.play_circle_outline_rounded,
-              title: 'Start date',
+              title: t('start_date_label'),
               value: DateFormat('MMM d, yyyy • hh:mm a').format(startDate),
               color: AppColors.cyan,
             ),
             const SizedBox(height: 10),
             item(
               icon: Icons.event_available_rounded,
-              title: 'Expected return date',
+              title: t('expected_return_date_label'),
               value:
                   DateFormat('MMM d, yyyy').format(_expectedReturnDate!),
               color: Colors.green,
@@ -393,14 +410,14 @@ class _TransactionPageState extends State<TransactionPage> {
             const SizedBox(height: 10),
             item(
               icon: Icons.payments_outlined,
-              title: 'Estimated total repayment',
+              title: t('estimated_total_repayment_label'),
               value: _formatPreviewAmount(estimatedRepayment),
               color: Colors.orange,
             ),
             const SizedBox(height: 10),
             item(
               icon: Icons.schedule_rounded,
-              title: 'Remaining time',
+              title: t('remaining_time_label'),
               value: _remainingDaysLabel(),
               color: Colors.purple,
             ),
@@ -415,9 +432,12 @@ class _TransactionPageState extends State<TransactionPage> {
       width: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FBFD),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF7FBFD), dark: const Color(0xFF173238)),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFBFE8F2)),
+        border: Border.all(
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,17 +446,17 @@ class _TransactionPageState extends State<TransactionPage> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: AppThemeColors.secondaryText(context),
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: AppThemeColors.primaryText(context),
             ),
           ),
         ],
@@ -469,10 +489,10 @@ class _TransactionPageState extends State<TransactionPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -480,7 +500,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: AppThemeColors.secondaryText(context),
                     height: 1.35,
                   ),
                 ),
@@ -493,6 +513,7 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Widget _buildProgressStepper() {
+    final t = AppLocalizations.of(context).t;
     final step2Ready = _counterpartyVerified || _userVerified;
     final step3Ready = _bothUsersVerified;
 
@@ -504,7 +525,7 @@ class _TransactionPageState extends State<TransactionPage> {
     }) {
       final color = complete || active
           ? AppColors.cyan
-          : Colors.grey.shade400;
+          : AppThemeColors.mutedText(context);
       return Expanded(
         child: Column(
           children: [
@@ -520,7 +541,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: complete || active ? color : Colors.white,
+                    color: complete || active ? color : AppThemeColors.cardBg(context),
                     shape: BoxShape.circle,
                     border: Border.all(color: color, width: 2),
                   ),
@@ -551,7 +572,9 @@ class _TransactionPageState extends State<TransactionPage> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: complete || active ? Colors.black87 : Colors.grey.shade500,
+                color: complete || active
+                    ? AppThemeColors.primaryText(context)
+                    : AppThemeColors.mutedText(context),
               ),
             ),
           ],
@@ -562,7 +585,7 @@ class _TransactionPageState extends State<TransactionPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -574,25 +597,26 @@ class _TransactionPageState extends State<TransactionPage> {
       ),
       child: Row(
         children: [
-          step(number: 1, title: 'Enter Details', active: !step2Ready, complete: step2Ready),
-          step(number: 2, title: 'Verify Emails', active: step2Ready && !step3Ready, complete: step3Ready),
-          step(number: 3, title: 'Create Txn', active: step3Ready, complete: false),
+          step(number: 1, title: t('enter_details_label'), active: !step2Ready, complete: step2Ready),
+          step(number: 2, title: t('verify_emails_label'), active: step2Ready && !step3Ready, complete: step3Ready),
+          step(number: 3, title: t('create_txn_label'), active: step3Ready, complete: false),
         ],
       ),
     );
   }
 
   Widget _buildTransactionPreviewCard() {
+    final t = AppLocalizations.of(context).t;
     final amount = _parsedPrincipalAmount();
-    final roleLabel = _role == 'lender' ? 'You are lending' : 'You are borrowing';
+    final roleLabel = _role == 'lender' ? t('you_are_lending_label') : t('you_are_borrowing_label');
     final counterparty = _counterpartyEmailController.text.trim().isEmpty
-        ? 'Not selected yet'
+        ? t('not_selected_yet_label')
         : _counterpartyEmailController.text.trim();
     final dateLabel = _selectedDate == null
-        ? 'Not selected'
+        ? t('not_selected_label')
         : DateFormat('MMM d, yyyy').format(_selectedDate!);
     final returnLabel = _expectedReturnDate == null
-        ? (_interestType == 'none' ? 'Not needed' : 'Select expected return date')
+        ? (_interestType == 'none' ? t('not_needed_label') : t('select_expected_return_date_label'))
         : DateFormat('MMM d, yyyy').format(_expectedReturnDate!);
 
     return Container(
@@ -608,37 +632,40 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Transaction Preview',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              t('transaction_preview_title'),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
-                _buildPreviewStat('Role', roleLabel),
+                _buildPreviewStat(t('role_label'), roleLabel),
                 _buildPreviewStat(
-                  'Amount',
-                  amount == null ? 'Enter amount' : _formatPreviewAmount(amount),
+                  t('amount_label'),
+                  amount == null ? t('enter_amount_label') : _formatPreviewAmount(amount),
                 ),
-                _buildPreviewStat('Counterparty', counterparty),
+                _buildPreviewStat(t('counterparty_label'), counterparty),
                 _buildPreviewStat(
-                  'Interest',
+                  t('interest_label'),
                   _interestType == 'none'
-                      ? 'No interest'
+                      ? t('no_interest_label')
                       : _interestType == 'simple'
-                          ? 'Simple interest'
-                          : 'Compound interest',
+                          ? t('simple_interest_label')
+                          : t('compound_interest_label'),
                 ),
-                _buildPreviewStat('Txn Date', dateLabel),
-                _buildPreviewStat('Return Date', returnLabel),
+                _buildPreviewStat(t('txn_date_label'), dateLabel),
+                _buildPreviewStat(t('return_date_label'), returnLabel),
               ],
             ),
           ],
@@ -649,17 +676,21 @@ class _TransactionPageState extends State<TransactionPage> {
 
   Widget _buildInterestGuidanceCard() {
     if (_interestType == 'none') return const SizedBox.shrink();
+    final t = AppLocalizations.of(context).t;
 
     final guidance = _interestType == 'simple'
-        ? 'Simple interest grows only on the original principal for the selected period.'
-        : 'Compound interest grows on principal plus accumulated interest based on the compounding frequency.';
+        ? t('simple_interest_guidance_message')
+        : t('compound_interest_guidance_message');
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF7FB),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFEAF7FB), dark: const Color(0xFF173238)),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBFE8F2)),
+        border: Border.all(
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -671,7 +702,7 @@ class _TransactionPageState extends State<TransactionPage> {
               guidance,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade700,
+                color: AppThemeColors.secondaryText(context),
                 height: 1.35,
               ),
             ),
@@ -736,7 +767,7 @@ class _TransactionPageState extends State<TransactionPage> {
     _lastDraftSavedAt = DateTime.now();
     if (mounted) {
       setState(() {
-        _draftStatusMessage = 'Draft saved';
+        _draftStatusMessage = AppLocalizations.of(context).t('draft_saved_label');
       });
     }
   }
@@ -744,13 +775,13 @@ class _TransactionPageState extends State<TransactionPage> {
   Future<void> _saveDraftWithFeedback() async {
     await _saveDraft();
     if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     await _showDraftStatusDialog(
-      title: 'Draft Saved',
-      message:
-          'Your secure transaction draft is saved. You can continue it anytime from this page.',
+      title: t('draft_saved_title'),
+      message: t('secure_transaction_draft_saved_message'),
       icon: Icons.save_outlined,
       accentColor: AppColors.cyan,
-      actionLabel: 'Continue',
+      actionLabel: t('continue'),
     );
   }
 
@@ -759,45 +790,45 @@ class _TransactionPageState extends State<TransactionPage> {
     _lastDraftSavedAt = null;
     if (mounted) {
       setState(() {
-        _draftStatusMessage = 'No saved draft';
+        _draftStatusMessage = AppLocalizations.of(context).t('no_saved_draft_label');
       });
     }
   }
 
   Future<void> _discardDraftWithConfirmation() async {
+    final t = AppLocalizations.of(context).t;
     final shouldDiscard = await _showDraftChoiceDialog(
-      title: 'Discard Draft?',
-      message:
-          'This will remove your saved secure transaction draft from this device.',
+      title: t('discard_draft_title'),
+      message: t('discard_draft_confirm_message'),
       icon: Icons.delete_outline,
       accentColor: const Color(0xFFFF6B6B),
-      primaryLabel: 'Discard',
-      secondaryLabel: 'Keep Draft',
+      primaryLabel: t('discard_label'),
+      secondaryLabel: t('keep_draft_label'),
     );
     if (shouldDiscard != true) return;
     await _clearDraft();
     if (!mounted) return;
     await _showDraftStatusDialog(
-      title: 'Draft Discarded',
-      message: 'The saved draft has been removed.',
+      title: t('draft_discarded_title'),
+      message: t('saved_draft_removed_message'),
       icon: Icons.delete_sweep_outlined,
       accentColor: const Color(0xFFFF6B6B),
-      actionLabel: 'OK',
+      actionLabel: t('ok'),
     );
   }
 
   Future<void> _restoreDraftIfAvailable() async {
     final raw = await _storage.read(key: _draftStorageKey());
     if (raw == null || raw.isEmpty || !mounted) return;
+    final t = AppLocalizations.of(context).t;
 
     final shouldRestore = await _showDraftChoiceDialog(
-          title: 'Saved Draft Found',
-          message:
-              'A saved secure transaction draft was found. Do you want to continue from where you left off?',
+          title: t('saved_draft_found_title'),
+          message: t('saved_draft_found_message'),
           icon: Icons.auto_awesome_outlined,
           accentColor: AppColors.cyan,
-          primaryLabel: 'Continue Draft',
-          secondaryLabel: 'Start Fresh',
+          primaryLabel: t('continue_draft_label'),
+          secondaryLabel: t('start_fresh_label'),
         ) ??
         false;
 
@@ -834,7 +865,7 @@ class _TransactionPageState extends State<TransactionPage> {
             minute: int.tryParse('${time['minute']}') ?? 0,
           );
         }
-        _draftStatusMessage = 'Draft restored';
+        _draftStatusMessage = AppLocalizations.of(context).t('draft_restored_label');
       });
     } catch (_) {
       await _clearDraft();
@@ -868,7 +899,7 @@ class _TransactionPageState extends State<TransactionPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -917,9 +948,9 @@ class _TransactionPageState extends State<TransactionPage> {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                     height: 1.4,
                   ),
                 ),
@@ -999,7 +1030,7 @@ class _TransactionPageState extends State<TransactionPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -1048,9 +1079,9 @@ class _TransactionPageState extends State<TransactionPage> {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                     height: 1.4,
                   ),
                 ),
@@ -1108,7 +1139,7 @@ class _TransactionPageState extends State<TransactionPage> {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -1129,10 +1160,10 @@ class _TransactionPageState extends State<TransactionPage> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1140,7 +1171,7 @@ class _TransactionPageState extends State<TransactionPage> {
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppThemeColors.secondaryText(context),
                           height: 1.3,
                         ),
                       ),
@@ -1156,6 +1187,7 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Future<void> _pickFriendForCounterparty() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final res = await ApiClient.get('/api/friends');
       if (res.statusCode != 200) return;
@@ -1191,8 +1223,8 @@ class _TransactionPageState extends State<TransactionPage> {
               }).toList();
 
               return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
                   borderRadius:
                       BorderRadius.vertical(top: Radius.circular(20)),
                 ),
@@ -1203,7 +1235,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: AppThemeColors.border(context),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -1211,13 +1243,19 @@ class _TransactionPageState extends State<TransactionPage> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                       child: Row(
                         children: [
-                          const Text('Select Friend',
+                          Text(t('select_friend_label'),
                               style: TextStyle(
-                                  fontSize: 17, fontWeight: FontWeight.bold)),
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppThemeColors.primaryText(context))),
                           const Spacer(),
-                          Text('${filtered.length} friend${filtered.length == 1 ? '' : 's'}',
+                          Text(
+                              filtered.length == 1
+                                  ? t('friend_count_singular_label')
+                                  : t('friend_count_plural_label')
+                                      .replaceFirst('{count}', '${filtered.length}'),
                               style: TextStyle(
-                                  color: Colors.grey[600], fontSize: 13)),
+                                  color: AppThemeColors.secondaryText(context), fontSize: 13)),
                         ],
                       ),
                     ),
@@ -1225,15 +1263,16 @@ class _TransactionPageState extends State<TransactionPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: TextField(
                         autofocus: false,
+                        style: TextStyle(color: AppThemeColors.primaryText(context)),
                         decoration: InputDecoration(
-                          hintText: 'Search by name or email…',
+                          hintText: t('search_by_name_or_email_hint'),
                           prefixIcon: const Icon(Icons.search, size: 20),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 10, horizontal: 14),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12)),
                           filled: true,
-                          fillColor: const Color(0xFFF5F7FA),
+                          fillColor: AppThemeColors.surfaceBg(context),
                         ),
                         onChanged: (v) =>
                             setSheetState(() => searchQuery = v),
@@ -1242,9 +1281,9 @@ class _TransactionPageState extends State<TransactionPage> {
                     const SizedBox(height: 8),
                     Expanded(
                       child: filtered.isEmpty
-                          ? const Center(
-                              child: Text('No friends found',
-                                  style: TextStyle(color: Colors.grey)))
+                          ? Center(
+                              child: Text(t('no_friends_found_label'),
+                                  style: TextStyle(color: AppThemeColors.mutedText(context))))
                           : ListView.builder(
                               controller: scrollController,
                               padding:
@@ -1289,20 +1328,21 @@ class _TransactionPageState extends State<TransactionPage> {
                                               fontSize: 15)),
                                     ),
                                     title: Text(name,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600)),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppThemeColors.primaryText(context))),
                                     subtitle: Text(email,
                                         style: TextStyle(
-                                            color: Colors.grey[600],
+                                            color: AppThemeColors.secondaryText(context),
                                             fontSize: 12)),
                                     trailing: isBlocked
-                                        ? const Text('Blocked',
-                                            style: TextStyle(
+                                        ? Text(t('blocked_label'),
+                                            style: const TextStyle(
                                                 color: Colors.red,
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 12))
-                                        : const Icon(Icons.chevron_right,
-                                            color: Colors.grey),
+                                        : Icon(Icons.chevron_right,
+                                            color: AppThemeColors.mutedText(context)),
                                     onTap: () {
                                       if (isBlocked) {
                                         Navigator.pop(ctx);
@@ -1429,6 +1469,135 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
+  Future<void> _scanReceipt() async {
+    final t = AppLocalizations.of(context).t;
+    PlatformFile? target;
+    final imageFiles = _pickedFiles.where((f) => f.extension != 'pdf').toList();
+    if (imageFiles.isNotEmpty) target = imageFiles.last;
+
+    if (target == null) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      target = result.files.first;
+      setState(() => _pickedFiles.add(target!));
+      await _saveDraft();
+    }
+
+    setState(() => _scanningReceipt = true);
+    try {
+      String? path = target.path;
+      if (path == null && target.bytes != null) {
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/${target.name}');
+        await tempFile.writeAsBytes(target.bytes!, flush: true);
+        path = tempFile.path;
+      }
+      if (path == null) {
+        throw Exception(t('could_not_read_selected_image_message'));
+      }
+
+      final ocrResult = await ReceiptOcrService.extractFromImage(path);
+      if (!mounted) return;
+
+      if (ocrResult.amount == null && ocrResult.date == null && ocrResult.place == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('could_not_detect_receipt_details_message'))),
+        );
+        return;
+      }
+
+      await _showOcrConfirmDialog(ocrResult);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('receipt_scan_failed_message').replaceFirst('{error}', '$e'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _scanningReceipt = false);
+    }
+  }
+
+  Future<void> _showOcrConfirmDialog(ReceiptOcrResult result) async {
+    final t = AppLocalizations.of(context).t;
+    bool useAmount = result.amount != null;
+    bool useDate = result.date != null;
+    final hasPlace = result.place != null && result.place!.trim().isNotEmpty;
+    bool usePlace = hasPlace;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          backgroundColor: AppThemeColors.cardBg(dialogContext),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Text(t('detected_from_receipt_title'),
+              style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (result.amount != null)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: useAmount,
+                  onChanged: (v) => setDialogState(() => useAmount = v ?? false),
+                  title: Text('${t('amount_colon_label')} ${result.amount}',
+                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+                ),
+              if (result.date != null)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: useDate,
+                  onChanged: (v) => setDialogState(() => useDate = v ?? false),
+                  title: Text('${t('date_colon_label')} ${DateFormat('MMM d, yyyy').format(result.date!)}',
+                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+                ),
+              if (hasPlace)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: usePlace,
+                  onChanged: (v) => setDialogState(() => usePlace = v ?? false),
+                  title: Text('${t('place_colon_label')} ${result.place}',
+                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(t('cancel'),
+                  style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(t('apply_label'), style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      if (useAmount && result.amount != null) {
+        _amountController.text = result.amount!.toStringAsFixed(2);
+      }
+      if (useDate && result.date != null) {
+        _selectedDate = result.date;
+      }
+      if (usePlace && result.place != null) {
+        _placeController.text = result.place!;
+      }
+    });
+    _saveDraft();
+  }
+
   void _removeFile(int idx) {
     if (_bothUsersVerified) return; // Prevent file removal when verified
     setState(() {
@@ -1478,6 +1647,7 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Widget _buildFilePicker() {
+    final t = AppLocalizations.of(context).t;
     final proofCount = _pickedFiles.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1487,10 +1657,13 @@ class _TransactionPageState extends State<TransactionPage> {
             Expanded(
               child: Text(
                 proofCount == 0
-                    ? 'No proof files added yet'
-                    : '$proofCount proof file${proofCount == 1 ? '' : 's'} attached',
+                    ? t('no_proof_files_added_yet_label')
+                    : (proofCount == 1
+                        ? t('proof_file_attached_singular_label')
+                        : t('proof_file_attached_plural_label')
+                            .replaceFirst('{count}', '$proofCount')),
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: AppThemeColors.secondaryText(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1502,7 +1675,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                proofCount == 0 ? 'Optional' : 'Ready',
+                proofCount == 0 ? t('optional_label') : t('ready_label'),
                 style: const TextStyle(
                   color: Color(0xFF0077B6),
                   fontWeight: FontWeight.bold,
@@ -1512,11 +1685,26 @@ class _TransactionPageState extends State<TransactionPage> {
           ],
         ),
         const SizedBox(height: 10),
-        ElevatedButton.icon(
-          onPressed: _bothUsersVerified ? null : _pickFiles,
-          icon: const Icon(Icons.attach_file),
-          label: const Text('Add Proof Files'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _bothUsersVerified ? null : _pickFiles,
+              icon: const Icon(Icons.attach_file),
+              label: Text(t('add_proof_files_label')),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            ),
+            OutlinedButton.icon(
+              onPressed: _bothUsersVerified || _scanningReceipt ? null : _scanReceipt,
+              icon: _scanningReceipt
+                  ? const SizedBox(
+                      width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.document_scanner_outlined),
+              label: Text(_scanningReceipt ? t('scanning_ellipsis_label') : t('scan_receipt_label')),
+              style: OutlinedButton.styleFrom(foregroundColor: AppColors.cyan),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         if (_pickedFiles.isEmpty)
@@ -1524,9 +1712,12 @@ class _TransactionPageState extends State<TransactionPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7FBFD),
+              color: AppThemeColors.tinted(context,
+                  light: const Color(0xFFF7FBFD), dark: const Color(0xFF173238)),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFBFE8F2)),
+              border: Border.all(
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
             ),
             child: Row(
               children: [
@@ -1534,8 +1725,8 @@ class _TransactionPageState extends State<TransactionPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Add screenshots or photos to make the secure transaction easier to verify later.',
-                    style: TextStyle(color: Colors.grey.shade700),
+                    t('add_screenshots_or_photos_message'),
+                    style: TextStyle(color: AppThemeColors.secondaryText(context)),
                   ),
                 ),
               ],
@@ -1554,9 +1745,12 @@ class _TransactionPageState extends State<TransactionPage> {
                   width: 108,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFBFE8F2)),
+                    border: Border.all(
+                        color: AppThemeColors.tinted(context,
+                            light: const Color(0xFFBFE8F2),
+                            dark: const Color(0xFF2A6E80))),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.04),
@@ -1584,9 +1778,10 @@ class _TransactionPageState extends State<TransactionPage> {
                             file.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                         ],
@@ -1616,9 +1811,12 @@ class _TransactionPageState extends State<TransactionPage> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6FBFD),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF6FBFD), dark: const Color(0xFF173238)),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBFE8F2)),
+        border: Border.all(
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
       ),
       child: Row(
         children: [
@@ -1628,7 +1826,7 @@ class _TransactionPageState extends State<TransactionPage> {
             child: Text(
               _draftStatusLabel(),
               style: TextStyle(
-                color: Colors.grey.shade800,
+                color: AppThemeColors.primaryText(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1664,7 +1862,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: radius,
         ),
         child: child,
@@ -1691,7 +1889,7 @@ class _TransactionPageState extends State<TransactionPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 18, color: accent),
@@ -1705,17 +1903,17 @@ class _TransactionPageState extends State<TransactionPage> {
                   title,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: AppThemeColors.secondaryText(context),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ],
@@ -1729,12 +1927,13 @@ class _TransactionPageState extends State<TransactionPage> {
   Future<void> _showTransactionSuccessDialog({
     required bool giftCardAwarded,
   }) async {
+    final t = AppLocalizations.of(context).t;
     final amt = double.tryParse(_amountController.text.replaceAll(',', ''));
     final recipient = _counterpartyEmailController.text.trim();
     final extraDetails = <String, String>{
-      if (_transactionId != null) 'Transaction ID': _transactionId!,
-      'Role': _role,
-      if (giftCardAwarded) 'Bonus': '🎉 Gift card won!',
+      if (_transactionId != null) t('transaction_id_label'): _transactionId!,
+      t('role_label_colon'): _role,
+      if (giftCardAwarded) t('bonus_label_colon'): t('gift_card_won_emoji'),
     };
 
     if (!mounted) return;
@@ -1742,11 +1941,11 @@ class _TransactionPageState extends State<TransactionPage> {
       context,
       MaterialPageRoute(
         builder: (_) => PaymentSuccessPage(
-          title: 'Transaction Created!',
+          title: t('transaction_created_exclaim'),
           amount: amt,
           currency: _currency == 'INR' ? '₹' : _currency,
           recipientName: recipient.isNotEmpty ? recipient : null,
-          transactionType: 'Secure Transaction',
+          transactionType: t('secure_transaction_label'),
           extraDetails: extraDetails,
           onDone: () {
             Navigator.of(context).pop();
@@ -1761,26 +1960,27 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Future<void> _showReviewSheetAndSubmit() async {
+    final t = AppLocalizations.of(context).t;
     final amount = _parsedPrincipalAmount();
     final repayment = _estimatedRepaymentAmount();
     final roleLabel =
-        _role == 'lender' ? 'You are lending' : 'You are borrowing';
+        _role == 'lender' ? t('you_are_lending_label') : t('you_are_borrowing_label');
     final counterparty = _counterpartyEmailController.text.trim().isEmpty
-        ? 'Not selected'
+        ? t('not_selected_label')
         : _counterpartyEmailController.text.trim();
     final transactionDate = _selectedDate == null
-        ? 'Not selected'
+        ? t('not_selected_label')
         : DateFormat('MMM d, yyyy').format(_selectedDate!);
     final returnDate = _expectedReturnDate == null
         ? (_interestType == 'none'
-            ? 'Optional and not selected'
-            : 'Required before submit')
+            ? t('optional_and_not_selected_label')
+            : t('required_before_submit_label'))
         : DateFormat('MMM d, yyyy').format(_expectedReturnDate!);
     final interestLabel = _interestType == 'none'
-        ? 'No interest'
+        ? t('no_interest_label')
         : _interestType == 'simple'
-            ? 'Simple interest'
-            : 'Compound interest';
+            ? t('simple_interest_label')
+            : t('compound_interest_label');
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1811,23 +2011,24 @@ class _TransactionPageState extends State<TransactionPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Review and Submit',
+                                t('review_and_submit_title'),
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
+                                  color: AppThemeColors.primaryText(context),
                                 ),
                               ),
-                              SizedBox(height: 3),
+                              const SizedBox(height: 3),
                               Text(
-                                'Check the details once before creating the secure transaction.',
+                                t('check_details_before_creating_secure_transaction_message'),
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.black54,
+                                  color: AppThemeColors.secondaryText(context),
                                   height: 1.3,
                                 ),
                               ),
@@ -1841,25 +2042,28 @@ class _TransactionPageState extends State<TransactionPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FCFE),
+                        color: AppThemeColors.tinted(context,
+                            light: const Color(0xFFF8FCFE), dark: const Color(0xFF173238)),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFBFE8F2)),
+                        border: Border.all(
+                            color: AppThemeColors.tinted(context,
+                                light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
                       ),
                       child: Wrap(
                         spacing: 10,
                         runSpacing: 10,
                         children: [
-                          _buildPreviewStat('Role', roleLabel),
+                          _buildPreviewStat(t('role_label'), roleLabel),
                           _buildPreviewStat(
-                            'Amount',
+                            t('amount_label'),
                             amount == null
-                                ? 'Not entered'
+                                ? t('not_entered_label')
                                 : _formatPreviewAmount(amount),
                           ),
-                          _buildPreviewStat('Interest', interestLabel),
+                          _buildPreviewStat(t('interest_label'), interestLabel),
                           _buildPreviewStat(
-                            'Proof Files',
-                            '${_pickedFiles.length} attached',
+                            t('proof_files_label'),
+                            t('count_attached_label').replaceFirst('{count}', '${_pickedFiles.length}'),
                           ),
                         ],
                       ),
@@ -1867,21 +2071,21 @@ class _TransactionPageState extends State<TransactionPage> {
                     const SizedBox(height: 14),
                     _buildReviewInfoTile(
                       icon: Icons.person_outline_rounded,
-                      title: 'Counterparty',
+                      title: t('counterparty_label'),
                       value: counterparty,
                       accent: AppColors.cyan,
                     ),
                     const SizedBox(height: 10),
                     _buildReviewInfoTile(
                       icon: Icons.event_available_rounded,
-                      title: 'Transaction Date',
+                      title: t('transaction_date_label'),
                       value: transactionDate,
                       accent: Colors.orange,
                     ),
                     const SizedBox(height: 10),
                     _buildReviewInfoTile(
                       icon: Icons.update_rounded,
-                      title: 'Expected Return Date',
+                      title: t('expected_return_date_label'),
                       value: returnDate,
                       accent: Colors.green,
                     ),
@@ -1889,7 +2093,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       const SizedBox(height: 10),
                       _buildReviewInfoTile(
                         icon: Icons.payments_outlined,
-                        title: 'Estimated Repayment',
+                        title: t('estimated_repayment_label'),
                         value: _formatPreviewAmount(repayment),
                         accent: Colors.purple,
                       ),
@@ -1898,7 +2102,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       const SizedBox(height: 10),
                       _buildReviewInfoTile(
                         icon: Icons.schedule_rounded,
-                        title: 'Time Until Return',
+                        title: t('time_until_return_label'),
                         value: _remainingDaysLabel(),
                         accent: Colors.teal,
                       ),
@@ -1922,9 +2126,9 @@ class _TransactionPageState extends State<TransactionPage> {
                           Icons.verified_rounded,
                           color: Colors.white,
                         ),
-                        label: const Text(
-                          'Confirm and Submit',
-                          style: TextStyle(
+                        label: Text(
+                          t('confirm_and_submit_label'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1936,7 +2140,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       width: double.infinity,
                       child: TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Go Back and Edit'),
+                        child: Text(t('go_back_and_edit_label')),
                       ),
                     ),
                   ],
@@ -1950,6 +2154,7 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Widget _buildStickySummaryBar() {
+    final t = AppLocalizations.of(context).t;
     final amount = _parsedPrincipalAmount();
     final canSubmit = _counterpartyVerified && _userVerified && !_isLoading;
     return SafeArea(
@@ -1957,7 +2162,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -1977,26 +2182,27 @@ class _TransactionPageState extends State<TransactionPage> {
                     children: [
                       Text(
                         amount == null
-                            ? 'Enter amount to build summary'
+                            ? t('enter_amount_to_build_summary_label')
                             : _formatPreviewAmount(amount),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         _counterpartyEmailController.text.trim().isEmpty
-                            ? 'Counterparty not selected'
+                            ? t('counterparty_not_selected_label')
                             : _counterpartyEmailController.text.trim(),
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: TextStyle(color: AppThemeColors.secondaryText(context)),
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         _expectedReturnDate == null
-                            ? 'Return date not selected'
-                            : 'Return: ${DateFormat('MMM d').format(_expectedReturnDate!)}',
+                            ? t('return_date_not_selected_label')
+                            : '${t('return_colon_label')} ${DateFormat('MMM d').format(_expectedReturnDate!)}',
                         style: TextStyle(
                           color: const Color(0xFF0077B6),
                           fontWeight: FontWeight.w600,
@@ -2023,7 +2229,7 @@ class _TransactionPageState extends State<TransactionPage> {
                             ),
                           )
                         : Text(
-                            canSubmit ? 'Review & Submit' : 'Verify to Submit',
+                            canSubmit ? t('review_and_submit_short_label') : t('verify_to_submit_label'),
                             style: const TextStyle(color: Colors.white),
                           ),
                   ),
@@ -2127,17 +2333,19 @@ class _TransactionPageState extends State<TransactionPage> {
         }
       });
     } else {
+      final t = AppLocalizations.of(context).t;
       setState(() {
         if (isCounterparty) {
-          _counterpartyOtpError = 'Invalid or expired OTP';
+          _counterpartyOtpError = t('invalid_or_expired_otp_message');
         } else {
-          _userOtpError = 'Invalid or expired OTP';
+          _userOtpError = t('invalid_or_expired_otp_message');
         }
       });
     }
   }
 
   Future<void> _submit() async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (_isBlockedEmail(_counterpartyEmailController.text)) {
       showBlockedUserDialog(context);
@@ -2151,8 +2359,7 @@ class _TransactionPageState extends State<TransactionPage> {
         _dailyUserTxRemaining != null &&
         _dailyUserTxRemaining! <= 0) {
       showDailyLimitDialog(context,
-          message:
-              'You\'ve reached today\'s limit of 2 secure transactions. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+          message: t('daily_secure_transactions_limit_reached_message'));
       return;
     }
 
@@ -2208,7 +2415,8 @@ class _TransactionPageState extends State<TransactionPage> {
         session.loadFreebieCounts();
         _showTransactionSuccessDialog(giftCardAwarded: giftCardAwarded);
       } else if (res.statusCode == 403) {
-        String errorMsg = 'Forbidden';
+        final t = AppLocalizations.of(context).t;
+        String errorMsg = t('forbidden_label');
         try {
           final data = jsonDecode(res.body);
           errorMsg = data['error'] ?? data['message'] ?? errorMsg;
@@ -2219,36 +2427,39 @@ class _TransactionPageState extends State<TransactionPage> {
         }
         showInsufficientCoinsDialog(context);
       } else if (res.statusCode == 429) {
-        String errorMsg = 'Daily limit reached';
+        final t = AppLocalizations.of(context).t;
+        String errorMsg = t('daily_limit_reached');
         try {
           final data = jsonDecode(res.body);
           errorMsg = data['error'] ?? data['message'] ?? errorMsg;
         } catch (_) {}
         showDailyLimitDialog(context, message: errorMsg);
       } else {
-        final errBody = (res.body.isNotEmpty) ? res.body : 'Unknown error';
-        String errorMsg = 'Failed to create transaction';
+        final t = AppLocalizations.of(context).t;
+        final errBody = (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
+        String errorMsg = t('failed_to_create_transaction_message');
         try {
           final data = jsonDecode(errBody);
           errorMsg = data['error'] ?? data['message'] ?? errBody;
         } catch (_) {
           errorMsg = errBody;
         }
-        _showStylishErrorDialog('Transaction Failed', errorMsg);
+        _showStylishErrorDialog(t('transaction_failed_title'), errorMsg);
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showStylishErrorDialog('Transaction Failed', e.toString());
+      _showStylishErrorDialog(AppLocalizations.of(context).t('transaction_failed_title'), e.toString());
     }
   }
 
   Future<void> _submitWithApi() async {
     setState(() => _sameEmailError = null);
+    final t = AppLocalizations.of(context).t;
 
     // Custom validation for expected return date when interest is selected
     if (_interestType != 'none' && _expectedReturnDate == null) {
-      _showStylishErrorDialog('Expected Return Date Required',
-          'Please select an expected return date when interest is applied.');
+      _showStylishErrorDialog(t('expected_return_date_required_title'),
+          t('select_expected_return_date_interest_message'));
       return;
     }
 
@@ -2302,8 +2513,8 @@ class _TransactionPageState extends State<TransactionPage> {
 
         _showTransactionSuccessDialog(giftCardAwarded: giftCardAwarded);
       } else {
-        final errBody = (res.body.isNotEmpty) ? res.body : 'Unknown error';
-        String errorMsg = 'Failed to create transaction';
+        final errBody = (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
+        String errorMsg = t('failed_to_create_transaction_message');
         try {
           final data = jsonDecode(errBody);
           errorMsg = data['error'] ?? data['message'] ?? errBody;
@@ -2318,24 +2529,25 @@ class _TransactionPageState extends State<TransactionPage> {
           showDailyLimitDialog(context, message: errorMsg);
           return;
         }
-        _showStylishErrorDialog('Transaction Failed', errorMsg);
+        _showStylishErrorDialog(t('transaction_failed_title'), errorMsg);
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showStylishErrorDialog('Transaction Failed', e.toString());
+      _showStylishErrorDialog(t('transaction_failed_title'), e.toString());
     }
   }
 
   void _showStylishErrorDialog(String title, String message) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
-      builder: (_) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white,
+            color: AppThemeColors.cardBg(dialogContext),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2347,7 +2559,7 @@ class _TransactionPageState extends State<TransactionPage> {
                     clipper: TopWaveClipper(),
                     child: Container(
                       height: 80,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)],
                           begin: Alignment.topLeft,
@@ -2356,7 +2568,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       ),
                     ),
                   ),
-                  Positioned(
+                  const Positioned(
                     top: 16,
                     child: CircleAvatar(
                       radius: 28,
@@ -2367,31 +2579,31 @@ class _TransactionPageState extends State<TransactionPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               Text(title,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFFF6B6B))),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
                 message,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(dialogContext)),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFFF6B6B),
+                    backgroundColor: const Color(0xFFFF6B6B),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('OK',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(t('ok'),
+                      style: const TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ],
@@ -2413,26 +2625,16 @@ class _TransactionPageState extends State<TransactionPage> {
                 lastDate: DateTime(2100),
                 builder: (context, child) {
                   return Theme(
-                    data: ThemeData.light().copyWith(
-                      colorScheme: ColorScheme.light(
-                        primary: AppColors.cyan,
-                        onPrimary: Colors.white,
-                        surface: Colors.white,
-                        onSurface: Colors.black87,
-                      ),
-                      dialogTheme: DialogTheme(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
+                    data: Theme.of(context).copyWith(
+                      colorScheme: Theme.of(context).colorScheme.copyWith(
+                            primary: AppColors.cyan,
+                            onPrimary: Colors.white,
+                          ),
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.cyan,
                         ),
                       ),
-                      cardColor: Colors.white,
-                      canvasColor: Colors.white,
                     ),
                     child: child!,
                   );
@@ -2445,7 +2647,7 @@ class _TransactionPageState extends State<TransactionPage> {
             },
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: 'Transaction Date',
+          labelText: AppLocalizations.of(context).t('transaction_date_label'),
           prefixIcon: Icon(Icons.calendar_today, color: AppColors.cyan),
           border: InputBorder.none,
         ),
@@ -2454,11 +2656,12 @@ class _TransactionPageState extends State<TransactionPage> {
           children: [
             Text(
               _selectedDate == null
-                  ? 'Select date'
+                  ? AppLocalizations.of(context).t('select_date_label')
                   : DateFormat('MMM d, yyyy').format(_selectedDate!),
               style: TextStyle(
-                color:
-                    _selectedDate == null ? Colors.grey[500] : Colors.black87,
+                color: _selectedDate == null
+                    ? AppThemeColors.mutedText(context)
+                    : AppThemeColors.primaryText(context),
               ),
             ),
           ],
@@ -2477,26 +2680,16 @@ class _TransactionPageState extends State<TransactionPage> {
                 initialTime: _selectedTime ?? TimeOfDay.now(),
                 builder: (context, child) {
                   return Theme(
-                    data: ThemeData.light().copyWith(
-                      colorScheme: ColorScheme.light(
-                        primary: AppColors.cyan,
-                        onPrimary: Colors.white,
-                        surface: Colors.white,
-                        onSurface: Colors.black87,
-                      ),
-                      dialogTheme: DialogTheme(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
+                    data: Theme.of(context).copyWith(
+                      colorScheme: Theme.of(context).colorScheme.copyWith(
+                            primary: AppColors.cyan,
+                            onPrimary: Colors.white,
+                          ),
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.cyan,
                         ),
                       ),
-                      cardColor: Colors.white,
-                      canvasColor: Colors.white,
                     ),
                     child: child!,
                   );
@@ -2509,7 +2702,7 @@ class _TransactionPageState extends State<TransactionPage> {
             },
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: 'Time',
+          labelText: AppLocalizations.of(context).t('time_label'),
           prefixIcon: Icon(Icons.access_time, color: AppColors.cyan),
           border: InputBorder.none,
         ),
@@ -2518,11 +2711,12 @@ class _TransactionPageState extends State<TransactionPage> {
           children: [
             Text(
               _selectedTime == null
-                  ? 'Select time'
+                  ? AppLocalizations.of(context).t('select_time_label')
                   : _selectedTime!.format(context),
               style: TextStyle(
-                color:
-                    _selectedTime == null ? Colors.grey[500] : Colors.black87,
+                color: _selectedTime == null
+                    ? AppThemeColors.mutedText(context)
+                    : AppThemeColors.primaryText(context),
               ),
             ),
           ],
@@ -2547,23 +2741,29 @@ class _TransactionPageState extends State<TransactionPage> {
     List<Map<String, dynamic>>? friendSuggestions,
     void Function(String email)? onSelectFriend,
   }) {
+    final t = AppLocalizations.of(context).t;
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 2,
+      color: AppThemeColors.cardBg(context),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
+            Text(label,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 8),
             _buildStylishField(
               child: TextFormField(
                 controller: emailController,
                 enabled: !verified && !readOnlyEmail,
                 readOnly: readOnlyEmail,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
                 decoration: InputDecoration(
-                  labelText: 'Email',
+                  labelText: t('email'),
                   border: InputBorder.none,
                   errorText: emailError,
                   suffixIcon: onPickFriend != null
@@ -2574,60 +2774,61 @@ class _TransactionPageState extends State<TransactionPage> {
                       : null,
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) return 'Email required';
-                  if (!val.contains('@')) return 'Invalid email';
+                  if (val == null || val.isEmpty) return t('email_required_label');
+                  if (!val.contains('@')) return t('invalid_email_label');
                   return null;
                 },
               ),
             ),
             if (!verified) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   if (otpSeconds == 0)
                     ElevatedButton(
                       onPressed: enabled ? onSendOtp : null,
-                      child: Text('Send OTP'),
+                      child: Text(t('send_otp_label')),
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal),
                     )
                   else ...[
                     Container(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.teal.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text('Resend OTP (${otpSeconds}s)',
-                          style: TextStyle(
+                      child: Text(
+                          t('resend_otp_seconds_label').replaceFirst('{seconds}', '$otpSeconds'),
+                          style: const TextStyle(
                               color: Colors.teal, fontWeight: FontWeight.bold)),
                     ),
                   ],
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   if (otpError != null)
-                    Text(otpError, style: TextStyle(color: Colors.red)),
+                    Text(otpError, style: const TextStyle(color: Colors.red)),
                 ],
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               OtpInput(
                 onChanged: onOtpChanged,
                 enabled: enabled,
                 autoFocus: false,
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: enabled ? onVerifyOtp : null,
-                child: Text('Verify OTP'),
+                child: Text(t('verify_otp_label')),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
               ),
             ] else ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.verified, color: Colors.green),
-                  SizedBox(width: 8),
-                  Text('Verified', style: TextStyle(color: Colors.green)),
+                  const Icon(Icons.verified, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Text(t('verified_label'), style: const TextStyle(color: Colors.green)),
                 ],
               ),
             ],
@@ -2685,7 +2886,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(16),
         ),
         child: child,
@@ -2696,7 +2897,7 @@ class _TransactionPageState extends State<TransactionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       bottomNavigationBar: _buildStickySummaryBar(),
       appBar: AppBar(
@@ -2750,7 +2951,7 @@ class _TransactionPageState extends State<TransactionPage> {
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Text(
-                              'Create Secure Transaction',
+                              AppLocalizations.of(context).t('create_secure_transaction_title'),
                               maxLines: 1,
                               softWrap: false,
                               style: TextStyle(
@@ -2771,19 +2972,21 @@ class _TransactionPageState extends State<TransactionPage> {
                   ),
                   Consumer<SessionProvider>(
                     builder: (context, session, child) {
+                      final t = AppLocalizations.of(context).t;
                       if (session.isSubscribed) {
-                        return Text('You have unlimited transactions.',
-                            style: TextStyle(
+                        return Text(t('unlimited_transactions_message'),
+                            style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white));
                       }
                       final remaining = session.freeUserTransactionsRemaining;
                       if (remaining == null) {
-                        return SizedBox.shrink();
+                        return const SizedBox.shrink();
                       }
-                      return Text('$remaining free transactions remaining',
-                          style: TextStyle(
+                      return Text(
+                          t('free_transactions_remaining_message').replaceFirst('{count}', '$remaining'),
+                          style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white));
@@ -2795,18 +2998,18 @@ class _TransactionPageState extends State<TransactionPage> {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'Daily limit: $_dailyUserTxRemaining',
-                        style: TextStyle(
+                        AppLocalizations.of(context).t('daily_limit_colon_label').replaceFirst('{count}', '$_dailyUserTxRemaining'),
+                        style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Colors.white70),
                       ),
                     ),
                   if (_bothUsersVerified) ...[
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Container(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -2817,11 +3020,11 @@ class _TransactionPageState extends State<TransactionPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.lock, color: Colors.white, size: 16),
-                          SizedBox(width: 8),
+                          const Icon(Icons.lock, color: Colors.white, size: 16),
+                          const SizedBox(width: 8),
                           Text(
-                            'Details Locked',
-                            style: TextStyle(
+                            AppLocalizations.of(context).t('details_locked_label'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -2836,10 +3039,12 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(top: 80),
+            padding: const EdgeInsets.only(top: 80),
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-              child: Form(
+              child: Builder(builder: (context) {
+                final t = AppLocalizations.of(context).t;
+                return Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2849,8 +3054,8 @@ class _TransactionPageState extends State<TransactionPage> {
                     Row(
                       children: [
                         _buildDraftActionCard(
-                          title: 'Save Draft',
-                          subtitle: 'Pause now and continue later',
+                          title: t('save_draft'),
+                          subtitle: t('pause_now_continue_later_label'),
                           icon: Icons.save_outlined,
                           accentColor: AppColors.cyan,
                           onTap: () {
@@ -2859,8 +3064,8 @@ class _TransactionPageState extends State<TransactionPage> {
                         ),
                         const SizedBox(width: 12),
                         _buildDraftActionCard(
-                          title: 'Discard Draft',
-                          subtitle: 'Remove the saved version',
+                          title: t('discard_draft_title'),
+                          subtitle: t('remove_saved_version_label'),
                           icon: Icons.delete_outline,
                           accentColor: const Color(0xFFFF6B6B),
                           onTap: () {
@@ -2873,9 +3078,8 @@ class _TransactionPageState extends State<TransactionPage> {
                     _buildDraftStatusCard(),
                     const SizedBox(height: 18),
                     _buildSectionHeader(
-                      title: 'Basic Details',
-                      subtitle:
-                          'Set the role, amount, date, place, and the other person involved in this secure transaction.',
+                      title: t('basic_details_title'),
+                      subtitle: t('basic_details_subtitle_message'),
                       icon: Icons.edit_note_rounded,
                     ),
                     _buildStylishField(
@@ -2884,11 +3088,11 @@ class _TransactionPageState extends State<TransactionPage> {
                         items: [
                           DropdownMenuItem(
                             value: 'lender',
-                            child: Text('Lender (giving money)'),
+                            child: Text(t('lender_giving_money_label')),
                           ),
                           DropdownMenuItem(
                             value: 'borrower',
-                            child: Text('Borrower (taking money)'),
+                            child: Text(t('borrower_taking_money_label')),
                           ),
                         ],
                         onChanged: _bothUsersVerified
@@ -2898,16 +3102,16 @@ class _TransactionPageState extends State<TransactionPage> {
                                   _saveDraft();
                                 }),
                         decoration: InputDecoration(
-                          labelText: 'Your Role',
+                          labelText: t('your_role_label'),
                           prefixIcon:
                               Icon(Icons.people, color: AppColors.cyan),
                           border: InputBorder.none,
                           helperText:
-                              _bothUsersVerified ? 'Details locked' : null,
+                              _bothUsersVerified ? t('details_locked_label') : null,
                         ),
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildStylishField(
                       child: DropdownButtonFormField<String>(
                         value: _currency,
@@ -2924,14 +3128,14 @@ class _TransactionPageState extends State<TransactionPage> {
                                   _saveDraft();
                                 }),
                         decoration: InputDecoration(
-                          labelText: 'Currency',
+                          labelText: t('currency_label'),
                           prefixIcon: Icon(Icons.currency_exchange,
                               color: AppColors.cyan),
                           border: InputBorder.none,
                         ),
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildStylishField(
                       child: TextFormField(
                         controller: _amountController,
@@ -2940,7 +3144,7 @@ class _TransactionPageState extends State<TransactionPage> {
                             TextInputType.numberWithOptions(decimal: true),
                         onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
-                          labelText: 'Amount',
+                          labelText: t('amount_label'),
                           prefixIcon: Padding(
                             padding: const EdgeInsets.all(14),
                             child: Text(
@@ -2955,51 +3159,49 @@ class _TransactionPageState extends State<TransactionPage> {
                           border: InputBorder.none,
                         ),
                         validator: (val) => val == null || val.isEmpty
-                            ? 'Amount required'
+                            ? t('amount_required_label')
                             : null,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildStylishField(
                       child: _buildDatePickerField(),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildStylishField(
                       child: _buildTimePickerField(),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildStylishField(
                       child: TextFormField(
                         controller: _placeController,
                         enabled: !_bothUsersVerified,
                         decoration: InputDecoration(
-                          labelText: 'Place',
+                          labelText: t('place_label'),
                           prefixIcon:
                               Icon(Icons.location_on, color: AppColors.cyan),
                           border: InputBorder.none,
                           helperText: _bothUsersVerified
-                              ? 'Transaction details locked after verification'
+                              ? t('transaction_details_locked_after_verification_label')
                               : null,
                         ),
                         validator: (val) => val == null || val.isEmpty
-                            ? 'Place required'
+                            ? t('place_required_label')
                             : null,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildSectionHeader(
-                      title: 'Proof Files',
-                      subtitle:
-                          'Attach any supporting screenshots or photos that help confirm this transaction later.',
+                      title: t('proof_files_label'),
+                      subtitle: t('proof_files_subtitle_message'),
                       icon: Icons.attach_file_rounded,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildFilePicker(),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildSectionHeader(
-                      title: 'Interest',
-                      subtitle:
-                          'Choose whether interest applies and preview how repayment changes over time.',
+                      title: t('interest_label'),
+                      subtitle: t('interest_subtitle_message'),
                       icon: Icons.percent_rounded,
                     ),
                     _buildStylishField(
@@ -3008,12 +3210,12 @@ class _TransactionPageState extends State<TransactionPage> {
                         items: [
                           DropdownMenuItem(
                               value: 'none',
-                              child: Text('No Interest (Default)')),
+                              child: Text(t('no_interest_default_label'))),
                           DropdownMenuItem(
-                              value: 'simple', child: Text('Simple Interest')),
+                              value: 'simple', child: Text(t('simple_interest_label'))),
                           DropdownMenuItem(
                               value: 'compound',
-                              child: Text('Compound Interest')),
+                              child: Text(t('compound_interest_label'))),
                         ],
                         onChanged: _bothUsersVerified
                             ? null
@@ -3027,17 +3229,17 @@ class _TransactionPageState extends State<TransactionPage> {
                                 });
                               },
                         decoration: InputDecoration(
-                            labelText: 'Interest Type (Optional)',
+                            labelText: t('interest_type_optional_label'),
                             border: InputBorder.none,
                             helperText: _bothUsersVerified
-                                ? 'Transaction details locked after verification'
-                                : 'Leave as "No Interest" if no interest applies to this transaction.'),
+                                ? t('transaction_details_locked_after_verification_label')
+                                : t('leave_as_no_interest_message')),
                       ),
                     ),
                     if (_interestType != 'none') ...[
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       _buildInterestGuidanceCard(),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       _buildStylishField(
                         child: TextFormField(
                           controller: _interestRateController,
@@ -3046,10 +3248,10 @@ class _TransactionPageState extends State<TransactionPage> {
                               TextInputType.numberWithOptions(decimal: true),
                           onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
-                            labelText: 'Interest Rate (%)',
+                            labelText: t('interest_rate_percent_label'),
                             border: InputBorder.none,
                             helperText: _bothUsersVerified
-                                ? 'Transaction details locked after verification'
+                                ? t('transaction_details_locked_after_verification_label')
                                 : null,
                           ),
                           validator: (val) {
@@ -3057,33 +3259,33 @@ class _TransactionPageState extends State<TransactionPage> {
                             if (_interestType == 'none') return null;
 
                             if (val == null || val.isEmpty)
-                              return 'Interest rate required when interest type is selected';
+                              return t('interest_rate_required_message');
                             if (double.tryParse(val) == null)
-                              return 'Enter a valid number';
+                              return t('enter_valid_number_message');
                             if (double.tryParse(val)! <= 0)
-                              return 'Interest rate must be greater than 0';
+                              return t('interest_rate_must_be_greater_than_zero_message');
                             if (double.tryParse(val)! > 100)
-                              return 'Interest rate cannot exceed 100%';
+                              return t('interest_rate_cannot_exceed_100_message');
                             return null;
                           },
                         ),
                       ),
                     ],
                     if (_interestType == 'compound') ...[
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       _buildStylishField(
                         child: DropdownButtonFormField<int>(
                           value: _compoundingFrequency,
                           items: [
                             DropdownMenuItem(
-                                value: 1, child: Text('Annually (1x/year)')),
+                                value: 1, child: Text(t('annually_label'))),
                             DropdownMenuItem(
                                 value: 2,
-                                child: Text('Semi-annually (2x/year)')),
+                                child: Text(t('semi_annually_label'))),
                             DropdownMenuItem(
-                                value: 4, child: Text('Quarterly (4x/year)')),
+                                value: 4, child: Text(t('quarterly_label'))),
                             DropdownMenuItem(
-                                value: 12, child: Text('Monthly (12x/year)')),
+                                value: 12, child: Text(t('monthly_label'))),
                           ],
                           onChanged: _bothUsersVerified
                               ? null
@@ -3092,23 +3294,23 @@ class _TransactionPageState extends State<TransactionPage> {
                                   _saveDraft();
                                 }),
                           decoration: InputDecoration(
-                              labelText: 'Compounding Frequency',
+                              labelText: t('compounding_frequency_label'),
                               border: InputBorder.none,
                               helperText: _bothUsersVerified
-                                  ? 'Transaction details locked after verification'
-                                  : 'How often is interest compounded?'),
+                                  ? t('transaction_details_locked_after_verification_label')
+                                  : t('how_often_interest_compounded_label')),
                           validator: (val) {
                             // Only validate if compound interest is selected
                             if (_interestType != 'compound') return null;
 
                             if (val == null || val <= 0)
-                              return 'Select frequency';
+                              return t('select_frequency_label');
                             return null;
                           },
                         ),
                       ),
                     ],
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildStylishField(
                       child: InkWell(
                         onTap: _bothUsersVerified
@@ -3122,28 +3324,17 @@ class _TransactionPageState extends State<TransactionPage> {
                                   lastDate: DateTime(2100),
                                   builder: (context, child) {
                                     return Theme(
-                                      data: ThemeData.light().copyWith(
-                                        colorScheme: ColorScheme.light(
-                                          primary: AppColors.cyan,
-                                          onPrimary: Colors.white,
-                                          surface: Colors.white,
-                                          onSurface: Colors.black87,
-                                        ),
-                                        dialogTheme: DialogTheme(
-                                          backgroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                        ),
+                                      data: Theme.of(context).copyWith(
+                                        colorScheme: Theme.of(context).colorScheme.copyWith(
+                                              primary: AppColors.cyan,
+                                              onPrimary: Colors.white,
+                                            ),
                                         textButtonTheme: TextButtonThemeData(
                                           style: TextButton.styleFrom(
                                             foregroundColor:
                                                 AppColors.cyan,
                                           ),
                                         ),
-                                        cardColor: Colors.white,
-                                        canvasColor: Colors.white,
                                       ),
                                       child: child!,
                                     );
@@ -3157,18 +3348,18 @@ class _TransactionPageState extends State<TransactionPage> {
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: _interestType == 'none'
-                                ? 'Expected Return Date (Optional)'
-                                : 'Expected Return Date *',
+                                ? t('expected_return_date_optional_label')
+                                : t('expected_return_date_required_star_label'),
                             border: InputBorder.none,
                             helperText: _bothUsersVerified
-                                ? 'Transaction details locked after verification'
+                                ? t('transaction_details_locked_after_verification_label')
                                 : _interestType == 'none'
-                                    ? 'You can set a return date even without interest.'
-                                    : 'Required when interest is applied',
+                                    ? t('can_set_return_date_without_interest_message')
+                                    : t('required_when_interest_applied_label'),
                             prefixIcon: Icon(
                               Icons.calendar_today,
                               color: _bothUsersVerified
-                                  ? Colors.grey.shade300
+                                  ? AppThemeColors.mutedText(context)
                                   : (_interestType == 'none'
                                       ? AppColors.cyan
                                       : Colors.red.shade300),
@@ -3178,48 +3369,47 @@ class _TransactionPageState extends State<TransactionPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(_expectedReturnDate == null
-                                  ? 'Select date'
+                                  ? t('select_date_label')
                                   : DateFormat('yyyy-MM-dd')
                                       .format(_expectedReturnDate!)),
-                              Icon(Icons.calendar_today, color: Colors.teal),
+                              const Icon(Icons.calendar_today, color: Colors.teal),
                             ],
                           ),
                         ),
                       ),
                     ),
                     if (_amountController.text.trim().isNotEmpty) ...[
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       _buildTransactionPreviewCard(),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       _buildRepaymentPreviewCard(),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       _buildRepaymentTimelineCard(),
                     ],
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildSectionHeader(
-                      title: 'Verification',
-                      subtitle:
-                          'Verify both email addresses with OTP. After both are verified, key transaction details get locked for safety.',
+                      title: t('verification_title'),
+                      subtitle: t('verification_subtitle_message'),
                       icon: Icons.verified_user_rounded,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildStylishField(
                       child: TextFormField(
                         controller: _descriptionController,
                         enabled: !_bothUsersVerified,
                         maxLines: 3,
                         decoration: InputDecoration(
-                          labelText: 'Description (optional)',
+                          labelText: t('description_optional_label'),
                           border: InputBorder.none,
                           hintText: _bothUsersVerified
-                              ? 'Transaction details locked after verification'
-                              : 'Add a note or description for this transaction',
+                              ? t('transaction_details_locked_after_verification_label')
+                              : t('add_note_or_description_hint'),
                         ),
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildOtpSection(
-                      label: 'Counterparty Email',
+                      label: t('counterparty_email_label'),
                       emailController: _counterpartyEmailController,
                       verified: _counterpartyVerified,
                       otpError: _counterpartyOtpError,
@@ -3232,12 +3422,12 @@ class _TransactionPageState extends State<TransactionPage> {
                         }
                         if (email.trim() == _userEmailController.text.trim()) {
                           setState(() => _counterpartyEmailError =
-                              'Your email and counterparty email cannot be the same.');
+                              t('emails_cannot_be_same_message'));
                           return;
                         }
                         if (!await _checkEmailExists(email)) {
                           setState(() =>
-                              _counterpartyEmailError = 'Email not registered');
+                              _counterpartyEmailError = t('email_not_registered_label'));
                           return;
                         }
                         setState(() => _counterpartyEmailError = null);
@@ -3247,7 +3437,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       onVerifyOtp: () async {
                         if ((_counterpartyOtp ?? '').length != 6) {
                           setState(() =>
-                              _counterpartyOtpError = 'Enter 6-digit OTP');
+                              _counterpartyOtpError = t('enter_6_digit_otp_label'));
                           return;
                         }
                         await _verifyOtp(_counterpartyEmailController.text,
@@ -3265,9 +3455,9 @@ class _TransactionPageState extends State<TransactionPage> {
                         });
                       },
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _buildOtpSection(
-                      label: 'Your Email',
+                      label: t('your_email_label'),
                       emailController: _userEmailController,
                       verified: _userVerified,
                       otpError: _userOtpError,
@@ -3276,7 +3466,7 @@ class _TransactionPageState extends State<TransactionPage> {
                         final email = _userEmailController.text;
                         if (!await _checkEmailExists(email)) {
                           setState(
-                              () => _userEmailError = 'Email not registered');
+                              () => _userEmailError = t('email_not_registered_label'));
                           return;
                         }
                         setState(() => _userEmailError = null);
@@ -3285,7 +3475,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       onOtpChanged: (val) => _userOtp = val,
                       onVerifyOtp: () async {
                         if ((_userOtp ?? '').length != 6) {
-                          setState(() => _userOtpError = 'Enter 6-digit OTP');
+                          setState(() => _userOtpError = t('enter_6_digit_otp_label'));
                           return;
                         }
                         await _verifyOtp(
@@ -3296,29 +3486,30 @@ class _TransactionPageState extends State<TransactionPage> {
                       readOnlyEmail: true,
                     ),
                     if (_sameEmailError != null) ...[
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(_sameEmailError!,
-                          style: TextStyle(color: Colors.red)),
+                          style: const TextStyle(color: Colors.red)),
                     ],
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Text(
-                      'Review and submit from the sticky summary bar below.',
+                      t('review_submit_from_sticky_bar_message'),
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (_transactionId != null) ...[
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Center(
-                          child: Text('Transaction ID: $_transactionId',
-                              style: TextStyle(
+                          child: Text('${t('transaction_id_label')}: $_transactionId',
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.teal))),
                     ],
                   ],
                 ),
-              ),
+              );
+              }),
             ),
           ),
         ],

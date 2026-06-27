@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageQuickTransactionsPage extends StatefulWidget {
   const ManageQuickTransactionsPage({super.key});
@@ -77,130 +79,148 @@ class _ManageQuickTransactionsPageState
         });
       } else {
         setState(() {
-          _error = data['message'] ?? 'Failed to load transactions.';
+          _error = data['message'] ??
+              AppLocalizations.of(context).t('failed_to_load_transactions');
           _loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'An error occurred: $e';
+        _error = '${AppLocalizations.of(context).t('an_error_occurred')}: $e';
         _loading = false;
       });
     }
   }
 
   Future<void> _deleteTransaction(String id) async {
+    final t = AppLocalizations.of(context).t;
     final response =
         await ApiClient.delete('/api/admin/quick-transactions/$id');
     if (response.statusCode == 200) {
-      _showSnackBar('Transaction deleted successfully.');
+      _showSnackBar(t('transaction_deleted_successfully'));
       _fetchTransactions();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['message'] ?? 'Failed to delete transaction.');
+    _showSnackBar(data['message'] ?? t('failed_to_delete_transaction'));
   }
 
   Future<void> _updateTransaction(
       String id, Map<String, dynamic> body) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.put(
       '/api/admin/quick-transactions/$id',
       body: body,
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Transaction updated successfully.');
+      _showSnackBar(t('transaction_updated_successfully'));
       _fetchTransactions();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['message'] ?? 'Failed to update transaction.');
+    _showSnackBar(data['message'] ?? t('failed_to_update_transaction'));
   }
 
   void _showDeleteConfirmationDialog(String id) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFF5F5), Color(0xFFFFFFFF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+      builder: (context) {
+        final t = AppLocalizations.of(context).t;
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              gradient: LinearGradient(
+                colors: [
+                  AppThemeColors.tinted(context,
+                      light: const Color(0xFFFFF5F5),
+                      dark: const Color(0xFF3A1F1F)),
+                  AppThemeColors.cardBg(context),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.tinted(context,
+                        light: const Color(0xFFFFE3E3),
+                        dark: const Color(0xFF4A2424)),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(
+                    Icons.delete_forever_rounded,
+                    color: Colors.red,
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  t('delete_quick_transaction_title'),
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context)),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  t('confirm_delete_quick_transaction'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: AppThemeColors.secondaryText(context),
+                      height: 1.4),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(t('cancel')),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _deleteTransaction(id);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(t('delete')),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFE3E3),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(
-                  Icons.delete_forever_rounded,
-                  color: Colors.red,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Delete Transaction',
-                style:
-                    TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Are you sure you want to permanently delete this quick transaction?',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54, height: 1.4),
-              ),
-              const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _deleteTransaction(id);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Delete'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -218,12 +238,14 @@ class _ManageQuickTransactionsPageState
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
+        builder: (context, setDialogState) {
+          final t = AppLocalizations.of(context).t;
+          return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
                   color: AppColors.cyan.withValues(alpha: 0.18)),
@@ -248,13 +270,13 @@ class _ManageQuickTransactionsPageState
                       ),
                       borderRadius: BorderRadius.circular(22),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.edit_rounded, color: Colors.white),
-                        SizedBox(width: 10),
+                        const Icon(Icons.edit_rounded, color: Colors.white),
+                        const SizedBox(width: 10),
                         Text(
-                          'Edit Quick Transaction',
-                          style: TextStyle(
+                          t('edit_quick_transaction_title'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -268,39 +290,39 @@ class _ManageQuickTransactionsPageState
                     controller: amountCtrl,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Amount',
-                      prefixIcon: Icon(Icons.currency_rupee_rounded),
+                    decoration: InputDecoration(
+                      labelText: t('amount'),
+                      prefixIcon: const Icon(Icons.currency_rupee_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: currencyCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Currency',
-                      prefixIcon: Icon(Icons.attach_money_rounded),
+                    decoration: InputDecoration(
+                      labelText: t('currency'),
+                      prefixIcon: const Icon(Icons.attach_money_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: descCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      prefixIcon: Icon(Icons.description_outlined),
+                    decoration: InputDecoration(
+                      labelText: t('description'),
+                      prefixIcon: const Icon(Icons.description_outlined),
                     ),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: role,
-                    decoration: const InputDecoration(
-                      labelText: 'Role',
-                      prefixIcon: Icon(Icons.swap_horiz_rounded),
+                    decoration: InputDecoration(
+                      labelText: t('role'),
+                      prefixIcon: const Icon(Icons.swap_horiz_rounded),
                     ),
-                    items: const [
+                    items: [
                       DropdownMenuItem(
-                          value: 'lender', child: Text('Lender')),
+                          value: 'lender', child: Text(t('lender'))),
                       DropdownMenuItem(
-                          value: 'borrower', child: Text('Borrower')),
+                          value: 'borrower', child: Text(t('borrower'))),
                     ],
                     onChanged: (value) =>
                         setDialogState(() => role = value ?? role),
@@ -308,19 +330,19 @@ class _ManageQuickTransactionsPageState
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: settlementStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Settlement Status',
-                      prefixIcon: Icon(Icons.handshake_rounded),
+                    decoration: InputDecoration(
+                      labelText: t('settlement_status_label'),
+                      prefixIcon: const Icon(Icons.handshake_rounded),
                     ),
-                    items: const [
+                    items: [
                       DropdownMenuItem(
-                          value: 'none', child: Text('None')),
+                          value: 'none', child: Text(t('none'))),
                       DropdownMenuItem(
-                          value: 'pending', child: Text('Pending')),
+                          value: 'pending', child: Text(t('pending'))),
                       DropdownMenuItem(
-                          value: 'accepted', child: Text('Accepted')),
+                          value: 'accepted', child: Text(t('accepted'))),
                       DropdownMenuItem(
-                          value: 'rejected', child: Text('Rejected')),
+                          value: 'rejected', child: Text(t('rejected'))),
                     ],
                     onChanged: (value) => setDialogState(
                         () => settlementStatus = value ?? settlementStatus),
@@ -329,8 +351,8 @@ class _ManageQuickTransactionsPageState
                   SwitchListTile(
                     value: cleared,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Cleared'),
-                    subtitle: const Text('Mark as settled/cleared'),
+                    title: Text(t('cleared')),
+                    subtitle: Text(t('mark_as_settled_cleared')),
                     onChanged: (value) =>
                         setDialogState(() => cleared = value),
                   ),
@@ -347,7 +369,7 @@ class _ManageQuickTransactionsPageState
                             padding:
                                 const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text('Cancel'),
+                          child: Text(t('cancel')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -357,7 +379,7 @@ class _ManageQuickTransactionsPageState
                             final amount = double.tryParse(
                                 amountCtrl.text.trim());
                             if (amount == null || amount <= 0) {
-                              _showSnackBar('Enter a valid amount.');
+                              _showSnackBar(t('enter_a_valid_amount'));
                               return;
                             }
                             Navigator.pop(context);
@@ -379,7 +401,7 @@ class _ManageQuickTransactionsPageState
                             padding:
                                 const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text('Save'),
+                          child: Text(t('save')),
                         ),
                       ),
                     ],
@@ -388,7 +410,8 @@ class _ManageQuickTransactionsPageState
               ),
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
@@ -396,7 +419,7 @@ class _ManageQuickTransactionsPageState
   void _showSnackBar(String message) => showSnack(context, message);
 
   String _formatDate(dynamic raw) {
-    if (raw == null) return 'Unknown';
+    if (raw == null) return AppLocalizations.of(context).t('unknown');
     try {
       return DateFormat('MMM d, yyyy h:mm a')
           .format(DateTime.parse(raw.toString()).toLocal());
@@ -425,8 +448,9 @@ class _ManageQuickTransactionsPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -435,7 +459,9 @@ class _ManageQuickTransactionsPageState
             right: 0,
             child: ClipPath(
               clipper: TopWaveClipper(),
-              child: Container(height: context.sh(156), color: AppColors.cyan),
+              child: Container(
+                  height: context.sh(156),
+                  color: AppThemeColors.waveSolid(context)),
             ),
           ),
           SafeArea(
@@ -447,22 +473,23 @@ class _ManageQuickTransactionsPageState
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back,
-                            color: Colors.black),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Manage Quick Transactions',
+                          t('manage_quick_transactions'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 20,
-                              fontWeight: FontWeight.bold),
+                              fontWeight: FontWeight.bold,
+                              color: AppThemeColors.iconOnWave(context)),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh,
-                            color: Colors.black),
+                        icon: Icon(Icons.refresh,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: _fetchTransactions,
                       ),
                     ],
@@ -486,22 +513,26 @@ class _ManageQuickTransactionsPageState
                                   _statsRow(),
                                   const SizedBox(height: 16),
                                   if (_transactions.isEmpty)
-                                    const Padding(
-                                      padding:
-                                          EdgeInsets.only(top: 80),
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 80),
                                       child: Column(
                                         children: [
                                           Icon(
                                               Icons
                                                   .receipt_long_rounded,
                                               size: 72,
-                                              color: Colors.grey),
-                                          SizedBox(height: 12),
+                                              color: AppThemeColors
+                                                  .secondaryText(
+                                                      context)),
+                                          const SizedBox(height: 12),
                                           Text(
-                                              'No transactions found',
+                                              t('no_transactions_found'),
                                               style: TextStyle(
                                                   fontSize: 18,
-                                                  color: Colors.grey)),
+                                                  color: AppThemeColors
+                                                      .secondaryText(
+                                                          context))),
                                         ],
                                       ),
                                     )
@@ -516,7 +547,7 @@ class _ManageQuickTransactionsPageState
                                       onPressed: () => setState(
                                           () => _showAll = true),
                                       child: Text(
-                                          'View All (${_transactions.length})'),
+                                          '${t('view_all_label')} (${_transactions.length})'),
                                     ),
                                 ],
                               ),
@@ -531,6 +562,7 @@ class _ManageQuickTransactionsPageState
   }
 
   Widget _filterBar() {
+    final t = AppLocalizations.of(context).t;
     return Column(
       children: [
         Container(
@@ -546,11 +578,12 @@ class _ManageQuickTransactionsPageState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: TextField(
               controller: _searchController,
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
                 _searchDebounceTimer?.cancel();
@@ -559,11 +592,11 @@ class _ManageQuickTransactionsPageState
                   _fetchTransactions,
                 );
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Search by email, description...',
+                hintText: t('search_by_email_description_placeholder'),
                 prefixIcon:
-                    Icon(Icons.search_rounded, color: AppColors.cyan),
+                    const Icon(Icons.search_rounded, color: AppColors.cyan),
               ),
             ),
           ),
@@ -574,19 +607,18 @@ class _ManageQuickTransactionsPageState
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _clearedFilter,
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
-                  labelText: 'Cleared',
+                  fillColor: AppThemeColors.cardBg(context),
+                  labelText: t('cleared'),
                 ),
-                items: const [
+                items: [
+                  DropdownMenuItem(value: 'all', child: Text(t('all'))),
                   DropdownMenuItem(
-                      value: 'all', child: Text('All')),
+                      value: 'cleared', child: Text(t('cleared'))),
                   DropdownMenuItem(
-                      value: 'cleared', child: Text('Cleared')),
-                  DropdownMenuItem(
-                      value: 'uncleared',
-                      child: Text('Uncleared')),
+                      value: 'uncleared', child: Text(t('uncleared'))),
                 ],
                 onChanged: (value) {
                   setState(() => _clearedFilter = value!);
@@ -598,22 +630,21 @@ class _ManageQuickTransactionsPageState
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _settlementFilter,
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
-                  labelText: 'Settlement',
+                  fillColor: AppThemeColors.cardBg(context),
+                  labelText: t('settlement_status_label'),
                 ),
-                items: const [
+                items: [
+                  DropdownMenuItem(value: 'all', child: Text(t('all'))),
+                  DropdownMenuItem(value: 'none', child: Text(t('none'))),
                   DropdownMenuItem(
-                      value: 'all', child: Text('All')),
+                      value: 'pending', child: Text(t('pending'))),
                   DropdownMenuItem(
-                      value: 'none', child: Text('None')),
+                      value: 'accepted', child: Text(t('accepted'))),
                   DropdownMenuItem(
-                      value: 'pending', child: Text('Pending')),
-                  DropdownMenuItem(
-                      value: 'accepted', child: Text('Accepted')),
-                  DropdownMenuItem(
-                      value: 'rejected', child: Text('Rejected')),
+                      value: 'rejected', child: Text(t('rejected'))),
                 ],
                 onChanged: (value) {
                   setState(() => _settlementFilter = value!);
@@ -625,20 +656,21 @@ class _ManageQuickTransactionsPageState
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _sortBy,
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
-                  labelText: 'Sort',
+                  fillColor: AppThemeColors.cardBg(context),
+                  labelText: t('sort'),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
-                      value: 'latest', child: Text('Latest')),
+                      value: 'latest', child: Text(t('latest_label'))),
                   DropdownMenuItem(
                       value: 'amount_high',
-                      child: Text('Amount ↓')),
+                      child: Text('${t('amount_high')} ↓')),
                   DropdownMenuItem(
                       value: 'amount_low',
-                      child: Text('Amount ↑')),
+                      child: Text('${t('amount_low')} ↑')),
                 ],
                 onChanged: (value) {
                   setState(() => _sortBy = value!);
@@ -653,30 +685,40 @@ class _ManageQuickTransactionsPageState
   }
 
   Widget _statsRow() {
+    final t = AppLocalizations.of(context).t;
     final clearedCount =
-        _transactions.where((t) => t['cleared'] == true).length;
+        _transactions.where((tx) => tx['cleared'] == true).length;
     final pendingCount = _transactions
-        .where((t) => t['settlementStatus'] == 'pending')
+        .where((tx) => tx['settlementStatus'] == 'pending')
         .length;
     final stats = [
-      ('Total', '${_transactions.length}', Icons.receipt_rounded),
-      ('Cleared', '$clearedCount', Icons.check_circle_rounded),
-      ('Pending', '$pendingCount', Icons.pending_rounded),
+      (t('total_label'), '${_transactions.length}', Icons.receipt_rounded),
+      (t('cleared'), '$clearedCount', Icons.check_circle_rounded),
+      (t('pending'), '$pendingCount', Icons.pending_rounded),
     ];
     return Row(
       children: List.generate(stats.length, (i) {
         final item = stats[i];
+        final bg = AppThemeColors.tinted(
+          context,
+          light: i == 0
+              ? const Color(0xFFFFF4E6)
+              : i == 1
+                  ? const Color(0xFFE8F5E9)
+                  : const Color(0xFFE3F2FD),
+          dark: i == 0
+              ? const Color(0xFF4A3A1F)
+              : i == 1
+                  ? const Color(0xFF1E3A26)
+                  : const Color(0xFF1B3A57),
+        );
         return Expanded(
           child: Container(
             margin:
                 EdgeInsets.only(right: i == stats.length - 1 ? 0 : 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: i == 0
-                  ? const Color(0xFFFFF4E6)
-                  : i == 1
-                      ? const Color(0xFFE8F5E9)
-                      : const Color(0xFFE3F2FD),
+              color: bg,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -684,11 +726,14 @@ class _ManageQuickTransactionsPageState
                 Icon(item.$3, color: AppColors.cyan),
                 const SizedBox(height: 6),
                 Text(item.$2,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
                 Text(item.$1,
                     style: TextStyle(
-                        color: Colors.grey[700], fontSize: 12)),
+                        color: AppThemeColors.secondaryText(context),
+                        fontSize: 12)),
               ],
             ),
           ),
@@ -698,14 +743,20 @@ class _ManageQuickTransactionsPageState
   }
 
   Widget _transactionCard(Map<String, dynamic> tx) {
+    final t = AppLocalizations.of(context).t;
     final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
     final currency = tx['currency'] ?? 'INR';
     final description = tx['description'] ?? '';
-    final creatorEmail = tx['creatorEmail'] ?? 'Unknown';
+    final creatorEmail = tx['creatorEmail'] ?? t('unknown');
     final users = List<String>.from(tx['users'] ?? []);
     final cleared = tx['cleared'] == true;
     final settlementStatus = tx['settlementStatus'] ?? 'none';
     final role = tx['role'] ?? '';
+    final roleLabel = role == 'lender'
+        ? t('lender')
+        : role == 'borrower'
+            ? t('borrower')
+            : role.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -727,6 +778,7 @@ class _ManageQuickTransactionsPageState
       ),
       child: Card(
         margin: EdgeInsets.zero,
+        color: AppThemeColors.cardBg(context),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18)),
         child: ExpansionTile(
@@ -750,14 +802,16 @@ class _ManageQuickTransactionsPageState
           ),
           title: Text(
             '${amount.toStringAsFixed(2)} $currency',
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppThemeColors.primaryText(context)),
           ),
           subtitle: Text(
-            description.isNotEmpty ? description : 'No description',
+            description.isNotEmpty ? description : t('no_description'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(color: AppThemeColors.secondaryText(context)),
           ),
           childrenPadding:
               const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -767,7 +821,7 @@ class _ManageQuickTransactionsPageState
               runSpacing: 6,
               children: [
                 Chip(
-                  label: Text(cleared ? 'Cleared' : 'Uncleared'),
+                  label: Text(cleared ? t('cleared') : t('uncleared')),
                   backgroundColor: cleared
                       ? Colors.green.withValues(alpha: 0.12)
                       : Colors.orange.withValues(alpha: 0.12),
@@ -779,7 +833,8 @@ class _ManageQuickTransactionsPageState
                   ),
                 ),
                 Chip(
-                  label: Text('Settlement: $settlementStatus'),
+                  label: Text(
+                      '${t('settlement_colon')} $settlementStatus'),
                   backgroundColor: _settlementColor(settlementStatus)
                       .withValues(alpha: 0.12),
                   labelStyle: TextStyle(
@@ -789,9 +844,10 @@ class _ManageQuickTransactionsPageState
                 ),
                 if (role.isNotEmpty)
                   Chip(
-                    label: Text(
-                        role[0].toUpperCase() + role.substring(1)),
-                    backgroundColor: const Color(0xFFEDF4FF),
+                    label: Text(roleLabel),
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFEDF4FF),
+                        dark: const Color(0xFF1B3A57)),
                     labelStyle:
                         const TextStyle(color: Color(0xFF2563EB)),
                   ),
@@ -802,26 +858,38 @@ class _ManageQuickTransactionsPageState
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF8FC),
+                color: AppThemeColors.tinted(context,
+                    light: const Color(0xFFEFF8FC),
+                    dark: const Color(0xFF1B3A4A)),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Creator: $creatorEmail'),
+                  Text('${t('creator_colon')} $creatorEmail',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                   if (users.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text('Users: ${users.join(', ')}'),
+                    Text('${t('users_colon')} ${users.join(', ')}',
+                        style: TextStyle(
+                            color: AppThemeColors.primaryText(context))),
                   ],
                   const SizedBox(height: 4),
                   Text(
-                      'Date: ${tx['date'] ?? 'Unknown'}  Time: ${tx['time'] ?? ''}'),
+                      '${t('date_colon')} ${tx['date'] ?? t('unknown')}  ${t('time_colon')} ${tx['time'] ?? ''}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                   const SizedBox(height: 4),
-                  Text('Created: ${_formatDate(tx['createdAt'])}'),
+                  Text(
+                      '${t('created_colon')} ${_formatDate(tx['createdAt'])}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                   const SizedBox(height: 4),
-                  Text('ID: ${tx['_id']}',
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.grey)),
+                  Text('${t('id_colon')} ${tx['_id']}',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: AppThemeColors.mutedText(context))),
                 ],
               ),
             ),
@@ -832,7 +900,7 @@ class _ManageQuickTransactionsPageState
                   child: OutlinedButton.icon(
                     onPressed: () => _showEditDialog(tx),
                     icon: const Icon(Icons.edit_rounded),
-                    label: const Text('Edit'),
+                    label: Text(t('edit')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -842,8 +910,8 @@ class _ManageQuickTransactionsPageState
                         _showDeleteConfirmationDialog(tx['_id']),
                     icon: const Icon(Icons.delete_rounded,
                         color: Colors.red),
-                    label: const Text('Delete',
-                        style: TextStyle(color: Colors.red)),
+                    label: Text(t('delete'),
+                        style: const TextStyle(color: Colors.red)),
                   ),
                 ),
               ],

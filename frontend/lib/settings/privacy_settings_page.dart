@@ -6,6 +6,8 @@ import 'custom_warning_widget.dart';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class PrivacySettingsPage extends StatefulWidget {
   const PrivacySettingsPage({super.key});
@@ -61,8 +63,8 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        CustomWarningWidget.showAnimatedError(
-            context, 'Error loading settings: ${e.toString()}');
+        CustomWarningWidget.showAnimatedError(context,
+            '${AppLocalizations.of(context).t('error_loading_settings')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -94,13 +96,13 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       if (response.statusCode == 200) {
         if (mounted) {
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'Privacy settings saved successfully!');
+              context, AppLocalizations.of(context).t('notification_settings_saved'));
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          CustomWarningWidget.showAnimatedError(
-              context, errorData['message'] ?? 'Failed to save settings');
+          CustomWarningWidget.showAnimatedError(context,
+              errorData['message'] ?? AppLocalizations.of(context).t('failed_save_settings'));
         }
       }
     } catch (e) {
@@ -118,35 +120,37 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Future<void> _deleteAccount() async {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext ctx) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
-            'Deactivate Account',
-            style: TextStyle(
+          backgroundColor: AppThemeColors.cardBg(ctx),
+          title: Text(
+            t('deactivate_account_title'),
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.red,
             ),
           ),
-          content: const Text(
-            'Are you sure you want to deactivate your account? This action is reversible. All your data will be preserved, but you will not be able to use your account until you recover it.',
-            style: TextStyle(color: Colors.black87),
+          content: Text(
+            t('deactivate_account_confirm_message'),
+            style: TextStyle(color: AppThemeColors.primaryText(ctx)),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(ctx)),
               ),
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
                 await _performAccountDeletion();
               },
               style: ElevatedButton.styleFrom(
@@ -155,9 +159,9 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Deactivate Account',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                t('deactivate_account_title'),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -167,24 +171,28 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Future<void> _performAccountDeletion() async {
+    final t = AppLocalizations.of(context).t;
     // Show progress dialog
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppThemeColors.cardBg(ctx),
         content: Row(
-          children: const [
-            SizedBox(
+          children: [
+            const SizedBox(
               width: 28,
               height: 28,
               child: CircularProgressIndicator(strokeWidth: 3),
             ),
-            SizedBox(width: 18),
+            const SizedBox(width: 18),
             Expanded(
               child: Text(
-                'Deactivating account...',
-                style: TextStyle(fontWeight: FontWeight.w500),
+                t('deactivating_account_progress'),
+                style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: AppThemeColors.primaryText(ctx)),
               ),
             ),
           ],
@@ -203,20 +211,20 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           await session.logout();
           Navigator.of(context).pushReplacementNamed('/');
           CustomWarningWidget.showAnimatedSuccess(
-              context, 'Account deactivated successfully');
+              context, t('account_deactivated_success'));
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
           CustomWarningWidget.showAnimatedError(
-              context, errorData['message'] ?? 'Failed to delete account');
+              context, errorData['message'] ?? t('failed_deactivate_account'));
         }
       }
     } catch (e) {
       Navigator.of(context, rootNavigator: true).pop(); // Close progress dialog
       if (mounted) {
-        CustomWarningWidget.showAnimatedError(context,
-            'Network error: Unable to delete account. Please try again.');
+        CustomWarningWidget.showAnimatedError(
+            context, t('network_error_deactivate_account'));
       }
     }
   }
@@ -236,6 +244,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Future<void> _logoutDevice(String deviceId) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final session = Provider.of<SessionProvider>(context, listen: false);
       final response = await ApiClient.post(
@@ -252,17 +261,17 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
             }
             Navigator.of(context).pushReplacementNamed('/');
             CustomWarningWidget.showAnimatedSuccess(
-                context, 'Logged out from this device');
+                context, t('logged_out_from_this_device'));
             return;
           }
-          CustomWarningWidget.showAnimatedSuccess(context, 'Device logged out');
+          CustomWarningWidget.showAnimatedSuccess(context, t('device_logged_out'));
           _loadDevices();
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
           CustomWarningWidget.showAnimatedError(
-              context, errorData['error'] ?? 'Failed to logout device');
+              context, errorData['error'] ?? t('failed_logout_device'));
         }
       }
     } catch (e) {
@@ -274,20 +283,23 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Future<void> _logoutAllDevices() async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Logout All Devices',
-            style:
-                TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-        content: const Text(
-            'This will log you out from all other devices. You will remain logged in on this device.'),
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Text(t('logout_all_devices_title'),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(ctx))),
+        content: Text(t('logout_all_devices_confirm_message'),
+            style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey))),
+              child: Text(t('cancel'),
+                  style: TextStyle(color: AppThemeColors.secondaryText(ctx)))),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
@@ -295,8 +307,8 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Logout All',
-                style: TextStyle(color: Colors.white)),
+            child: Text(t('logout_all_button'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -311,12 +323,12 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         CustomWarningWidget.showAnimatedSuccess(
-            context, 'Logged out from all other devices');
+            context, t('logged_out_from_all_other_devices'));
         _loadDevices();
       } else {
         final err = json.decode(response.body);
         CustomWarningWidget.showAnimatedError(
-            context, err['error'] ?? 'Failed to logout all devices');
+            context, err['error'] ?? t('failed_logout_all_devices'));
       }
     } catch (e) {
       if (mounted) {
@@ -326,6 +338,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Future<void> _requestDataExport() async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _isExporting = true);
     try {
       final response = await ApiClient.get(
@@ -339,14 +352,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         _showExportSummaryDialog(summary, data['note'] as String? ?? '');
       } else if (response.statusCode == 408) {
         CustomWarningWidget.showAnimatedError(
-            context, 'Server is waking up, please try again in a moment.');
+            context, t('server_waking_up_retry'));
       } else if (response.statusCode == 440) {
         CustomWarningWidget.showAnimatedError(
-            context, 'Session expired. Please log in again.');
+            context, t('session_expired_login_again'));
       } else {
         final err = json.decode(response.body);
         CustomWarningWidget.showAnimatedError(
-            context, err['message'] ?? err['error'] ?? 'Failed to export data');
+            context, err['message'] ?? err['error'] ?? t('failed_export_data'));
       }
     } catch (e) {
       if (mounted) {
@@ -359,10 +372,12 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
   void _showExportSummaryDialog(
       Map<String, dynamic> summary, String note) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppThemeColors.cardBg(ctx),
         title: Row(
           children: [
             Container(
@@ -375,30 +390,34 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                   color: AppColors.cyan, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Your Data Summary',
-                style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(t('your_data_summary_title'),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(ctx))),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _summaryRow('Name', summary['name']?.toString() ?? '—'),
-            _summaryRow('Email', summary['email']?.toString() ?? '—'),
-            _summaryRow('Wallet Balance',
+            _summaryRow(ctx, t('name'), summary['name']?.toString() ?? '—'),
+            _summaryRow(ctx, t('email'), summary['email']?.toString() ?? '—'),
+            _summaryRow(ctx, t('wallet_balance_label'),
                 '₹${(summary['walletBalance'] ?? 0).toStringAsFixed(2)}'),
-            _summaryRow('Transactions',
+            _summaryRow(ctx, t('transactions_label'),
                 '${summary['transactionCount'] ?? 0}'),
-            _summaryRow('Wallet Entries',
+            _summaryRow(ctx, t('wallet_entries_label'),
                 '${summary['walletTransactionCount'] ?? 0}'),
-            _summaryRow(
-                'Subscriptions', '${summary['subscriptionCount'] ?? 0}'),
+            _summaryRow(ctx, t('subscriptions_label'),
+                '${summary['subscriptionCount'] ?? 0}'),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1),
+                color: AppThemeColors.tinted(ctx,
+                    light: const Color(0xFFFFF8E1),
+                    dark: const Color(0xFF5D4E2A)),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFFFFCC02)),
               ),
@@ -416,14 +435,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('OK', style: TextStyle(color: Colors.white)),
+            child: Text(t('ok'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  Widget _summaryRow(String label, String value) {
+  Widget _summaryRow(BuildContext context, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
@@ -431,15 +450,15 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           SizedBox(
             width: 110,
             child: Text(label,
-                style: const TextStyle(
-                    fontSize: 13, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 13, color: AppThemeColors.secondaryText(context))),
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87)),
+                    color: AppThemeColors.primaryText(context))),
           ),
         ],
       ),
@@ -457,9 +476,10 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Privacy Settings', actions: [
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('privacy_settings'), actions: [
         if (!_isLoading)
           TextButton(
             onPressed: _isSaving ? null : _savePrivacySettings,
@@ -469,9 +489,9 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    'Save',
-                    style: TextStyle(
+                : Text(
+                    t('save'),
+                    style: const TextStyle(
                       color: AppColors.cyan,
                       fontWeight: FontWeight.bold,
                     ),
@@ -490,7 +510,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -509,20 +529,20 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                           color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Privacy & Security',
+                        Text(
+                          t('privacy_security_title'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Control your privacy and security preferences',
+                        Text(
+                          t('control_privacy_subtitle'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -534,25 +554,29 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
                   // Privacy Settings Section
                   _buildSettingsSection(
-                    'Privacy Settings',
+                    context,
+                    t('privacy_settings'),
                     [
                       _buildSwitchTile(
-                        'Profile Visibility',
-                        'Allow others to see your profile information',
+                        context,
+                        t('profile_visibility_title'),
+                        t('profile_visibility_desc'),
                         Icons.visibility_outlined,
                         _profileVisibility,
                         (value) => setState(() => _profileVisibility = value),
                       ),
                       _buildSwitchTile(
-                        'Contact Sharing',
-                        'Allow others to see your contact number',
+                        context,
+                        t('contact_sharing_title'),
+                        t('contact_sharing_desc'),
                         Icons.contacts_outlined,
                         _contactSharing,
                         (value) => setState(() => _contactSharing = value),
                       ),
                       _buildSwitchTile(
-                        'Analytics Sharing',
-                        'Hide Analytics data on Analytics Page',
+                        context,
+                        t('analytics_sharing_title'),
+                        t('analytics_sharing_desc'),
                         Icons.analytics_outlined,
                         _analyticsSharing,
                         (value) => setState(() => _analyticsSharing = value),
@@ -564,33 +588,37 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
                   // Security Settings Section
                   _buildSettingsSection(
-                    'Security Settings',
+                    context,
+                    t('security_settings_section'),
                     [
                       _buildSwitchTile(
-                        'Login Notifications',
-                        'Get notified by email when someone logs into your account',
+                        context,
+                        t('login_notifications_title'),
+                        t('login_notifications_desc'),
                         Icons.notifications_active_outlined,
                         _loginNotifications,
                         (value) => setState(() => _loginNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Device Management',
-                        'Allow multiple devices to access your account',
+                        context,
+                        t('device_management_title'),
+                        t('device_management_desc'),
                         Icons.devices,
                         _deviceManagement,
                         (value) => setState(() => _deviceManagement = value),
                       ),
                       _buildDropdownTile(
-                        'Session Timeout',
-                        'Auto-logout after inactivity',
+                        context,
+                        t('session_timeout_title'),
+                        t('session_timeout_desc'),
                         Icons.timer_outlined,
                         _sessionTimeout,
                         {
-                          '15': '15 minutes',
-                          '30': '30 minutes',
-                          '60': '1 hour',
-                          '120': '2 hours',
-                          '0': 'Never',
+                          '15': t('minutes_15'),
+                          '30': t('minutes_30'),
+                          '60': t('hour_1'),
+                          '120': t('hours_2'),
+                          '0': t('never'),
                         },
                         (value) => setState(() => _sessionTimeout = value!),
                       ),
@@ -601,11 +629,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
                   // Device Management Section
                   _buildSettingsSection(
-                    'Active Devices',
+                    context,
+                    t('active_devices'),
                     [
                       if (_devices.isEmpty)
-                        const ListTile(
-                          title: Text('No active devices found'),
+                        ListTile(
+                          title: Text(t('no_active_devices_found'),
+                              style: TextStyle(
+                                  color: AppThemeColors.primaryText(context))),
                         ),
                       ..._devices.map((device) {
                         final isCurrent =
@@ -613,35 +644,42 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                         return ListTile(
                           leading: Icon(
                             Icons.devices,
-                            color: isCurrent ? Colors.green : Colors.grey,
+                            color: isCurrent
+                                ? Colors.green
+                                : AppThemeColors.secondaryText(context),
                           ),
                           title: Text(
-                            device['userAgent'] ?? 'Unknown Device',
+                            device['userAgent'] ?? t('unknown_device'),
                             style: TextStyle(
                               fontWeight: isCurrent
                                   ? FontWeight.bold
                                   : FontWeight.normal,
-                              color: isCurrent ? Colors.green : Colors.black87,
+                              color: isCurrent
+                                  ? Colors.green
+                                  : AppThemeColors.primaryText(context),
                             ),
                           ),
                           subtitle: Text(
-                            'IP: ${device['ipAddress'] ?? 'N/A'}\n'
-                            'Last Active: ${device['lastActive'] != null ? device['lastActive'].toString().substring(0, 19).replaceFirst('T', ' ') : 'N/A'}',
-                            style: const TextStyle(fontSize: 12),
+                            '${t('ip_label')}: ${device['ipAddress'] ?? 'N/A'}\n'
+                            '${t('last_active_label')}: ${device['lastActive'] != null ? device['lastActive'].toString().substring(0, 19).replaceFirst('T', ' ') : 'N/A'}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppThemeColors.secondaryText(context)),
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.logout, color: Colors.red),
                             tooltip: isCurrent
-                                ? 'Logout from this device'
-                                : 'Logout from this device remotely',
+                                ? t('logout_from_this_device')
+                                : t('logout_from_this_device_remotely'),
                             onPressed: () => _logoutDevice(device['deviceId']),
                           ),
                         );
                       }).toList(),
                       if (_devices.length > 1)
                         _buildActionTile(
-                          'Logout All Other Devices',
-                          'Sign out from every device except this one',
+                          context,
+                          t('logout_all_other_devices_title'),
+                          t('logout_all_other_devices_desc'),
                           Icons.devices_other,
                           _logoutAllDevices,
                           isDestructive: true,
@@ -653,17 +691,20 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
                   // Data Management Section
                   _buildSettingsSection(
-                    'Account Management',
+                    context,
+                    t('account_management_section'),
                     [
                       _buildActionTile(
-                        'Export My Data',
-                        'Get a summary of your data stored on LenDen',
+                        context,
+                        t('export_my_data_title'),
+                        t('export_my_data_desc'),
                         Icons.download_outlined,
                         _isExporting ? () {} : _requestDataExport,
                       ),
                       _buildActionTile(
-                        'Deactivate Account',
-                        'Temporarily deactivate your account. You can recover it later.',
+                        context,
+                        t('deactivate_account_title'),
+                        t('deactivate_account_desc'),
                         Icons.delete_forever_outlined,
                         () => _deleteAccount(),
                         isDestructive: true,
@@ -678,25 +719,27 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: AppThemeColors.tinted(context,
+                          light: Colors.blue.withValues(alpha: 0.1),
+                          dark: Colors.blue.withValues(alpha: 0.22)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Privacy & Security Tips:',
-                          style: TextStyle(
+                          t('privacy_security_tips_title'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.blue,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          '• Enable two-factor authentication for enhanced security\n• Regularly review your privacy settings\n• Be cautious about sharing personal information\n• Keep your app updated for the latest security features',
-                          style: TextStyle(
+                          t('privacy_security_tips_body'),
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Colors.blue,
                           ),
@@ -710,10 +753,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     );
   }
 
-  Widget _buildSettingsSection(String title, List<Widget> children) {
+  Widget _buildSettingsSection(
+      BuildContext context, String title, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -745,6 +789,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -755,17 +800,17 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Switch(
@@ -778,6 +823,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Widget _buildDropdownTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -789,17 +835,17 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: DropdownButton<String>(
@@ -818,6 +864,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   }
 
   Widget _buildActionTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -834,19 +881,19 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: isDestructive ? Colors.red : Colors.black87,
+          color: isDestructive ? Colors.red : AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        color: isDestructive ? Colors.red : Colors.grey,
+        color: isDestructive ? Colors.red : AppThemeColors.secondaryText(context),
         size: 16,
       ),
       onTap: onTap,

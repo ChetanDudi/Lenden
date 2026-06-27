@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 
 /// Reusable full-screen payment success celebration.
 ///
@@ -114,6 +115,7 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -235,14 +237,14 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
                             ),
                           ),
                           _receiptRow(Icons.category_rounded,
-                              'Type', widget.transactionType),
+                              t('type'), widget.transactionType),
                           if (widget.amount != null)
-                            _receiptRow(Icons.currency_rupee_rounded, 'Amount',
+                            _receiptRow(Icons.currency_rupee_rounded, t('amount'),
                                 '${widget.currency}${widget.amount!.toStringAsFixed(2)}'),
                           if (widget.recipientName != null)
-                            _receiptRow(Icons.person_rounded, 'To',
+                            _receiptRow(Icons.person_rounded, t('to'),
                                 widget.recipientName!),
-                          _receiptRow(Icons.calendar_today_rounded, 'Date',
+                          _receiptRow(Icons.calendar_today_rounded, t('date'),
                               DateFormat('dd MMM yyyy, hh:mm a')
                                   .format(DateTime.now())),
                           for (final e in widget.extraDetails.entries)
@@ -257,7 +259,7 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
                                   size: 13,
                                   color: Colors.grey.shade400),
                               const SizedBox(width: 4),
-                              Text('Secured by LenDen',
+                              Text(t('secured_by_lenden'),
                                   style: TextStyle(
                                       fontSize: 11,
                                       color: Colors.grey.shade400)),
@@ -280,8 +282,8 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
                             onPressed: _shareReceipt,
                             icon: const Icon(Icons.share_rounded,
                                 color: Colors.white),
-                            label: const Text('Share Receipt',
-                                style: TextStyle(
+                            label: Text(t('share_receipt'),
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold)),
                             style: OutlinedButton.styleFrom(
@@ -313,8 +315,8 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14)),
                             ),
-                            child: const Text('Done',
-                                style: TextStyle(
+                            child: Text(t('done'),
+                                style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15)),
                           ),

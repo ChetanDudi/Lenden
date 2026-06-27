@@ -11,6 +11,8 @@ import '../../utils/api_client.dart';
 import '../../utils/http_interceptor.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageTransactionsPage extends StatefulWidget {
   const ManageTransactionsPage({super.key});
@@ -103,15 +105,17 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
           _loading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         final data = jsonDecode(response.body);
         setState(() {
-          _error = data['error']?.toString() ?? 'Failed to load transactions.';
+          _error = data['error']?.toString() ?? t('failed_to_load_transactions_msg');
           _loading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        _error = 'An error occurred: $e';
+        _error = '${t('an_error_occurred_prefix')} $e';
         _loading = false;
       });
     }
@@ -150,20 +154,22 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
       }
 
       final response = await request.send();
+      final t = AppLocalizations.of(context).t;
 
       if (response.statusCode == 200) {
-        _showStylishSnackBar('Transaction updated successfully.');
+        _showStylishSnackBar(t('transaction_updated_successfully'));
         await _fetchTransactions();
       } else {
         final respStr = await response.stream.bytesToString();
         final data = jsonDecode(respStr);
         _showStylishSnackBar(
-          data['message']?.toString() ?? 'Failed to update transaction.',
+          data['message']?.toString() ?? t('failed_to_update_transaction'),
           isError: true,
         );
       }
     } catch (e) {
-      _showStylishSnackBar('An error occurred: $e', isError: true);
+      final t = AppLocalizations.of(context).t;
+      _showStylishSnackBar('${t('an_error_occurred_prefix')} $e', isError: true);
     }
   }
 
@@ -171,25 +177,28 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     try {
       final response =
           await ApiClient.delete('/api/admin/transactions/$transactionId');
+      final t = AppLocalizations.of(context).t;
 
       if (response.statusCode == 200) {
-        _showStylishSnackBar('Transaction deleted successfully.');
+        _showStylishSnackBar(t('transaction_deleted_successfully'));
         await _fetchTransactions();
       } else {
         final data = jsonDecode(response.body);
         _showStylishSnackBar(
-          data['error']?.toString() ?? 'Failed to delete transaction.',
+          data['error']?.toString() ?? t('failed_to_delete_transaction'),
           isError: true,
         );
       }
     } catch (e) {
-      _showStylishSnackBar('An error occurred: $e', isError: true);
+      final t = AppLocalizations.of(context).t;
+      _showStylishSnackBar('${t('an_error_occurred_prefix')} $e', isError: true);
     }
   }
 
   String _displayValue(dynamic value) {
-    if (value == null) return 'N/A';
-    if (value is String && value.trim().isEmpty) return 'N/A';
+    final na = AppLocalizations.of(context).t('n_a');
+    if (value == null) return na;
+    if (value is String && value.trim().isEmpty) return na;
     if (value is Map || value is List) {
       return const JsonEncoder.withIndent('  ').convert(value);
     }
@@ -197,14 +206,14 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   }
 
   String _formatDate(dynamic value) {
-    if (value == null) return 'N/A';
+    if (value == null) return AppLocalizations.of(context).t('n_a');
     final parsed = DateTime.tryParse(value.toString());
     if (parsed == null) return value.toString();
     return DateFormat('dd MMM yyyy, hh:mm a').format(parsed.toLocal());
   }
 
   String _formatDateOnly(dynamic value) {
-    if (value == null) return 'N/A';
+    if (value == null) return AppLocalizations.of(context).t('n_a');
     final parsed = DateTime.tryParse(value.toString());
     if (parsed == null) return value.toString();
     return DateFormat('dd MMM yyyy').format(parsed.toLocal());
@@ -276,7 +285,9 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
             ),
           ),
           const SizedBox(height: 6),
-          SelectableText(value, style: const TextStyle(height: 1.35)),
+          SelectableText(value,
+              style: TextStyle(
+                  height: 1.35, color: AppThemeColors.primaryText(context))),
         ],
       ),
     );
@@ -335,10 +346,10 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Photos',
-                  style: TextStyle(
+                  AppLocalizations.of(context).t('photos_label'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.cyan,
                   ),
@@ -348,15 +359,17 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 TextButton.icon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.add_photo_alternate_outlined),
-                  label: const Text('Add'),
+                  label: Text(AppLocalizations.of(context).t('add')),
                 ),
             ],
           ),
           const SizedBox(height: 8),
           if (photos.isEmpty)
             Text(
-              editable ? 'No photos selected.' : 'No photos available.',
-              style: TextStyle(color: Colors.grey[700]),
+              editable
+                  ? AppLocalizations.of(context).t('no_photos_selected')
+                  : AppLocalizations.of(context).t('no_photos_available'),
+              style: TextStyle(color: AppThemeColors.secondaryText(context)),
             )
           else
             Wrap(
@@ -378,15 +391,15 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                       height: 110,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0x2200B4D8)),
                       ),
                       child: bytes == null
                           ? Center(
                               child: Text(
-                                'Invalid image',
-                                style: TextStyle(color: Colors.grey[700]),
+                                AppLocalizations.of(context).t('invalid_image'),
+                                style: TextStyle(color: AppThemeColors.secondaryText(context)),
                                 textAlign: TextAlign.center,
                               ),
                             )
@@ -428,10 +441,11 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     void Function(int index)? onRemove,
     VoidCallback? onAdd,
   }) {
+    final t = AppLocalizations.of(context).t;
     if (payments.isEmpty && !editable) {
       return _buildDetailTile(
-        'Partial Payment History',
-        'No partial payments available.',
+        t('partial_payment_history'),
+        t('no_partial_payments_available'),
         _getNoteColor(4),
       );
     }
@@ -450,9 +464,9 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Partial Payment History',
-                style: TextStyle(
+              Text(
+                t('partial_payment_history'),
+                style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.cyan,
                 ),
@@ -461,13 +475,14 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 TextButton.icon(
                   onPressed: onAdd,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add'),
+                  label: Text(t('add')),
                 ),
             ],
           ),
           const SizedBox(height: 10),
           if (payments.isEmpty)
-            const Text('No partial payments recorded.'),
+            Text(t('no_partial_payments_recorded'),
+                style: TextStyle(color: AppThemeColors.primaryText(context))),
           ...payments.asMap().entries.map((entry) {
             final payment = entry.value;
             final amount = _displayValue(payment['amount']);
@@ -479,7 +494,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(235),
+                color: AppThemeColors.cardBg(context).withAlpha(235),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0x3300B4D8)),
               ),
@@ -490,10 +505,11 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Payment ${entry.key + 1}',
-                        style: const TextStyle(
+                        '${t('payment_number_prefix')} ${entry.key + 1}',
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       if (editable)
@@ -512,10 +528,15 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('Amount: $amount'),
-                  Text('Paid By: $paidBy'),
-                  Text('Paid At: $paidAt'),
-                  if (description != 'N/A') Text('Description: $description'),
+                  Text('${t('amount_colon')} $amount',
+                      style: TextStyle(color: AppThemeColors.primaryText(context))),
+                  Text('${t('paid_by_colon')} $paidBy',
+                      style: TextStyle(color: AppThemeColors.primaryText(context))),
+                  Text('${t('paid_at_colon')} $paidAt',
+                      style: TextStyle(color: AppThemeColors.primaryText(context))),
+                  if (description != t('n_a'))
+                    Text('${t('description_colon')} $description',
+                        style: TextStyle(color: AppThemeColors.primaryText(context))),
                 ],
               ),
             );
@@ -551,7 +572,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -564,7 +585,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                    color: AppThemeColors.secondaryText(context),
                   ),
                 ),
               ),
@@ -576,7 +597,9 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                       .map(
                         (option) => DropdownMenuItem<String>(
                           value: option,
-                          child: Text(option),
+                          child: Text(option,
+                              style: TextStyle(
+                                  color: AppThemeColors.primaryText(context))),
                         ),
                       )
                       .toList(),
@@ -603,7 +626,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
         radius: 14,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: TextField(
@@ -611,8 +634,10 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
             keyboardType: keyboardType,
             maxLines: maxLines,
             readOnly: readOnly,
+            style: TextStyle(color: AppThemeColors.primaryText(context)),
             decoration: InputDecoration(
               labelText: label,
+              labelStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -626,7 +651,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   }
 
   Color _getNoteColor(int index) {
-    final colors = [
+    final lightColors = [
       const Color(0xFFFFF4E6),
       const Color(0xFFE8F5E9),
       const Color(0xFFFCE4EC),
@@ -634,7 +659,19 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
       const Color(0xFFFFF9C4),
       const Color(0xFFF3E5F5),
     ];
-    return colors[index % colors.length];
+    final darkColors = [
+      const Color(0xFF4A3F1F),
+      const Color(0xFF1E3A26),
+      const Color(0xFF4A2330),
+      const Color(0xFF1B3A57),
+      const Color(0xFF4A4420),
+      const Color(0xFF3A2E45),
+    ];
+    return AppThemeColors.tinted(
+      context,
+      light: lightColors[index % lightColors.length],
+      dark: darkColors[index % darkColors.length],
+    );
   }
 
   Widget _triBorder({
@@ -674,13 +711,14 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   Future<void> _showDeleteConfirmationDialog(
     Map<String, dynamic> transaction,
   ) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -706,18 +744,21 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     const Icon(Icons.warning_amber_rounded,
                         color: Colors.red, size: 44),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Delete Transaction',
+                    Text(
+                      t('delete_transaction_title'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'This will permanently delete the transaction for ${_displayValue(transaction['userEmail'])}.',
+                      '${t('delete_transaction_confirm_message')} ${_displayValue(transaction['userEmail'])}.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[700], fontSize: 15),
+                      style: TextStyle(
+                          color: AppThemeColors.secondaryText(context),
+                          fontSize: 15),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -725,7 +766,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
+                            child: Text(t('cancel')),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -736,7 +777,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
                             ),
-                            child: const Text('Delete'),
+                            child: Text(t('delete')),
                           ),
                         ),
                       ],
@@ -767,6 +808,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
         )
         .toList();
 
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -774,7 +816,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -791,11 +833,12 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                 child: Column(
                   children: [
-                    const Text(
-                      'Full Transaction Details',
+                    Text(
+                      t('full_transaction_details'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -837,7 +880,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     const SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
+                      child: Text(t('close')),
                     ),
                   ],
                 ),
@@ -898,6 +941,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     final List<Map<String, dynamic>> partialPayments = List<Map<String, dynamic>>.from(_partialPaymentsFor(transaction));
     final List<String> existingPhotos = _photosFor(transaction);
     final List<Uint8List> newPhotos = [];
+    final t = AppLocalizations.of(context).t;
 
     await showDialog(
       context: context,
@@ -909,7 +953,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
@@ -930,11 +974,12 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                   child: Column(
                     children: [
-                      const Text(
-                        'Edit Transaction',
+                      Text(
+                        t('edit_transaction_title'),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -946,18 +991,18 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                           child: Column(
                             children: [
                               _buildTextField(
-                                label: 'Created At',
+                                label: t('created_at_label'),
                                 controller: TextEditingController(text: _formatDate(transaction['createdAt'])),
                                 readOnly: true,
                               ),
                               _buildTextField(
-                                label: 'Updated At',
+                                label: t('updated_at_label'),
                                 controller: TextEditingController(text: _formatDate(transaction['updatedAt'])),
                                 readOnly: true,
                               ),
                               if (_currencyOptions.isNotEmpty)
                                 _buildDropdownField(
-                                  label: 'Currency',
+                                  label: t('currency'),
                                   value: selectedCurrency,
                                   options: _currencyOptions,
                                   onChanged: (value) {
@@ -973,17 +1018,21 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                   radius: 14,
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: AppThemeColors.cardBg(context),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: ListTile(
-                                      title: const Text('Date'),
+                                      title: Text(t('date'),
+                                          style: TextStyle(
+                                              color: AppThemeColors.primaryText(context))),
                                       subtitle: Text(
                                         selectedDate == null
-                                            ? 'Select date'
+                                            ? t('select_date')
                                             : _formatDateOnly(
                                                 selectedDate!.toIso8601String(),
                                               ),
+                                        style: TextStyle(
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                       trailing:
                                           const Icon(Icons.calendar_today),
@@ -1007,18 +1056,22 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                   radius: 14,
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: AppThemeColors.cardBg(context),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: ListTile(
-                                      title: const Text('Expected Return Date'),
+                                      title: Text(t('expected_return_date_label'),
+                                          style: TextStyle(
+                                              color: AppThemeColors.primaryText(context))),
                                       subtitle: Text(
                                         selectedExpectedReturnDate == null
-                                            ? 'Not set'
+                                            ? t('not_set')
                                             : _formatDateOnly(
                                                 selectedExpectedReturnDate!
                                                     .toIso8601String(),
                                               ),
+                                        style: TextStyle(
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                       trailing:
                                           const Icon(Icons.event_available),
@@ -1037,7 +1090,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                 ),
                               ),
                               _buildDropdownField(
-                                label: 'User Cleared',
+                                label: t('user_cleared_label'),
                                 value: userClearedValue,
                                 options: const ['true', 'false'],
                                 onChanged: (value) {
@@ -1048,7 +1101,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                 },
                               ),
                               _buildDropdownField(
-                                label: 'Counterparty Cleared',
+                                label: t('counterparty_cleared_label'),
                                 value: counterpartyClearedValue,
                                 options: const ['true', 'false'],
                                 onChanged: (value) {
@@ -1059,7 +1112,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                 },
                               ),
                               _buildDropdownField(
-                                label: 'Is Partially Paid',
+                                label: t('is_partially_paid_label'),
                                 value: isPartiallyPaidValue,
                                 options: const ['true', 'false'],
                                 onChanged: (value) {

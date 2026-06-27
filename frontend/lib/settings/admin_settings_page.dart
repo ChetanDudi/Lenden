@@ -14,6 +14,8 @@ import 'admin_backup_restore_page.dart';
 import 'admin_data_export_page.dart';
 import 'admin_system_maintenance_page.dart';
 import '../utils/responsive.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -26,14 +28,15 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context);
+    final t = AppLocalizations.of(context).t;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: transparentAppBar(context, title: 'Admin Settings'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('admin_settings')),
       body: Stack(
         children: [
-          cyanWaveHeader(height: context.sh(78)),
+          cyanWaveHeader(context, height: context.sh(78)),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -46,7 +49,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      color: AppColors.warmCardBg,
+                      color: AppThemeColors.cardBg(context),
                       child: Row(
                         children: [
                           tricolorCircleAvatar(
@@ -96,15 +99,17 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                               children: [
                                 Text(
                                   session.user?['name'] ?? 'Admin',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black),
+                                      color: AppThemeColors.primaryText(context)),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   session.user?['email'] ?? 'admin@lenden.com',
-                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppThemeColors.secondaryText(context)),
                                 ),
                                 const SizedBox(height: 4),
                                 Container(
@@ -114,9 +119,9 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                                     color: Colors.red.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text(
-                                    'Administrator',
-                                    style: TextStyle(
+                                  child: Text(
+                                    t('administrator'),
+                                    style: const TextStyle(
                                         fontSize: 10,
                                         color: Colors.red,
                                         fontWeight: FontWeight.bold),
@@ -137,28 +142,31 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   const SizedBox(height: 24),
 
                   // System Management
-                  sectionLabel('System Management'),
+                  sectionLabel(t('system_management')),
                   const SizedBox(height: 8),
                   _buildTile(
-                    title: 'System Settings',
+                    context: context,
+                    title: t('system_settings'),
                     icon: Icons.settings_system_daydream_outlined,
-                    subtitle: 'Configure system-wide settings and preferences',
+                    subtitle: t('system_settings_desc'),
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const AdminSystemSettingsPage()))
                         .then((_) => setState(() {})),
                   ),
                   _buildTile(
-                    title: 'User Management',
+                    context: context,
+                    title: t('manage_users'),
                     icon: Icons.people_outline,
-                    subtitle: 'Manage and track user accounts',
+                    subtitle: t('user_management_desc'),
                     showStatus: true,
                     isActive: true,
                     onTap: () => Navigator.pushNamed(context, '/admin/manage-users'),
                   ),
                   _buildTile(
-                    title: 'Analytics & Reports',
+                    context: context,
+                    title: t('analytics_and_reports'),
                     icon: Icons.analytics_outlined,
-                    subtitle: 'Configure analytics and reporting settings',
+                    subtitle: t('analytics_and_reports_desc'),
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(
                                 builder: (_) => const AdminAnalyticsSettingsPage()))
@@ -168,12 +176,13 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   const SizedBox(height: 16),
 
                   // Admin Management
-                  sectionLabel('Admin Management'),
+                  sectionLabel(t('admin_management')),
                   const SizedBox(height: 8),
                   _buildTile(
-                    title: 'Manage Admins',
+                    context: context,
+                    title: t('manage_admins'),
                     icon: Icons.admin_panel_settings,
-                    subtitle: 'Add or remove admin accounts',
+                    subtitle: t('manage_admins_desc'),
                     showStatus: true,
                     isActive: true,
                     onTap: () => Navigator.push(context,
@@ -183,37 +192,41 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   const SizedBox(height: 16),
 
                   // Security & Access
-                  sectionLabel('Security & Access'),
+                  sectionLabel(t('security_and_access')),
                   const SizedBox(height: 8),
                   _buildTile(
-                    title: 'Security Settings',
+                    context: context,
+                    title: t('security_settings'),
                     icon: Icons.security_outlined,
-                    subtitle: 'Manage admin security and access controls',
+                    subtitle: t('security_settings_desc'),
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(
                                 builder: (_) => const AdminSecuritySettingsPage()))
                         .then((_) => setState(() {})),
                   ),
                   _buildTile(
-                    title: 'Admin Notifications',
+                    context: context,
+                    title: t('admin_notifications'),
                     icon: Icons.admin_panel_settings_outlined,
-                    subtitle: 'Configure admin-specific notifications',
+                    subtitle: t('admin_notifications_desc'),
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(
                                 builder: (_) => const AdminNotificationSettingsPage()))
                         .then((_) => setState(() {})),
                   ),
                   _buildTile(
-                    title: 'Change Password',
+                    context: context,
+                    title: t('change_password'),
                     icon: Icons.lock_outline,
-                    subtitle: 'Update your admin account password',
+                    subtitle: t('change_password_desc'),
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const ChangePasswordPage())),
                   ),
                   _buildTile(
-                    title: 'Access Logs',
+                    context: context,
+                    title: t('access_logs'),
                     icon: Icons.history,
-                    subtitle: 'View system access and activity logs',
+                    subtitle: t('access_logs_desc'),
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AuditLogsPage())),
                   ),
@@ -221,26 +234,29 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   const SizedBox(height: 16),
 
                   // Data Management
-                  sectionLabel('Data Management'),
+                  sectionLabel(t('data_management')),
                   const SizedBox(height: 8),
                   _buildTile(
-                    title: 'Backup & Restore',
+                    context: context,
+                    title: t('backup_and_restore'),
                     icon: Icons.backup_outlined,
-                    subtitle: 'Manage system backups and data restoration',
+                    subtitle: t('backup_and_restore_desc'),
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AdminBackupRestorePage())),
                   ),
                   _buildTile(
-                    title: 'Data Export',
+                    context: context,
+                    title: t('data_export'),
                     icon: Icons.file_download_outlined,
-                    subtitle: 'Export system data and reports',
+                    subtitle: t('data_export_desc'),
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AdminDataExportPage())),
                   ),
                   _buildTile(
-                    title: 'System Maintenance',
+                    context: context,
+                    title: t('system_maintenance'),
                     icon: Icons.build_outlined,
-                    subtitle: 'Perform system maintenance tasks',
+                    subtitle: t('system_maintenance_desc'),
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AdminSystemMaintenancePage())),
                   ),
@@ -261,9 +277,9 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text(
-                        'Logout',
-                        style: TextStyle(
+                      child: Text(
+                        t('logout'),
+                        style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
@@ -278,6 +294,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   }
 
   Widget _buildTile({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required VoidCallback onTap,
@@ -289,7 +306,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       margin: const EdgeInsets.only(bottom: 10),
       radius: 16,
       child: Material(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
@@ -322,15 +339,17 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black87),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
                         Text(subtitle,
-                            style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppThemeColors.secondaryText(context))),
                       ],
                     ],
                   ),

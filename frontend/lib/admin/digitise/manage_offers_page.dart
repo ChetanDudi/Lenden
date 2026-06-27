@@ -1,10 +1,12 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageOffersPage extends StatefulWidget {
   const ManageOffersPage({super.key});
@@ -44,7 +46,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   void _showStylishMessage(String message, {bool isError = false}) =>
       showStylishSnackBar(context, message, isError: isError);
 
-  String _errorFromBody(String body, {String fallback = 'Request failed'}) {
+  String _errorFromBody(String body, {required String fallback}) {
     try {
       final decoded = jsonDecode(body);
       final error = decoded['error'];
@@ -65,7 +67,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -94,6 +96,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Future<void> _fetchOffers() async {
+    final t = AppLocalizations.of(context).t;
     setState(() => _loading = true);
     final qp = <String>[
       'page=$_page',
@@ -123,7 +126,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
 
     setState(() => _loading = false);
     _showStylishMessage(
-      _errorFromBody(res.body, fallback: 'Failed to fetch offers'),
+      _errorFromBody(res.body, fallback: t('failed_to_fetch_offers')),
       isError: true,
     );
   }
@@ -137,17 +140,21 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Future<void> _deleteOffer(String offerId) async {
+    final t = AppLocalizations.of(context).t;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Offer'),
-        content: const Text('This will permanently delete the offer and claims. Continue?'),
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Text(t('delete_offer_title'),
+            style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+        content: Text(t('delete_offer_confirm'),
+            style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text(t('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -157,17 +164,18 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
     final res = await ApiClient.delete('/api/admin/offers/$offerId');
     if (!mounted) return;
     if (res.statusCode == 200) {
-      _showStylishMessage('Offer deleted successfully');
+      _showStylishMessage(t('offer_deleted_successfully'));
       await _fetchOffers();
       return;
     }
     _showStylishMessage(
-      _errorFromBody(res.body, fallback: 'Failed to delete offer'),
+      _errorFromBody(res.body, fallback: t('failed_to_delete_offer')),
       isError: true,
     );
   }
 
   Future<void> _openAnalytics(String offerId) async {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -180,7 +188,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
 
     if (res.statusCode != 200) {
       _showStylishMessage(
-        _errorFromBody(res.body, fallback: 'Failed to load analytics'),
+        _errorFromBody(res.body, fallback: t('failed_to_load_analytics')),
         isError: true,
       );
       return;
@@ -207,7 +215,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: Colors.white,
+              color: AppThemeColors.cardBg(ctx),
             ),
             child: SizedBox(
               width: 520,
@@ -215,33 +223,39 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Analytics: ${offer['name'] ?? 'Offer'} (v${offer['version'] ?? 1})',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    '${t('analytics_colon')}: ${offer['name'] ?? t('manage_offers')} (v${offer['version'] ?? 1})',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(ctx)),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _metricChip('Targeted', '${metrics['targetedCount'] ?? 0}'),
-                      _metricChip('Accepted', '${metrics['acceptedCount'] ?? 0}'),
-                      _metricChip('Pending', '${metrics['pendingCount'] ?? 0}'),
-                      _metricChip('Rate', '${metrics['acceptanceRate'] ?? 0}%'),
-                      _metricChip('Coins', '${metrics['distributedCoins'] ?? 0}'),
+                      _metricChip(t('targeted_label'), '${metrics['targetedCount'] ?? 0}'),
+                      _metricChip(t('accepted_label'), '${metrics['acceptedCount'] ?? 0}'),
+                      _metricChip(t('pending_label'), '${metrics['pendingCount'] ?? 0}'),
+                      _metricChip(t('rate_label'), '${metrics['acceptanceRate'] ?? 0}%'),
+                      _metricChip(t('coins_label_short'), '${metrics['distributedCoins'] ?? 0}'),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Accepted users (${users.length})',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      '${t('accepted_users_label')} (${users.length})',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Flexible(
                     child: users.isEmpty
-                        ? const Center(child: Text('No accepted users yet.'))
+                        ? Center(
+                            child: Text(t('no_accepted_users_yet'),
+                                style: TextStyle(color: AppThemeColors.secondaryText(ctx))))
                         : ListView.builder(
                             shrinkWrap: true,
                             itemCount: users.length,
@@ -251,9 +265,12 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                               return ListTile(
                                 dense: true,
                                 leading: const Icon(Icons.person),
-                                title: Text((u['name'] ?? u['username'] ?? '-').toString()),
-                                subtitle: Text((u['email'] ?? '-').toString()),
-                                trailing: Text('+${row['coinsAwarded'] ?? 0}'),
+                                title: Text((u['name'] ?? u['username'] ?? '-').toString(),
+                                    style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+                                subtitle: Text((u['email'] ?? '-').toString(),
+                                    style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+                                trailing: Text('+${row['coinsAwarded'] ?? 0}',
+                                    style: TextStyle(color: AppThemeColors.primaryText(ctx))),
                               );
                             },
                           ),
@@ -263,7 +280,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Close'),
+                      child: Text(t('close')),
                     ),
                   ),
                 ],
@@ -276,6 +293,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Future<void> _openClaimsAudit(String offerId) async {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -288,7 +306,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
 
     if (res.statusCode != 200) {
       _showStylishMessage(
-        _errorFromBody(res.body, fallback: 'Failed to load claims audit'),
+        _errorFromBody(res.body, fallback: t('failed_to_load_claims_audit')),
         isError: true,
       );
       return;
@@ -313,7 +331,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: Colors.white,
+              color: AppThemeColors.cardBg(ctx),
             ),
             child: SizedBox(
               width: 560,
@@ -321,13 +339,18 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Claims Audit: ${offer['name'] ?? 'Offer'}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    '${t('claims_audit_colon')}: ${offer['name'] ?? t('manage_offers')}',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(ctx)),
                   ),
                   const SizedBox(height: 10),
                   Flexible(
                     child: items.isEmpty
-                        ? const Center(child: Text('No claims found.'))
+                        ? Center(
+                            child: Text(t('no_claims_found'),
+                                style: TextStyle(color: AppThemeColors.secondaryText(ctx))))
                         : ListView.builder(
                             shrinkWrap: true,
                             itemCount: items.length,
@@ -340,9 +363,13 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
-                                  color: revoked
-                                      ? const Color(0xFFFFEBEE)
-                                      : const Color(0xFFE8F5E9),
+                                  color: AppThemeColors.tinted(ctx,
+                                      light: revoked
+                                          ? const Color(0xFFFFEBEE)
+                                          : const Color(0xFFE8F5E9),
+                                      dark: revoked
+                                          ? const Color(0xFF4A2326)
+                                          : const Color(0xFF1E3A26)),
                                 ),
                                 child: Row(
                                   children: [
@@ -354,21 +381,31 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                         children: [
                                           Text(
                                             (user['name'] ?? user['username'] ?? '-').toString(),
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppThemeColors.primaryText(ctx)),
                                           ),
-                                          Text((user['email'] ?? '-').toString()),
-                                          Text('Version: v${item['offerVersion'] ?? '-'}'),
-                                          Text('Claimed: ${_fmtDate(item['claimedAt'])}'),
+                                          Text((user['email'] ?? '-').toString(),
+                                              style: TextStyle(
+                                                  color: AppThemeColors.secondaryText(ctx))),
+                                          Text('${t('version_colon')}: v${item['offerVersion'] ?? '-'}',
+                                              style: TextStyle(
+                                                  color: AppThemeColors.secondaryText(ctx))),
+                                          Text('${t('claimed_colon')}: ${_fmtDate(item['claimedAt'])}',
+                                              style: TextStyle(
+                                                  color: AppThemeColors.secondaryText(ctx))),
                                         ],
                                       ),
                                     ),
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
-                                        Text('+${item['coinsAwarded'] ?? 0}'),
+                                        Text('+${item['coinsAwarded'] ?? 0}',
+                                            style: TextStyle(
+                                                color: AppThemeColors.primaryText(ctx))),
                                         const SizedBox(height: 4),
                                         Chip(
-                                          label: Text(revoked ? 'Revoked' : 'Active'),
+                                          label: Text(revoked ? t('revoked_label') : t('active')),
                                           backgroundColor: revoked
                                               ? Colors.red.withValues(alpha: 0.12)
                                               : Colors.green.withValues(alpha: 0.12),
@@ -385,7 +422,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Close'),
+                      child: Text(t('close')),
                     ),
                   ),
                 ],
@@ -402,19 +439,24 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: const Color(0xFFE3F2FD),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFE3F2FD), dark: const Color(0xFF1B3A57)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label,
+              style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
         ],
       ),
     );
   }
 
   Future<void> _openOfferDialog({Map<String, dynamic>? existing}) async {
+    final t = AppLocalizations.of(context).t;
     final bool isEdit = existing != null;
 
     final nameController = TextEditingController(text: existing?['name']?.toString() ?? '');
@@ -422,7 +464,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
         TextEditingController(text: existing?['description']?.toString() ?? '');
     final coinsController =
         TextEditingController(text: (existing?['coins'] ?? '').toString());
-    final reasonController = TextEditingController(text: 'Offer updated');
+    final reasonController = TextEditingController(text: t('offer_updated_reverted_prefix'));
     final emailController = TextEditingController();
     final userSearchController = TextEditingController();
 
@@ -482,7 +524,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (dialogContext, setDialogState) {
             return Dialog(
               insetPadding: const EdgeInsets.all(14),
               child: Container(
@@ -495,7 +537,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                 ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF9F6),
+                    color: AppThemeColors.cardBg(dialogContext),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   padding: const EdgeInsets.all(14),
@@ -507,8 +549,11 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isEdit ? 'Update Offer' : 'Add Offer',
-                            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                            isEdit ? t('update_offer_title') : t('add_offer_title'),
+                            style: TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.primaryText(dialogContext)),
                           ),
                           if (formErrors.isNotEmpty) ...[
                             const SizedBox(height: 10),
@@ -516,20 +561,22 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFEBEE),
+                                color: AppThemeColors.tinted(dialogContext,
+                                    light: const Color(0xFFFFEBEE),
+                                    dark: const Color(0xFF4A2326)),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: Colors.red.shade300),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Row(
+                                  Row(
                                     children: [
-                                      Icon(Icons.error_outline, color: Colors.red),
-                                      SizedBox(width: 6),
+                                      const Icon(Icons.error_outline, color: Colors.red),
+                                      const SizedBox(width: 6),
                                       Text(
-                                        'Please fix these errors:',
-                                        style: TextStyle(
+                                        t('please_fix_errors'),
+                                        style: const TextStyle(
                                           color: Colors.red,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -540,7 +587,9 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                   ...formErrors.map(
                                     (e) => Padding(
                                       padding: const EdgeInsets.only(bottom: 3),
-                                      child: Text('• $e'),
+                                      child: Text('• $e',
+                                          style: TextStyle(
+                                              color: AppThemeColors.primaryText(dialogContext))),
                                     ),
                                   ),
                                 ],
@@ -549,26 +598,29 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                           ],
                           const SizedBox(height: 10),
                           _sectionBox(
-                            title: 'Offer Basics',
+                            context: dialogContext,
+                            title: t('offer_basics'),
                             color: const Color(0xFFE3F2FD),
                             child: Column(
                               children: [
                                 TextField(
                                   controller: nameController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Offer Name',
-                                    prefixIcon: Icon(Icons.local_offer),
-                                    border: OutlineInputBorder(),
+                                  style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                                  decoration: InputDecoration(
+                                    labelText: t('offer_name_label'),
+                                    prefixIcon: const Icon(Icons.local_offer),
+                                    border: const OutlineInputBorder(),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
                                 TextField(
                                   controller: descriptionController,
                                   maxLines: 3,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Description',
-                                    prefixIcon: Icon(Icons.description),
-                                    border: OutlineInputBorder(),
+                                  style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                                  decoration: InputDecoration(
+                                    labelText: t('description'),
+                                    prefixIcon: const Icon(Icons.description),
+                                    border: const OutlineInputBorder(),
                                   ),
                                 ),
                               ],
@@ -576,17 +628,19 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                           ),
                           const SizedBox(height: 10),
                           _sectionBox(
-                            title: 'Reward and Status',
+                            context: dialogContext,
+                            title: t('reward_and_status'),
                             color: const Color(0xFFE8F5E9),
                             child: Column(
                               children: [
                                 TextField(
                                   controller: coinsController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Coins Value',
-                                    prefixIcon: Icon(Icons.monetization_on),
-                                    border: OutlineInputBorder(),
+                                  style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                                  decoration: InputDecoration(
+                                    labelText: t('coins_value_label'),
+                                    prefixIcon: const Icon(Icons.monetization_on),
+                                    border: const OutlineInputBorder(),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -595,19 +649,19 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                     Expanded(
                                       child: DropdownButtonFormField<String>(
                                         value: status,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Status',
-                                          border: OutlineInputBorder(),
+                                        decoration: InputDecoration(
+                                          labelText: t('status'),
+                                          border: const OutlineInputBorder(),
                                         ),
-                                        items: const [
+                                        items: [
                                           DropdownMenuItem(
-                                              value: 'draft', child: Text('Draft')),
+                                              value: 'draft', child: Text(t('draft_label'))),
                                           DropdownMenuItem(
-                                              value: 'scheduled', child: Text('Scheduled')),
+                                              value: 'scheduled', child: Text(t('scheduled'))),
                                           DropdownMenuItem(
-                                              value: 'active', child: Text('Active')),
+                                              value: 'active', child: Text(t('active'))),
                                           DropdownMenuItem(
-                                              value: 'ended', child: Text('Ended')),
+                                              value: 'ended', child: Text(t('ended_label'))),
                                         ],
                                         onChanged: (v) =>
                                             setDialogState(() => status = v ?? 'active'),
@@ -617,7 +671,9 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                     Expanded(
                                       child: SwitchListTile(
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 6),
-                                        title: const Text('Enabled'),
+                                        title: Text(t('enabled'),
+                                            style: TextStyle(
+                                                color: AppThemeColors.primaryText(dialogContext))),
                                         value: isActive,
                                         onChanged: (v) => setDialogState(() => isActive = v),
                                       ),
@@ -629,13 +685,15 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                           ),
                           const SizedBox(height: 10),
                           _sectionBox(
-                            title: 'Timeline',
+                            context: dialogContext,
+                            title: t('timeline_label'),
                             color: const Color(0xFFFFF3E0),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: _boxedTimelineTile(
-                                    label: 'Starts At',
+                                    context: dialogContext,
+                                    label: t('starts_at_label'),
                                     value: startsAt == null ? '-' : _fmtDate(startsAt),
                                     onTap: () => pickDateTime(true, setDialogState),
                                   ),
@@ -643,7 +701,8 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: _boxedTimelineTile(
-                                    label: 'Ends At',
+                                    context: dialogContext,
+                                    label: t('ends_at_label'),
                                     value: endsAt == null ? '-' : _fmtDate(endsAt),
                                     onTap: () => pickDateTime(false, setDialogState),
                                   ),
@@ -653,25 +712,26 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                           ),
                           const SizedBox(height: 10),
                           _sectionBox(
-                            title: 'Recipients',
+                            context: dialogContext,
+                            title: t('recipients_label'),
                             color: const Color(0xFFFFF8E1),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 DropdownButtonFormField<String>(
                                   value: recipientType,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Recipient Type',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: t('recipient_type_label'),
+                                    border: const OutlineInputBorder(),
                                   ),
-                                  items: const [
+                                  items: [
                                     DropdownMenuItem(
                                       value: 'all-users',
-                                      child: Text('All Users'),
+                                      child: Text(t('all_users')),
                                     ),
                                     DropdownMenuItem(
                                       value: 'specific-users',
-                                      child: Text('Specific Users'),
+                                      child: Text(t('specific_users_label')),
                                     ),
                                   ],
                                   onChanged: (v) {
@@ -693,10 +753,12 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                       Expanded(
                                         child: TextField(
                                           controller: userSearchController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Search by name/username/email',
-                                            prefixIcon: Icon(Icons.search),
-                                            border: OutlineInputBorder(),
+                                          style: TextStyle(
+                                              color: AppThemeColors.primaryText(dialogContext)),
+                                          decoration: InputDecoration(
+                                            labelText: t('search_by_name_username_email'),
+                                            prefixIcon: const Icon(Icons.search),
+                                            border: const OutlineInputBorder(),
                                           ),
                                         ),
                                       ),
@@ -704,7 +766,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                       ElevatedButton.icon(
                                         onPressed: () => searchUsers(setDialogState),
                                         icon: const Icon(Icons.person_search),
-                                        label: const Text('Find'),
+                                        label: Text(t('find_label')),
                                       ),
                                     ],
                                   ),
@@ -712,12 +774,14 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: AppThemeColors.cardBg(dialogContext),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(color: const Color(0xFFB3E5FC)),
                                     ),
                                     child: searchResults.isEmpty
-                                        ? const Text('No searched users yet.')
+                                        ? Text(t('no_searched_users_yet'),
+                                            style: TextStyle(
+                                                color: AppThemeColors.secondaryText(dialogContext)))
                                         : Wrap(
                                             spacing: 8,
                                             runSpacing: 8,
@@ -747,10 +811,11 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                   const SizedBox(height: 10),
                                   TextField(
                                     controller: emailController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Extra recipient emails (comma-separated)',
-                                      prefixIcon: Icon(Icons.email),
-                                      border: OutlineInputBorder(),
+                                    style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                                    decoration: InputDecoration(
+                                      labelText: t('extra_recipient_emails_label'),
+                                      prefixIcon: const Icon(Icons.email),
+                                      border: const OutlineInputBorder(),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
@@ -758,7 +823,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: AppThemeColors.cardBg(dialogContext),
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(color: const Color(0xFFA5D6A7)),
                                       ),
@@ -787,14 +852,16 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                           if (isEdit) ...[
                             const SizedBox(height: 10),
                             _sectionBox(
-                              title: 'Update Metadata',
+                              context: dialogContext,
+                              title: t('update_metadata_label'),
                               color: const Color(0xFFF3E5F5),
                               child: TextField(
                                 controller: reasonController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Update Reason',
-                                  prefixIcon: Icon(Icons.history_toggle_off),
-                                  border: OutlineInputBorder(),
+                                style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
+                                decoration: InputDecoration(
+                                  labelText: t('update_reason_label'),
+                                  prefixIcon: const Icon(Icons.history_toggle_off),
+                                  border: const OutlineInputBorder(),
                                 ),
                               ),
                             ),
@@ -805,7 +872,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                             children: [
                               TextButton(
                                 onPressed: _submitting ? null : () => Navigator.pop(ctx),
-                                child: const Text('Cancel'),
+                                child: Text(t('cancel')),
                               ),
                               const SizedBox(width: 10),
                               ElevatedButton.icon(
@@ -816,23 +883,23 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                         final coins = int.tryParse(coinsController.text.trim());
                                         final errors = <String>[];
                                         if (name.isEmpty) {
-                                          errors.add('Offer name is required.');
+                                          errors.add(t('offer_name_required'));
                                         }
                                         if (coins == null) {
-                                          errors.add('Coins must be a valid number.');
+                                          errors.add(t('coins_must_be_valid_number'));
                                         } else {
                                           if (coins <= 0) {
-                                            errors.add('Coins must be greater than 0.');
+                                            errors.add(t('coins_must_be_greater_than_0'));
                                           }
                                           if (coins > 10000) {
-                                            errors.add('Coins cannot be more than 10000.');
+                                            errors.add(t('coins_cannot_exceed_10000'));
                                           }
                                         }
                                         if (startsAt == null) {
-                                          errors.add('Start date and time are required.');
+                                          errors.add(t('start_date_time_required'));
                                         }
                                         if (endsAt == null) {
-                                          errors.add('End date and time are required.');
+                                          errors.add(t('end_date_time_required'));
                                         }
 
                                         if (startsAt != null && endsAt != null) {
@@ -848,27 +915,19 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                           );
 
                                           if (endDateOnly.isBefore(startDateOnly)) {
-                                            errors.add(
-                                              'End date must be same as or after start date.',
-                                            );
+                                            errors.add(t('end_date_after_start_date'));
                                           } else if (endDateOnly == startDateOnly &&
                                               !endsAt!.isAfter(startsAt!)) {
-                                            errors.add(
-                                              'For the same date, end time must be later than start time.',
-                                            );
+                                            errors.add(t('end_time_after_start_time_same_date'));
                                           } else if (!endsAt!.isAfter(startsAt!)) {
-                                            errors.add(
-                                              'End date/time must be later than start date/time.',
-                                            );
+                                            errors.add(t('end_datetime_after_start_datetime'));
                                           }
                                         }
 
                                         if (recipientType == 'specific-users' &&
                                             selectedUsers.isEmpty &&
                                             emailController.text.trim().isEmpty) {
-                                          errors.add(
-                                            'For specific users, select at least one user or add recipient email.',
-                                          );
+                                          errors.add(t('select_user_or_email_required'));
                                         }
 
                                         if (errors.isNotEmpty) {
@@ -905,7 +964,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                           'recipientEmails': recipientEmails,
                                           if (isEdit)
                                             'updateReason': reasonController.text.trim().isEmpty
-                                                ? 'Offer updated'
+                                                ? t('offer_updated_reverted_prefix')
                                                 : reasonController.text.trim(),
                                         };
 
@@ -929,10 +988,10 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                             final rb = (body['rollbackSummary'] ?? {})
                                                 as Map<String, dynamic>;
                                             _showStylishMessage(
-                                              'Offer updated. Reverted ${rb['revertedClaims'] ?? 0} claims and ${rb['revertedCoins'] ?? 0} coins for re-accept.',
+                                              '${t('offer_updated_reverted_prefix')} ${rb['revertedClaims'] ?? 0} ${t('offer_updated_reverted_suffix')} ${rb['revertedCoins'] ?? 0} ${t('offer_updated_reverted_coins_suffix')}',
                                             );
                                           } else {
-                                            _showStylishMessage('Offer created successfully');
+                                            _showStylishMessage(t('offer_created_successfully'));
                                           }
                                           await _fetchOffers();
                                           return;
@@ -942,8 +1001,8 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                           _errorFromBody(
                                             res.body,
                                             fallback: isEdit
-                                                ? 'Failed to update offer'
-                                                : 'Failed to create offer',
+                                                ? t('failed_to_update_offer')
+                                                : t('failed_to_create_offer'),
                                           ),
                                           isError: true,
                                         );
@@ -955,7 +1014,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                                         child: CircularProgressIndicator(strokeWidth: 2),
                                       )
                                     : const Icon(Icons.save),
-                                label: Text(isEdit ? 'Update Offer' : 'Create Offer'),
+                                label: Text(isEdit ? t('update_offer_title') : t('add_offer_title')),
                               ),
                             ],
                           ),
@@ -973,6 +1032,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Widget _sectionBox({
+    required BuildContext context,
     required String title,
     required Widget child,
     required Color color,
@@ -980,14 +1040,16 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color,
+        color: AppThemeColors.tinted(context, light: color, dark: color.withValues(alpha: 0.22)),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white, width: 1.3),
+        border: Border.all(color: AppThemeColors.cardBg(context), width: 1.3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(title,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
           const SizedBox(height: 8),
           child,
         ],
@@ -996,6 +1058,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Widget _boxedTimelineTile({
+    required BuildContext context,
     required String label,
     required String value,
     required VoidCallback onTap,
@@ -1005,14 +1068,15 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFB3E5FC)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text(label,
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -1021,7 +1085,8 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
                   ),
                 ),
               ],
@@ -1033,6 +1098,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Widget _buildFilterBar() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       padding: const EdgeInsets.all(2),
@@ -1045,7 +1111,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Wrap(
@@ -1057,11 +1123,12 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
               width: 240,
               child: TextField(
                 controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Search offers...',
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
+                  hintText: t('search_offers_placeholder'),
                   isDense: true,
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (_) {
                   _page = 1;
@@ -1072,12 +1139,12 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             DropdownButton<String>(
               value: _statusFilter,
               underline: const SizedBox.shrink(),
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Statuses')),
-                DropdownMenuItem(value: 'draft', child: Text('Draft')),
-                DropdownMenuItem(value: 'scheduled', child: Text('Scheduled')),
-                DropdownMenuItem(value: 'active', child: Text('Active')),
-                DropdownMenuItem(value: 'ended', child: Text('Ended')),
+              items: [
+                DropdownMenuItem(value: 'all', child: Text(t('all_statuses_label'))),
+                DropdownMenuItem(value: 'draft', child: Text(t('draft_label'))),
+                DropdownMenuItem(value: 'scheduled', child: Text(t('scheduled'))),
+                DropdownMenuItem(value: 'active', child: Text(t('active'))),
+                DropdownMenuItem(value: 'ended', child: Text(t('ended_label'))),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -1091,10 +1158,10 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             DropdownButton<String>(
               value: _sortBy,
               underline: const SizedBox.shrink(),
-              items: const [
-                DropdownMenuItem(value: 'createdAt', child: Text('Newest')),
-                DropdownMenuItem(value: 'coins', child: Text('Coins')),
-                DropdownMenuItem(value: 'endsAt', child: Text('Deadline')),
+              items: [
+                DropdownMenuItem(value: 'createdAt', child: Text(t('newest_label'))),
+                DropdownMenuItem(value: 'coins', child: Text(t('coins_label_short'))),
+                DropdownMenuItem(value: 'endsAt', child: Text(t('deadline_label'))),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -1108,9 +1175,9 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             DropdownButton<String>(
               value: _order,
               underline: const SizedBox.shrink(),
-              items: const [
-                DropdownMenuItem(value: 'desc', child: Text('Desc')),
-                DropdownMenuItem(value: 'asc', child: Text('Asc')),
+              items: [
+                DropdownMenuItem(value: 'desc', child: Text(t('desc_label'))),
+                DropdownMenuItem(value: 'asc', child: Text(t('asc_label'))),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -1124,13 +1191,13 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
             ElevatedButton.icon(
               onPressed: _fetchOffers,
               icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
+              label: Text(t('refresh')),
             ),
             ElevatedButton.icon(
               onPressed: () => _openOfferDialog(),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Add Offer', style: TextStyle(color: Colors.white)),
+              label: Text(t('add_offer_title'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1139,8 +1206,13 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Widget _buildOfferList() {
+    final t = AppLocalizations.of(context).t;
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_offers.isEmpty) return const Center(child: Text('No offers found.'));
+    if (_offers.isEmpty) {
+      return Center(
+          child: Text(t('no_offers_found'),
+              style: TextStyle(color: AppThemeColors.secondaryText(context))));
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(12),
@@ -1152,7 +1224,9 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
         final statusColor = _statusColor(status);
         final recipientType = (offer['recipientType'] ?? 'all-users').toString();
         final targeted = analytics['targetedCount'];
-        final background = index.isEven ? const Color(0xFFFFF8E1) : const Color(0xFFE3F2FD);
+        final background = AppThemeColors.tinted(context,
+            light: index.isEven ? const Color(0xFFFFF8E1) : const Color(0xFFE3F2FD),
+            dark: index.isEven ? const Color(0xFF4A3F1F) : const Color(0xFF1B3A57));
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -1176,8 +1250,11 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        (offer['name'] ?? 'Offer').toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                        (offer['name'] ?? t('manage_offers')).toString(),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                            color: AppThemeColors.primaryText(context)),
                       ),
                     ),
                     Chip(
@@ -1188,19 +1265,26 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                   ],
                 ),
                 if ((offer['description'] ?? '').toString().trim().isNotEmpty)
-                  Text((offer['description'] ?? '').toString()),
+                  Text((offer['description'] ?? '').toString(),
+                      style: TextStyle(color: AppThemeColors.primaryText(context))),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 10,
                   runSpacing: 6,
                   children: [
-                    Text('Coins: +${offer['coins'] ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text('Version: v${offer['version'] ?? 1}'),
-                    Text('Starts: ${_fmtDate(offer['startsAt'])}'),
-                    Text('Ends: ${_fmtDate(offer['endsAt'])}'),
-                    Text('Recipients: ${recipientType == 'all-users' ? 'All Users' : 'Specific'}'
-                        '${targeted != null ? ' ($targeted)' : ''}'),
+                    Text('${t('coins_label_short')}: +${offer['coins'] ?? 0}',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(context))),
+                    Text('${t('version_colon')}: v${offer['version'] ?? 1}',
+                        style: TextStyle(color: AppThemeColors.primaryText(context))),
+                    Text('${t('starts_at_label')}: ${_fmtDate(offer['startsAt'])}',
+                        style: TextStyle(color: AppThemeColors.primaryText(context))),
+                    Text('${t('ends_at_label')}: ${_fmtDate(offer['endsAt'])}',
+                        style: TextStyle(color: AppThemeColors.primaryText(context))),
+                    Text(
+                        '${t('recipients_colon')}: ${recipientType == 'all-users' ? t('all_users') : t('specific_label')}'
+                        '${targeted != null ? ' ($targeted)' : ''}',
+                        style: TextStyle(color: AppThemeColors.primaryText(context))),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -1208,9 +1292,9 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _metricChip('Accepted', '${analytics['acceptedCount'] ?? 0}'),
-                    _metricChip('Coins Dist.', '${analytics['distributedCoins'] ?? 0}'),
-                    _metricChip('Rate', '${analytics['acceptanceRate'] ?? '-'}%'),
+                    _metricChip(t('accepted_label'), '${analytics['acceptedCount'] ?? 0}'),
+                    _metricChip(t('coins_dist_label'), '${analytics['distributedCoins'] ?? 0}'),
+                    _metricChip(t('rate_label'), '${analytics['acceptanceRate'] ?? '-'}%'),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -1221,27 +1305,27 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                     ElevatedButton.icon(
                       onPressed: () => _openOfferDialog(existing: offer),
                       icon: const Icon(Icons.edit),
-                      label: const Text('Edit'),
+                      label: Text(t('edit')),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _openAnalytics(offer['_id'].toString()),
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
                       icon: const Icon(Icons.analytics, color: Colors.white),
                       label:
-                          const Text('Analytics', style: TextStyle(color: Colors.white)),
+                          Text(t('analytics_colon'), style: const TextStyle(color: Colors.white)),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _openClaimsAudit(offer['_id'].toString()),
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
                       icon: const Icon(Icons.fact_check, color: Colors.white),
-                      label: const Text('Claims Audit',
-                          style: TextStyle(color: Colors.white)),
+                      label: Text(t('claims_audit_colon'),
+                          style: const TextStyle(color: Colors.white)),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _deleteOffer(offer['_id'].toString()),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                       icon: const Icon(Icons.delete, color: Colors.white),
-                      label: const Text('Delete', style: TextStyle(color: Colors.white)),
+                      label: Text(t('delete'), style: const TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -1254,6 +1338,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Widget _buildPagination() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Row(
@@ -1268,7 +1353,8 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                   },
             icon: const Icon(Icons.chevron_left),
           ),
-          Text('Page $_page / $_totalPages'),
+          Text('${t('page_label')} $_page / $_totalPages',
+              style: TextStyle(color: AppThemeColors.primaryText(context))),
           IconButton(
             onPressed: _page >= _totalPages
                 ? null
@@ -1285,8 +1371,9 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -1297,10 +1384,8 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: AppThemeColors.waveGradient(context)),
                 ),
               ),
             ),
@@ -1313,14 +1398,17 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Manage Offers',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            t('manage_offers'),
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
@@ -1335,17 +1423,17 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _buildOverviewChip('Loaded', '${_offers.length}'),
+                      _buildOverviewChip(t('loaded_label'), '${_offers.length}'),
                       _buildOverviewChip(
-                        'Active',
+                        t('active'),
                         '${_offers.where((offer) => (offer['status'] ?? '') == 'active').length}',
                       ),
                       _buildOverviewChip(
-                        'Scheduled',
+                        t('scheduled'),
                         '${_offers.where((offer) => (offer['status'] ?? '') == 'scheduled').length}',
                       ),
                       _buildOverviewChip(
-                        'Coins',
+                        t('coins_label_short'),
                         '${_offers.fold<num>(0, (sum, offer) => sum + ((offer['analytics']?['distributedCoins'] ?? 0) as num))}',
                       ),
                     ],
@@ -1361,5 +1449,3 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
     );
   }
 }
-
-

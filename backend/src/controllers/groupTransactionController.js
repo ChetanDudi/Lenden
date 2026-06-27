@@ -1930,10 +1930,10 @@ exports.generateGroupReceipt = async (req, res) => {
           console.error('Failed to send group receipt email:', error);
           res.status(500).json({ error: 'Failed to send group receipt email' });
         }
-      } else if (action === 'download') {
+      } else if (action === 'download' || action === 'share') {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=group-receipt-${group._id}.pdf`);
-        await logGroupActivityForAllMembers('receipt_generated', group, { action: 'download' }, null, { creatorId: req.user._id, creatorEmail: req.user.email });
+        await logGroupActivityForAllMembers('receipt_generated', group, { action }, null, { creatorId: req.user._id, creatorEmail: req.user.email });
         res.send(pdfBuffer);
       } else {
         res.status(400).json({ error: 'Invalid action' });

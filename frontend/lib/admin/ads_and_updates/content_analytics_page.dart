@@ -4,6 +4,8 @@ import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminContentAnalyticsPage extends StatefulWidget {
   const AdminContentAnalyticsPage({super.key});
@@ -64,8 +66,9 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -76,12 +79,15 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                 ),
               ),
             ),
@@ -95,22 +101,24 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Content Analytics',
+                          t('content_analytics'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: _loadAnalytics,
-                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        icon: Icon(Icons.refresh,
+                            color: AppThemeColors.iconOnWave(context)),
                       ),
                     ],
                   ),
@@ -136,11 +144,10 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                           _buildSummarySection(),
                           const SizedBox(height: 16),
                           _buildSectionCard(
-                            title: 'Top Ads',
-                            subtitle:
-                                'Best performing ads by clicks and reach.',
+                            title: t('top_ads'),
+                            subtitle: t('top_ads_subtitle'),
                             child: _topAds.isEmpty
-                                ? _buildEmpty('No ad analytics available yet.')
+                                ? _buildEmpty(t('no_ad_analytics_yet'))
                                 : Column(
                                     children:
                                         _topAds.map(_buildTopAdTile).toList(),
@@ -148,11 +155,10 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                           ),
                           const SizedBox(height: 16),
                           _buildSectionCard(
-                            title: 'Top Updates',
-                            subtitle: 'Most-read updates across users.',
+                            title: t('top_updates'),
+                            subtitle: t('top_updates_subtitle'),
                             child: _topUpdates.isEmpty
-                                ? _buildEmpty(
-                                    'No update analytics available yet.')
+                                ? _buildEmpty(t('no_update_analytics_yet'))
                                 : Column(
                                     children: _topUpdates
                                         .map(_buildTopUpdateTile)
@@ -161,11 +167,10 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                           ),
                           const SizedBox(height: 16),
                           _buildSectionCard(
-                            title: 'Moderation Queue',
-                            subtitle:
-                                'Reported or frequently hidden ads that may need review.',
+                            title: t('moderation_queue'),
+                            subtitle: t('moderation_queue_subtitle'),
                             child: _moderationQueue.isEmpty
-                                ? _buildEmpty('No moderation items right now.')
+                                ? _buildEmpty(t('no_moderation_items_right_now'))
                                 : Column(
                                     children: _moderationQueue
                                         .map(_buildModerationTile)
@@ -186,22 +191,23 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
   }
 
   Widget _buildSummarySection() {
+    final t = AppLocalizations.of(context).t;
     final cards = [
-      _summaryCard('Ads', '${_summary['totalAds'] ?? 0}', Icons.ondemand_video),
-      _summaryCard('Active Ads', '${_summary['activeAds'] ?? 0}',
+      _summaryCard(t('ads'), '${_summary['totalAds'] ?? 0}', Icons.ondemand_video),
+      _summaryCard(t('active_ads'), '${_summary['activeAds'] ?? 0}',
           Icons.play_circle_fill),
-      _summaryCard('Ad Views', '${_summary['totalImpressions'] ?? 0}',
+      _summaryCard(t('ad_views'), '${_summary['totalImpressions'] ?? 0}',
           Icons.remove_red_eye),
       _summaryCard(
-          'Ad CTR', '${_summary['averageCtr'] ?? 0}%', Icons.ads_click),
-      _summaryCard('Reports', '${_summary['totalReports'] ?? 0}', Icons.report),
-      _summaryCard('Updates', '${_summary['totalUpdates'] ?? 0}',
+          t('ad_ctr'), '${_summary['averageCtr'] ?? 0}%', Icons.ads_click),
+      _summaryCard(t('reports'), '${_summary['totalReports'] ?? 0}', Icons.report),
+      _summaryCard(t('updates_label'), '${_summary['totalUpdates'] ?? 0}',
           Icons.campaign_outlined),
-      _summaryCard('Published', '${_summary['publishedUpdates'] ?? 0}',
+      _summaryCard(t('published'), '${_summary['publishedUpdates'] ?? 0}',
           Icons.publish_outlined),
       _summaryCard(
-          'Reads', '${_summary['totalReads'] ?? 0}', Icons.visibility_outlined),
-      _summaryCard('Critical', '${_summary['criticalUpdates'] ?? 0}',
+          t('reads'), '${_summary['totalReads'] ?? 0}', Icons.visibility_outlined),
+      _summaryCard(t('critical'), '${_summary['criticalUpdates'] ?? 0}',
           Icons.priority_high),
     ];
 
@@ -244,7 +250,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
@@ -263,9 +269,10 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
+                  color: AppThemeColors.primaryText(context),
                 ),
               ),
             ],
@@ -293,7 +300,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(
@@ -301,13 +308,17 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: AppThemeColors.primaryText(context),
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               subtitle,
               style: TextStyle(
-                color: Colors.grey.shade700,
+                color: AppThemeColors.secondaryText(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -320,11 +331,13 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
   }
 
   Widget _buildTopAdTile(Map<String, dynamic> ad) {
+    final t = AppLocalizations.of(context).t;
     final stats = Map<String, dynamic>.from((ad['stats'] ?? {}) as Map);
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
-        backgroundColor: const Color(0xFFEAF5FF),
+        backgroundColor: AppThemeColors.tinted(context,
+            light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A4A)),
         child: Icon(
           (ad['mediaKind'] ?? 'none').toString() == 'video'
               ? Icons.play_circle_outline
@@ -334,41 +347,58 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
       ),
       title: Text(
         (ad['title'] ?? '').toString(),
-        style: const TextStyle(fontWeight: FontWeight.w800),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: AppThemeColors.primaryText(context),
+        ),
       ),
       subtitle: Text(
-        'Clicks ${stats['clicks'] ?? 0} • Views ${stats['impressions'] ?? 0} • CTR ${stats['ctr'] ?? 0}%',
+        '${t('clicks_label')} ${stats['clicks'] ?? 0} • ${t('views_label')} ${stats['impressions'] ?? 0} • ${t('ctr_label')} ${stats['ctr'] ?? 0}%',
+        style: TextStyle(color: AppThemeColors.secondaryText(context)),
       ),
       trailing: Text(
-        '${stats['reports'] ?? 0} reports',
-        style: const TextStyle(fontWeight: FontWeight.w700),
+        '${stats['reports'] ?? 0} ${t('reports_label')}',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: AppThemeColors.primaryText(context),
+        ),
       ),
     );
   }
 
   Widget _buildTopUpdateTile(Map<String, dynamic> update) {
+    final t = AppLocalizations.of(context).t;
     final stats = Map<String, dynamic>.from((update['stats'] ?? {}) as Map);
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: const CircleAvatar(
-        backgroundColor: Color(0xFFEAF5FF),
-        child: Icon(Icons.campaign_outlined, color: AppColors.cyan),
+      leading: CircleAvatar(
+        backgroundColor: AppThemeColors.tinted(context,
+            light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A4A)),
+        child: const Icon(Icons.campaign_outlined, color: AppColors.cyan),
       ),
       title: Text(
         (update['title'] ?? '').toString(),
-        style: const TextStyle(fontWeight: FontWeight.w800),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: AppThemeColors.primaryText(context),
+        ),
       ),
       subtitle: Text(
         '${(update['status'] ?? 'published').toString()} • ${(update['importance'] ?? 'normal').toString()}',
+        style: TextStyle(color: AppThemeColors.secondaryText(context)),
       ),
       trailing: Text(
-        '${stats['readCount'] ?? 0} reads',
-        style: const TextStyle(fontWeight: FontWeight.w700),
+        '${stats['readCount'] ?? 0} ${t('reads_label')}',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: AppThemeColors.primaryText(context),
+        ),
       ),
     );
   }
 
   Widget _buildModerationTile(Map<String, dynamic> ad) {
+    final t = AppLocalizations.of(context).t;
     final stats = Map<String, dynamic>.from((ad['stats'] ?? {}) as Map);
     final moderation =
         Map<String, dynamic>.from((ad['moderation'] ?? {}) as Map);
@@ -381,7 +411,8 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FBFF),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF7FBFF), dark: const Color(0xFF1C2A33)),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -392,11 +423,14 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
               Expanded(
                 child: Text(
                   (ad['title'] ?? '').toString(),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppThemeColors.primaryText(context),
+                  ),
                 ),
               ),
               Text(
-                '${stats['reports'] ?? 0} reports',
+                '${stats['reports'] ?? 0} ${t('reports_label')}',
                 style: const TextStyle(
                   color: Colors.redAccent,
                   fontWeight: FontWeight.w800,
@@ -406,9 +440,9 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Hidden ${stats['hides'] ?? 0} times • Audience ${(ad['audience'] ?? 'nonsubscribed').toString()}',
+            '${t('hidden_label')} ${stats['hides'] ?? 0} ${t('times_label')} • ${t('audience')} ${(ad['audience'] ?? 'nonsubscribed').toString()}',
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: AppThemeColors.secondaryText(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -418,8 +452,11 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
               (report) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
-                  '• ${(report['reason'] ?? '').toString().trim().isEmpty ? 'No reason provided' : report['reason']}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  '• ${(report['reason'] ?? '').toString().trim().isEmpty ? t('no_reason_provided') : report['reason']}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppThemeColors.primaryText(context),
+                  ),
                 ),
               ),
             ),
@@ -435,8 +472,8 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
       child: Center(
         child: Text(
           message,
-          style: const TextStyle(
-            color: Colors.black54,
+          style: TextStyle(
+            color: AppThemeColors.secondaryText(context),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -448,7 +485,9 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isError ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
+        color: AppThemeColors.tinted(context,
+            light: isError ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
+            dark: isError ? const Color(0xFF3A2020) : const Color(0xFF1E3324)),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Text(

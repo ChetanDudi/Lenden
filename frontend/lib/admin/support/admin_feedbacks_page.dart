@@ -6,6 +6,8 @@ import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminFeedbacksPage extends StatefulWidget {
   const AdminFeedbacksPage({Key? key}) : super(key: key);
@@ -107,13 +109,14 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
   }
 
   void _showSortSheet() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -123,26 +126,28 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppThemeColors.divider(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(20),
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Sort by',
+                child: Text(t('sort_by'),
                     style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
               ),
             ),
-            _buildSortTile('newest', 'Newest First',
+            _buildSortTile('newest', t('newest_first'),
                 Icons.arrow_downward_rounded),
-            _buildSortTile('oldest', 'Oldest First',
+            _buildSortTile('oldest', t('oldest_first'),
                 Icons.arrow_upward_rounded),
-            _buildSortTile('rating_high', 'Highest Rating',
+            _buildSortTile('rating_high', t('highest_rating'),
                 Icons.star_rounded),
-            _buildSortTile('rating_low', 'Lowest Rating',
+            _buildSortTile('rating_low', t('lowest_rating'),
                 Icons.star_border_rounded),
             const SizedBox(height: 24),
           ],
@@ -155,10 +160,10 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
     final isSelected = _sortBy == value;
     return ListTile(
       leading: Icon(icon,
-          color: isSelected ? AppColors.cyan : Colors.grey),
+          color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context)),
       title: Text(label,
           style: TextStyle(
-            color: isSelected ? AppColors.cyan : Colors.grey[800],
+            color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context),
             fontWeight:
                 isSelected ? FontWeight.bold : FontWeight.normal,
           )),
@@ -174,6 +179,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
   }
 
   Widget _buildFeedbackCard(Map<String, dynamic> feedback) {
+    final t = AppLocalizations.of(context).t;
     final avgRating = (feedback['avgRating'] as num?)?.toDouble() ?? 0.0;
     final isActive = feedback['isActive'] == true;
     final isVerified = feedback['isVerified'] == true;
@@ -183,7 +189,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -247,8 +253,8 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                       if (feedback['userEmail'] != null)
                         Text(
                           feedback['userEmail'].toString(),
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey),
+                          style: TextStyle(
+                              fontSize: 12, color: AppThemeColors.secondaryText(context)),
                         ),
                       if (feedback['username'] != null)
                         Text(
@@ -261,12 +267,12 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                       Row(
                         children: [
                           _buildBadge(
-                            isActive ? 'Active' : 'Inactive',
+                            isActive ? t('active') : t('inactive'),
                             isActive ? Colors.green : Colors.red,
                           ),
                           const SizedBox(width: 6),
                           if (isVerified)
-                            _buildBadge('Verified', Colors.blue),
+                            _buildBadge(t('verified'), Colors.blue),
                         ],
                       ),
                     ],
@@ -278,22 +284,22 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: AppThemeColors.surfaceBg(context),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: AppThemeColors.border(context)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(Icons.format_quote_rounded,
-                      size: 16, color: Colors.grey[400]),
+                      size: 16, color: AppThemeColors.mutedText(context)),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       (feedback['feedback'] as String?) ?? '',
                       style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[800],
+                          color: AppThemeColors.primaryText(context),
                           height: 1.4),
                     ),
                   ),
@@ -304,19 +310,19 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
             Row(
               children: [
                 Icon(Icons.access_time_rounded,
-                    size: 12, color: Colors.grey[500]),
+                    size: 12, color: AppThemeColors.mutedText(context)),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     dateStr,
                     style: TextStyle(
-                        fontSize: 11, color: Colors.grey[500]),
+                        fontSize: 11, color: AppThemeColors.mutedText(context)),
                   ),
                 ),
                 if (feedback['userEmail'] != null)
                   TextButton.icon(
                     icon: const Icon(Icons.person_outline, size: 14),
-                    label: const Text('Profile'),
+                    label: Text(t('profile')),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.cyan,
                       padding:
@@ -361,8 +367,9 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -373,11 +380,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
-                ),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -392,27 +395,31 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'User Feedbacks',
+                            t('user_feedbacks'),
                             style: TextStyle(
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold),
+                                fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.sort_rounded),
-                        tooltip: 'Sort',
+                        icon: Icon(Icons.sort_rounded,
+                            color: AppThemeColors.iconOnWave(context)),
+                        tooltip: t('sort'),
                         onPressed: _showSortSheet,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh_rounded),
-                        tooltip: 'Refresh',
+                        icon: Icon(Icons.refresh_rounded,
+                            color: AppThemeColors.iconOnWave(context)),
+                        tooltip: t('refresh'),
                         onPressed: _fetchFeedbacks,
                       ),
                     ],
@@ -440,13 +447,13 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(23),
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.search,
-                              color: Colors.grey[500], size: 20),
+                              color: AppThemeColors.mutedText(context), size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
@@ -455,11 +462,11 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                                 setState(() => _search = v);
                                 _applyFilter();
                               },
+                              style: TextStyle(color: AppThemeColors.primaryText(context)),
                               decoration: InputDecoration(
-                                hintText:
-                                    'Search by name, email, or text...',
+                                hintText: t('search_feedback_hint'),
                                 hintStyle:
-                                    TextStyle(color: Colors.grey[400]),
+                                    TextStyle(color: AppThemeColors.mutedText(context)),
                                 border: InputBorder.none,
                                 contentPadding:
                                     const EdgeInsets.symmetric(
@@ -475,7 +482,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                                 _applyFilter();
                               },
                               child: Icon(Icons.clear,
-                                  color: Colors.grey[400], size: 18),
+                                  color: AppThemeColors.mutedText(context), size: 18),
                             ),
                         ],
                       ),
@@ -488,10 +495,10 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
                     child: Text(
-                      '${_filtered.length} feedback${_filtered.length == 1 ? '' : 's'}',
+                      '${_filtered.length} ${_filtered.length == 1 ? t('feedback_singular') : t('feedback_plural')}',
                       style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[600],
+                          color: AppThemeColors.secondaryText(context),
                           fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -518,7 +525,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                                   const SizedBox(height: 16),
                                   ElevatedButton(
                                     onPressed: _fetchFeedbacks,
-                                    child: const Text('Retry'),
+                                    child: Text(t('retry')),
                                   ),
                                 ],
                               ),
@@ -531,15 +538,15 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                                     children: [
                                       Icon(Icons.feedback_outlined,
                                           size: 64,
-                                          color: Colors.grey[300]),
+                                          color: AppThemeColors.mutedText(context)),
                                       const SizedBox(height: 16),
                                       Text(
                                         _search.isEmpty
-                                            ? 'No feedbacks yet'
-                                            : 'No results for "$_search"',
+                                            ? t('no_feedbacks_yet')
+                                            : '${t('no_results_found')} "$_search"',
                                         style: TextStyle(
                                             fontSize: 17,
-                                            color: Colors.grey[500]),
+                                            color: AppThemeColors.secondaryText(context)),
                                       ),
                                     ],
                                   ),

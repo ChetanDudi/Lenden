@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserEditPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -90,6 +92,7 @@ class _UserEditPageState extends State<UserEditPage> {
   }
 
   Future<void> _saveUser() async {
+    final t = AppLocalizations.of(context).t;
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -119,18 +122,18 @@ class _UserEditPageState extends State<UserEditPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          showSnack(context, 'User updated successfully!');
+          showSnack(context, t('user_updated_successfully'));
           Navigator.pop(context, true);
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          showSnack(context, errorData['message'] ?? 'Failed to update user', isError: true);
+          showSnack(context, errorData['message'] ?? t('failed_to_update_user'), isError: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, 'Error: ${e.toString()}', isError: true);
+        showSnack(context, '${t('error')}: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -143,11 +146,12 @@ class _UserEditPageState extends State<UserEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: transparentAppBar(
         context,
-        title: 'Edit ${widget.user['name'] ?? 'User'}',
+        title: '${t('edit')} ${widget.user['name'] ?? t('user_label')}',
         actions: [
           if (!_isLoading)
             TextButton(
@@ -159,8 +163,8 @@ class _UserEditPageState extends State<UserEditPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(
-                      'Save',
-                      style: TextStyle(
+                      t('save'),
+                      style: const TextStyle(
                         color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
@@ -182,7 +186,7 @@ class _UserEditPageState extends State<UserEditPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -201,20 +205,20 @@ class _UserEditPageState extends State<UserEditPage> {
                             color: AppColors.cyan,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Edit User Information',
+                          Text(
+                            t('edit_user_information_title'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Update user details and account settings',
+                          Text(
+                            t('update_user_details_settings'),
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey,
+                              color: AppThemeColors.secondaryText(context),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -226,69 +230,76 @@ class _UserEditPageState extends State<UserEditPage> {
 
                     // Personal Information Section
                     _buildSection(
-                      'Personal Information',
+                      context,
+                      t('personal_information'),
                       [
                         _buildTextField(
+                          context: context,
                           controller: _nameController,
-                          label: 'Full Name',
+                          label: t('full_name'),
                           icon: Icons.person,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Please enter full name';
+                              return t('please_enter_full_name');
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
+                          context: context,
                           controller: _emailController,
-                          label: 'Email Address',
+                          label: t('email_address_label'),
                           icon: Icons.email,
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Please enter email address';
+                              return t('please_enter_email_address');
                             }
                             if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                 .hasMatch(value)) {
-                              return 'Please enter a valid email address';
+                              return t('please_enter_valid_email_address');
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
+                          context: context,
                           controller: _phoneController,
-                          label: 'Phone Number',
+                          label: t('phone_number'),
                           icon: Icons.phone,
                           keyboardType: TextInputType.phone,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
+                          context: context,
                           controller: _addressController,
-                          label: 'Address',
+                          label: t('address'),
                           icon: Icons.location_on,
                           maxLines: 3,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
+                          context: context,
                           controller: _altEmailController,
-                          label: 'Alternative Email',
+                          label: t('alternative_email'),
                           icon: Icons.alternate_email,
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 16),
                         _buildDropdownField(
-                          label: 'Gender',
+                          context: context,
+                          label: t('gender'),
                           icon: Icons.person_outline,
                           value: _selectedGender,
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: 'Male', child: Text('Male')),
+                                value: 'Male', child: Text(t('male'))),
                             DropdownMenuItem(
-                                value: 'Female', child: Text('Female')),
+                                value: 'Female', child: Text(t('female'))),
                             DropdownMenuItem(
-                                value: 'Other', child: Text('Other')),
+                                value: 'Other', child: Text(t('other'))),
                           ],
                           onChanged: (value) {
                             setState(() {
@@ -297,7 +308,7 @@ class _UserEditPageState extends State<UserEditPage> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        _buildDateField(),
+                        _buildDateField(context),
                       ],
                     ),
 
@@ -305,19 +316,21 @@ class _UserEditPageState extends State<UserEditPage> {
 
                     // Account Settings Section
                     _buildSection(
-                      'Account Settings',
+                      context,
+                      t('account_settings'),
                       [
                         _buildDropdownField(
-                          label: 'Account Role',
+                          context: context,
+                          label: t('account_role_label'),
                           icon: Icons.admin_panel_settings,
                           value: _selectedRole,
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: 'user', child: Text('User')),
+                                value: 'user', child: Text(t('user_label'))),
                             DropdownMenuItem(
-                                value: 'admin', child: Text('Administrator')),
+                                value: 'admin', child: Text(t('administrator'))),
                             DropdownMenuItem(
-                                value: 'moderator', child: Text('Moderator')),
+                                value: 'moderator', child: Text(t('moderator'))),
                           ],
                           onChanged: (value) {
                             setState(() {
@@ -327,29 +340,33 @@ class _UserEditPageState extends State<UserEditPage> {
                         ),
                         const SizedBox(height: 16),
                         _buildSwitchTile(
-                          'Account Active',
-                          'Enable or disable user account',
+                          context,
+                          t('account_active_label'),
+                          t('enable_disable_user_account_desc'),
                           Icons.check_circle_outline,
                           _isActive,
                           (value) => setState(() => _isActive = value),
                         ),
                         _buildSwitchTile(
-                          'Email Verified',
-                          'Mark email as verified',
+                          context,
+                          t('email_verified_title'),
+                          t('mark_email_verified_desc'),
                           Icons.verified_outlined,
                           _isVerified,
                           (value) => setState(() => _isVerified = value),
                         ),
                         _buildSwitchTile(
-                          'Phone Verified',
-                          'Mark phone number as verified',
+                          context,
+                          t('phone_verified_title'),
+                          t('mark_phone_verified_desc'),
                           Icons.phone_android_outlined,
                           _phoneVerified,
                           (value) => setState(() => _phoneVerified = value),
                         ),
                         _buildSwitchTile(
-                          'Two-Factor Authentication',
-                          'Enable two-factor authentication',
+                          context,
+                          t('two_factor_authentication_label'),
+                          t('enable_two_factor_auth_desc'),
                           Icons.security,
                           _twoFactorEnabled,
                           (value) => setState(() => _twoFactorEnabled = value),
@@ -381,9 +398,9 @@ class _UserEditPageState extends State<UserEditPage> {
                                       Colors.white),
                                 ),
                               )
-                            : const Text(
-                                'Save Changes',
-                                style: TextStyle(
+                            : Text(
+                                t('save_changes'),
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -398,11 +415,12 @@ class _UserEditPageState extends State<UserEditPage> {
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
+  Widget _buildSection(
+      BuildContext context, String title, List<Widget> children) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -438,6 +456,7 @@ class _UserEditPageState extends State<UserEditPage> {
   }
 
   Widget _buildTextField({
+    required BuildContext context,
     required TextEditingController controller,
     required String label,
     required IconData icon,
@@ -465,6 +484,7 @@ class _UserEditPageState extends State<UserEditPage> {
   }
 
   Widget _buildDropdownField({
+    required BuildContext context,
     required String label,
     required IconData icon,
     required String value,
@@ -494,10 +514,11 @@ class _UserEditPageState extends State<UserEditPage> {
     );
   }
 
-  Widget _buildDateField() {
+  Widget _buildDateField(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return InputDecorator(
       decoration: InputDecoration(
-        labelText: 'Date of Birth',
+        labelText: t('date_of_birth_label'),
         prefixIcon:
             const Icon(Icons.calendar_today, color: AppColors.cyan),
         border: OutlineInputBorder(
@@ -518,10 +539,11 @@ class _UserEditPageState extends State<UserEditPage> {
               Text(
                 _selectedDateOfBirth != null
                     ? '${_selectedDateOfBirth!.day}/${_selectedDateOfBirth!.month}/${_selectedDateOfBirth!.year}'
-                    : 'Select date',
+                    : t('select_date'),
                 style: TextStyle(
-                  color:
-                      _selectedDateOfBirth != null ? Colors.black : Colors.grey,
+                  color: _selectedDateOfBirth != null
+                      ? AppThemeColors.primaryText(context)
+                      : AppThemeColors.secondaryText(context),
                 ),
               ),
               const Icon(Icons.arrow_drop_down),
@@ -533,6 +555,7 @@ class _UserEditPageState extends State<UserEditPage> {
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -543,17 +566,17 @@ class _UserEditPageState extends State<UserEditPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Switch(

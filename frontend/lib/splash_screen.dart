@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'widgets/app_colors.dart';
 import 'dart:async';
 import 'utils/responsive.dart';
+import 'utils/theme_helper.dart';
 
 class SplashScreen extends StatefulWidget {
   final bool autoNavigate;
@@ -45,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           // Top blue wave
@@ -57,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
               clipper: _TopWaveClipper(),
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.18,
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -70,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen>
               clipper: _BottomWaveClipper(),
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.15,
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -83,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen>
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
@@ -128,7 +129,7 @@ class _SplashScreenState extends State<SplashScreen>
                   Text(
                     'Loading your workspace...',
                     style: TextStyle(
-                      color: Colors.grey[700],
+                      color: AppThemeColors.primaryText(context),
                       fontSize: context.sp(13),
                       fontWeight: FontWeight.w600,
                     ),

@@ -1,11 +1,12 @@
 ﻿import 'package:flutter/material.dart';
-import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class GiftCardPage extends StatefulWidget {
   const GiftCardPage({Key? key}) : super(key: key);
@@ -117,6 +118,7 @@ class _GiftCardPageState extends State<GiftCardPage>
 
   Future<void> _scratchCard(
       String cardId, int index, bool isUnscratched) async {
+    final t = AppLocalizations.of(context).t;
     try {
       setState(() {
         isScratching = true;
@@ -146,6 +148,7 @@ class _GiftCardPageState extends State<GiftCardPage>
               borderRadius: BorderRadius.circular(20),
               child: Container(
                 decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
                   border: Border(
                     top: BorderSide(color: Colors.orange, width: 4),
                     bottom: BorderSide(color: Colors.green, width: 4),
@@ -166,12 +169,12 @@ class _GiftCardPageState extends State<GiftCardPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Card Scratched! 🎉',
+                      Text(
+                        t('card_scratched_celebration'),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -179,7 +182,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                           size: 60, color: Colors.amber),
                       const SizedBox(height: 20),
                       Text(
-                        '+$coinsAdded LenDen Coins',
+                        '+$coinsAdded ${t('lenden_coins_label')}',
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -195,7 +198,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Total Coins: $totalCoins',
+                          '${t('total_coins_label')}: $totalCoins',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -212,13 +215,14 @@ class _GiftCardPageState extends State<GiftCardPage>
                               Navigator.pop(context);
                             },
                             style: TextButton.styleFrom(
-                              backgroundColor: Colors.grey[200],
+                              backgroundColor: AppThemeColors.surfaceBg(context),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 12),
                             ),
-                            child: const Text(
-                              'Close',
-                              style: TextStyle(color: Colors.black87),
+                            child: Text(
+                              t('close'),
+                              style: TextStyle(
+                                  color: AppThemeColors.primaryText(context)),
                             ),
                           ),
                           ElevatedButton(
@@ -230,7 +234,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 12),
                             ),
-                            child: const Text('View Cards'),
+                            child: Text(t('view_cards_label')),
                           ),
                         ],
                       ),
@@ -247,7 +251,7 @@ class _GiftCardPageState extends State<GiftCardPage>
       }
     } catch (e) {
       print('Error scratching card: $e');
-      showSnack(context, 'Error: ${e.toString()}', isError: true);
+      showSnack(context, '${t('error_prefix')} ${e.toString()}', isError: true);
     } finally {
       setState(() {
         isScratching = false;
@@ -257,9 +261,10 @@ class _GiftCardPageState extends State<GiftCardPage>
 
   Widget _buildCardUI(
       Map<String, dynamic> card, bool isUnscratched, int index) {
+    final t = AppLocalizations.of(context).t;
     final giftCard = card['giftCard'] as Map<String, dynamic>? ?? {};
     final coins = card['coins'] ?? 0;
-    final name = giftCard['name'] ?? 'Gift Card';
+    final name = giftCard['name'] ?? t('gift_card_fallback_name');
     final cardId = card['_id'] ?? '';
 
     return GestureDetector(
@@ -308,7 +313,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                       ),
                     const SizedBox(height: 16),
                     Text(
-                      isUnscratched ? 'Tap to Scratch' : 'Scratched',
+                      isUnscratched ? t('tap_to_scratch_label') : t('scratched_label'),
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -328,7 +333,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '$coins Coins',
+                          '$coins ${t('coins_label_short')}',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -377,8 +382,9 @@ class _GiftCardPageState extends State<GiftCardPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -389,9 +395,9 @@ class _GiftCardPageState extends State<GiftCardPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                    colors: AppThemeColors.waveGradient(context),
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -408,17 +414,18 @@ class _GiftCardPageState extends State<GiftCardPage>
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Gift Cards',
+                            t('gift_cards_title'),
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: AppThemeColors.iconOnWave(context),
                             ),
                           ),
                         ),
@@ -443,12 +450,12 @@ class _GiftCardPageState extends State<GiftCardPage>
                     ),
                     child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: TabBar(
                           controller: _tabController,
-                          labelColor: Colors.black,
+                          labelColor: AppThemeColors.primaryText(context),
                           indicatorColor: Colors.teal,
                           tabs: [
                             Tab(
@@ -458,7 +465,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                                   const Icon(Icons.card_giftcard),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Unscratched ($unscrachedCount)',
+                                    '${t('unscratched_label')} ($unscrachedCount)',
                                     style: const TextStyle(fontSize: 12),
                                   ),
                                 ],
@@ -471,7 +478,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                                   const Icon(Icons.done_all),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Scratched ($scratchedCount)',
+                                    '${t('scratched_label')} ($scratchedCount)',
                                     style: const TextStyle(fontSize: 12),
                                   ),
                                 ],
@@ -500,22 +507,22 @@ class _GiftCardPageState extends State<GiftCardPage>
                                         Icon(
                                           Icons.card_giftcard,
                                           size: 80,
-                                          color: Colors.grey[300],
+                                          color: AppThemeColors.mutedText(context),
                                         ),
                                         const SizedBox(height: 16),
                                         Text(
-                                          'No unscratched cards yet',
+                                          t('no_unscratched_cards_yet'),
                                           style: TextStyle(
                                             fontSize: 18,
-                                            color: Colors.grey[600],
+                                            color: AppThemeColors.secondaryText(context),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          'Create transactions to earn cards!',
+                                          t('create_transactions_to_earn_cards'),
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.grey[500],
+                                            color: AppThemeColors.mutedText(context),
                                           ),
                                         ),
                                       ],
@@ -547,14 +554,16 @@ class _GiftCardPageState extends State<GiftCardPage>
                                         Icon(
                                           Icons.done_all,
                                           size: 80,
-                                          color: Colors.grey[300],
+                                          color: AppThemeColors.mutedText(
+                                              context),
                                         ),
                                         const SizedBox(height: 16),
                                         Text(
-                                          'No scratched cards yet',
+                                          t('no_scratched_cards_yet'),
                                           style: TextStyle(
                                             fontSize: 18,
-                                            color: Colors.grey[600],
+                                            color: AppThemeColors
+                                                .secondaryText(context),
                                           ),
                                         ),
                                       ],

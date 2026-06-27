@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageGroupTransactionsPage extends StatefulWidget {
   const ManageGroupTransactionsPage({super.key});
@@ -75,40 +77,43 @@ class _ManageGroupTransactionsPageState
         });
       } else {
         setState(() {
-          error = data['error'] ?? 'Failed to load groups.';
+          error = data['error'] ?? AppLocalizations.of(context).t('failed_to_load_groups');
           loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        error = 'An error occurred: $e';
+        error = '${AppLocalizations.of(context).t('an_error_occurred')}: $e';
         loading = false;
       });
     }
   }
 
   Future<void> _deleteGroup(String groupId) async {
+    final t = AppLocalizations.of(context).t;
     final response =
         await ApiClient.delete('/api/admin/group-transactions/$groupId');
     if (response.statusCode == 200) {
-      _showSnackBar('Group deleted successfully.');
+      _showSnackBar(t('group_deleted_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to delete group.');
+    _showSnackBar(data['error'] ?? t('failed_to_delete_group'));
   }
 
   Future<void> _pickGroupColor({
     required Color initialColor,
     required ValueChanged<Color> onPicked,
   }) async {
+    final t = AppLocalizations.of(context).t;
     var picked = initialColor;
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Pick Group Color'),
+        backgroundColor: AppThemeColors.cardBg(context),
+        title: Text(t('pick_group_color')),
         content: SingleChildScrollView(
           child: BlockPicker(
             pickerColor: picked,
@@ -121,7 +126,7 @@ class _ManageGroupTransactionsPageState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Done'),
+            child: Text(t('done')),
           ),
         ],
       ),
@@ -129,6 +134,7 @@ class _ManageGroupTransactionsPageState
   }
 
   void _showDeleteConfirmationDialog(String groupId) {
+    final t = AppLocalizations.of(context).t;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -137,8 +143,13 @@ class _ManageGroupTransactionsPageState
         content: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFF5F5), Color(0xFFFFFFFF)],
+            gradient: LinearGradient(
+              colors: [
+                AppThemeColors.tinted(context,
+                    light: const Color(0xFFFFF5F5),
+                    dark: const Color(0xFF3A1F1F)),
+                AppThemeColors.cardBg(context),
+              ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -151,7 +162,9 @@ class _ManageGroupTransactionsPageState
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFE3E3),
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFFFE3E3),
+                      dark: const Color(0xFF4A2424)),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: const Icon(
@@ -161,15 +174,19 @@ class _ManageGroupTransactionsPageState
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Delete Group',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              Text(
+                t('delete_group'),
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context)),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Are you sure you want to delete this group and all its expenses?',
+              Text(
+                t('confirm_delete_group_message'),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54, height: 1.4),
+                style: TextStyle(
+                    color: AppThemeColors.secondaryText(context), height: 1.4),
               ),
               const SizedBox(height: 22),
               Row(
@@ -183,7 +200,7 @@ class _ManageGroupTransactionsPageState
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(t('cancel')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -201,7 +218,7 @@ class _ManageGroupTransactionsPageState
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Delete'),
+                      child: Text(t('delete')),
                     ),
                   ),
                 ],
@@ -218,8 +235,9 @@ class _ManageGroupTransactionsPageState
     required List<dynamic> members,
     Map<String, dynamic>? expense,
   }) async {
+    final t = AppLocalizations.of(context).t;
     if (members.isEmpty) {
-      _showSnackBar('Cannot add expense: Group has no members.');
+      _showSnackBar(t('cannot_add_expense_no_members'));
       return;
     }
 
@@ -256,12 +274,14 @@ class _ManageGroupTransactionsPageState
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
+        builder: (context, setDialogState) {
+          final t = AppLocalizations.of(context).t;
+          return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
                 color: AppColors.cyan.withValues(alpha: 0.18),
@@ -293,7 +313,9 @@ class _ManageGroupTransactionsPageState
                             color: Colors.white),
                         const SizedBox(width: 10),
                         Text(
-                          expense == null ? 'Add Expense' : 'Edit Expense',
+                          expense == null
+                              ? t('add_expense_title')
+                              : t('edit_expense_title'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -306,17 +328,19 @@ class _ManageGroupTransactionsPageState
                   const SizedBox(height: 18),
                   TextField(
                     controller: descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      prefixIcon: Icon(Icons.description_outlined),
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
+                    decoration: InputDecoration(
+                      labelText: t('description'),
+                      prefixIcon: const Icon(Icons.description_outlined),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
-                    decoration: const InputDecoration(
-                      labelText: 'Amount',
-                      prefixIcon: Icon(Icons.currency_rupee_rounded),
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
+                    decoration: InputDecoration(
+                      labelText: t('amount'),
+                      prefixIcon: const Icon(Icons.currency_rupee_rounded),
                     ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -324,9 +348,10 @@ class _ManageGroupTransactionsPageState
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: paidBy,
-                    decoration: const InputDecoration(
-                      labelText: 'Paid By',
-                      prefixIcon: Icon(Icons.person_pin_circle_outlined),
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
+                    decoration: InputDecoration(
+                      labelText: t('paid_by_label'),
+                      prefixIcon: const Icon(Icons.person_pin_circle_outlined),
                     ),
                     items: memberEmails
                         .map((email) => DropdownMenuItem(
@@ -340,13 +365,16 @@ class _ManageGroupTransactionsPageState
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: splitType,
-                    decoration: const InputDecoration(
-                      labelText: 'Split Type',
-                      prefixIcon: Icon(Icons.call_split_rounded),
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
+                    decoration: InputDecoration(
+                      labelText: t('split_type_label'),
+                      prefixIcon: const Icon(Icons.call_split_rounded),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'equal', child: Text('Equal')),
-                      DropdownMenuItem(value: 'custom', child: Text('Custom')),
+                    items: [
+                      DropdownMenuItem(
+                          value: 'equal', child: Text(t('equal_label'))),
+                      DropdownMenuItem(
+                          value: 'custom', child: Text(t('custom_label'))),
                     ],
                     onChanged: (value) =>
                         setDialogState(() => splitType = value ?? 'equal'),
@@ -354,9 +382,11 @@ class _ManageGroupTransactionsPageState
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Text(
-                        'Included Members',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Text(
+                        t('included_members_label'),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       const Spacer(),
                       TextButton(
@@ -367,14 +397,16 @@ class _ManageGroupTransactionsPageState
                               ..addAll(memberEmails);
                           });
                         },
-                        child: const Text('Select All'),
+                        child: Text(t('select_all_label')),
                       ),
                     ],
                   ),
                   ...memberEmails.map(
                     (email) => CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(email),
+                      title: Text(email,
+                          style: TextStyle(
+                              color: AppThemeColors.primaryText(context))),
                       value: selectedMembers.contains(email),
                       onChanged: (value) {
                         setDialogState(() {
@@ -389,9 +421,11 @@ class _ManageGroupTransactionsPageState
                   ),
                   if (splitType == 'custom') ...[
                     const SizedBox(height: 10),
-                    const Text(
-                      'Custom split',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Text(
+                      t('custom_split_label'),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                     const SizedBox(height: 8),
                   ...selectedMembers.map(
@@ -400,6 +434,8 @@ class _ManageGroupTransactionsPageState
                         child: TextFormField(
                           initialValue:
                               (customSplitAmounts[email] ?? 0).toString(),
+                          style: TextStyle(
+                              color: AppThemeColors.primaryText(context)),
                           decoration: InputDecoration(
                             labelText: email,
                             prefixIcon:
@@ -441,7 +477,7 @@ class _ManageGroupTransactionsPageState
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
-                            'Left amount: ${remaining.toStringAsFixed(2)}',
+                            '${t('left_amount_label')} ${remaining.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: balanced ? Colors.green : Colors.orange,
@@ -463,7 +499,7 @@ class _ManageGroupTransactionsPageState
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text('Cancel'),
+                          child: Text(t('cancel')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -473,16 +509,16 @@ class _ManageGroupTransactionsPageState
                             final amount =
                                 double.tryParse(amountController.text.trim());
                             if (descriptionController.text.trim().isEmpty) {
-                              _showSnackBar('Please enter a description.');
+                              _showSnackBar(t('description_required_message'));
                               return;
                             }
                             if (amount == null || amount <= 0) {
-                              _showSnackBar('Please enter a valid amount.');
+                              _showSnackBar(t('valid_amount_required_message'));
                               return;
                             }
                             if (selectedMembers.isEmpty) {
                               _showSnackBar(
-                                  'Please select at least one member.');
+                                  t('select_one_member_message'));
                               return;
                             }
 
@@ -496,7 +532,7 @@ class _ManageGroupTransactionsPageState
                               );
                               if ((total - amount).abs() > 0.01) {
                                 _showSnackBar(
-                                  'Custom split amounts must match total amount.',
+                                  t('custom_split_mismatch_message'),
                                 );
                                 return;
                               }
@@ -548,7 +584,7 @@ class _ManageGroupTransactionsPageState
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: Text(expense == null ? 'Add' : 'Save'),
+                          child: Text(expense == null ? t('add') : t('save')),
                         ),
                       ),
                     ],
@@ -557,107 +593,115 @@ class _ManageGroupTransactionsPageState
               ),
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
 
   Future<void> _updateGroup(String groupId, Map<String, dynamic> body) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.put(
       '/api/admin/group-transactions/$groupId',
       body: body,
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Group updated successfully.');
+      _showSnackBar(t('group_updated_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to update group.');
+    _showSnackBar(data['error'] ?? t('failed_to_update_group'));
   }
 
   Future<void> _addMember(String groupId, String email) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.post(
       '/api/admin/group-transactions/$groupId/members',
       body: {'email': email},
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Member added successfully.');
+      _showSnackBar(t('member_added_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to add member.');
+    _showSnackBar(data['error'] ?? t('failed_to_add_member'));
   }
 
   Future<void> _removeMember(String groupId, String memberId) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.delete(
       '/api/admin/group-transactions/$groupId/members/$memberId',
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Member removed successfully.');
+      _showSnackBar(t('member_removed_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to remove member.');
+    _showSnackBar(data['error'] ?? t('failed_to_remove_member'));
   }
 
   Future<void> _addExpense(String groupId, Map<String, dynamic> body) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.post(
       '/api/admin/group-transactions/$groupId/expenses',
       body: body,
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Expense added successfully.');
+      _showSnackBar(t('expense_added_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to add expense.');
+    _showSnackBar(data['error'] ?? t('failed_to_add_expense'));
   }
 
   Future<void> _editExpense(
       String groupId, String expenseId, Map<String, dynamic> body) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.put(
       '/api/admin/group-transactions/$groupId/expenses/$expenseId',
       body: body,
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Expense updated successfully.');
+      _showSnackBar(t('expense_updated_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to update expense.');
+    _showSnackBar(data['error'] ?? t('failed_to_update_expense'));
   }
 
   Future<void> _deleteExpense(String groupId, String expenseId) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.delete(
       '/api/admin/group-transactions/$groupId/expenses/$expenseId',
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Expense deleted successfully.');
+      _showSnackBar(t('expense_deleted_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to delete expense.');
+    _showSnackBar(data['error'] ?? t('failed_to_delete_expense'));
   }
 
   Future<void> _settleExpenseSplits(
       String groupId, String expenseId, List<String> memberEmails) async {
+    final t = AppLocalizations.of(context).t;
     final response = await ApiClient.post(
       '/api/admin/group-transactions/$groupId/expenses/$expenseId/settle',
       body: {'memberEmails': memberEmails},
     );
     if (response.statusCode == 200) {
-      _showSnackBar('Expense splits settled successfully.');
+      _showSnackBar(t('expense_splits_settled_successfully'));
       _fetchGroups();
       return;
     }
     final data = jsonDecode(response.body);
-    _showSnackBar(data['error'] ?? 'Failed to settle expense splits.');
+    _showSnackBar(data['error'] ?? t('failed_to_settle_expense_splits'));
   }
 
   Future<bool> _showExpenseActionConfirmation({
@@ -667,6 +711,7 @@ class _ManageGroupTransactionsPageState
     required IconData icon,
     required String confirmLabel,
   }) async {
+    final t = AppLocalizations.of(context).t;
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -676,7 +721,7 @@ class _ManageGroupTransactionsPageState
             content: Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Column(
@@ -694,16 +739,19 @@ class _ManageGroupTransactionsPageState
                   const SizedBox(height: 16),
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 21,
                       fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     message,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.black54, height: 1.4),
+                    style: TextStyle(
+                        color: AppThemeColors.secondaryText(context),
+                        height: 1.4),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -711,7 +759,7 @@ class _ManageGroupTransactionsPageState
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
+                          child: Text(t('cancel')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -794,8 +842,9 @@ class _ManageGroupTransactionsPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -816,19 +865,23 @@ class _ManageGroupTransactionsPageState
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Manage Group Transactions',
+                          t('manage_group_transactions_title'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(context)),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        icon: Icon(Icons.refresh,
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: _fetchGroups,
                       ),
                     ],
@@ -850,17 +903,20 @@ class _ManageGroupTransactionsPageState
                                   _statsRow(),
                                   const SizedBox(height: 16),
                                   if (groups.isEmpty)
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 80),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 80),
                                       child: Column(
                                         children: [
                                           Icon(Icons.group_off_rounded,
-                                              size: 72, color: Colors.grey),
-                                          SizedBox(height: 12),
-                                          Text('No groups found',
+                                              size: 72,
+                                              color: AppThemeColors
+                                                  .mutedText(context)),
+                                          const SizedBox(height: 12),
+                                          Text(t('no_groups_found'),
                                               style: TextStyle(
                                                   fontSize: 18,
-                                                  color: Colors.grey)),
+                                                  color: AppThemeColors
+                                                      .mutedText(context))),
                                         ],
                                       ),
                                     )
@@ -872,7 +928,7 @@ class _ManageGroupTransactionsPageState
                                       onPressed: () =>
                                           setState(() => _showAll = true),
                                       child: Text(
-                                          'View All (${groups.length})'),
+                                          '${t('view_all')} (${groups.length})'),
                                     ),
                                 ],
                               ),
@@ -887,6 +943,7 @@ class _ManageGroupTransactionsPageState
   }
 
   Widget _filterBar() {
+    final t = AppLocalizations.of(context).t;
     return Column(
       children: [
         Container(
@@ -902,11 +959,12 @@ class _ManageGroupTransactionsPageState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: TextField(
               controller: _searchController,
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
                 _searchDebounceTimer?.cancel();
@@ -915,11 +973,11 @@ class _ManageGroupTransactionsPageState
                   _fetchGroups,
                 );
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Search group, member, creator, id...',
+                hintText: t('search_group_member_creator_id_placeholder'),
                 prefixIcon:
-                    Icon(Icons.search_rounded, color: AppColors.cyan),
+                    const Icon(Icons.search_rounded, color: AppColors.cyan),
               ),
             ),
           ),
@@ -930,15 +988,18 @@ class _ManageGroupTransactionsPageState
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _statusFilter,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
-                  labelText: 'Status',
+                  fillColor: AppThemeColors.cardBg(context),
+                  labelText: t('status'),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('All Groups')),
-                  DropdownMenuItem(value: 'active', child: Text('Active')),
-                  DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                items: [
+                  DropdownMenuItem(
+                      value: 'all', child: Text(t('all_groups'))),
+                  DropdownMenuItem(
+                      value: 'active', child: Text(t('active'))),
+                  DropdownMenuItem(
+                      value: 'inactive', child: Text(t('inactive'))),
                 ],
                 onChanged: (value) {
                   setState(() => _statusFilter = value!);
@@ -950,17 +1011,18 @@ class _ManageGroupTransactionsPageState
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _sortBy,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
-                  labelText: 'Sort',
+                  fillColor: AppThemeColors.cardBg(context),
+                  labelText: t('sort'),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'latest', child: Text('Latest')),
+                items: [
                   DropdownMenuItem(
-                      value: 'members', child: Text('Most Members')),
+                      value: 'latest', child: Text(t('latest'))),
                   DropdownMenuItem(
-                      value: 'expenses', child: Text('Most Expenses')),
+                      value: 'members', child: Text(t('most_members'))),
+                  DropdownMenuItem(
+                      value: 'expenses', child: Text(t('most_expenses'))),
                 ],
                 onChanged: (value) {
                   setState(() => _sortBy = value!);
@@ -975,11 +1037,14 @@ class _ManageGroupTransactionsPageState
   }
 
   Widget _statsRow() {
+    final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     final stats = [
-      ('Total', '${groups.length}', Icons.groups_2_rounded),
-      ('Showing', '${_visibleGroups.length}', Icons.visibility_rounded),
+      (t('total_label'), '${groups.length}', Icons.groups_2_rounded),
+      (t('showing_label'), '${_visibleGroups.length}',
+          Icons.visibility_rounded),
       (
-        'Expenses',
+        t('expenses_label'),
         '${groups.fold<int>(0, (s, g) => s + ((g['expenses'] as List?)?.length ?? 0))}',
         Icons.receipt_long_rounded
       ),
@@ -992,11 +1057,13 @@ class _ManageGroupTransactionsPageState
             margin: EdgeInsets.only(right: i == stats.length - 1 ? 0 : 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: i == 0
-                  ? const Color(0xFFFFF4E6)
-                  : i == 1
-                      ? const Color(0xFFE8F5E9)
-                      : const Color(0xFFE3F2FD),
+              color: isDark
+                  ? AppThemeColors.surfaceBg(context)
+                  : i == 0
+                      ? const Color(0xFFFFF4E6)
+                      : i == 1
+                          ? const Color(0xFFE8F5E9)
+                          : const Color(0xFFE3F2FD),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -1004,10 +1071,14 @@ class _ManageGroupTransactionsPageState
                 Icon(item.$3, color: AppColors.cyan),
                 const SizedBox(height: 6),
                 Text(item.$2,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
                 Text(item.$1,
-                    style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+                    style: TextStyle(
+                        color: AppThemeColors.secondaryText(context),
+                        fontSize: 12)),
               ],
             ),
           ),
@@ -1017,6 +1088,7 @@ class _ManageGroupTransactionsPageState
   }
 
   Widget _groupCard(Map<String, dynamic> group) {
+    final t = AppLocalizations.of(context).t;
     final members = (group['members'] as List<dynamic>? ?? const []);
     final expenses = (group['expenses'] as List<dynamic>? ?? const []);
     final balances = (group['balances'] as List<dynamic>? ?? const []);
@@ -1060,10 +1132,14 @@ class _ManageGroupTransactionsPageState
                 .substring(0, 1)
                 .toUpperCase()),
           ),
-          title: Text('${group['title'] ?? 'Untitled Group'}',
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+              '${group['title'] ?? t('untitled_group_label')}',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context))),
           subtitle: Text(
-            'Creator: ${group['creator']?['email'] ?? 'Unknown'}\nMembers: ${members.length} • Expenses: ${expenses.length}',
+            '${t('creator_label')}: ${group['creator']?['email'] ?? t('unknown_label')}\n${t('members_label')}: ${members.length} • ${t('expenses_label')}: ${expenses.length}',
+            style: TextStyle(color: AppThemeColors.secondaryText(context)),
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
@@ -1072,12 +1148,15 @@ class _ManageGroupTransactionsPageState
               runSpacing: 8,
               children: [
                 Chip(
-                    label: Text(
-                        group['isActive'] == false ? 'Inactive' : 'Active')),
+                    label: Text(group['isActive'] == false
+                        ? t('inactive')
+                        : t('active'))),
                 Chip(
                     label: Text(
-                        'Total ${_groupTotal(expenses).toStringAsFixed(2)}')),
-                Chip(label: Text('Balances ${balances.length}')),
+                        '${t('total_label')} ${_groupTotal(expenses).toStringAsFixed(2)}')),
+                Chip(
+                    label: Text(
+                        '${t('balances_label')} ${balances.length}')),
               ],
             ),
             const SizedBox(height: 12),
@@ -1101,10 +1180,15 @@ class _ManageGroupTransactionsPageState
                             content: Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(30),
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFF4FBFD), Colors.white],
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppThemeColors.tinted(context,
+                                        light: const Color(0xFFF4FBFD),
+                                        dark: const Color(0xFF13242A)),
+                                    AppThemeColors.cardBg(context),
+                                  ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                 ),
@@ -1123,14 +1207,14 @@ class _ManageGroupTransactionsPageState
                                       ),
                                       borderRadius: BorderRadius.circular(22),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       children: [
-                                        Icon(Icons.edit_rounded,
+                                        const Icon(Icons.edit_rounded,
                                             color: Colors.white),
-                                        SizedBox(width: 10),
+                                        const SizedBox(width: 10),
                                         Text(
-                                          'Edit Group',
-                                          style: TextStyle(
+                                          t('edit_group_title'),
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
@@ -1142,9 +1226,13 @@ class _ManageGroupTransactionsPageState
                                   const SizedBox(height: 18),
                                   TextField(
                                     controller: title,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Title',
-                                      prefixIcon: Icon(Icons.title_rounded),
+                                    style: TextStyle(
+                                        color:
+                                            AppThemeColors.primaryText(context)),
+                                    decoration: InputDecoration(
+                                      labelText: t('title'),
+                                      prefixIcon:
+                                          const Icon(Icons.title_rounded),
                                     ),
                                   ),
                                   const SizedBox(height: 14),
@@ -1160,7 +1248,7 @@ class _ManageGroupTransactionsPageState
                                     child: Container(
                                       padding: const EdgeInsets.all(14),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: AppThemeColors.cardBg(context),
                                         borderRadius: BorderRadius.circular(18),
                                         border: Border.all(
                                           color: pickedColor.withValues(alpha: 0.35),
@@ -1181,8 +1269,10 @@ class _ManageGroupTransactionsPageState
                                           Expanded(
                                             child: Text(
                                               '#${pickedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontWeight: FontWeight.w600,
+                                                color: AppThemeColors
+                                                    .primaryText(context),
                                               ),
                                             ),
                                           ),
@@ -1195,9 +1285,15 @@ class _ManageGroupTransactionsPageState
                                   SwitchListTile(
                                     value: isActive,
                                     contentPadding: EdgeInsets.zero,
-                                    title: const Text('Active'),
-                                    subtitle:
-                                        const Text('Disable without deleting'),
+                                    title: Text(t('active'),
+                                        style: TextStyle(
+                                            color: AppThemeColors.primaryText(
+                                                context))),
+                                    subtitle: Text(
+                                        t('disable_without_deleting'),
+                                        style: TextStyle(
+                                            color: AppThemeColors
+                                                .secondaryText(context))),
                                     onChanged: (value) =>
                                         setDialogState(() => isActive = value),
                                   ),
@@ -1207,7 +1303,7 @@ class _ManageGroupTransactionsPageState
                             actions: [
                               TextButton(
                                   onPressed: () => Navigator.pop(context),
-                                  child: const Text('Cancel')),
+                                  child: Text(t('cancel'))),
                               TextButton(
                                 onPressed: () {
                                   Navigator.pop(context);
@@ -1218,7 +1314,7 @@ class _ManageGroupTransactionsPageState
                                     'isActive': isActive,
                                   });
                                 },
-                                child: const Text('Save'),
+                                child: Text(t('save')),
                               ),
                             ],
                           ),
@@ -1226,7 +1322,7 @@ class _ManageGroupTransactionsPageState
                       );
                     },
                     icon: const Icon(Icons.edit_rounded),
-                    label: const Text('Edit'),
+                    label: Text(t('edit')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1235,8 +1331,8 @@ class _ManageGroupTransactionsPageState
                     onPressed: () =>
                         _showDeleteConfirmationDialog(group['_id']),
                     icon: const Icon(Icons.delete_rounded, color: Colors.red),
-                    label: const Text('Delete',
-                        style: TextStyle(color: Colors.red)),
+                    label: Text(t('delete'),
+                        style: const TextStyle(color: Colors.red)),
                   ),
                 ),
               ],
@@ -1246,17 +1342,27 @@ class _ManageGroupTransactionsPageState
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF8FC),
+                color: AppThemeColors.tinted(context,
+                    light: const Color(0xFFEFF8FC),
+                    dark: const Color(0xFF13242A)),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Created: ${_formatDate(group['createdAt'])}'),
+                  Text(
+                      '${t('created_label')}: ${_formatDate(group['createdAt'])}',
+                      style:
+                          TextStyle(color: AppThemeColors.primaryText(context))),
                   const SizedBox(height: 4),
-                  Text('Color: ${group['color'] ?? 'Default'}'),
+                  Text(
+                      '${t('color_label')}: ${group['color'] ?? t('default_label')}',
+                      style:
+                          TextStyle(color: AppThemeColors.primaryText(context))),
                   const SizedBox(height: 4),
-                  Text('Group ID: ${group['_id']}'),
+                  Text('${t('group_id_label')}: ${group['_id']}',
+                      style:
+                          TextStyle(color: AppThemeColors.primaryText(context))),
                 ],
               ),
             ),
@@ -1264,8 +1370,10 @@ class _ManageGroupTransactionsPageState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Members (${members.length})',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('${t('members_label')} (${members.length})',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
                 TextButton.icon(
                   onPressed: () {
                     final emailController = TextEditingController();
@@ -1279,10 +1387,15 @@ class _ManageGroupTransactionsPageState
                         content: Container(
                           padding: const EdgeInsets.all(22),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppThemeColors.cardBg(context),
                             borderRadius: BorderRadius.circular(28),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFF4FBFD), Colors.white],
+                            gradient: LinearGradient(
+                              colors: [
+                                AppThemeColors.tinted(context,
+                                    light: const Color(0xFFF4FBFD),
+                                    dark: const Color(0xFF13242A)),
+                                AppThemeColors.cardBg(context),
+                              ],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
@@ -1301,14 +1414,14 @@ class _ManageGroupTransactionsPageState
                                   ),
                                   borderRadius: BorderRadius.circular(22),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.person_add_alt_1_rounded,
+                                    const Icon(Icons.person_add_alt_1_rounded,
                                         color: Colors.white),
-                                    SizedBox(width: 10),
+                                    const SizedBox(width: 10),
                                     Text(
-                                      'Add Member',
-                                      style: TextStyle(
+                                      t('add_member_title'),
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -1320,9 +1433,13 @@ class _ManageGroupTransactionsPageState
                               const SizedBox(height: 18),
                               TextField(
                                 controller: emailController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Member Email',
-                                  prefixIcon: Icon(Icons.email_outlined),
+                                style: TextStyle(
+                                    color:
+                                        AppThemeColors.primaryText(context)),
+                                decoration: InputDecoration(
+                                  labelText: t('member_email_label'),
+                                  prefixIcon:
+                                      const Icon(Icons.email_outlined),
                                 ),
                               ),
                               const SizedBox(height: 18),
@@ -1331,7 +1448,7 @@ class _ManageGroupTransactionsPageState
                                   Expanded(
                                     child: OutlinedButton(
                                       onPressed: () => Navigator.pop(context),
-                                      child: const Text('Cancel'),
+                                      child: Text(t('cancel')),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -1347,7 +1464,7 @@ class _ManageGroupTransactionsPageState
                                             AppColors.cyan,
                                         foregroundColor: Colors.white,
                                       ),
-                                      child: const Text('Add'),
+                                      child: Text(t('add')),
                                     ),
                                   ),
                                 ],
@@ -1359,7 +1476,7 @@ class _ManageGroupTransactionsPageState
                     );
                   },
                   icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: const Text('Add'),
+                  label: Text(t('add')),
                 ),
               ],
             ),
@@ -1376,11 +1493,15 @@ class _ManageGroupTransactionsPageState
                       size: 18,
                     ),
                   ),
-                  title: Text('${member['email']}'),
+                  title: Text('${member['email']}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                   subtitle: Text(
                     member['leftAt'] == null
-                        ? 'Joined ${_formatDate(member['joinedAt'])}'
-                        : 'Left ${_formatDate(member['leftAt'])}',
+                        ? '${t('joined_label')} ${_formatDate(member['joinedAt'])}'
+                        : '${t('left_label')} ${_formatDate(member['leftAt'])}',
+                    style:
+                        TextStyle(color: AppThemeColors.secondaryText(context)),
                   ),
                   trailing: member['leftAt'] == null
                       ? IconButton(
@@ -1392,10 +1513,13 @@ class _ManageGroupTransactionsPageState
                       : null,
                 )),
             const SizedBox(height: 14),
-            Text('Balances (${members.length})',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('${t('balances_label')} (${members.length})',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
             ...members.map((member) {
-              final email = (member['email'] ?? 'Unknown').toString();
+              final email =
+                  (member['email'] ?? t('unknown_label')).toString();
               final memberId = '${member['_id']}';
               final calculatedAmount = _calculateMemberSplitAmount(
                 expenses: expenses,
@@ -1412,7 +1536,9 @@ class _ManageGroupTransactionsPageState
                       : Icons.pending_actions_rounded,
                   color: amount.abs() < 0.01 ? Colors.green : Colors.orange,
                 ),
-                title: Text('$email'),
+                title: Text('$email',
+                    style:
+                        TextStyle(color: AppThemeColors.primaryText(context))),
                 trailing: Text(
                   amount.toStringAsFixed(2),
                   style: TextStyle(
@@ -1426,8 +1552,10 @@ class _ManageGroupTransactionsPageState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Expenses (${expenses.length})',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('${t('expenses_label')} (${expenses.length})',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
                 TextButton.icon(
                   onPressed: members.isEmpty
                       ? null
@@ -1436,7 +1564,7 @@ class _ManageGroupTransactionsPageState
                             members: members,
                           ),
                   icon: const Icon(Icons.add_circle_outline_rounded),
-                  label: const Text('Add'),
+                  label: Text(t('add')),
                 ),
               ],
             ),
@@ -1457,13 +1585,20 @@ class _ManageGroupTransactionsPageState
               }
               return Card(
                 margin: const EdgeInsets.only(top: 8),
-                color: const Color(0xFFF9FBFE),
+                color: AppThemeColors.tinted(context,
+                    light: const Color(0xFFF9FBFE),
+                    dark: const Color(0xFF13242A)),
                 child: ListTile(
-                  title: Text('${expense['description'] ?? 'No description'}'),
+                  title: Text(
+                      '${expense['description'] ?? t('no_description_label')}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(context))),
                   subtitle: Text(
-                    'Added by ${expense['addedBy'] ?? 'Unknown'}\n'
-                    'Amount ${((expense['amount'] as num?)?.toDouble() ?? 0).toStringAsFixed(2)}\n'
-                    'Date ${_formatDate(expense['date'] ?? expense['createdAt'])}',
+                    '${t('added_by_label')} ${expense['addedBy'] ?? t('unknown_label')}\n'
+                    '${t('amount_label')} ${((expense['amount'] as num?)?.toDouble() ?? 0).toStringAsFixed(2)}\n'
+                    '${t('date_label')} ${_formatDate(expense['date'] ?? expense['createdAt'])}',
+                    style:
+                        TextStyle(color: AppThemeColors.secondaryText(context)),
                   ),
                   trailing: Wrap(
                     spacing: 4,
@@ -1485,12 +1620,12 @@ class _ManageGroupTransactionsPageState
                             : () async {
                                 final confirm =
                                     await _showExpenseActionConfirmation(
-                                  title: 'Settle Expense',
-                                  message:
-                                      'Mark the pending selected splits as settled?',
+                                  title: t('settle_expense_title'),
+                                  message: t(
+                                      'mark_pending_splits_settled_message'),
                                   color: Colors.green,
                                   icon: Icons.check_box_rounded,
-                                  confirmLabel: 'Settle',
+                                  confirmLabel: t('settle_label'),
                                 );
                                 if (!confirm) return;
                                 _settleExpenseSplits(
@@ -1505,12 +1640,11 @@ class _ManageGroupTransactionsPageState
                             const Icon(Icons.delete_rounded, color: Colors.red),
                         onPressed: () async {
                           final confirm = await _showExpenseActionConfirmation(
-                            title: 'Delete Expense',
-                            message:
-                                'Are you sure you want to delete this expense?',
+                            title: t('delete_expense_title'),
+                            message: t('confirm_delete_expense_message'),
                             color: Colors.red,
                             icon: Icons.delete_rounded,
-                            confirmLabel: 'Delete',
+                            confirmLabel: t('delete'),
                           );
                           if (!confirm) return;
                           _deleteExpense(group['_id'], expense['_id']);

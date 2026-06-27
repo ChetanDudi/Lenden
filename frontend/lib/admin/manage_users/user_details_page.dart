@@ -4,6 +4,8 @@ import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserDetailsPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -77,23 +79,28 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Future<void> _toggleUserStatus() async {
+    final t = AppLocalizations.of(context).t;
     final currentStatus = widget.user['isActive'] ?? false;
-    final action = currentStatus ? 'Deactivate' : 'Activate';
+    final action = currentStatus ? t('deactivate') : t('activate');
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(ctx),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text('$action User?'),
+        title: Text('$action ${t('user_label')}?',
+            style: TextStyle(color: AppThemeColors.primaryText(ctx))),
         content: Text(
           currentStatus
-              ? 'Deactivating this user will prevent them from logging in until reactivated.'
-              : 'Activating this user will restore their ability to log in.',
+              ? t('deactivate_user_confirm_message')
+              : t('activate_user_confirm_message'),
+          style: TextStyle(color: AppThemeColors.secondaryText(ctx)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -121,13 +128,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              (data['message'] ?? 'User ${!currentStatus ? 'activated' : 'deactivated'} successfully').toString(),
+              (data['message'] ?? (!currentStatus ? t('user_activated_successfully') : t('user_deactivated_successfully'))).toString(),
             ),
             backgroundColor: !currentStatus ? Colors.green : Colors.deepOrange,
           ),
         );
       } else {
-        throw Exception((data['message'] ?? 'Failed to update status').toString());
+        throw Exception((data['message'] ?? t('failed_to_update_status')).toString());
       }
     } catch (e) {
       if (!mounted) return;
@@ -137,18 +144,19 @@ class _UserDetailsPageState extends State<UserDetailsPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final user = widget.user;
     final isActive = user['isActive'] ?? false;
     final isVerified = user['isVerified'] ?? false;
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: transparentAppBar(
         context,
-        title: user['name'] ?? 'User Details',
+        title: user['name'] ?? t('user_details_title'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.black),
+            icon: Icon(Icons.edit, color: AppThemeColors.primaryText(context)),
             onPressed: () {
               Navigator.push(
                 context,
@@ -170,7 +178,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -197,24 +205,24 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  user['name'] ?? 'Unknown User',
-                                  style: const TextStyle(
+                                  user['name'] ?? t('unknown_user'),
+                                  style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                                    color: AppThemeColors.primaryText(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  user['email'] ?? 'No email',
-                                  style: const TextStyle(
+                                  user['email'] ?? t('no_email'),
+                                  style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey,
+                                    color: AppThemeColors.secondaryText(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '@${user['username'] ?? 'unknown'}',
+                                  '@${user['username'] ?? t('unknown')}',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: AppColors.cyan,
@@ -256,7 +264,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    isActive ? 'Active' : 'Inactive',
+                                    isActive ? t('active') : t('inactive'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -296,7 +304,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    isVerified ? 'Verified' : 'Pending',
+                                    isVerified ? t('verified') : t('pending'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -328,7 +336,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                 ),
                               ),
                               child: Text(
-                                isActive ? 'Deactivate' : 'Activate',
+                                isActive ? t('deactivate') : t('activate'),
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ),
@@ -353,16 +361,16 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Edit User',
+                                    child: Text(
+                                      t('edit_user'),
                                       style:
-                                          TextStyle(color: AppColors.cyan),
+                                          const TextStyle(color: AppColors.cyan),
                                     ),
                                   )
                                 : ElevatedButton.icon(
                                     onPressed: _reviewPendingUser,
                                     icon: const Icon(Icons.fact_check_rounded),
-                                    label: const Text('Review Pending'),
+                                    label: Text(t('review_pending')),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white,
@@ -392,9 +400,9 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Edit User',
-                                  style: TextStyle(color: AppColors.cyan),
+                                child: Text(
+                                  t('edit_user'),
+                                  style: const TextStyle(color: AppColors.cyan),
                                 ),
                               ),
                             ),
@@ -409,7 +417,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -423,13 +431,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   child: TabBar(
                     controller: _tabController,
                     labelColor: AppColors.cyan,
-                    unselectedLabelColor: Colors.grey,
+                    unselectedLabelColor: AppThemeColors.secondaryText(context),
                     indicatorColor: AppColors.cyan,
-                    tabs: const [
-                      Tab(text: 'Profile'),
-                      Tab(text: 'Stats'),
-                      Tab(text: 'Transactions'),
-                      Tab(text: 'Activity'),
+                    tabs: [
+                      Tab(text: t('profile')),
+                      Tab(text: t('stats_tab_label')),
+                      Tab(text: t('transactions')),
+                      Tab(text: t('activity')),
                     ],
                   ),
                 ),
@@ -452,6 +460,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Widget _buildProfileTab() {
+    final t = AppLocalizations.of(context).t;
     final user = widget.user;
     final adminNotes =
         List<Map<String, dynamic>>.from(user['adminNotes'] ?? const []);
@@ -463,64 +472,64 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildInfoSection('Personal Information', [
-            _buildInfoTile('Full Name', user['name'] ?? 'Not provided'),
-            _buildInfoTile('Username', '@${user['username'] ?? 'unknown'}'),
-            _buildInfoTile('Email', user['email'] ?? 'Not provided'),
-            _buildInfoTile('Phone', user['phone'] ?? 'Not provided'),
-            _buildInfoTile('Gender', user['gender'] ?? 'Not specified'),
+          _buildInfoSection(t('personal_information'), [
+            _buildInfoTile(t('full_name'), user['name'] ?? t('not_available')),
+            _buildInfoTile(t('username'), '@${user['username'] ?? t('unknown')}'),
+            _buildInfoTile(t('email'), user['email'] ?? t('not_available')),
+            _buildInfoTile(t('phone'), user['phone'] ?? t('not_available')),
+            _buildInfoTile(t('gender'), user['gender'] ?? t('not_specified')),
             _buildInfoTile(
-                'Date of Birth', user['dateOfBirth'] ?? 'Not provided'),
-            _buildInfoTile('Address', user['address'] ?? 'Not provided'),
+                t('birthday'), user['dateOfBirth'] ?? t('not_available')),
+            _buildInfoTile(t('address'), user['address'] ?? t('not_available')),
           ]),
           const SizedBox(height: 16),
-          _buildInfoSection('Account Information', [
-            _buildInfoTile('User ID', user['_id'] ?? 'Unknown'),
-            _buildInfoTile('Account Type', user['role'] ?? 'User'),
-            _buildInfoTile('Joined Date', _formatDate(user['createdAt'])),
+          _buildInfoSection(t('account_information'), [
+            _buildInfoTile(t('user_id_label'), user['_id'] ?? t('unknown')),
+            _buildInfoTile(t('account_type_label'), user['role'] ?? t('user_label')),
+            _buildInfoTile(t('joined_date_label'), _formatDate(user['createdAt'])),
             _buildInfoTile(
-                'Last Activity', _formatDate(_userStats?['lastActivity'])),
-            _buildInfoTile('Alternative Email', user['altEmail'] ?? 'Not set'),
+                t('last_activity_label'), _formatDate(_userStats?['lastActivity'])),
+            _buildInfoTile(t('alternative_email'), user['altEmail'] ?? t('not_set')),
             _buildInfoTile(
-              'LenDen Coins',
+              t('lenden_coins_label'),
               (_userStats?['lenDenCoins'] ?? user['lenDenCoins'] ?? 0)
                   .toString(),
             ),
             _buildInfoTile(
-              'Subscription',
+              t('subscriptions_label'),
               (_userStats?['activeSubscription'] is Map)
                   ? ((_userStats?['activeSubscription']['plan'] ??
-                          'Active plan')
+                          t('active_plan_label'))
                       .toString())
-                  : 'Not active',
+                  : t('not_active'),
             ),
           ]),
           const SizedBox(height: 16),
-          _buildInfoSection('Account Status', [
-            _buildInfoTile('Account Status',
-                widget.user['isActive'] == true ? 'Active' : 'Inactive'),
-            _buildInfoTile('Email Verified',
-                widget.user['isVerified'] == true ? 'Yes' : 'No'),
-            _buildInfoTile('Phone Verified',
-                widget.user['phoneVerified'] == true ? 'Yes' : 'No'),
+          _buildInfoSection(t('account_status'), [
+            _buildInfoTile(t('account_status'),
+                widget.user['isActive'] == true ? t('active') : t('inactive')),
+            _buildInfoTile(t('email_verified_label'),
+                widget.user['isVerified'] == true ? t('yes') : t('no')),
+            _buildInfoTile(t('phone_verified_label'),
+                widget.user['phoneVerified'] == true ? t('yes') : t('no')),
             _buildInfoTile(
-                'Two-Factor Auth',
+                t('two_factor_auth_label'),
                 widget.user['twoFactorEnabled'] == true
-                    ? 'Enabled'
-                    : 'Disabled'),
+                    ? t('enabled')
+                    : t('disabled')),
             _buildInfoTile(
-              'Suspension',
+              t('suspension_label'),
               isSuspended
-                  ? 'Until ${_formatDate(user['suspendedUntil'])}'
-                  : 'Not suspended',
+                  ? '${t('until_label')} ${_formatDate(user['suspendedUntil'])}'
+                  : t('not_suspended'),
             ),
           ]),
           const SizedBox(height: 16),
-          _buildInfoSection('Admin Controls', [
+          _buildInfoSection(t('admin_controls_label'), [
             TextField(
               controller: _suspensionReasonController,
               decoration: InputDecoration(
-                labelText: 'Suspension Reason',
+                labelText: t('suspension_reason_label'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -533,7 +542,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   child: ElevatedButton.icon(
                     onPressed: () => _updateSuspension(clear: false),
                     icon: const Icon(Icons.lock_clock_outlined),
-                    label: const Text('Suspend'),
+                    label: Text(t('suspend_label')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -541,7 +550,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   child: OutlinedButton.icon(
                     onPressed: () => _updateSuspension(clear: true),
                     icon: const Icon(Icons.lock_open_rounded),
-                    label: const Text('Clear'),
+                    label: Text(t('clear')),
                   ),
                 ),
               ],
@@ -553,20 +562,20 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                 onPressed: _forceLogoutUser,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text(
-                  'Force Logout User',
-                  style: TextStyle(color: Colors.white),
+                label: Text(
+                  t('force_logout_user_label'),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),
           ]),
           const SizedBox(height: 16),
-          _buildInfoSection('Internal Admin Notes', [
+          _buildInfoSection(t('internal_admin_notes_label'), [
             TextField(
               controller: _adminNoteController,
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Add internal note',
+                labelText: t('add_internal_note'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -578,20 +587,20 @@ class _UserDetailsPageState extends State<UserDetailsPage>
               child: ElevatedButton.icon(
                 onPressed: _addAdminNote,
                 icon: const Icon(Icons.note_add_outlined),
-                label: const Text('Save Note'),
+                label: Text(t('save_note_label')),
               ),
             ),
             if (adminNotes.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text('No internal notes added yet.'),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(t('no_notes_added_yet')),
               ),
             ...(_showAllNotes ? adminNotes : adminNotes.take(5)).map(
               (note) => Container(
                 margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFD),
+                  color: AppThemeColors.surfaceBg(context),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -599,20 +608,22 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   children: [
                     Text(
                       (note['noteText'] ?? '').toString(),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'By ${(note['admin'] is Map ? note['admin']['email'] : 'Admin') ?? 'Admin'}',
+                      '${t('by_label')} ${(note['admin'] is Map ? note['admin']['email'] : t('admin_label')) ?? t('admin_label')}',
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: AppThemeColors.secondaryText(context),
                         fontSize: 12,
                       ),
                     ),
                     Text(
                       _formatDate(note['createdAt']),
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: AppThemeColors.secondaryText(context),
                         fontSize: 12,
                       ),
                     ),
@@ -631,8 +642,8 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                     ),
                     label: Text(
                       _showAllNotes
-                          ? 'Show Less'
-                          : 'Show All (${adminNotes.length})',
+                          ? t('show_less_label')
+                          : '${t('show_all')} (${adminNotes.length})',
                     ),
                     onPressed: () =>
                         setState(() => _showAllNotes = !_showAllNotes),
@@ -649,9 +660,11 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Widget _buildStatsTab() {
+    final t = AppLocalizations.of(context).t;
     if (_userStats == null) {
-      return const Center(
-        child: Text('No statistics available'),
+      return Center(
+        child: Text(t('no_statistics_available'),
+            style: TextStyle(color: AppThemeColors.primaryText(context))),
       );
     }
 
@@ -664,13 +677,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
             children: [
               Expanded(
                   child: _buildStatCard(
-                      'Total Transactions',
+                      t('total_transactions_label'),
                       _userStats!['totalTransactions']?.toString() ?? '0',
                       Icons.receipt)),
               const SizedBox(width: 12),
               Expanded(
                   child: _buildStatCard(
-                      'Total Amount',
+                      t('total_amount_label'),
                       '\$${_userStats!['totalAmount']?.toString() ?? '0'}',
                       Icons.attach_money)),
             ],
@@ -682,13 +695,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
             children: [
               Expanded(
                   child: _buildStatCard(
-                      'Secure',
+                      t('secure_transactions_short_label'),
                       _userStats!['secureTransactions']?.toString() ?? '0',
                       Icons.shield_outlined)),
               const SizedBox(width: 12),
               Expanded(
                   child: _buildStatCard(
-                      'Quick',
+                      t('quick_transactions_short_label'),
                       _userStats!['quickTransactions']?.toString() ?? '0',
                       Icons.flash_on_rounded)),
             ],
@@ -697,32 +710,32 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           const SizedBox(height: 16),
 
           // Detailed Stats
-          _buildInfoSection('Transaction Statistics', [
-            _buildInfoTile('Successful Transactions',
+          _buildInfoSection(t('transaction_statistics_label'), [
+            _buildInfoTile(t('successful_transactions_label'),
                 _userStats!['successfulTransactions']?.toString() ?? '0'),
-            _buildInfoTile('Pending / Uncleared',
+            _buildInfoTile(t('pending_uncleared_label'),
                 _userStats!['pendingTransactions']?.toString() ?? '0'),
-            _buildInfoTile('Average Transaction',
+            _buildInfoTile(t('average_transaction_label'),
                 _formatCurrency(_userStats!['averageTransaction'])),
-            _buildInfoTile('Largest Transaction',
+            _buildInfoTile(t('largest_transaction_label'),
                 _formatCurrency(_userStats!['largestTransaction'])),
           ]),
 
           const SizedBox(height: 16),
 
-          _buildInfoSection('Activity Statistics', [
+          _buildInfoSection(t('activity_statistics_label'), [
             _buildInfoTile(
-                'Groups Joined', _userStats!['totalGroups']?.toString() ?? '0'),
-            _buildInfoTile('Groups Created',
+                t('groups_joined_label'), _userStats!['totalGroups']?.toString() ?? '0'),
+            _buildInfoTile(t('groups_created_label'),
                 _userStats!['groupsCreated']?.toString() ?? '0'),
             _buildInfoTile(
-                'Friends', _userStats!['totalFriends']?.toString() ?? '0'),
+                t('friends_label'), _userStats!['totalFriends']?.toString() ?? '0'),
             _buildInfoTile(
-                'Days Active', _userStats!['daysActive']?.toString() ?? '0'),
+                t('days_active_label'), _userStats!['daysActive']?.toString() ?? '0'),
             _buildInfoTile(
-                'Last Activity', _formatDate(_userStats!['lastActivity'])),
+                t('last_activity_label'), _formatDate(_userStats!['lastActivity'])),
             _buildInfoTile(
-                'Login Count', _userStats!['loginCount']?.toString() ?? '0'),
+                t('login_count_label'), _userStats!['loginCount']?.toString() ?? '0'),
           ]),
         ],
       ),
@@ -730,16 +743,17 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Widget _buildTransactionsTab() {
+    final t = AppLocalizations.of(context).t;
     return _recentTransactions.isEmpty
-        ? const Center(
+        ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.receipt_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
+                const Icon(Icons.receipt_outlined, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
                 Text(
-                  'No transactions found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  t('no_transactions_found'),
+                  style: TextStyle(fontSize: 18, color: AppThemeColors.secondaryText(context)),
                 ),
               ],
             ),
@@ -755,16 +769,17 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Widget _buildActivityTab() {
+    final t = AppLocalizations.of(context).t;
     return _userActivity.isEmpty
-        ? const Center(
+        ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.history, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
+                const Icon(Icons.history, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
                 Text(
-                  'No activity found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  t('no_activity_found'),
+                  style: TextStyle(fontSize: 18, color: AppThemeColors.secondaryText(context)),
                 ),
               ],
             ),
@@ -783,7 +798,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -824,9 +839,9 @@ class _UserDetailsPageState extends State<UserDetailsPage>
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: AppThemeColors.secondaryText(context),
               ),
             ),
           ),
@@ -834,10 +849,10 @@ class _UserDetailsPageState extends State<UserDetailsPage>
             flex: 3,
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.black,
+                color: AppThemeColors.primaryText(context),
               ),
             ),
           ),
@@ -850,7 +865,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -867,17 +882,17 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: AppThemeColors.primaryText(context),
             ),
           ),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Colors.grey,
+              color: AppThemeColors.secondaryText(context),
             ),
             textAlign: TextAlign.center,
           ),
@@ -887,6 +902,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Widget _buildTransactionCard(Map<String, dynamic> transaction) {
+    final t = AppLocalizations.of(context).t;
     final amount = transaction['amount'];
     final date = transaction['createdAt'] ?? transaction['date'];
     final status = (transaction['status'] ?? 'unknown').toString();
@@ -897,7 +913,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -928,42 +944,44 @@ class _UserDetailsPageState extends State<UserDetailsPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${source == 'quick' ? 'Quick' : 'Secure'} Transaction',
-                  style: const TextStyle(
+                  source == 'quick'
+                      ? t('quick_transaction_label')
+                      : t('secure_transaction_label'),
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Amount: ${_formatCurrency(amount, transaction['currency'])}',
-                  style: const TextStyle(
+                  '${t('amount_colon_label')} ${_formatCurrency(amount, transaction['currency'])}',
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 if (counterpart.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Counterpart: $counterpart',
-                    style: const TextStyle(
+                    '${t('counterpart_colon_label')} $counterpart',
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.black87,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                 ],
                 const SizedBox(height: 4),
                 Text(
-                  'Date: ${_formatDate(date)}',
-                  style: const TextStyle(
+                  '${t('date_colon_label')} ${_formatDate(date)}',
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: AppThemeColors.secondaryText(context),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Status: ${status.replaceAll('_', ' ').capitalize()}',
+                  '${t('status_colon_label')} ${status.replaceAll('_', ' ').capitalize()}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -979,7 +997,8 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   String _formatDate(dynamic date) {
-    if (date == null) return 'Not available';
+    final t = AppLocalizations.of(context).t;
+    if (date == null) return t('not_available');
     try {
       final dateTime = DateTime.parse(date.toString()).toLocal();
       final twoDigits = (int n) => n.toString().padLeft(2, '0');
@@ -999,13 +1018,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
               color: Colors.grey.withValues(alpha: 0.08),
               blurRadius: 6,
-              offset: Offset(0, 2))
+              offset: const Offset(0, 2))
         ],
       ),
       child: Row(
@@ -1027,20 +1046,22 @@ class _UserDetailsPageState extends State<UserDetailsPage>
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context))),
               if (description.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
                 ),
               ],
               const SizedBox(height: 4),
               Text(when,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
             ]),
           ),
         ],
@@ -1247,7 +1268,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
             content: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -1265,7 +1286,9 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                     child: Text(
                       (data['message'] ?? 'Pending user marked as verified')
                           .toString(),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                   ),
                 ],

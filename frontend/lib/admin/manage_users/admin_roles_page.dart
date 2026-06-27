@@ -7,6 +7,8 @@ import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AdminRolesPage extends StatefulWidget {
   const AdminRolesPage({super.key});
@@ -72,7 +74,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       final response = await ApiClient.get(path);
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) {
-        throw Exception((data['message'] ?? 'Failed to load admins').toString());
+        throw Exception((data['message'] ?? AppLocalizations.of(context).t('failed_load_admins')).toString());
       }
 
       setState(() {
@@ -99,7 +101,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) {
         throw Exception(
-          (data['message'] ?? 'Failed to load audit logs').toString(),
+          (data['message'] ?? AppLocalizations.of(context).t('failed_load_audit_logs')).toString(),
         );
       }
       setState(() {
@@ -119,7 +121,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
         _usernameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
-      setState(() => _error = 'Fill all admin creation fields first.');
+      setState(() => _error = AppLocalizations.of(context).t('fill_all_admin_creation_fields'));
       return;
     }
 
@@ -143,7 +145,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 201) {
         throw Exception(
-          (data['message'] ?? 'Failed to create admin').toString(),
+          (data['message'] ?? AppLocalizations.of(context).t('failed_create_admin')).toString(),
         );
       }
 
@@ -154,7 +156,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       await _loadAdmins();
       await _loadAuditLogs();
       if (!mounted) return;
-      showSnack(context, 'Admin created successfully.');
+      showSnack(context, AppLocalizations.of(context).t('admin_created_success'));
       _tabController.animateTo(1);
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -174,14 +176,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       if (!mounted) return;
-      showSnack(context, (data['message'] ?? 'Failed to update role').toString(), isError: true);
+      showSnack(context, (data['message'] ?? AppLocalizations.of(context).t('failed_update_role')).toString(), isError: true);
       return;
     }
 
     await _loadAdmins();
     await _loadAuditLogs();
     if (!mounted) return;
-    showSnack(context, (data['message'] ?? 'Role updated').toString());
+    showSnack(context, (data['message'] ?? AppLocalizations.of(context).t('role_updated')).toString());
   }
 
   Future<void> _togglePermission(
@@ -201,33 +203,38 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       if (!mounted) return;
-      showSnack(context, (data['message'] ?? 'Failed to update permissions').toString(), isError: true);
+      showSnack(context, (data['message'] ?? AppLocalizations.of(context).t('failed_to_update_permissions')).toString(), isError: true);
       return;
     }
 
     await _loadAdmins();
     await _loadAuditLogs();
     if (!mounted) return;
-    showSnack(context, (data['message'] ?? 'Permissions updated').toString());
+    showSnack(context, (data['message'] ?? AppLocalizations.of(context).t('permissions_updated_successfully')).toString());
   }
 
   Future<void> _removeAdmin(Map<String, dynamic> admin) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove Admin'),
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
+        title: Text(t('remove_admin_title'),
+            style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
         content: Text(
-          'Remove ${(admin['email'] ?? '').toString()} from admin access?',
+          '${t('remove_admin_confirm_prefix')} ${(admin['email'] ?? '').toString()} ${t('remove_admin_confirm_suffix')}',
+          style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(t('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Remove'),
+            child: Text(t('remove')),
           ),
         ],
       ),
@@ -239,14 +246,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       if (!mounted) return;
-      showSnack(context, (data['message'] ?? 'Failed to remove admin').toString(), isError: true);
+      showSnack(context, (data['message'] ?? t('failed_remove_admin')).toString(), isError: true);
       return;
     }
 
     await _loadAdmins();
     await _loadAuditLogs();
     if (!mounted) return;
-    showSnack(context, (data['message'] ?? 'Admin removed').toString());
+    showSnack(context, (data['message'] ?? t('admin_removed_successfully')).toString());
   }
 
   List<Map<String, dynamic>> get _visibleAdmins =>
@@ -254,8 +261,9 @@ class _AdminRolesPageState extends State<AdminRolesPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -266,11 +274,9 @@ class _AdminRolesPageState extends State<AdminRolesPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    colors: AppThemeColors.waveGradient(context),
                   ),
                 ),
               ),
@@ -285,16 +291,16 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Admin Roles',
+                          t('admin_roles_title'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
@@ -303,7 +309,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                           await _loadAdmins();
                           await _loadAuditLogs();
                         },
-                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
                       ),
                     ],
                   ),
@@ -322,21 +328,22 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: TabBar(
                         controller: _tabController,
                         labelColor: AppColors.cyan,
-                        unselectedLabelColor: Colors.black54,
+                        unselectedLabelColor: AppThemeColors.secondaryText(context),
                         indicator: BoxDecoration(
-                          color: const Color(0xFFEAF5FF),
+                          color: AppThemeColors.tinted(context,
+                              light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A57)),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        tabs: const [
-                          Tab(text: 'Create'),
-                          Tab(text: 'Roles'),
-                          Tab(text: 'Audit'),
+                        tabs: [
+                          Tab(text: t('create')),
+                          Tab(text: t('roles_tab')),
+                          Tab(text: t('audit_tab')),
                         ],
                       ),
                     ),
@@ -349,14 +356,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                     children: [
                       ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        children: [_buildCreateCard()],
+                        children: [_buildCreateCard(context)],
                       ),
                       RefreshIndicator(
                         onRefresh: _loadAdmins,
                         child: ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                           children: [
-                            _buildManageHeader(),
+                            _buildManageHeader(context),
                             const SizedBox(height: 12),
                             if (_loading)
                               const Padding(
@@ -368,11 +375,11 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                                 ),
                               )
                             else if (_error != null)
-                              _buildMessageCard(_error!, true)
+                              _buildMessageCard(context, _error!, true)
                             else if (_visibleAdmins.isEmpty)
-                              _buildMessageCard('No admins found.', false)
+                              _buildMessageCard(context, t('no_admins_found'), false)
                             else
-                              ..._visibleAdmins.map(_buildAdminCard),
+                              ..._visibleAdmins.map((a) => _buildAdminCard(context, a)),
                           ],
                         ),
                       ),
@@ -381,7 +388,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                         child: ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                           children: [
-                            _buildAuditHeader(),
+                            _buildAuditHeader(context),
                             const SizedBox(height: 12),
                             if (_loadingAuditLogs)
                               const Padding(
@@ -393,10 +400,10 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                                 ),
                               )
                             else if (_auditLogs.isEmpty)
-                              _buildMessageCard('No audit logs found.', false)
+                              _buildMessageCard(context, t('no_audit_logs_found'), false)
                             else ...[
                               ...(_showAll ? _auditLogs : _auditLogs.take(40))
-                                  .map(_buildAuditCard),
+                                  .map((l) => _buildAuditCard(context, l)),
                               if (_auditLogs.length > 40)
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -411,8 +418,8 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                                       ),
                                       label: Text(
                                         _showAll
-                                            ? 'Show Less'
-                                            : 'Show All (${_auditLogs.length})',
+                                            ? t('show_less')
+                                            : '${t('show_all_count')} (${_auditLogs.length})',
                                       ),
                                       onPressed: () =>
                                           setState(() => _showAll = !_showAll),
@@ -446,7 +453,8 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     );
   }
 
-  Widget _buildCreateCard() {
+  Widget _buildCreateCard(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -460,47 +468,54 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Create Admin',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            Text(
+              t('create_admin_title'),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('name'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('username'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('email'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('password'),
+                border: const OutlineInputBorder(),
               ),
             ),
             if (_error != null) ...[
@@ -522,7 +537,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                   backgroundColor: AppColors.cyan,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: Text(_submitting ? 'Creating...' : 'Create Admin'),
+                child: Text(_submitting ? t('creating_ellipsis') : t('create_admin')),
               ),
             ),
           ],
@@ -531,27 +546,31 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     );
   }
 
-  Widget _buildManageHeader() {
+  Widget _buildManageHeader(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Role Management',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          Text(
+            t('role_management_title'),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppThemeColors.primaryText(context)),
           ),
           const SizedBox(height: 8),
           Text(
             _isCurrentSuperAdmin
-                ? 'You can promote, demote, edit permissions, and remove admins from here.'
-                : 'You can view admins here. Superadmin role actions are restricted.',
+                ? t('role_management_subtitle_super')
+                : t('role_management_subtitle_restricted'),
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: AppThemeColors.secondaryText(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -559,8 +578,9 @@ class _AdminRolesPageState extends State<AdminRolesPage>
           TextField(
             controller: _searchController,
             onSubmitted: (_) => _loadAdmins(),
+            style: TextStyle(color: AppThemeColors.primaryText(context)),
             decoration: InputDecoration(
-              hintText: 'Search admins',
+              hintText: t('search_admins'),
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.search),
@@ -573,7 +593,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? 'Show Latest 5' : 'View All'),
+              child: Text(_showAll ? t('show_latest_5') : t('view_all')),
             ),
           ),
         ],
@@ -581,31 +601,38 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     );
   }
 
-  Widget _buildAuditHeader() {
+  Widget _buildAuditHeader(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Admin Audit Trail',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            t('admin_audit_trail_title'),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppThemeColors.primaryText(context)),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Recent high-signal admin actions are tracked here for accountability and review.',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            t('admin_audit_trail_subtitle'),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppThemeColors.primaryText(context)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAdminCard(Map<String, dynamic> admin) {
+  Widget _buildAdminCard(BuildContext context, Map<String, dynamic> admin) {
+    final t = AppLocalizations.of(context).t;
     final canToggle = admin['canToggleSuperAdmin'] == true;
     final canRemove = admin['canRemove'] == true;
     final canEditPermissions = admin['canEditPermissions'] == true;
@@ -627,7 +654,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(
@@ -638,9 +665,10 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                 Expanded(
                   child: Text(
                     (admin['name'] ?? '').toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                 ),
@@ -649,12 +677,14 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: admin['isSuperAdmin'] == true
-                        ? const Color(0xFFEAF5FF)
-                        : const Color(0xFFF4F8FB),
+                        ? AppThemeColors.tinted(context,
+                            light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A57))
+                        : AppThemeColors.tinted(context,
+                            light: const Color(0xFFF4F8FB), dark: const Color(0xFF2A2D33)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    admin['isSuperAdmin'] == true ? 'Superadmin' : 'Admin',
+                    admin['isSuperAdmin'] == true ? t('superadmin_label') : t('admin_label'),
                     style: const TextStyle(
                       color: AppColors.cyan,
                       fontWeight: FontWeight.w800,
@@ -664,28 +694,32 @@ class _AdminRolesPageState extends State<AdminRolesPage>
               ],
             ),
             const SizedBox(height: 8),
-            Text((admin['email'] ?? '').toString()),
+            Text((admin['email'] ?? '').toString(),
+                style: TextStyle(color: AppThemeColors.primaryText(context))),
             const SizedBox(height: 4),
             Text(
-              'Username: ${(admin['username'] ?? '').toString()}',
-              style: TextStyle(color: Colors.grey.shade700),
+              '${t('username')}: ${(admin['username'] ?? '').toString()}',
+              style: TextStyle(color: AppThemeColors.secondaryText(context)),
             ),
             const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: admin['isSuperAdmin'] == true,
               onChanged: canToggle ? (value) => _toggleSuperAdmin(admin, value) : null,
-              title: const Text('Superadmin access'),
+              title: Text(t('superadmin_access_title'),
+                  style: TextStyle(color: AppThemeColors.primaryText(context))),
               subtitle: Text(
                 canToggle
-                    ? 'Toggle elevated admin control for this account.'
-                    : 'Only eligible superadmins can change this access.',
+                    ? t('toggle_elevated_admin_desc')
+                    : t('only_eligible_superadmins_access_desc'),
+                style: TextStyle(color: AppThemeColors.secondaryText(context)),
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Permissions',
-              style: TextStyle(fontWeight: FontWeight.w800),
+            Text(
+              t('permissions_label'),
+              style: TextStyle(
+                  fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(height: 8),
             ..._permissionItems(permissions).map(
@@ -696,11 +730,13 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                 onChanged: canEditPermissions
                     ? (value) => _togglePermission(admin, entry.key, value)
                     : null,
-                title: Text(_permissionLabel(entry.key)),
+                title: Text(_permissionLabel(entry.key, t),
+                    style: TextStyle(color: AppThemeColors.primaryText(context))),
                 subtitle: Text(
                   canEditPermissions
-                      ? 'Allow this admin to manage ${_permissionLabel(entry.key).toLowerCase()}.'
-                      : 'Only eligible superadmins can change permissions.',
+                      ? '${t('allow_admin_manage_prefix')} ${_permissionLabel(entry.key, t).toLowerCase()}.'
+                      : t('only_eligible_superadmins_permissions_desc'),
+                  style: TextStyle(color: AppThemeColors.secondaryText(context)),
                 ),
               ),
             ),
@@ -713,7 +749,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                   backgroundColor: Colors.redAccent,
                 ),
                 icon: const Icon(Icons.delete_outline),
-                label: const Text('Remove Admin'),
+                label: Text(t('remove_admin_button')),
               ),
             ),
           ],
@@ -737,28 +773,28 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     return keys.map((key) => MapEntry(key, permissions[key] != false));
   }
 
-  String _permissionLabel(String key) {
+  String _permissionLabel(String key, String Function(String) t) {
     switch (key) {
       case 'canManageUsers':
-        return 'Users';
+        return t('users_perm_label');
       case 'canManageTransactions':
-        return 'Transactions';
+        return t('transactions');
       case 'canManageSupport':
-        return 'Support';
+        return t('support_perm_label');
       case 'canManageContent':
-        return 'Content';
+        return t('content_perm_label');
       case 'canManageDigitise':
-        return 'Digitise';
+        return t('digitise_perm_label');
       case 'canManageSettings':
-        return 'Settings';
+        return t('settings');
       case 'canViewAuditLogs':
-        return 'Audit Logs';
+        return t('audit_logs');
       default:
         return key;
     }
   }
 
-  Widget _buildAuditCard(Map<String, dynamic> log) {
+  Widget _buildAuditCard(BuildContext context, Map<String, dynamic> log) {
     final severity = (log['severity'] ?? 'info').toString();
     final color = severity == 'critical'
         ? Colors.redAccent
@@ -770,7 +806,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -792,17 +828,19 @@ class _AdminRolesPageState extends State<AdminRolesPage>
               children: [
                 Text(
                   (log['summary'] ?? '').toString(),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(context)),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${(log['adminEmail'] ?? '').toString()} • ${(log['action'] ?? '').toString()}',
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: AppThemeColors.secondaryText(context)),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _formatDateTime(log['createdAt']),
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12),
                 ),
               ],
             ),
@@ -812,17 +850,20 @@ class _AdminRolesPageState extends State<AdminRolesPage>
     );
   }
 
-  Widget _buildMessageCard(String message, bool isError) {
+  Widget _buildMessageCard(BuildContext context, String message, bool isError) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isError ? const Color(0xFFFFEBEE) : Colors.white,
+        color: isError
+            ? AppThemeColors.tinted(context,
+                light: const Color(0xFFFFEBEE), dark: const Color(0xFF4A2326))
+            : AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Text(
         message,
         style: TextStyle(
-          color: isError ? Colors.redAccent : Colors.black87,
+          color: isError ? Colors.redAccent : AppThemeColors.primaryText(context),
           fontWeight: FontWeight.w700,
         ),
       ),

@@ -8,6 +8,8 @@ import '../../../utils/api_client.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../digitise/gift_card_page.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 const _tricolorGradient = LinearGradient(
   colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
@@ -136,6 +138,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _addMemberEmail() async {
+    final t = AppLocalizations.of(context).t;
     final email = _memberEmailController.text.trim();
     if (email.isEmpty) return;
     setState(() => _memberAddError = null);
@@ -144,7 +147,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         Provider.of<SessionProvider>(context, listen: false).user?['email'];
     if (email.toLowerCase() == (currentEmail ?? '').toLowerCase()) {
       setState(() {
-        _memberAddError = 'You (group creator) are already added by default.';
+        _memberAddError = t('creator_already_added_by_default');
         _memberEmailController.clear();
       });
       return;
@@ -155,14 +158,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
     if (_memberEmails.contains(email)) {
       setState(() {
-        _memberAddError = 'This user is already added to the group.';
+        _memberAddError = t('user_already_added_to_group');
         _memberEmailController.clear();
       });
       return;
     }
     final exists = await _userExists(email);
     if (!exists) {
-      setState(() => _memberAddError = 'This user does not exist, can\'t add.');
+      setState(() => _memberAddError = t('user_does_not_exist_cant_add'));
       return;
     }
     setState(() {
@@ -176,6 +179,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _addMembersFromFriends() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final res = await ApiClient.get('/api/friends');
       if (res.statusCode != 200) return;
@@ -210,14 +214,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: _noteColor(0),
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const SizedBox(height: 12),
-                      const Text('Select Friends', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(t('select_friends_title'),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(context))),
                       const SizedBox(height: 8),
                       if (friends.isNotEmpty)
                         Padding(
@@ -243,7 +250,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   });
                                 },
                               ),
-                              const Text('Select All'),
+                              Text(t('select_all_label'),
+                                  style: TextStyle(color: AppThemeColors.primaryText(context))),
                               const Spacer(),
                               TextButton(
                                 onPressed: () {
@@ -252,7 +260,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                     selectAll = false;
                                   });
                                 },
-                                child: const Text('Deselect All'),
+                                child: Text(t('deselect_all_label')),
                               ),
                             ],
                           ),
@@ -260,7 +268,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       const SizedBox(height: 8),
                       Expanded(
                         child: friends.isEmpty
-                            ? const Center(child: Text('No friends found'))
+                            ? Center(
+                                child: Text(t('no_friends_found_label'),
+                                    style: TextStyle(color: AppThemeColors.secondaryText(context))))
                             : ListView.builder(
                                 itemCount: friends.length,
                                 itemBuilder: (context, index) {
@@ -272,7 +282,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   return Container(
                                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: isBlocked ? Colors.grey.shade100 : _noteColor(index),
+                                      color: isBlocked
+                                          ? AppThemeColors.surfaceBg(context)
+                                          : AppThemeColors.tinted(context,
+                                              light: _noteColor(index),
+                                              dark: _noteColor(index).withValues(alpha: 0.22)),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: selected ? Colors.blue : Colors.transparent),
                                     ),
@@ -284,10 +298,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                           style: TextStyle(color: isBlocked ? Colors.grey : Colors.blue),
                                         ),
                                       ),
-                                      title: Text(name.isNotEmpty ? name : email),
-                                      subtitle: name.isNotEmpty ? Text(email) : null,
+                                      title: Text(name.isNotEmpty ? name : email,
+                                          style: TextStyle(color: AppThemeColors.primaryText(context))),
+                                      subtitle: name.isNotEmpty
+                                          ? Text(email,
+                                              style: TextStyle(color: AppThemeColors.secondaryText(context)))
+                                          : null,
                                       trailing: isBlocked
-                                          ? const Text('Blocked', style: TextStyle(color: Colors.red, fontSize: 12))
+                                          ? Text(t('blocked_label'),
+                                              style: const TextStyle(color: Colors.red, fontSize: 12))
                                           : Checkbox(
                                               value: selected,
                                               onChanged: (val) {
@@ -327,7 +346,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Done'),
+                          child: Text(t('done')),
                         ),
                       ),
                     ],
@@ -346,11 +365,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _pickColor() async {
+    final t = AppLocalizations.of(context).t;
     Color picked = _selectedColor ?? Colors.blue;
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pick Group Color'),
+        backgroundColor: AppThemeColors.cardBg(context),
+        title: Text(t('pick_group_color'),
+            style: TextStyle(color: AppThemeColors.primaryText(context))),
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: picked,
@@ -362,14 +384,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(t('cancel')),
           ),
           TextButton(
             onPressed: () {
               setState(() => _selectedColor = picked);
               Navigator.of(context).pop();
             },
-            child: const Text('Select'),
+            child: Text(t('select')),
           ),
         ],
       ),
@@ -382,6 +404,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _createGroupWithCoins() async {
+    final t = AppLocalizations.of(context).t;
     if (_hasBlockedMembers()) {
       showBlockedUserDialog(context);
       return;
@@ -405,32 +428,32 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           final awardedCard = data['awardedCard'];
           if (giftCardAwarded == true && awardedCard != null) {
             ElegantNotification.success(
-              title: const Text('Congratulations!'),
-              description: const Text("You've won a gift card!"),
+              title: Text(t('congratulations_title')),
+              description: Text(t('you_won_a_gift_card')),
               action: GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GiftCardPage())),
-                child: const Text('View', style: TextStyle(color: Colors.blue)),
+                child: Text(t('view_label'), style: const TextStyle(color: Colors.blue)),
               ),
             ).show(context);
           } else {
             ElegantNotification.success(
-              title: const Text('Success'),
-              description: const Text('Group has been successfully created!'),
+              title: Text(t('success')),
+              description: Text(t('group_created_success_msg')),
             ).show(context);
           }
           Navigator.pop(context, data['group']);
         }
       } else if (res.statusCode == 403) {
-        final msg = (data['error'] ?? 'Forbidden').toString();
+        final msg = (data['error'] ?? t('forbidden_label')).toString();
         if (msg.toLowerCase().contains('blocked')) {
           showBlockedUserDialog(context, message: msg);
         } else {
           showInsufficientCoinsDialog(context);
         }
       } else if (res.statusCode == 429) {
-        showDailyLimitDialog(context, message: (data['error'] ?? 'Daily limit reached').toString());
+        showDailyLimitDialog(context, message: (data['error'] ?? t('daily_limit_reached')).toString());
       } else {
-        setState(() => _error = data['error'] ?? 'Failed to create group');
+        setState(() => _error = data['error'] ?? t('failed_to_create_group_msg'));
       }
     } catch (e) {
       setState(() => _error = e.toString());
@@ -440,6 +463,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _createGroup() async {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
 
     if (_hasBlockedMembers()) {
@@ -458,9 +482,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     if (!session.isSubscribed &&
         _dailyGroupRemaining != null &&
         _dailyGroupRemaining! <= 0) {
-      showDailyLimitDialog(context,
-          message:
-              'You\'ve reached today\'s limit of 1 group creation. Free attempts are also paused until tomorrow.\n\nSubscribe for unlimited access.');
+      showDailyLimitDialog(context, message: t('daily_group_limit_reached_msg'));
       return;
     }
 
@@ -483,7 +505,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       }
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,
-        featureName: 'group creation',
+        featureName: t('group_creation_feature_label'),
         coinCost: coinCost,
         currentCoins: coins,
       );
@@ -509,23 +531,23 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           final awardedCard = data['awardedCard'];
           if (giftCardAwarded == true && awardedCard != null) {
             ElegantNotification.success(
-              title: const Text('Congratulations!'),
-              description: const Text("You've won a gift card!"),
+              title: Text(t('congratulations_title')),
+              description: Text(t('you_won_a_gift_card')),
               action: GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GiftCardPage())),
-                child: const Text('View', style: TextStyle(color: Colors.blue)),
+                child: Text(t('view_label'), style: const TextStyle(color: Colors.blue)),
               ),
             ).show(context);
           } else {
             ElegantNotification.success(
-              title: const Text('Success'),
-              description: const Text('Group has been successfully created!'),
+              title: Text(t('success')),
+              description: Text(t('group_created_success_msg')),
             ).show(context);
           }
           Navigator.pop(context, data['group']);
         }
       } else {
-        final msg = (data['error'] ?? 'Failed to create group').toString();
+        final msg = (data['error'] ?? t('failed_to_create_group_msg')).toString();
         if (msg.toLowerCase().contains('blocked')) {
           showBlockedUserDialog(context, message: msg);
           return;
@@ -560,9 +582,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+      borderSide: BorderSide(color: AppThemeColors.border(context), width: 1.5),
     );
     final focusedBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
@@ -570,7 +593,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
     final decoration = InputDecoration(
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: AppThemeColors.surfaceBg(context),
       border: inputBorder,
       enabledBorder: inputBorder,
       focusedBorder: focusedBorder,
@@ -578,11 +601,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Create Group', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        title: Text(t('create_group_title'),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppThemeColors.cardBg(context),
+        foregroundColor: AppThemeColors.primaryText(context),
         elevation: 0.5,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -606,7 +630,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               ),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(19)),
+                decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(19)),
                 child: Row(
                   children: [
                     Container(
@@ -630,13 +656,20 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       child: const Icon(Icons.group, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Create New Group', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          Text('Start tracking expenses with friends', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          Text(t('create_new_group_title'),
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppThemeColors.primaryText(context))),
+                          const SizedBox(height: 4),
+                          Text(t('start_tracking_expenses_with_friends'),
+                              style: TextStyle(
+                                  color: AppThemeColors.secondaryText(context),
+                                  fontSize: 13)),
                         ],
                       ),
                     ),
@@ -675,9 +708,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             // Group title
             TextField(
               controller: _titleController,
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
               decoration: decoration.copyWith(
-                labelText: 'Group Title',
-                prefixIcon: Icon(Icons.title, color: Colors.grey[700]),
+                labelText: t('group_title_label'),
+                prefixIcon: Icon(Icons.title,
+                    color: AppThemeColors.secondaryText(context)),
               ),
             ),
 
@@ -687,9 +722,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: AppThemeColors.surfaceBg(context),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: AppThemeColors.border(context)),
               ),
               child: Row(
                 children: [
@@ -697,11 +732,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Group Color', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(t('group_color_label'),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: AppThemeColors.primaryText(context))),
                         const SizedBox(height: 6),
                         Text(
-                          'Pick a color to identify this group in lists and tables.',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          t('pick_color_to_identify_group'),
+                          style: TextStyle(
+                              color: AppThemeColors.secondaryText(context),
+                              fontSize: 12),
                         ),
                       ],
                     ),
@@ -714,7 +755,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       decoration: BoxDecoration(
                         color: _selectedColor ?? Colors.blue,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade300, width: 2),
+                        border: Border.all(
+                            color: AppThemeColors.border(context), width: 2),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 4)),
                         ],
@@ -728,11 +770,16 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
             const SizedBox(height: 22),
 
-            const Text('Add Members (by email)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            Text(t('add_members_by_email_label'),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppThemeColors.primaryText(context))),
             const SizedBox(height: 4),
             Text(
-              'Invite friends so they can add expenses and pay back.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              t('invite_friends_add_expenses_pay_back'),
+              style: TextStyle(
+                  color: AppThemeColors.secondaryText(context), fontSize: 13),
             ),
             const SizedBox(height: 12),
 
@@ -740,18 +787,31 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: AppThemeColors.tinted(context,
+                    light: Colors.blue.shade50, dark: const Color(0xFF1A2A3A)),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(
+                    color: AppThemeColors.tinted(context,
+                        light: Colors.blue.shade200,
+                        dark: Colors.blue.shade700)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.info_outline,
+                      color: AppThemeColors.tinted(context,
+                          light: Colors.blue.shade700,
+                          dark: Colors.blue.shade300),
+                      size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'You (group creator) will be automatically added to the group.',
-                      style: TextStyle(color: Colors.blue.shade700, fontSize: 13, fontWeight: FontWeight.w500),
+                      t('you_creator_auto_added_to_group'),
+                      style: TextStyle(
+                          color: AppThemeColors.tinted(context,
+                              light: Colors.blue.shade700,
+                              dark: Colors.blue.shade300),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -766,9 +826,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 Expanded(
                   child: TextField(
                     controller: _memberEmailController,
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                     decoration: decoration.copyWith(
-                      hintText: 'Enter email (one at a time)',
-                      prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[700]),
+                      hintText: t('enter_email_one_at_a_time'),
+                      prefixIcon: Icon(Icons.email_outlined,
+                          color: AppThemeColors.secondaryText(context)),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     onSubmitted: (_) => _addMemberEmail(),
@@ -783,7 +845,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                     elevation: 4,
                   ),
-                  child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text(t('add'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
             ),
@@ -827,7 +889,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               child: TextButton.icon(
                 onPressed: _addMembersFromFriends,
                 icon: const Icon(Icons.people, color: AppColors.cyan),
-                label: const Text('Add from Friends', style: TextStyle(color: AppColors.cyan)),
+                label: Text(t('add_from_friends_label'), style: const TextStyle(color: AppColors.cyan)),
               ),
             ),
 
@@ -870,7 +932,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          '${session.freeGroupsRemaining} free group creations remaining.',
+                          t('free_group_creations_remaining').replaceFirst(
+                              '{count}', '${session.freeGroupsRemaining}'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Colors.green),
                         ),
@@ -879,7 +942,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          'Daily limit remaining: $_dailyGroupRemaining',
+                          t('daily_limit_remaining_label').replaceFirst(
+                              '{count}', '$_dailyGroupRemaining'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Colors.orange),
                         ),
@@ -898,7 +962,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               width: 22,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
-                          : const Text('Create Group', style: TextStyle(fontSize: 18, color: Colors.white)),
+                          : Text(t('create_group_title'), style: const TextStyle(fontSize: 18, color: Colors.white)),
                     ),
                   ],
                 );

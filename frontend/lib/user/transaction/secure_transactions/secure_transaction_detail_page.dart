@@ -22,6 +22,8 @@ import 'payment_timeline_page.dart';
 import 'repayment_schedule_page.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
+import '../../../utils/theme_helper.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -107,15 +109,16 @@ class _SecureTransactionDetailPageState
   }
 
   String _remainingTimeLabel(DateTime expectedReturnDate) {
+    final tr = AppLocalizations.of(context).t;
     final diff = expectedReturnDate.difference(_now);
     if (diff.isNegative) {
-      return 'Overdue since ${DateFormat('MMM d').format(expectedReturnDate)}';
+      return tr('overdue_since_message').replaceFirst('{date}', DateFormat('MMM d').format(expectedReturnDate));
     }
-    if (diff.inDays > 0) return '${diff.inDays} day(s) remaining';
+    if (diff.inDays > 0) return tr('days_remaining_message').replaceFirst('{count}', '${diff.inDays}');
     final h = diff.inHours;
     final m = diff.inMinutes.remainder(60);
     final s = diff.inSeconds.remainder(60);
-    return '${h}h ${m}m ${s}s remaining';
+    return tr('hms_remaining_message').replaceFirst('{h}', '$h').replaceFirst('{m}', '$m').replaceFirst('{s}', '$s');
   }
 
   String _calculateCurrentAmountWithInterest(Map transaction) {
@@ -189,6 +192,7 @@ class _SecureTransactionDetailPageState
   }
 
   Future<void> _showPayNow() async {
+    final tr = AppLocalizations.of(context).t;
     final t = _t;
     // role='lender' means the DB creator is the lender → pay them (t['userEmail']).
     // role='borrower' means the DB creator is the borrower → lender is the counterparty.
@@ -201,7 +205,7 @@ class _SecureTransactionDetailPageState
     final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0;
     if (remaining <= 0) {
       if (mounted) {
-        showSnack(context, 'No outstanding balance to pay.', isError: true);
+        showSnack(context, tr('no_outstanding_balance_to_pay_message'), isError: true);
       }
       return;
     }
@@ -210,7 +214,7 @@ class _SecureTransactionDetailPageState
       context,
       counterpartyEmail: payToEmail,
       amount: remaining,
-      description: 'Secure transaction repayment',
+      description: tr('secure_transaction_repayment_label'),
       secureTransactionId: transactionId,
       onSuccess: () => _clearAfterPayment(remaining),
     );
@@ -219,6 +223,7 @@ class _SecureTransactionDetailPageState
   // Marks payer's side cleared after payment. Razorpay path records the partial payment
   // automatically in verifyP2PPayment; wallet path records it here via the clear endpoint.
   Future<void> _clearAfterPayment(double amountPaid) async {
+    final tr = AppLocalizations.of(context).t;
     final email = Provider.of<SessionProvider>(context, listen: false).user?['email'];
     if (email == null || !mounted) return;
     // Payment made — clear both sides and record the payment in history
@@ -237,16 +242,17 @@ class _SecureTransactionDetailPageState
           _t['counterpartyCleared'] = true;
           _needsRefresh = true;
         });
-        showSnack(context, 'Payment sent and marked as cleared!');
+        showSnack(context, tr('payment_sent_and_marked_cleared_message'));
       }
     } catch (_) {
       if (mounted) {
-        showSnack(context, 'Payment sent! Refresh to see updated status.');
+        showSnack(context, tr('payment_sent_refresh_status_message'));
       }
     }
   }
 
   Future<void> _toggleFavourite() async {
+    final tr = AppLocalizations.of(context).t;
     final email =
         Provider.of<SessionProvider>(context, listen: false).user?['email'];
     if (email == null) return;
@@ -272,7 +278,7 @@ class _SecureTransactionDetailPageState
             fav.remove(email);
           }
         });
-        showSnack(context, 'Failed to update favourite', isError: true);
+        showSnack(context, tr('failed_to_update_favourite_message'), isError: true);
       }
     } catch (_) {
       setState(() {
@@ -286,6 +292,7 @@ class _SecureTransactionDetailPageState
   }
 
   Future<void> _clearTransaction() async {
+    final tr = AppLocalizations.of(context).t;
     final user =
         Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
@@ -302,16 +309,17 @@ class _SecureTransactionDetailPageState
           }
           _needsRefresh = true;
         });
-        showSnack(context, 'Transaction cleared');
+        showSnack(context, tr('transaction_cleared_message'));
       } else {
-        showSnack(context, 'Failed to clear transaction', isError: true);
+        showSnack(context, tr('failed_to_clear_transaction_message'), isError: true);
       }
     } catch (e) {
-      showSnack(context, 'Network error: $e', isError: true);
+      showSnack(context, '${tr('network_error')}: $e', isError: true);
     }
   }
 
   Future<void> _deleteTransaction() async {
+    final tr = AppLocalizations.of(context).t;
     final email =
         Provider.of<SessionProvider>(context, listen: false).user?['email'];
     if (email == null) return;
@@ -322,14 +330,15 @@ class _SecureTransactionDetailPageState
         if (mounted) Navigator.of(context).pop(true);
       } else {
         final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        showSnack(context, data?['error'] ?? 'Failed to delete', isError: true);
+        showSnack(context, data?['error'] ?? tr('failed_to_delete_transaction'), isError: true);
       }
     } catch (e) {
-      showSnack(context, 'Network error: $e', isError: true);
+      showSnack(context, '${tr('network_error')}: $e', isError: true);
     }
   }
 
   void _showDeleteConfirmationDialog() {
+    final t = AppLocalizations.of(context).t;
     showDialog(
         context: context,
         builder: (ctx) => Dialog(
@@ -365,16 +374,16 @@ class _SecureTransactionDetailPageState
                   const SizedBox(height: 20),
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text('Delete Transaction',
+                      child: Text(t('delete_transaction_title'),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                               color: Colors.red[600]))),
                   const SizedBox(height: 12),
-                  const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                  Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
-                          'Are you sure you want to delete this transaction? This action cannot be undone.')),
+                          t('confirm_delete_transaction_irreversible_message'))),
                   const SizedBox(height: 20),
                   Padding(
                       padding: const EdgeInsets.only(bottom: 16),
@@ -385,7 +394,7 @@ class _SecureTransactionDetailPageState
                                 onPressed: () => Navigator.pop(ctx),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.grey),
-                                child: const Text('Cancel')),
+                                child: Text(t('cancel'))),
                             ElevatedButton(
                                 onPressed: () {
                                   Navigator.pop(ctx);
@@ -393,8 +402,8 @@ class _SecureTransactionDetailPageState
                                 },
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red),
-                                child: const Text('Delete',
-                                    style: TextStyle(color: Colors.white))),
+                                child: Text(t('delete'),
+                                    style: const TextStyle(color: Colors.white))),
                           ])),
                 ],
               ),
@@ -402,6 +411,7 @@ class _SecureTransactionDetailPageState
   }
 
   void _navigateToChat() async {
+    final tr = AppLocalizations.of(context).t;
     final user =
         Provider.of<SessionProvider>(context, listen: false).user;
     final currentEmail = user?['email'];
@@ -411,7 +421,7 @@ class _SecureTransactionDetailPageState
         currentEmail == userEmail ? counterpartyEmail : userEmail;
     final profile = await _fetchCounterpartyProfile(otherEmail?.toString() ?? '');
     if (profile == null) {
-      showSnack(context, 'Could not open chat. User not found.', isError: true);
+      showSnack(context, tr('could_not_open_chat_user_not_found_message'), isError: true);
       return;
     }
     Navigator.push(
@@ -423,6 +433,7 @@ class _SecureTransactionDetailPageState
   }
 
   void _showReceiptOptionsDialog() {
+    final t = AppLocalizations.of(context).t;
     showDialog(
         context: context,
         builder: (ctx) => Dialog(
@@ -430,15 +441,15 @@ class _SecureTransactionDetailPageState
                   borderRadius: BorderRadius.circular(20)),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const SizedBox(height: 20),
-                Text('Generate Receipt',
+                Text(t('generate_receipt_label'),
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                         color: Colors.blue[600])),
                 const SizedBox(height: 12),
-                const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text('Choose an option to generate the receipt.',
+                Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(t('choose_option_generate_receipt_message'),
                         textAlign: TextAlign.center)),
                 const SizedBox(height: 20),
                 SingleChildScrollView(
@@ -451,8 +462,8 @@ class _SecureTransactionDetailPageState
                           children: [
                             ElevatedButton.icon(
                                 icon: const Icon(Icons.email, color: Colors.white),
-                                label: const Text('Send to Email',
-                                    style: TextStyle(color: Colors.white)),
+                                label: Text(t('send_to_email_label'),
+                                    style: const TextStyle(color: Colors.white)),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.blue[600],
                                     shape: RoundedRectangleBorder(
@@ -467,8 +478,8 @@ class _SecureTransactionDetailPageState
                             ElevatedButton.icon(
                                 icon: const Icon(Icons.download,
                                     color: Colors.white),
-                                label: const Text('Download Locally',
-                                    style: TextStyle(color: Colors.white)),
+                                label: Text(t('download_locally_label'),
+                                    style: const TextStyle(color: Colors.white)),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green[600],
                                     shape: RoundedRectangleBorder(
@@ -486,19 +497,20 @@ class _SecureTransactionDetailPageState
   }
 
   void _sendReceiptByEmail() async {
+    final tr = AppLocalizations.of(context).t;
     final email =
         Provider.of<SessionProvider>(context, listen: false).user?['email'];
     if (email == null) return;
     showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Dialog(
+        builder: (_) => Dialog(
             child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 20),
-                  Text('Sending to email...')
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 20),
+                  Text(tr('sending_to_email_message'))
                 ]))));
     try {
       final res = await ApiClient.post(
@@ -506,28 +518,29 @@ class _SecureTransactionDetailPageState
           body: {'email': email, 'action': 'email'});
       Navigator.pop(context);
       if (res.statusCode == 200) {
-        showSnack(context, 'Receipt sent to your email!');
+        showSnack(context, tr('receipt_sent_to_email_message'));
       } else {
         final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        showSnack(context, data?['error'] ?? 'Failed to send receipt', isError: true);
+        showSnack(context, data?['error'] ?? tr('failed_to_send_receipt_message'), isError: true);
       }
     } catch (e) {
       Navigator.pop(context);
-      showSnack(context, 'Network error: $e', isError: true);
+      showSnack(context, '${tr('network_error')}: $e', isError: true);
     }
   }
 
   void _downloadReceiptLocally() async {
+    final tr = AppLocalizations.of(context).t;
     showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Dialog(
+        builder: (_) => Dialog(
             child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 20),
-                  Text('Downloading locally...')
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 20),
+                  Text(tr('downloading_locally_message'))
                 ]))));
     try {
       final email =
@@ -542,14 +555,14 @@ class _SecureTransactionDetailPageState
             File('${out.path}/receipt-${_t['transactionId']}.pdf');
         await file.writeAsBytes(res.bodyBytes);
         OpenFile.open(file.path);
-        showSnack(context, 'Receipt downloaded to ${file.path}');
+        showSnack(context, '${tr('receipt_downloaded_to_message')} ${file.path}');
       } else {
         final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        showSnack(context, data?['error'] ?? 'Failed to download', isError: true);
+        showSnack(context, data?['error'] ?? tr('failed_to_download_message'), isError: true);
       }
     } catch (e) {
       Navigator.pop(context);
-      showSnack(context, 'Network error: $e', isError: true);
+      showSnack(context, '${tr('network_error')}: $e', isError: true);
     }
   }
 
@@ -574,6 +587,128 @@ class _SecureTransactionDetailPageState
           transaction: _t,
           displayCurrencyData: _displayCurrencyData,
           selectedDisplayCurrency: _selectedDisplayCurrency,
+        ),
+      ),
+    );
+  }
+
+  void _showRaiseDisputeDialog({required String counterpartyEmail}) {
+    final tr = AppLocalizations.of(context).t;
+    const disputeReasons = [
+      'Payment not received',
+      'Amount mismatch',
+      'Wrong clearance marked',
+      'Harassment or abusive behavior',
+      'Other',
+    ];
+    String disputeReasonLabel(String r) {
+      switch (r) {
+        case 'Payment not received':
+          return tr('payment_not_received_label');
+        case 'Amount mismatch':
+          return tr('amount_mismatch_label');
+        case 'Wrong clearance marked':
+          return tr('wrong_clearance_marked_label');
+        case 'Harassment or abusive behavior':
+          return tr('harassment_abusive_behavior_label');
+        default:
+          return tr('other');
+      }
+    }
+    String reason = disputeReasons.first;
+    final descriptionController = TextEditingController();
+    bool submitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              const Icon(Icons.gavel_rounded, color: Colors.deepOrange, size: 26),
+              const SizedBox(width: 8),
+              Text(tr('raise_dispute_title')),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('dispute_review_notice_message').replaceFirst('{email}', counterpartyEmail),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: reason,
+                  decoration: InputDecoration(labelText: tr('reason')),
+                  items: disputeReasons
+                      .map((r) => DropdownMenuItem(value: r, child: Text(disputeReasonLabel(r))))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => reason = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: tr('describe_what_happened_label'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.of(dialogContext).pop(),
+              child: Text(tr('cancel')),
+            ),
+            ElevatedButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      if (descriptionController.text.trim().isEmpty) {
+                        showSnack(context, tr('please_describe_what_happened_message'), isError: true);
+                        return;
+                      }
+                      setDialogState(() => submitting = true);
+                      try {
+                        final res = await ApiClient.post('/api/disputes', body: {
+                          'transactionType': 'secure',
+                          'transactionId': _t['_id'],
+                          'reason': reason,
+                          'description': descriptionController.text.trim(),
+                        });
+                        if (res.statusCode == 201) {
+                          if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                          if (mounted) {
+                            showSnack(context, tr('dispute_submitted_message'));
+                          }
+                        } else {
+                          final data = jsonDecode(res.body);
+                          setDialogState(() => submitting = false);
+                          showSnack(context, (data['error'] ?? tr('failed_to_submit_dispute_message')).toString(), isError: true);
+                        }
+                      } catch (e) {
+                        setDialogState(() => submitting = false);
+                        showSnack(context, '${tr('error')}: $e', isError: true);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
+              child: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(tr('submit'), style: const TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       ),
     );
@@ -750,7 +885,7 @@ class _SecureTransactionDetailPageState
       totalGap += dates[i].difference(dates[i - 1]).inDays;
     }
     final avg = (totalGap / (dates.length - 1)).round();
-    return 'Every ~$avg days';
+    return AppLocalizations.of(context).t('every_approx_days_message').replaceFirst('{count}', '$avg');
   }
 
   int _daysOutstanding(Map t) {
@@ -761,14 +896,16 @@ class _SecureTransactionDetailPageState
   }
 
   void _copyTransactionId() {
+    final tr = AppLocalizations.of(context).t;
     final id = _t['transactionId']?.toString() ?? '';
     Clipboard.setData(ClipboardData(text: id));
-    showSnack(context, 'Transaction ID copied!');
+    showSnack(context, tr('transaction_id_copied_message'));
   }
 
   void _shareTransaction() {
+    final tr = AppLocalizations.of(context).t;
     final t = _t;
-    final role = widget.isLending ? 'Lent' : 'Borrowed';
+    final role = widget.isLending ? tr('lent_label') : tr('borrowed_label');
     final amount =
         _formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString());
     final counterparty = t['counterpartyEmail'] ?? '—';
@@ -777,23 +914,23 @@ class _SecureTransactionDetailPageState
     final interest =
         (t['interestType'] != null && t['interestRate'] != null)
             ? '${t['interestType']} @ ${t['interestRate']}%'
-            : 'None';
+            : tr('none_label');
     final remaining = _formatDisplayAmount(
         double.tryParse(_calculateRemainingAmount(t)) ?? 0,
         t['currency']?.toString());
     final txId = t['transactionId'] ?? '—';
     Share.share(
-      '📋 Transaction Summary\n'
+      '📋 ${tr('transaction_summary_label')}\n'
       '━━━━━━━━━━━━━━━━━━━\n'
       '$role: $amount\n'
-      'Counterparty: $counterparty\n'
-      'Date: $date\n'
-      'Interest: $interest\n'
-      'Remaining: $remaining\n'
-      'ID: $txId\n'
+      '${tr('counterparty_label')}: $counterparty\n'
+      '${tr('date_label')}: $date\n'
+      '${tr('interest_label')}: $interest\n'
+      '${tr('remaining_label')}: $remaining\n'
+      '${tr('id_label')}: $txId\n'
       '━━━━━━━━━━━━━━━━━━━\n'
-      'Shared via LenDen',
-      subject: 'LenDen Transaction: $amount',
+      '${tr('shared_via_lenden_message')}',
+      subject: '${tr('lenden_transaction_label')}: $amount',
     );
   }
 
@@ -814,9 +951,10 @@ class _SecureTransactionDetailPageState
   }
 
   void _showRepaymentSchedule() {
+    final tr = AppLocalizations.of(context).t;
     final t = _t;
     if (t['interestType'] == null || t['interestRate'] == null) {
-      showSnack(context, 'No interest on this transaction');
+      showSnack(context, tr('no_interest_on_transaction_message'));
       return;
     }
     final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0.0;
@@ -835,6 +973,7 @@ class _SecureTransactionDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context).t;
     final user =
         Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
@@ -879,14 +1018,14 @@ class _SecureTransactionDetailPageState
         if (!didPop) Navigator.of(context).pop(_needsRefresh);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: AppThemeColors.scaffoldBg(context),
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
           elevation: 0,
-          title: const Text('Transaction Detail',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(loc('transaction_detail_title'),
+              style: const TextStyle(fontWeight: FontWeight.bold)),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(_needsRefresh),
@@ -954,8 +1093,8 @@ class _SecureTransactionDetailPageState
                       const SizedBox(width: 8),
                       Text(
                           isLending
-                              ? 'Lending (You gave money)'
-                              : 'Borrowing (You took money)',
+                              ? loc('lending_you_gave_money_label')
+                              : loc('borrowing_you_took_money_label'),
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 13)),
                       const Spacer(),
@@ -966,8 +1105,8 @@ class _SecureTransactionDetailPageState
                             decoration: BoxDecoration(
                                 color: Colors.purple,
                                 borderRadius: BorderRadius.circular(12)),
-                            child: const Text('Partial',
-                                style: TextStyle(
+                            child: Text(loc('partial_label'),
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold))),
@@ -1002,14 +1141,14 @@ class _SecureTransactionDetailPageState
                         const SizedBox(width: 4),
                         Text(
                             fullyCleared
-                                ? 'Fully Cleared'
+                                ? loc('fully_cleared_label')
                                 : hasPartialPayment
-                                    ? 'Partially Paid'
+                                    ? loc('partially_paid_label')
                                     : (youCleared && !otherCleared)
-                                        ? 'You cleared'
+                                        ? loc('you_cleared_label')
                                         : (!youCleared && otherCleared)
-                                            ? 'Other cleared'
-                                            : 'Uncleared',
+                                            ? loc('other_cleared_label')
+                                            : loc('uncleared_label'),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -1054,7 +1193,7 @@ class _SecureTransactionDetailPageState
                           color: Colors.white70, size: 16),
                       const SizedBox(width: 6),
                       Expanded(
-                          child: Text('Counterparty: $counterpartyEmail',
+                          child: Text('${loc('counterparty_label')}: $counterpartyEmail',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 13),
                               overflow: TextOverflow.ellipsis)),
@@ -1065,7 +1204,7 @@ class _SecureTransactionDetailPageState
                       const Icon(Icons.hourglass_top,
                           color: Colors.white70, size: 14),
                       const SizedBox(width: 4),
-                      Text('${_daysOutstanding(t)} days outstanding',
+                      Text(loc('days_outstanding_label').replaceFirst('{count}', '${_daysOutstanding(t)}'),
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 12)),
                       const Spacer(),
@@ -1086,7 +1225,7 @@ class _SecureTransactionDetailPageState
                                     color: Colors.redAccent, size: 12),
                                 const SizedBox(width: 4),
                                 Text(
-                                    '+${_formatDisplayAmount(_calculateDailyInterestAccrual(t), t['currency']?.toString())}/day',
+                                    '+${_formatDisplayAmount(_calculateDailyInterestAccrual(t), t['currency']?.toString())}/${loc('per_day_label')}',
                                     style: const TextStyle(
                                         color: Colors.redAccent,
                                         fontSize: 11,
@@ -1120,7 +1259,7 @@ class _SecureTransactionDetailPageState
                                       size: 14),
                                   const SizedBox(width: 4),
                                   Text(
-                                      'You: ${youCleared ? 'Cleared ✓' : 'Pending'}',
+                                      '${loc('you_colon_label')} ${youCleared ? '${loc('cleared_check_label')} ✓' : loc('pending_label')}',
                                       style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11)),
@@ -1142,7 +1281,7 @@ class _SecureTransactionDetailPageState
                                       size: 14),
                                   const SizedBox(width: 4),
                                   Text(
-                                      'Them: ${otherCleared ? 'Cleared ✓' : 'Pending'}',
+                                      '${loc('them_colon_label')} ${otherCleared ? '${loc('cleared_check_label')} ✓' : loc('pending_label')}',
                                       style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11)),
@@ -1163,47 +1302,53 @@ class _SecureTransactionDetailPageState
                     if (isBorrower && !fullyCleared)
                       _serviceChip(
                           icon: Icons.account_balance_wallet_rounded,
-                          label: 'Pay Now',
+                          label: loc('pay_now_label'),
                           color: const Color(0xFF023E8A),
                           onTap: _showPayNow),
                     if (isBorrower && !fullyCleared)
                       _serviceChip(
                           icon: Icons.payment,
-                          label: 'Partial Pay',
+                          label: loc('partial_pay_label'),
                           color: Colors.purple,
                           onTap: _showPartialPaymentDialog),
                     _serviceChip(
                         icon: Icons.history,
-                        label: 'Pay History',
+                        label: loc('pay_history_label'),
                         color: Colors.indigo,
                         onTap: _showPartialPaymentHistoryDialog),
                     _serviceChip(
                         icon: Icons.receipt_long,
-                        label: 'Receipt',
+                        label: loc('receipt_label'),
                         color: Colors.green,
                         onTap: _showReceiptOptionsDialog),
                     _serviceChip(
                         icon: Icons.chat_bubble_outline,
-                        label: 'Chat',
+                        label: loc('chat'),
                         color: Colors.blue,
                         onTap: _navigateToChat),
+                    _serviceChip(
+                        icon: Icons.gavel_rounded,
+                        label: loc('raise_dispute'),
+                        color: Colors.deepOrange,
+                        onTap: () => _showRaiseDisputeDialog(
+                            counterpartyEmail: counterpartyEmail)),
                     if (!youCleared)
                       _serviceChip(
                           icon: Icons.check_circle_outline,
-                          label: 'Clear',
+                          label: loc('clear'),
                           color: Colors.orange,
                           onTap: _clearTransaction),
                     _serviceChip(
                         icon: isFav
                             ? Icons.favorite
                             : Icons.favorite_border,
-                        label: isFav ? 'Unfavourite' : 'Favourite',
+                        label: isFav ? loc('unfavourite_label') : loc('favourite_label'),
                         color: Colors.red,
                         onTap: _toggleFavourite),
                     if (attachments.isNotEmpty)
                       _serviceChip(
                           icon: Icons.attach_file,
-                          label: 'Attachments',
+                          label: loc('attachments_label'),
                           color: Colors.teal,
                           badge: attachments.length,
                           onTap: () => showDialog(
@@ -1213,24 +1358,24 @@ class _SecureTransactionDetailPageState
                     if (fullyCleared)
                       _serviceChip(
                           icon: Icons.delete_forever,
-                          label: 'Delete',
+                          label: loc('delete'),
                           color: Colors.red,
                           onTap: _showDeleteConfirmationDialog),
                     _serviceChip(
                         icon: Icons.share,
-                        label: 'Share',
+                        label: loc('share_label'),
                         color: Colors.deepPurple,
                         onTap: _shareTransaction),
                     _serviceChip(
                         icon: Icons.timeline,
-                        label: 'Timeline',
+                        label: loc('timeline_label'),
                         color: Colors.cyan,
                         onTap: _showPaymentTimeline),
                     if (t['interestType'] != null &&
                         t['interestRate'] != null)
                       _serviceChip(
                           icon: Icons.table_chart,
-                          label: 'Schedule',
+                          label: loc('schedule_label'),
                           color: Colors.brown,
                           onTap: _showRepaymentSchedule),
                   ],
@@ -1248,7 +1393,7 @@ class _SecureTransactionDetailPageState
                         _formatDisplayAmount(
                             (t['amount'] as num?) ?? 0,
                             t['currency']?.toString()),
-                        'Principal',
+                        loc('principal_label'),
                         Icons.attach_money,
                         Colors.green),
                     if (t['interestType'] != null &&
@@ -1259,7 +1404,7 @@ class _SecureTransactionDetailPageState
                                       _calculateCurrentAmountWithInterest(t)) ??
                                   0,
                               t['currency']?.toString()),
-                          'With Interest',
+                          loc('with_interest_label'),
                           Icons.percent,
                           Colors.blue),
                     _statCard(
@@ -1268,7 +1413,7 @@ class _SecureTransactionDetailPageState
                                     _calculateAmountPaidTillNow(t)) ??
                                 0,
                             t['currency']?.toString()),
-                        'Amount Paid',
+                        loc('amount_paid_label'),
                         Icons.payments,
                         Colors.teal),
                     _statCard(
@@ -1277,7 +1422,7 @@ class _SecureTransactionDetailPageState
                                     _calculateRemainingAmount(t)) ??
                                 0,
                             t['currency']?.toString()),
-                        'Remaining',
+                        loc('remaining_label'),
                         Icons.account_balance_wallet,
                         Colors.orange),
                   ],
@@ -1326,7 +1471,7 @@ class _SecureTransactionDetailPageState
                               color: Colors.indigo.shade600, size: 18),
                           const SizedBox(width: 6),
                           Text(
-                            'Pay Now Amount',
+                            loc('pay_now_amount_label'),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -1352,8 +1497,8 @@ class _SecureTransactionDetailPageState
                               padding: const EdgeInsets.only(bottom: 3),
                               child: Text(
                                 hasPartial
-                                    ? 'remaining after $partialCount partial payment${partialCount == 1 ? '' : 's'}'
-                                    : 'full amount to settle',
+                                    ? loc('remaining_after_partial_payments_message').replaceFirst('{count}', '$partialCount')
+                                    : loc('full_amount_to_settle_label'),
                                 style: TextStyle(
                                     color: Colors.grey.shade600, fontSize: 12),
                               ),
@@ -1367,7 +1512,7 @@ class _SecureTransactionDetailPageState
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Already paid',
+                              Text(loc('already_paid_label'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey.shade600)),
@@ -1385,7 +1530,7 @@ class _SecureTransactionDetailPageState
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Pay Now (remaining)',
+                              Text(loc('pay_now_remaining_label'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey.shade600)),
@@ -1423,7 +1568,7 @@ class _SecureTransactionDetailPageState
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(
@@ -1438,8 +1583,8 @@ class _SecureTransactionDetailPageState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Repayment Progress',
-                              style: TextStyle(
+                          Text(loc('repayment_progress_label'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13)),
                           Text('$pct%',
@@ -1459,7 +1604,7 @@ class _SecureTransactionDetailPageState
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 10,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: AppThemeColors.divider(context),
                           valueColor: AlwaysStoppedAnimation<Color>(
                               progress >= 1.0
                                   ? Colors.green
@@ -1475,13 +1620,13 @@ class _SecureTransactionDetailPageState
                           Text(
                               _formatDisplayAmount(
                                   paid, t['currency']?.toString()),
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey)),
+                              style: TextStyle(
+                                  fontSize: 11, color: AppThemeColors.mutedText(context))),
                           Text(
                               _formatDisplayAmount(totalWithInterest,
                                   t['currency']?.toString()),
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey)),
+                              style: TextStyle(
+                                  fontSize: 11, color: AppThemeColors.mutedText(context))),
                         ],
                       ),
                     ],
@@ -1493,7 +1638,7 @@ class _SecureTransactionDetailPageState
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -1535,8 +1680,8 @@ class _SecureTransactionDetailPageState
                                 child: const Icon(Icons.receipt_long, color: Colors.white, size: 18),
                               ),
                               const SizedBox(width: 10),
-                              const Text('Transaction Details',
-                                  style: TextStyle(
+                              Text(loc('transaction_details_label'),
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
                                       letterSpacing: 0.3,
@@ -1554,13 +1699,13 @@ class _SecureTransactionDetailPageState
                             child: Column(
                               children: [
                                 _detailRow(Icons.calendar_today, const Color(0xFF1976D2),
-                                    'Date', t['date']?.toString().substring(0, 10) ?? '—'),
+                                    loc('date'), t['date']?.toString().substring(0, 10) ?? '—'),
                                 _detailDivider(),
                                 _detailRow(Icons.access_time, const Color(0xFF7B1FA2),
-                                    'Time', t['time']?.toString() ?? '—'),
+                                    loc('time'), t['time']?.toString() ?? '—'),
                                 _detailDivider(),
                                 _detailRow(Icons.place, const Color(0xFF9C27B0),
-                                    'Place', (t['place'] ?? '').toString().isNotEmpty ? t['place'].toString() : '—'),
+                                    loc('place_label'), (t['place'] ?? '').toString().isNotEmpty ? t['place'].toString() : '—'),
                                 _detailDivider(),
                                 _detailDivider(),
                                 GestureDetector(
@@ -1568,15 +1713,15 @@ class _SecureTransactionDetailPageState
                                   child: _detailRow(
                                       Icons.confirmation_number,
                                       Colors.grey.shade600,
-                                      'Transaction ID',
+                                      loc('transaction_id_label'),
                                       '${t['transactionId'] ?? '—'}  📋'),
                                 ),
                                 _detailDivider(),
                                 _detailRow(
                                     Icons.history_toggle_off,
                                     Colors.blue.shade400,
-                                    'Days Outstanding',
-                                    '${_daysOutstanding(t)} days'),
+                                    loc('days_outstanding_title'),
+                                    loc('days_count_label').replaceFirst('{count}', '${_daysOutstanding(t)}')),
                                 if (_hasPartialPayment(t) &&
                                     ((_t['partialPayments'] as List?)
                                                 ?.length ??
@@ -1584,7 +1729,7 @@ class _SecureTransactionDetailPageState
                                         1) ...[
                                   _detailDivider(),
                                   _detailRow(Icons.speed, Colors.purple,
-                                      'Payment Velocity',
+                                      loc('payment_velocity_label'),
                                       _paymentVelocity(t)),
                                 ],
                               ],
@@ -1605,20 +1750,20 @@ class _SecureTransactionDetailPageState
                                           final profile = snap.data;
                                           if (profile == null) {
                                             return _StylishProfileDialog(
-                                                title: 'Counterparty Info',
-                                                name: 'No profile found.',
+                                                title: loc('counterparty_info_label'),
+                                                name: loc('no_profile_found_message'),
                                                 avatarProvider: const AssetImage('assets/Other.png'));
                                           }
                                           if (profile['deactivatedAccount'] == true) {
                                             return _StylishProfileDialog(
-                                                title: 'Counterparty Info',
-                                                name: 'Account Deactivated.',
+                                                title: loc('counterparty_info_label'),
+                                                name: loc('account_deactivated_label'),
                                                 avatarProvider: const AssetImage('assets/Other.png'));
                                           }
                                           if (profile['profileIsPrivate'] == true) {
                                             return _StylishProfileDialog(
-                                                title: 'Counterparty Info',
-                                                name: 'Profile is private.',
+                                                title: loc('counterparty_info_label'),
+                                                name: loc('profile_is_private_message'),
                                                 avatarProvider: const AssetImage('assets/Other.png'));
                                           }
                                           dynamic imgUrl = profile['profileImage'];
@@ -1635,8 +1780,8 @@ class _SecureTransactionDetailPageState
                                                       ? 'assets/Female.png'
                                                       : 'assets/Other.png');
                                           return _StylishProfileDialog(
-                                              title: 'Counterparty',
-                                              name: profile['name'] ?? 'Counterparty',
+                                              title: loc('counterparty_label'),
+                                              name: profile['name'] ?? loc('counterparty_label'),
                                               avatarProvider: avatarProv,
                                               email: profile['email'],
                                               phone: (profile['phone'] ?? '').toString(),
@@ -1675,8 +1820,8 @@ class _SecureTransactionDetailPageState
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Counterparty',
-                                            style: TextStyle(
+                                        Text(loc('counterparty_label'),
+                                            style: const TextStyle(
                                                 fontSize: 11,
                                                 color: Colors.grey,
                                                 fontWeight: FontWeight.w500)),
@@ -1712,12 +1857,12 @@ class _SecureTransactionDetailPageState
                               child: Column(
                                 children: [
                                   _detailRow(Icons.percent, Colors.blue.shade700,
-                                      'Interest',
-                                      '${t['interestType'] == 'simple' ? 'Simple' : 'Compound'} @ ${t['interestRate']}%'),
+                                      loc('interest_label'),
+                                      '${t['interestType'] == 'simple' ? loc('simple_label') : loc('compound_label')} @ ${t['interestRate']}%'),
                                   if (t['expectedReturnDate'] != null) ...[
                                     _detailDivider(),
                                     _detailRow(Icons.calendar_month, Colors.teal,
-                                        'Return Date',
+                                        loc('return_date_label'),
                                         t['expectedReturnDate']?.toString().substring(0, 10) ?? ''),
                                   ],
                                 ],
@@ -1743,8 +1888,8 @@ class _SecureTransactionDetailPageState
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Description',
-                                            style: TextStyle(
+                                        Text(loc('description_label'),
+                                            style: const TextStyle(
                                                 fontSize: 11,
                                                 color: Colors.grey,
                                                 fontWeight: FontWeight.w500)),
@@ -1775,13 +1920,13 @@ class _SecureTransactionDetailPageState
                                   right: BorderSide(color: Colors.blue.shade200, width: 1),
                                 ),
                               ),
-                              child: const Row(children: [
-                                Icon(Icons.info_outline, color: Color(0xFF1565C0), size: 16),
-                                SizedBox(width: 8),
+                              child: Row(children: [
+                                const Icon(Icons.info_outline, color: Color(0xFF1565C0), size: 16),
+                                const SizedBox(width: 8),
                                 Expanded(
                                     child: Text(
-                                        'Both parties must clear this transaction before it can be deleted.',
-                                        style: TextStyle(
+                                        loc('both_parties_must_clear_message'),
+                                        style: const TextStyle(
                                             color: Color(0xFF1565C0),
                                             fontSize: 12,
                                             fontStyle: FontStyle.italic))),
@@ -1851,6 +1996,7 @@ class _AttachmentCarouselDialogState
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context).t;
     final attachments = widget.attachments;
     return Dialog(
         backgroundColor: Colors.black,
@@ -1885,13 +2031,13 @@ class _AttachmentCarouselDialogState
                             Icon(Icons.picture_as_pdf,
                                 size: 80, color: Colors.red),
                             SizedBox(height: 16),
-                            Text(file['name'] ?? 'PDF',
+                            Text(file['name'] ?? loc('pdf_label'),
                                 style:
                                     TextStyle(color: Colors.white)),
                             SizedBox(height: 16),
                             ElevatedButton.icon(
                               icon: Icon(Icons.open_in_new),
-                              label: Text('Open PDF'),
+                              label: Text(loc('open_pdf_label')),
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.teal),
                               onPressed: () async {
@@ -1909,7 +2055,7 @@ class _AttachmentCarouselDialogState
                           ]));
                     }
                     return Center(
-                        child: Text('Unsupported file',
+                        child: Text(loc('unsupported_file_label'),
                             style: TextStyle(color: Colors.white)));
                   },
                 ),
@@ -1961,7 +2107,7 @@ class _AttachmentCarouselDialogState
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal),
-                  child: Text('Close')),
+                  child: Text(loc('close'))),
             ],
           ),
         ));
@@ -1985,6 +2131,7 @@ class _StylishProfileDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context).t;
     return Dialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24)),
@@ -2051,7 +2198,7 @@ class _StylishProfileDialog extends StatelessWidget {
                     backgroundColor: AppColors.cyan,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
-                child: Text('Close')),
+                child: Text(loc('close'))),
           ),
         ]));
   }

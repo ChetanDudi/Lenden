@@ -5,6 +5,8 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageContactPage extends StatefulWidget {
   const ManageContactPage({super.key});
@@ -144,12 +146,14 @@ class _ManageContactPageState extends State<ManageContactPage> {
       showSnack(context, message, isError: isError);
 
   Widget _sectionCard({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
     required String keyName,
     required Color tint,
   }) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(2),
@@ -164,7 +168,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
       child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -187,15 +191,16 @@ class _ManageContactPageState extends State<ManageContactPage> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: AppThemeColors.secondaryText(context)),
                     ),
                   ],
                 ),
@@ -214,18 +219,18 @@ class _ManageContactPageState extends State<ManageContactPage> {
           const SizedBox(height: 16),
           TextField(
             controller: _controllers['${keyName}Label'],
-            decoration: const InputDecoration(labelText: 'Label'),
+            decoration: InputDecoration(labelText: t('label')),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _controllers['${keyName}Value'],
-            decoration: const InputDecoration(labelText: 'Display value'),
+            decoration: InputDecoration(labelText: t('display_value')),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _controllers['${keyName}Url'],
-            decoration: const InputDecoration(
-              labelText: 'Action URL',
+            decoration: InputDecoration(
+              labelText: t('action_url'),
               hintText: 'mailto:, https://, tel:, or custom link',
             ),
           ),
@@ -237,8 +242,9 @@ class _ManageContactPageState extends State<ManageContactPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -249,11 +255,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
-                ),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -267,15 +269,17 @@ class _ManageContactPageState extends State<ManageContactPage> {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Contact Settings',
+                          t('contact_settings'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
@@ -287,8 +291,10 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                 height: 16,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.save_outlined),
-                        label: const Text('Save'),
+                            : Icon(Icons.save_outlined,
+                                color: AppThemeColors.iconOnWave(context)),
+                        label: Text(t('save'),
+                            style: TextStyle(color: AppThemeColors.iconOnWave(context))),
                       ),
                     ],
                   ),
@@ -302,7 +308,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(28),
                                 boxShadow: [
                                   BoxShadow(
@@ -323,9 +329,9 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                       color: AppColors.cyan,
                                       borderRadius: BorderRadius.circular(99),
                                     ),
-                                    child: const Text(
-                                      'Public Contact Screen',
-                                      style: TextStyle(
+                                    child: Text(
+                                      t('public_contact_screen'),
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -334,16 +340,16 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                   const SizedBox(height: 18),
                                   TextField(
                                     controller: _heroTitleController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Hero title',
+                                    decoration: InputDecoration(
+                                      labelText: t('hero_title'),
                                     ),
                                   ),
                                   const SizedBox(height: 14),
                                   TextField(
                                     controller: _heroDescriptionController,
                                     maxLines: 3,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Hero description',
+                                    decoration: InputDecoration(
+                                      labelText: t('hero_description'),
                                     ),
                                   ),
                                 ],
@@ -351,29 +357,33 @@ class _ManageContactPageState extends State<ManageContactPage> {
                             ),
                             const SizedBox(height: 18),
                             _sectionCard(
-                              title: 'Email',
-                              subtitle: 'Primary support inbox',
+                              context: context,
+                              title: t('email'),
+                              subtitle: t('primary_support_inbox'),
                               icon: Icons.email_outlined,
                               keyName: 'email',
                               tint: const Color(0xFF0B8FAC),
                             ),
                             _sectionCard(
+                              context: context,
                               title: 'Facebook',
-                              subtitle: 'Community or page link',
+                              subtitle: t('community_or_page_link'),
                               icon: Icons.facebook_rounded,
                               keyName: 'facebook',
                               tint: const Color(0xFF1877F2),
                             ),
                             _sectionCard(
+                              context: context,
                               title: 'WhatsApp',
-                              subtitle: 'Chat or support number',
+                              subtitle: t('chat_or_support_number'),
                               icon: Icons.chat_bubble_outline_rounded,
                               keyName: 'whatsapp',
                               tint: const Color(0xFF25D366),
                             ),
                             _sectionCard(
+                              context: context,
                               title: 'Instagram',
-                              subtitle: 'Social profile',
+                              subtitle: t('social_profile'),
                               icon: Icons.camera_alt_outlined,
                               keyName: 'instagram',
                               tint: const Color(0xFFE95950),

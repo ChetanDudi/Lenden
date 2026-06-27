@@ -10,6 +10,8 @@ import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../transaction/secure_transactions/create_secure_transaction_page.dart';
 import '../transaction/group_transactions/create_group_page.dart';
 import '../../widgets/stylish_dialog.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({Key? key}) : super(key: key);
@@ -39,6 +41,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   Map<String, int> _mutualCounts = {};
   Map<String, int> _interactionCounts = {};
   late TabController _tabController;
+
+  String t(String key) => AppLocalizations.of(context).t(key);
 
   @override
   void initState() {
@@ -186,7 +190,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     if (lowerQuery == myEmail || (myUsername.isNotEmpty && lowerQuery == myUsername)) {
       setState(() {
         _searchResults = [];
-        _searchError = "That's you! You can't add yourself as a friend.";
+        _searchError = t('cannot_add_self_friend');
       });
       return;
     }
@@ -214,15 +218,15 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         setState(() {
           _searchResults = results;
           if (results.isEmpty && matchingFriends.isNotEmpty) {
-            _searchError = 'User already in your friends list.';
+            _searchError = t('user_already_in_friends_list');
           } else if (results.isEmpty && matchingBlocked.isNotEmpty) {
-            _searchError = 'User is blocked. Unblock to add again.';
+            _searchError = t('user_blocked_unblock_to_add');
           } else {
-            _searchError = results.isEmpty ? 'No users found for "$query".' : null;
+            _searchError = results.isEmpty ? '${t('no_users_found_for')} "$query".' : null;
           }
         });
       } else {
-        setState(() { _searchResults = []; _searchError = 'Failed to search. Try again.'; });
+        setState(() { _searchResults = []; _searchError = t('failed_to_search_try_again'); });
       }
     } finally {
       setState(() => _searching = false);
@@ -236,13 +240,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     if (res.statusCode == 201) {
       await _fetchFriends();
       if (!mounted) return;
-      _showSuccessDialog('Request Sent', 'Friend request sent successfully!', Icons.check_circle, Colors.green);
+      _showSuccessDialog(t('request_sent_title'), t('friend_request_sent_success'), Icons.check_circle, Colors.green);
     } else if (res.statusCode == 200) {
       // Already pending from a prior send — refresh to sync state
       await _fetchFriends();
     } else {
       setState(() => _pendingOutgoingIds.remove(uid));
-      showSnack(context, 'Failed to send request', isError: true);
+      showSnack(context, t('failed_to_send_request'), isError: true);
     }
   }
 
@@ -250,7 +254,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final res = await ApiClient.post('/api/friends/requests/$requestId/accept');
     if (res.statusCode == 200) {
       await _fetchFriends();
-      showSnack(context, 'Friend request accepted!');
+      showSnack(context, t('friend_request_accepted'));
     }
   }
 
@@ -265,21 +269,21 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   }
 
   Future<void> _removeFriend(String friendId) async {
-    final ok = await _confirmAction(title: 'Remove Friend', message: 'Remove this friend from your list?', icon: Icons.person_remove, color: Colors.red);
+    final ok = await _confirmAction(title: t('confirm_remove_friend_title'), message: t('confirm_remove_friend_message'), icon: Icons.person_remove, color: Colors.red);
     if (!ok) return;
     final res = await ApiClient.delete('/api/friends/$friendId');
     if (res.statusCode == 200) await _fetchFriends();
   }
 
   Future<void> _blockUser(String userId) async {
-    final ok = await _confirmAction(title: 'Block User', message: 'Block this user? They won\'t be able to interact with you.', icon: Icons.block, color: Colors.orange);
+    final ok = await _confirmAction(title: t('confirm_block_user_title'), message: t('confirm_block_user_message'), icon: Icons.block, color: Colors.orange);
     if (!ok) return;
     final res = await ApiClient.post('/api/friends/block', body: {'userId': userId});
     if (res.statusCode == 200) await _fetchFriends();
   }
 
   Future<void> _unblockUser(String userId) async {
-    final ok = await _confirmAction(title: 'Unblock User', message: 'Unblock this user?', icon: Icons.lock_open, color: Colors.teal);
+    final ok = await _confirmAction(title: t('confirm_unblock_user_title'), message: t('confirm_unblock_user_message'), icon: Icons.lock_open, color: Colors.teal);
     if (!ok) return;
     final res = await ApiClient.post('/api/friends/unblock', body: {'userId': userId});
     if (res.statusCode == 200) await _fetchFriends();
@@ -293,7 +297,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         child: _tricolorBorder(
           child: Container(
             padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -303,17 +307,17 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   child: Icon(icon, color: color, size: 30),
                 ),
                 const SizedBox(height: 14),
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
                 const SizedBox(height: 8),
-                Text(message, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[700])),
+                Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppThemeColors.secondaryText(context))),
                 const SizedBox(height: 20),
                 Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel'))),
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: Text(t('cancel')))),
                   const SizedBox(width: 12),
                   Expanded(child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: color),
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+                    child: Text(t('confirm'), style: const TextStyle(color: Colors.white)),
                   )),
                 ]),
               ],
@@ -334,18 +338,18 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         child: _tricolorBorder(
           child: Container(
             padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(icon, color: color, size: 52),
               const SizedBox(height: 12),
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
               const SizedBox(height: 8),
-              Text(msg, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[700])),
+              Text(msg, textAlign: TextAlign.center, style: TextStyle(color: AppThemeColors.secondaryText(context))),
               const SizedBox(height: 16),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: color),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('OK', style: TextStyle(color: Colors.white)),
+                child: Text(t('ok'), style: const TextStyle(color: Colors.white)),
               ),
             ]),
           ),
@@ -521,7 +525,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     return _tricolorBorder(
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF9F6),
+          color: AppThemeColors.tinted(context, light: const Color(0xFFFAF9F6), dark: const Color(0xFF1E1E1E)),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
@@ -564,19 +568,19 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                       children: [
                         Text(
                           displayName,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
                           maxLines: 1, overflow: TextOverflow.ellipsis,
                         ),
                         if (username.isNotEmpty && username != name)
-                          Text('@$username', style: TextStyle(fontSize: 12, color: Colors.grey[600]), maxLines: 1),
-                        Text(email, style: TextStyle(fontSize: 12, color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('@$username', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)), maxLines: 1),
+                        Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
                   // Group checkbox
                   GestureDetector(
                     onTap: () {
-                      if (!selected && isBlockedByThem) { showBlockedUserDialog(context, message: 'You cannot add this user because they have blocked you.'); return; }
+                      if (!selected && isBlockedByThem) { showBlockedUserDialog(context, message: t('blocked_you_cannot_add')); return; }
                       if (!selected && isBlocked) { showBlockedUserDialog(context); return; }
                       setState(() {
                         if (selected) _selectedForGroup.remove(email);
@@ -586,14 +590,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: selected ? AppColors.cyan.withValues(alpha: 0.12) : Colors.white,
+                        color: selected ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: selected ? AppColors.cyan : Colors.grey[300]!),
+                        border: Border.all(color: selected ? AppColors.cyan : AppThemeColors.divider(context)),
                       ),
                       child: Icon(
                         selected ? Icons.group_add : Icons.group_add_outlined,
                         size: 18,
-                        color: selected ? AppColors.cyan : Colors.grey[500],
+                        color: selected ? AppColors.cyan : AppThemeColors.mutedText(context),
                       ),
                     ),
                   ),
@@ -612,13 +616,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                       if (mutualCount > 0) ...[
                         GestureDetector(
                           onTap: () => _showMutualFriendsSheet(friendId, displayName),
-                          child: _chip('$mutualCount mutual 👥', Colors.teal.shade600, Colors.teal.withValues(alpha: 0.1)),
+                          child: _chip('$mutualCount ${t('mutual_suffix')} 👥', Colors.teal.shade600, Colors.teal.withValues(alpha: 0.1)),
                         ),
                         const SizedBox(width: 6),
                       ],
-                      if (interactions > 0) ...[_chip('$interactions transactions', Colors.blue.shade600, Colors.blue.withValues(alpha: 0.1)), const SizedBox(width: 6)],
-                      if (isBlockedByThem) ...[_chip('Blocked you', Colors.red.shade700, Colors.red.withValues(alpha: 0.1)), const SizedBox(width: 6)],
-                      if (isBlocked) _chip('You blocked', Colors.orange.shade700, Colors.orange.withValues(alpha: 0.1)),
+                      if (interactions > 0) ...[_chip('$interactions ${t('transactions_suffix')}', Colors.blue.shade600, Colors.blue.withValues(alpha: 0.1)), const SizedBox(width: 6)],
+                      if (isBlockedByThem) ...[_chip(t('blocked_you_label'), Colors.red.shade700, Colors.red.withValues(alpha: 0.1)), const SizedBox(width: 6)],
+                      if (isBlocked) _chip(t('you_blocked_label'), Colors.orange.shade700, Colors.orange.withValues(alpha: 0.1)),
                     ],
                   ),
                 ),
@@ -631,24 +635,24 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _actionBtn(Icons.flash_on, 'Quick', const Color(0xFF0077B6), () {
+                    _actionBtn(Icons.flash_on, t('quick_label'), const Color(0xFF0077B6), () {
                       if (isBlockedByThem || isBlocked) { showBlockedUserDialog(context); return; }
                       _openQuickTransaction(email);
                     }),
                     const SizedBox(width: 8),
-                    _actionBtn(Icons.receipt_long, 'Secure', const Color(0xFF2E7D32), () {
+                    _actionBtn(Icons.receipt_long, t('secure_label'), const Color(0xFF2E7D32), () {
                       if (isBlockedByThem || isBlocked) { showBlockedUserDialog(context); return; }
                       _openUserTransaction(email);
                     }),
                     const SizedBox(width: 12),
                     _iconActionBtn(isBlocked ? Icons.lock_open : Icons.block, isBlocked ? Colors.teal : Colors.orange,
                       () => isBlocked ? _unblockUser(friendId) : _blockUser(friendId),
-                      tooltip: isBlocked ? 'Unblock' : 'Block',
+                      tooltip: isBlocked ? t('unblock_label') : t('block_label'),
                     ),
                     const SizedBox(width: 6),
                     _iconActionBtn(Icons.person_remove, Colors.red,
                       () => _removeFriend(friendId),
-                      tooltip: 'Remove friend',
+                      tooltip: t('remove_friend_tooltip'),
                     ),
                   ],
                 ),
@@ -708,7 +712,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   Widget _sectionHeader(String title, int count, {Color? badgeColor}) {
     return Row(
       children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
+        Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
+            color: AppThemeColors.tinted(context, light: const Color(0xFF023E8A), dark: const Color(0xFF64B5F6)))),
         const SizedBox(width: 8),
         if (count > 0)
           Container(
@@ -732,7 +737,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     return _tricolorBorder(
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
         child: Row(
           children: [
             CircleAvatar(
@@ -745,8 +750,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(email, style: TextStyle(fontSize: 12, color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
@@ -778,7 +783,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     return _tricolorBorder(
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
         child: Row(
           children: [
             CircleAvatar(
@@ -791,10 +796,10 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name.isNotEmpty ? name : username, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(name.isNotEmpty ? name : username, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (username.isNotEmpty && username != name)
-                    Text('@$username', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                  Text(email, style: TextStyle(fontSize: 12, color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('@$username', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                  Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
@@ -802,19 +807,19 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: const Text('Friend', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 12)),
+                child: Text(t('friend_label'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 12)),
               )
             else if (isIncoming)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: const Text('Wants to connect', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600, fontSize: 12)),
+                child: Text(t('wants_to_connect'), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600, fontSize: 12)),
               )
             else if (isOutgoing)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: const Text('Pending', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w600, fontSize: 12)),
+                child: Text(t('pending_label'), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w600, fontSize: 12)),
               )
             else
               ElevatedButton(
@@ -825,7 +830,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   minimumSize: Size.zero,
                 ),
                 onPressed: () => _addFriend(u),
-                child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                child: Text(t('add_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
           ],
         ),
@@ -851,7 +856,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     return _tricolorBorder(
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
         child: Row(
           children: [
             CircleAvatar(
@@ -866,12 +871,12 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(displayName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (username.isNotEmpty && username != name)
-                    Text('@$username', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    Text('@$username', style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
                   if (email.isNotEmpty)
-                    Text(email, style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    Text(email, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 3),
                   if (mutualCount > 0)
@@ -880,14 +885,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.people, size: 12, color: Colors.teal[600]),
                         const SizedBox(width: 3),
-                        Text('$mutualCount mutual friend${mutualCount == 1 ? '' : 's'}',
+                        Text('$mutualCount ${mutualCount == 1 ? t('mutual_friend_singular') : t('mutual_friends_plural')}',
                           style: TextStyle(fontSize: 11, color: Colors.teal[600], fontWeight: FontWeight.w500)),
                         const SizedBox(width: 2),
                         Icon(Icons.chevron_right, size: 12, color: Colors.teal[400]),
                       ]),
                     )
                   else if (reason.isNotEmpty)
-                    Text(reason, style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    Text(reason, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
@@ -901,7 +906,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
                 ),
-                child: const Text('Pending', style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)),
+                child: Text(t('pending_label'), style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)),
               )
             else
               ElevatedButton.icon(
@@ -913,7 +918,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   minimumSize: Size.zero,
                 ),
                 icon: const Icon(Icons.person_add, color: Colors.white, size: 15),
-                label: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                label: Text(t('add_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: () => _addFriend(u),
               ),
           ],
@@ -927,7 +932,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final pendingCount = _incoming.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE0F7FA),
+      backgroundColor: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF121212)),
       body: Stack(
         children: [
           // Wave header
@@ -935,13 +940,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
             top: 0, left: 0, right: 0,
             child: Container(
               height: 160,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  colors: AppThemeColors.waveGradient(context),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
               ),
             ),
           ),
@@ -961,8 +966,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Text('Friends', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                            Text('${_friends.length} friend${_friends.length == 1 ? '' : 's'}',
+                            Text(t('friends'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                            Text('${_friends.length} ${_friends.length == 1 ? t('friend_singular') : t('friends_plural')}',
                               style: const TextStyle(fontSize: 12, color: Colors.white70)),
                           ],
                         ),
@@ -980,7 +985,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                             child: Row(mainAxisSize: MainAxisSize.min, children: [
                               const Icon(Icons.group_add, color: Colors.white, size: 16),
                               const SizedBox(width: 4),
-                              Text('Group (${_selectedForGroup.length})', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                              Text('${t('group_label')} (${_selectedForGroup.length})', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                             ]),
                           ),
                         )
@@ -995,7 +1000,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
                     ),
@@ -1004,10 +1009,11 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                         Expanded(
                           child: TextField(
                             controller: _searchController,
+                            style: TextStyle(color: AppThemeColors.primaryText(context)),
                             decoration: InputDecoration(
-                              hintText: 'Search by name, email, or username',
-                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                              prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                              hintText: t('search_friends_placeholder'),
+                              hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                              prefixIcon: Icon(Icons.search, color: AppThemeColors.mutedText(context)),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(vertical: 14),
                             ),
@@ -1031,7 +1037,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
                   ),
@@ -1045,7 +1051,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.grey[600],
+                    unselectedLabelColor: AppThemeColors.secondaryText(context),
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                     unselectedLabelStyle: const TextStyle(fontSize: 12),
                     tabs: [
@@ -1053,28 +1059,28 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.people, size: 15),
                           const SizedBox(width: 4),
-                          Text('Friends${_friends.isNotEmpty ? ' (${_friends.length})' : ''}'),
+                          Text('${t('friends')}${_friends.isNotEmpty ? ' (${_friends.length})' : ''}'),
                         ]),
                       ),
                       Tab(
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.mail, size: 15),
                           const SizedBox(width: 4),
-                          Text('Requests${pendingCount > 0 ? ' ($pendingCount)' : ''}'),
+                          Text('${t('requests_tab_label')}${pendingCount > 0 ? ' ($pendingCount)' : ''}'),
                         ]),
                       ),
                       Tab(
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.block, size: 15),
                           const SizedBox(width: 4),
-                          Text('Blocked${_blocked.isNotEmpty ? ' (${_blocked.length})' : ''}'),
+                          Text('${t('blocked_tab_label')}${_blocked.isNotEmpty ? ' (${_blocked.length})' : ''}'),
                         ]),
                       ),
                       Tab(
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.person_search, size: 15),
                           const SizedBox(width: 4),
-                          Text('Discover${_suggestions.isNotEmpty ? ' (${_suggestions.length})' : ''}'),
+                          Text('${t('discover_tab_label')}${_suggestions.isNotEmpty ? ' (${_suggestions.length})' : ''}'),
                         ]),
                       ),
                     ],
@@ -1111,7 +1117,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     ]),
                                   ),
                                 if (_searchResults.isNotEmpty) ...[
-                                  _sectionHeader('Search Results', _searchResults.length, badgeColor: Colors.purple),
+                                  _sectionHeader(t('search_results_label'), _searchResults.length, badgeColor: Colors.purple),
                                   const SizedBox(height: 10),
                                   ..._searchResults.asMap().entries.map((e) => Padding(
                                     padding: const EdgeInsets.only(bottom: 10),
@@ -1121,7 +1127,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 ],
                                 // ── Sent Requests (outgoing) ────────────────
                                 if (_outgoing.isNotEmpty) ...[
-                                  _sectionHeader('Sent Requests', _outgoing.length, badgeColor: Colors.orange),
+                                  _sectionHeader(t('sent_requests_label'), _outgoing.length, badgeColor: Colors.orange),
                                   const SizedBox(height: 8),
                                   ..._outgoing.map((r) {
                                     final to = r['to'] is Map ? r['to'] as Map<String, dynamic> : <String, dynamic>{};
@@ -1149,9 +1155,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                           Expanded(child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                              Text(name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.primaryText(context)),
                                                 maxLines: 1, overflow: TextOverflow.ellipsis),
-                                              Text(email, style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                              Text(email, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
                                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                                             ],
                                           )),
@@ -1162,7 +1168,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                               color: Colors.orange.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(8),
                                             ),
-                                            child: const Text('Pending', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
+                                            child: Text(t('pending_label'), style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
                                           ),
                                           const SizedBox(width: 6),
                                           GestureDetector(
@@ -1186,22 +1192,23 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 ],
 
                                 // ── Friends list ─────────────────────────────
-                                _sectionHeader('Your Friends', _filteredFriends.length),
+                                _sectionHeader(t('your_friends_label'), _filteredFriends.length),
                                 const SizedBox(height: 10),
                                 // Filter search
                                 Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[200]!),
+                                    border: Border.all(color: AppThemeColors.divider(context)),
                                   ),
                                   child: TextField(
+                                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                                     decoration: InputDecoration(
-                                      hintText: 'Filter friends...',
-                                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                                      prefixIcon: Icon(Icons.filter_list, size: 18, color: Colors.grey[400]),
+                                      hintText: t('filter_friends_placeholder'),
+                                      hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                                      prefixIcon: Icon(Icons.filter_list, size: 18, color: AppThemeColors.mutedText(context)),
                                       border: InputBorder.none,
                                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
@@ -1215,15 +1222,15 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 32),
                                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
+                                        Icon(Icons.people_outline, size: 64, color: AppThemeColors.divider(context)),
                                         const SizedBox(height: 8),
                                         Text(
-                                          _friendsQuery.isNotEmpty ? 'No match for "$_friendsQuery"' : 'No friends yet',
-                                          style: TextStyle(color: Colors.grey[500]),
+                                          _friendsQuery.isNotEmpty ? '${t('no_match_for_prefix')} "$_friendsQuery"' : t('no_friends_yet'),
+                                          style: TextStyle(color: AppThemeColors.secondaryText(context)),
                                         ),
                                         if (_friendsQuery.isEmpty) ...[
                                           const SizedBox(height: 4),
-                                          Text('Search above to add friends', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                                          Text(t('search_above_to_add_friends'), style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
                                         ],
                                       ]),
                                     ),
@@ -1236,7 +1243,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                   Center(
                                     child: TextButton.icon(
                                       icon: const Icon(Icons.expand_more),
-                                      label: Text('Show ${_filteredFriends.length - _friendsVisibleCount} more'),
+                                      label: Text('${t('show_label')} ${_filteredFriends.length - _friendsVisibleCount} ${t('more_label')}'),
                                       onPressed: () => setState(() => _friendsVisibleCount += 10),
                                     ),
                                   ),
@@ -1249,7 +1256,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
                                 if (_incoming.isNotEmpty) ...[
-                                  _sectionHeader('Incoming', _incoming.length, badgeColor: Colors.orange),
+                                  _sectionHeader(t('incoming_label'), _incoming.length, badgeColor: Colors.orange),
                                   const SizedBox(height: 10),
                                   ..._incoming.asMap().entries.map((e) {
                                     final r = e.value;
@@ -1258,7 +1265,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                       padding: const EdgeInsets.only(bottom: 10),
                                       child: _buildRequestCard(
                                         from,
-                                        'Wants to connect',
+                                        t('wants_to_connect'),
                                         Row(mainAxisSize: MainAxisSize.min, children: [
                                           GestureDetector(
                                             onTap: () => _declineRequest(r['_id']),
@@ -1285,7 +1292,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                   const SizedBox(height: 16),
                                 ],
                                 if (_outgoing.isNotEmpty) ...[
-                                  _sectionHeader('Sent', _outgoing.length, badgeColor: Colors.blue),
+                                  _sectionHeader(t('sent_label'), _outgoing.length, badgeColor: Colors.blue),
                                   const SizedBox(height: 10),
                                   ..._outgoing.asMap().entries.map((e) {
                                     final r = e.value;
@@ -1293,7 +1300,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 10),
                                       child: _buildRequestCard(
-                                        to, 'Request sent',
+                                        to, t('request_sent_label'),
                                         GestureDetector(
                                           onTap: () => _cancelRequest(r['_id']),
                                           child: Container(
@@ -1301,9 +1308,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                             decoration: BoxDecoration(
                                               color: Colors.grey.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(20),
-                                              border: Border.all(color: Colors.grey[300]!),
+                                              border: Border.all(color: AppThemeColors.divider(context)),
                                             ),
-                                            child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600)),
+                                            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12, fontWeight: FontWeight.w600)),
                                           ),
                                         ),
                                         e.key,
@@ -1316,9 +1323,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 48),
                                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.mail_outline, size: 64, color: Colors.grey[300]),
+                                        Icon(Icons.mail_outline, size: 64, color: AppThemeColors.divider(context)),
                                         const SizedBox(height: 8),
-                                        Text('No pending requests', style: TextStyle(color: Colors.grey[500])),
+                                        Text(t('no_pending_requests'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
                                       ]),
                                     ),
                                   ),
@@ -1329,21 +1336,22 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
-                                _sectionHeader('Blocked Users', _blocked.length, badgeColor: Colors.red),
+                                _sectionHeader(t('blocked_users_label'), _blocked.length, badgeColor: Colors.red),
                                 const SizedBox(height: 10),
                                 Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppThemeColors.cardBg(context),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[200]!),
+                                    border: Border.all(color: AppThemeColors.divider(context)),
                                   ),
                                   child: TextField(
+                                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                                     decoration: InputDecoration(
-                                      hintText: 'Search blocked users...',
-                                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                                      prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey[400]),
+                                      hintText: t('search_blocked_users_placeholder'),
+                                      hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                                      prefixIcon: Icon(Icons.search, size: 18, color: AppThemeColors.mutedText(context)),
                                       border: InputBorder.none,
                                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
@@ -1355,9 +1363,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 32),
                                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.shield_outlined, size: 64, color: Colors.grey[300]),
+                                        Icon(Icons.shield_outlined, size: 64, color: AppThemeColors.divider(context)),
                                         const SizedBox(height: 8),
-                                        Text('No blocked users', style: TextStyle(color: Colors.grey[500])),
+                                        Text(t('no_blocked_users'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
                                       ]),
                                     ),
                                   )
@@ -1372,7 +1380,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                       padding: const EdgeInsets.only(bottom: 10),
                                       child: _buildRequestCard(
                                         Map<String, dynamic>.from(u),
-                                        'Blocked',
+                                        t('blocked_status_label'),
                                         GestureDetector(
                                           onTap: () => _unblockUser(u['_id']),
                                           child: Container(
@@ -1382,7 +1390,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                               borderRadius: BorderRadius.circular(20),
                                               border: Border.all(color: Colors.teal.withValues(alpha: 0.3)),
                                             ),
-                                            child: const Text('Unblock', style: TextStyle(color: Colors.teal, fontSize: 12, fontWeight: FontWeight.w600)),
+                                            child: Text(t('unblock_label'), style: const TextStyle(color: Colors.teal, fontSize: 12, fontWeight: FontWeight.w600)),
                                           ),
                                         ),
                                         e.key,
@@ -1396,21 +1404,21 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
-                                _sectionHeader('People You May Know', _suggestions.length, badgeColor: AppColors.cyan),
+                                _sectionHeader(t('people_you_may_know'), _suggestions.length, badgeColor: AppColors.cyan),
                                 const SizedBox(height: 4),
-                                Text('Based on your friends & transactions',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                                Text(t('based_on_friends_transactions'),
+                                  style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
                                 const SizedBox(height: 12),
                                 if (_suggestions.isEmpty)
                                   Center(
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 48),
                                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                        Icon(Icons.person_search, size: 64, color: Colors.grey[300]),
+                                        Icon(Icons.person_search, size: 64, color: AppThemeColors.divider(context)),
                                         const SizedBox(height: 8),
-                                        Text('No suggestions right now', style: TextStyle(color: Colors.grey[500])),
+                                        Text(t('no_suggestions_right_now'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
                                         const SizedBox(height: 4),
-                                        Text('Add more friends to get suggestions', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                                        Text(t('add_more_friends_for_suggestions'), style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
                                       ]),
                                     ),
                                   )
@@ -1474,10 +1482,10 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
           _loading = false;
         });
       } else {
-        setState(() { _error = 'Could not load mutual friends.'; _loading = false; });
+        setState(() { _error = AppLocalizations.of(context).t('could_not_load_mutual_friends'); _loading = false; });
       }
     } catch (_) {
-      if (mounted) setState(() { _error = 'Network error.'; _loading = false; });
+      if (mounted) setState(() { _error = AppLocalizations.of(context).t('network_error'); _loading = false; });
     }
   }
 
@@ -1506,11 +1514,12 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
   Widget build(BuildContext context) {
     final maxH = MediaQuery.of(context).size.height * 0.6;
 
+    final t = AppLocalizations.of(context).t;
     return Container(
       constraints: BoxConstraints(maxHeight: maxH),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1520,7 +1529,7 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
             margin: const EdgeInsets.only(top: 10),
             width: 40, height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: AppThemeColors.divider(context),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1540,15 +1549,15 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mutual Friends', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('You & ${widget.displayName}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                      Text(t('mutual_friends_title'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppThemeColors.primaryText(context))),
+                      Text('${t('you_and_prefix')} ${widget.displayName}',
+                        style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
                     ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
-                  color: Colors.grey[500],
+                  color: AppThemeColors.mutedText(context),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -1570,9 +1579,9 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.people_outline, size: 48, color: Colors.grey[300]),
+                Icon(Icons.people_outline, size: 48, color: AppThemeColors.divider(context)),
                 const SizedBox(height: 8),
-                Text('No mutual friends found', style: TextStyle(color: Colors.grey[500])),
+                Text(t('no_mutual_friends_found'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
               ]),
             )
           else
@@ -1605,13 +1614,13 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(displayN,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppThemeColors.primaryText(context)),
                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                               if (mUsername.isNotEmpty && mUsername != mName)
                                 Text('@$mUsername',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
                               Text(mEmail,
-                                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                             ],
                           ),
@@ -1622,7 +1631,7 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                             color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text('Friend', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600)),
+                          child: Text(t('friend_label'), style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),

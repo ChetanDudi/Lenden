@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminSystemSettingsPage extends StatefulWidget {
   const AdminSystemSettingsPage({super.key});
@@ -82,7 +84,8 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
+        final t = AppLocalizations.of(context).t;
+        showSnack(context, '${t('error_loading_settings')} ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -120,12 +123,12 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          showSnack(context, 'System settings saved successfully!');
+          showSnack(context, AppLocalizations.of(context).t('system_settings_saved_success'));
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
+          showSnack(context, errorData['message'] ?? AppLocalizations.of(context).t('failed_save_settings'), isError: true);
         }
       }
     } catch (e) {
@@ -143,9 +146,10 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: transparentAppBar(context, title: 'System Settings', actions: [
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('system_settings_title'), actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _isSaving ? null : _saveSystemSettings,
@@ -155,9 +159,9 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
+                  : Text(
+                      t('save'),
+                      style: const TextStyle(
                         color: AppColors.cyan,
                         fontWeight: FontWeight.bold,
                       ),
@@ -177,7 +181,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -196,20 +200,20 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                           color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'System Settings',
+                        Text(
+                          t('system_settings_title'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Configure system-wide settings and preferences',
+                        Text(
+                          t('configure_system_wide_settings_subtitle'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -221,42 +225,48 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
                   // System Status Section
                   _buildSettingsSection(
-                    'System Status',
+                    context,
+                    t('system_status_section'),
                     [
                       _buildSwitchTile(
-                        'Maintenance Mode',
-                        'Temporarily disable the system for maintenance',
+                        context,
+                        t('maintenance_mode_title'),
+                        t('maintenance_mode_desc'),
                         Icons.build_outlined,
                         _maintenanceMode,
                         (value) => setState(() => _maintenanceMode = value),
                       ),
                       _buildSwitchTile(
-                        'User Registration',
-                        'Allow new users to register',
+                        context,
+                        t('user_registration_title'),
+                        t('user_registration_desc'),
                         Icons.person_add_outlined,
                         _userRegistrationEnabled,
                         (value) =>
                             setState(() => _userRegistrationEnabled = value),
                       ),
                       _buildSwitchTile(
-                        'Email Verification',
-                        'Require email verification for new users',
+                        context,
+                        t('email_verification_title'),
+                        t('email_verification_desc'),
                         Icons.email_outlined,
                         _emailVerificationRequired,
                         (value) =>
                             setState(() => _emailVerificationRequired = value),
                       ),
                       _buildSwitchTile(
-                        'Phone Verification',
-                        'Require phone verification for new users',
+                        context,
+                        t('phone_verification_title'),
+                        t('phone_verification_desc'),
                         Icons.phone_outlined,
                         _phoneVerificationRequired,
                         (value) =>
                             setState(() => _phoneVerificationRequired = value),
                       ),
                       _buildSwitchTile(
-                        'Auto-approve Users',
-                        'Automatically approve new user registrations',
+                        context,
+                        t('auto_approve_users_title'),
+                        t('auto_approve_users_desc'),
                         Icons.check_circle_outline,
                         _autoApproveUsers,
                         (value) => setState(() => _autoApproveUsers = value),
@@ -268,11 +278,13 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
                   // Transaction Limits Section
                   _buildSettingsSection(
-                    'Transaction Limits',
+                    context,
+                    t('transaction_limits_section'),
                     [
                       _buildInputTile(
-                        'Maximum Transaction Amount',
-                        'Maximum amount per transaction',
+                        context,
+                        t('maximum_transaction_amount_title'),
+                        t('maximum_transaction_amount_desc'),
                         Icons.attach_money,
                         _maxTransactionAmount,
                         (value) =>
@@ -280,8 +292,9 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         keyboardType: TextInputType.number,
                       ),
                       _buildInputTile(
-                        'Minimum Transaction Amount',
-                        'Minimum amount per transaction',
+                        context,
+                        t('minimum_transaction_amount_title'),
+                        t('minimum_transaction_amount_desc'),
                         Icons.attach_money,
                         _minTransactionAmount,
                         (value) =>
@@ -289,8 +302,9 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         keyboardType: TextInputType.number,
                       ),
                       _buildInputTile(
-                        'Daily Transaction Limit',
-                        'Maximum daily transaction limit per user',
+                        context,
+                        t('daily_transaction_limit_title'),
+                        t('daily_transaction_limit_desc'),
                         Icons.today_outlined,
                         _dailyTransactionLimit,
                         (value) =>
@@ -298,8 +312,9 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         keyboardType: TextInputType.number,
                       ),
                       _buildInputTile(
-                        'Monthly Transaction Limit',
-                        'Maximum monthly transaction limit per user',
+                        context,
+                        t('monthly_transaction_limit_title'),
+                        t('monthly_transaction_limit_desc'),
                         Icons.calendar_month_outlined,
                         _monthlyTransactionLimit,
                         (value) =>
@@ -313,11 +328,13 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
                   // System Preferences Section
                   _buildSettingsSection(
-                    'System Preferences',
+                    context,
+                    t('system_preferences_section'),
                     [
                       _buildDropdownTile(
-                        'Default Currency',
-                        'Select default currency for transactions',
+                        context,
+                        t('default_currency_title'),
+                        t('default_currency_desc'),
                         Icons.currency_exchange,
                         _defaultCurrency,
                         {
@@ -356,22 +373,24 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         (value) => setState(() => _defaultCurrency = value!),
                       ),
                       _buildDropdownTile(
-                        'Timezone',
-                        'Select system timezone',
+                        context,
+                        t('timezone_title'),
+                        t('timezone_desc'),
                         Icons.access_time,
                         _timezone,
                         {
-                          'UTC': 'UTC (Coordinated Universal Time)',
-                          'EST': 'Eastern Standard Time',
-                          'PST': 'Pacific Standard Time',
-                          'IST': 'Indian Standard Time',
-                          'GMT': 'Greenwich Mean Time',
+                          'UTC': t('timezone_utc'),
+                          'EST': t('timezone_est'),
+                          'PST': t('timezone_pst'),
+                          'IST': t('timezone_ist'),
+                          'GMT': t('timezone_gmt'),
                         },
                         (value) => setState(() => _timezone = value!),
                       ),
                       _buildDropdownTile(
-                        'Date Format',
-                        'Select date display format',
+                        context,
+                        t('date_format_title'),
+                        t('date_format_desc'),
                         Icons.date_range,
                         _dateFormat,
                         {
@@ -383,19 +402,21 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                         (value) => setState(() => _dateFormat = value!),
                       ),
                       _buildDropdownTile(
-                        'Time Format',
-                        'Select time display format',
+                        context,
+                        t('time_format_title'),
+                        t('time_format_desc'),
                         Icons.schedule,
                         _timeFormat,
                         {
-                          '12-hour': '12-hour (AM/PM)',
-                          '24-hour': '24-hour',
+                          '12-hour': t('time_format_12_hour'),
+                          '24-hour': t('time_format_24_hour'),
                         },
                         (value) => setState(() => _timeFormat = value!),
                       ),
                       _buildDropdownTile(
-                        'Language',
-                        'Select system language',
+                        context,
+                        t('language'),
+                        t('select_system_language_desc'),
                         Icons.language,
                         _language,
                         {
@@ -414,18 +435,21 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
 
                   // Features Section
                   _buildSettingsSection(
-                    'Features',
+                    context,
+                    t('features_section'),
                     [
                       _buildSwitchTile(
-                        'Enable Notifications',
-                        'Enable system-wide notifications',
+                        context,
+                        t('enable_notifications_title'),
+                        t('enable_notifications_desc'),
                         Icons.notifications_outlined,
                         _enableNotifications,
                         (value) => setState(() => _enableNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Enable Analytics',
-                        'Enable system analytics and tracking',
+                        context,
+                        t('enable_analytics_title'),
+                        t('enable_analytics_desc'),
                         Icons.analytics_outlined,
                         _enableAnalytics,
                         (value) => setState(() => _enableAnalytics = value),
@@ -441,25 +465,27 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
+                        color: AppThemeColors.tinted(context,
+                            light: Colors.orange.withValues(alpha: 0.1),
+                            dark: Colors.orange.withValues(alpha: 0.22)),
                         borderRadius: BorderRadius.circular(12),
                         border:
                             Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.warning_amber_outlined,
                                 color: Colors.orange,
                                 size: 20,
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'Maintenance Mode Active',
-                                style: TextStyle(
+                                t('maintenance_mode_active_title'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange,
@@ -467,10 +493,10 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'The system is currently in maintenance mode. Users will not be able to access the application until maintenance mode is disabled.',
-                            style: TextStyle(
+                            t('maintenance_mode_active_desc'),
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.orange,
                             ),
@@ -484,10 +510,11 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
     );
   }
 
-  Widget _buildSettingsSection(String title, List<Widget> children) {
+  Widget _buildSettingsSection(
+      BuildContext context, String title, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -519,6 +546,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -529,17 +557,17 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Switch(
@@ -552,6 +580,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
   }
 
   Widget _buildInputTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -563,17 +592,17 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: SizedBox(
@@ -587,10 +616,10 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            color: AppThemeColors.primaryText(context),
           ),
         ),
       ),
@@ -599,6 +628,7 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
   }
 
   Widget _buildDropdownTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -610,17 +640,17 @@ class _AdminSystemSettingsPageState extends State<AdminSystemSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: DropdownButton<String>(

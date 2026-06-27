@@ -5,10 +5,13 @@ import '../../api_config.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
 import 'contact_page.dart';
+import 'my_disputes_page.dart';
 import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class HelpSupportPage extends StatefulWidget {
   @override
@@ -26,7 +29,6 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   bool _showAllQueries = false;
   String _searchTerm = '';
 
-  static const _bg = AppColors.scaffoldBg;
   static const _cyan = AppColors.cyan;
   static const _blue = AppColors.blue;
 
@@ -48,6 +50,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   void _connectSocket() {
+    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     final token = session.token;
     if (token == null) return;
@@ -72,7 +75,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         if (data['user'] != null &&
             data['user']['_id'] == session.user?['_id']) {
           setState(() => _queries.insert(0, data));
-          _snack('Query created!', Colors.green);
+          _snack(t('query_created_message'), Colors.green);
         }
       });
 
@@ -87,13 +90,13 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
           _queries.sort((a, b) => DateTime.parse(b['createdAt'])
               .compareTo(DateTime.parse(a['createdAt'])));
         });
-        _snack('Query updated!', Colors.orange);
+        _snack(t('query_updated_message'), Colors.orange);
       });
 
       socket?.on('support_query_deleted', (data) {
         setState(() =>
             _queries.removeWhere((q) => q['_id'] == data['queryId']));
-        _snack('Query deleted!', Colors.red);
+        _snack(t('query_deleted_message'), Colors.red);
       });
     } catch (e) {
       print('Error connecting to socket: $e');
@@ -101,6 +104,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   Future<void> _fetchUserQueries() async {
+    final t = AppLocalizations.of(context).t;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -116,21 +120,22 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
       } else {
         final data = jsonDecode(response.body);
         setState(() {
-          _error = data['error'] ?? 'Failed to load queries.';
+          _error = data['error'] ?? t('failed_to_load_queries_message');
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'An error occurred: $e';
+        _error = t('an_error_occurred_message').replaceFirst('{error}', '$e');
         _isLoading = false;
       });
     }
   }
 
   Future<void> _submitQuery() async {
+    final t = AppLocalizations.of(context).t;
     if (_topicController.text.isEmpty || _descriptionController.text.isEmpty) {
-      _snack('Please fill in both topic and description.', Colors.red);
+      _snack(t('fill_topic_and_description_message'), Colors.red);
       return;
     }
     try {
@@ -142,15 +147,15 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         },
       );
       if (response.statusCode == 201) {
-        _snack('Query submitted successfully!', Colors.green);
+        _snack(t('query_submitted_successfully_message'), Colors.green);
         _topicController.clear();
         _descriptionController.clear();
       } else {
         final data = jsonDecode(response.body);
-        _snack(data['error'] ?? 'Failed to submit query.', Colors.red);
+        _snack(data['error'] ?? t('failed_to_submit_query_message'), Colors.red);
       }
     } catch (e) {
-      _snack('Network error while submitting query.', Colors.red);
+      _snack(t('network_error_submitting_query_message'), Colors.red);
     }
   }
 
@@ -159,29 +164,31 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
 
   Future<void> _editQuery(
       String queryId, String currentTopic, String currentDescription) async {
+    final t = AppLocalizations.of(context).t;
     _topicController.text = currentTopic;
     _descriptionController.text = currentDescription;
 
     await showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Edit Support Query',
-                  style: TextStyle(
+              Text(t('edit_support_query_label'),
+                  style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
                       color: _cyan)),
               const SizedBox(height: 16),
               TextField(
                 controller: _topicController,
+                style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
                 decoration: InputDecoration(
-                  labelText: 'Topic',
+                  labelText: t('topic_label'),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.topic, color: _cyan),
@@ -190,8 +197,9 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: _descriptionController,
+                style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
                 decoration: InputDecoration(
-                  labelText: 'Description',
+                  labelText: t('description_label'),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.description, color: _cyan),
@@ -204,16 +212,16 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                 children: [
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(dialogContext).pop();
                       _topicController.clear();
                       _descriptionController.clear();
                     },
-                    child: const Text('Cancel'),
+                    child: Text(t('cancel')),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.save, color: Colors.white),
-                    label: const Text('Save'),
+                    label: Text(t('save')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _cyan,
                       foregroundColor: Colors.white,
@@ -223,7 +231,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                     onPressed: () async {
                       if (_topicController.text.isEmpty ||
                           _descriptionController.text.isEmpty) {
-                        _snack('Please fill in both fields.', Colors.red);
+                        _snack(t('fill_both_fields_message'), Colors.red);
                         return;
                       }
                       try {
@@ -235,19 +243,19 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                           },
                         );
                         if (response.statusCode == 200) {
-                          _snack('Query updated successfully!', Colors.green);
-                          Navigator.of(context).pop();
+                          _snack(t('query_updated_successfully_message'), Colors.green);
+                          Navigator.of(dialogContext).pop();
                           _topicController.clear();
                           _descriptionController.clear();
                         } else {
                           final data = response.body.isNotEmpty
                               ? jsonDecode(response.body)
                               : null;
-                          _snack(data?['error'] ?? 'Failed to update query.',
+                          _snack(data?['error'] ?? t('failed_to_update_query_message'),
                               Colors.red);
                         }
                       } catch (e) {
-                        _snack('Network error while editing query.', Colors.red);
+                        _snack(t('network_error_editing_query_message'), Colors.red);
                       }
                     },
                   ),
@@ -261,29 +269,29 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   Future<void> _deleteQuery(String queryId) async {
+    final t = AppLocalizations.of(context).t;
     final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.warning, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Confirm Deletion',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Icon(Icons.warning, color: Colors.red),
+                const SizedBox(width: 8),
+                Text(t('confirm_deletion_label'),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
-            content: const Text(
-                'Are you sure you want to delete this query? This cannot be undone.'),
+            content: Text(t('confirm_delete_query_message')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                child: Text(t('cancel')),
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.delete, color: Colors.white),
-                label: const Text('Delete'),
+                label: Text(t('delete')),
                 onPressed: () => Navigator.of(ctx).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -302,15 +310,15 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
     try {
       final response = await ApiClient.delete('/api/support/queries/$queryId');
       if (response.statusCode == 200) {
-        _snack('Query deleted successfully!', Colors.green);
+        _snack(t('query_deleted_successfully_message'), Colors.green);
         setState(() => _queries.removeWhere((q) => q['_id'] == queryId));
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _snack(data?['error'] ?? 'Failed to delete query.', Colors.red);
+        _snack(data?['error'] ?? t('failed_to_delete_query_message'), Colors.red);
       }
     } catch (e) {
-      _snack('Network error while deleting query.', Colors.red);
+      _snack(t('network_error_deleting_query_message'), Colors.red);
     }
   }
 
@@ -319,6 +327,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final filtered = _searchTerm.isEmpty
         ? _queries
         : _queries
@@ -334,10 +343,10 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: _bg,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Help & Support',
-            style: TextStyle(
+        title: Text(t('help_and_support_label'),
+            style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -368,7 +377,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   // Quick access card
                   tricolorBorder(
                     child: Container(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 18, vertical: 8),
@@ -382,16 +391,49 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                           child: const Icon(Icons.contact_support_rounded,
                               color: _cyan),
                         ),
-                        title: const Text('Contact Support',
+                        title: Text(t('contact_support_label'),
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15)),
-                        subtitle: const Text('Send a message to our team',
-                            style: TextStyle(color: _blue, fontSize: 12)),
+                                fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
+                        subtitle: Text(t('send_a_message_to_our_team_message'),
+                            style: const TextStyle(color: _blue, fontSize: 12)),
                         trailing: const Icon(Icons.arrow_forward_ios_rounded,
                             size: 16, color: _blue),
                         onTap: () => Navigator.push(context,
                             MaterialPageRoute(
                                 builder: (_) => const ContactPage())),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // My Disputes card
+                  tricolorBorder(
+                    child: Container(
+                      color: AppThemeColors.cardBg(context),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 8),
+                        leading: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Colors.deepOrange.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.gavel_rounded,
+                              color: Colors.deepOrange),
+                        ),
+                        title: Text(t('my_disputes_label'),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
+                        subtitle: Text(
+                            t('track_disputes_raised_or_named_message'),
+                            style: const TextStyle(color: _blue, fontSize: 12)),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 16, color: _blue),
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(
+                                builder: (_) => const MyDisputesPage())),
                       ),
                     ),
                   ),
@@ -401,11 +443,12 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   tricolorBorder(
                     radius: 14,
                     child: Container(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       child: TextField(
                         controller: _searchController,
+                        style: TextStyle(color: AppThemeColors.primaryText(context)),
                         decoration: InputDecoration(
-                          hintText: 'Search your queries...',
+                          hintText: t('search_your_queries_hint'),
                           prefixIcon:
                               const Icon(Icons.search, color: _cyan),
                           border: InputBorder.none,
@@ -428,22 +471,23 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   const SizedBox(height: 24),
 
                   // Submit form
-                  const Text('Submit a New Query',
-                      style: TextStyle(
+                  Text(t('submit_a_new_query_label'),
+                      style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: _blue)),
                   const SizedBox(height: 12),
                   tricolorBorder(
                     child: Container(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
                           TextField(
                             controller: _topicController,
+                            style: TextStyle(color: AppThemeColors.primaryText(context)),
                             decoration: InputDecoration(
-                              labelText: 'Topic',
+                              labelText: t('topic_label'),
                               prefixIcon:
                                   const Icon(Icons.topic_outlined, color: _cyan),
                               border: OutlineInputBorder(
@@ -459,15 +503,16 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                                   borderSide:
                                       const BorderSide(color: _cyan, width: 1.5)),
                               filled: true,
-                              fillColor: _bg,
+                              fillColor: AppThemeColors.scaffoldBg(context),
                             ),
                           ),
                           const SizedBox(height: 12),
                           TextField(
                             controller: _descriptionController,
                             maxLines: 4,
+                            style: TextStyle(color: AppThemeColors.primaryText(context)),
                             decoration: InputDecoration(
-                              labelText: 'Description',
+                              labelText: t('description_label'),
                               alignLabelWithHint: true,
                               prefixIcon: const Padding(
                                 padding: EdgeInsets.only(bottom: 60),
@@ -487,7 +532,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                                   borderSide:
                                       const BorderSide(color: _cyan, width: 1.5)),
                               filled: true,
-                              fillColor: _bg,
+                              fillColor: AppThemeColors.scaffoldBg(context),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -498,8 +543,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                               onPressed: _submitQuery,
                               icon: const Icon(Icons.send_rounded,
                                   color: Colors.white, size: 18),
-                              label: const Text('Submit Query',
-                                  style: TextStyle(
+                              label: Text(t('submit_query_label'),
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15)),
                               style: ElevatedButton.styleFrom(
@@ -520,8 +565,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   // Queries section
                   Row(
                     children: [
-                      const Text('Your Queries',
-                          style: TextStyle(
+                      Text(t('your_queries_label'),
+                          style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: _blue)),
@@ -552,11 +597,11 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                                   style:
                                       const TextStyle(color: Colors.red)))
                           : filtered.isEmpty
-                              ? const Center(
+                              ? Center(
                                   child: Padding(
-                                  padding: EdgeInsets.all(32),
-                                  child: Text('No queries found.',
-                                      style: TextStyle(color: Colors.grey)),
+                                  padding: const EdgeInsets.all(32),
+                                  child: Text(t('no_queries_found_message'),
+                                      style: const TextStyle(color: Colors.grey)),
                                 ))
                               : ListView.builder(
                                   shrinkWrap: true,
@@ -581,7 +626,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                                 borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(
-                              'View All ${filtered.length} Queries',
+                              t('view_all_queries_count_message').replaceFirst('{count}', '${filtered.length}'),
                               style: const TextStyle(color: _cyan)),
                         ),
                       ),
@@ -596,6 +641,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   Widget _buildQueryCard(Map<String, dynamic> query) {
+    final t = AppLocalizations.of(context).t;
     final isResolved = query['status'] == 'resolved';
     final hasReplies =
         query['replies'] != null && (query['replies'] as List).isNotEmpty;
@@ -604,7 +650,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
       padding: const EdgeInsets.only(bottom: 16),
       child: tricolorBorder(
         child: Container(
-          color: _bg,
+          color: AppThemeColors.scaffoldBg(context),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -642,7 +688,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        (query['status'] ?? 'pending').toUpperCase(),
+                        _statusLabel((query['status'] ?? 'pending').toString(), t),
                         style: TextStyle(
                           color: isResolved
                               ? Colors.green[700]
@@ -656,14 +702,14 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(query['description'] ?? '',
-                    style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                    style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(Icons.access_time, size: 13, color: Colors.grey[500]),
                     const SizedBox(width: 4),
                     Text(
-                      'Submitted: ${_formatDateTime(query['createdAt'])}',
+                      t('submitted_date_message').replaceFirst('{date}', _formatDateTime(query['createdAt'])),
                       style:
                           TextStyle(color: Colors.grey[500], fontSize: 11),
                     ),
@@ -680,8 +726,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                             query['_id'], query['topic'], query['description']),
                         icon: const Icon(Icons.edit_outlined,
                             color: _blue, size: 16),
-                        label: const Text('Edit',
-                            style: TextStyle(color: _blue, fontSize: 13)),
+                        label: Text(t('edit'),
+                            style: const TextStyle(color: _blue, fontSize: 13)),
                         style: TextButton.styleFrom(
                             minimumSize: Size.zero,
                             padding: const EdgeInsets.symmetric(
@@ -691,8 +737,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                       onPressed: () => _deleteQuery(query['_id']),
                       icon: const Icon(Icons.delete_outline,
                           color: Colors.red, size: 16),
-                      label: const Text('Delete',
-                          style: TextStyle(color: Colors.red, fontSize: 13)),
+                      label: Text(t('delete'),
+                          style: const TextStyle(color: Colors.red, fontSize: 13)),
                       style: TextButton.styleFrom(
                           minimumSize: Size.zero,
                           padding: const EdgeInsets.symmetric(
@@ -708,7 +754,19 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
     );
   }
 
+  String _statusLabel(String status, String Function(String) t) {
+    switch (status.toLowerCase()) {
+      case 'resolved':
+        return t('resolved_status_label');
+      case 'pending':
+        return t('pending_status_label');
+      default:
+        return status.toUpperCase();
+    }
+  }
+
   Widget _buildReplies(List<dynamic> replies) {
+    final t = AppLocalizations.of(context).t;
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Column(
@@ -724,8 +782,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                     borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(width: 6),
-              const Text('Admin Replies',
-                  style: TextStyle(
+              Text(t('admin_replies_label'),
+                  style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       color: _cyan)),
@@ -752,8 +810,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                         const Icon(Icons.admin_panel_settings,
                             size: 14, color: _blue),
                         const SizedBox(width: 4),
-                        const Text('Admin Reply',
-                            style: TextStyle(
+                        Text(t('admin_reply_label'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                                 color: _blue)),
@@ -761,8 +819,8 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(reply['replyText'] ?? '',
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.black87)),
+                        style: TextStyle(
+                            fontSize: 13, color: AppThemeColors.primaryText(context))),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -770,7 +828,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                             size: 11, color: Colors.grey[500]),
                         const SizedBox(width: 3),
                         Text(
-                          'Replied: ${_formatDateTime(reply['timestamp'])}',
+                          t('replied_date_message').replaceFirst('{date}', _formatDateTime(reply['timestamp'])),
                           style: TextStyle(
                               color: Colors.grey[500], fontSize: 10),
                         ),

@@ -5,6 +5,8 @@ import '../session.dart';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminNotificationSettingsPage extends StatefulWidget {
   const AdminNotificationSettingsPage({super.key});
@@ -114,7 +116,9 @@ class _AdminNotificationSettingsPageState
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, 'Error loading settings: ${e.toString()}', isError: true);
+        showSnack(context,
+            '${AppLocalizations.of(context).t('error_loading_settings')} ${e.toString()}',
+            isError: true);
       }
     } finally {
       if (mounted) {
@@ -168,12 +172,16 @@ class _AdminNotificationSettingsPageState
         final session = Provider.of<SessionProvider>(context, listen: false);
         session.updateNotificationSettings(settings);
         if (mounted) {
-          showSnack(context, 'Notification settings saved successfully!');
+          showSnack(context,
+              AppLocalizations.of(context).t('notification_settings_saved'));
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          showSnack(context, errorData['message'] ?? 'Failed to save settings', isError: true);
+          showSnack(context,
+              errorData['message'] ??
+                  AppLocalizations.of(context).t('failed_save_settings'),
+              isError: true);
         }
       }
     } catch (e) {
@@ -209,9 +217,10 @@ class _AdminNotificationSettingsPageState
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Admin Notifications', actions: [
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('admin_notifications'), actions: [
         if (!_isLoading)
           TextButton(
             onPressed: _isSaving ? null : _saveNotificationSettings,
@@ -221,9 +230,9 @@ class _AdminNotificationSettingsPageState
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    'Save',
-                    style: TextStyle(
+                : Text(
+                    t('save'),
+                    style: const TextStyle(
                       color: AppColors.cyan,
                       fontWeight: FontWeight.bold,
                     ),
@@ -242,7 +251,7 @@ class _AdminNotificationSettingsPageState
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -261,20 +270,20 @@ class _AdminNotificationSettingsPageState
                           color: AppColors.cyan,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Admin Notifications',
+                        Text(
+                          t('admin_notifications'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Configure admin-specific notifications and alerts',
+                        Text(
+                          t('admin_notifications_alerts_subtitle'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -286,46 +295,53 @@ class _AdminNotificationSettingsPageState
 
                   // System Alerts Section
                   _buildSettingsSection(
-                    'System Alerts',
+                    context,
+                    t('system_alerts'),
                     [
                       _buildSwitchTile(
-                        'System Alerts',
-                        'General system notifications',
+                        context,
+                        t('system_alerts'),
+                        t('general_system_notifications'),
                         Icons.system_update_outlined,
                         _systemAlerts,
                         (value) => setState(() => _systemAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Maintenance Alerts',
-                        'System maintenance notifications',
+                        context,
+                        t('maintenance_alerts'),
+                        t('system_maintenance_notifications'),
                         Icons.build_outlined,
                         _maintenanceAlerts,
                         (value) => setState(() => _maintenanceAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Error Alerts',
-                        'System error notifications',
+                        context,
+                        t('error_alerts'),
+                        t('system_error_notifications'),
                         Icons.error_outline,
                         _errorAlerts,
                         (value) => setState(() => _errorAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Performance Alerts',
-                        'Performance issue notifications',
+                        context,
+                        t('performance_alerts'),
+                        t('performance_issue_notifications'),
                         Icons.speed_outlined,
                         _performanceAlerts,
                         (value) => setState(() => _performanceAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Security Alerts',
-                        'Security-related notifications',
+                        context,
+                        t('security_alerts'),
+                        t('security_related_notifications'),
                         Icons.security_outlined,
                         _securityAlerts,
                         (value) => setState(() => _securityAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Backup Alerts',
-                        'Backup status notifications',
+                        context,
+                        t('backup_alerts'),
+                        t('backup_status_notifications'),
                         Icons.backup_outlined,
                         _backupAlerts,
                         (value) => setState(() => _backupAlerts = value),
@@ -337,48 +353,55 @@ class _AdminNotificationSettingsPageState
 
                   // User Management Alerts Section
                   _buildSettingsSection(
-                    'User Management Alerts',
+                    context,
+                    t('user_management_alerts'),
                     [
                       _buildSwitchTile(
-                        'New User Alerts',
-                        'Notifications for new user registrations',
+                        context,
+                        t('new_user_alerts'),
+                        t('new_user_registrations_notifications'),
                         Icons.person_add_outlined,
                         _newUserAlerts,
                         (value) => setState(() => _newUserAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Suspicious Activity',
-                        'Suspicious user activity alerts',
+                        context,
+                        t('suspicious_activity'),
+                        t('suspicious_user_activity_alerts'),
                         Icons.warning_outlined,
                         _suspiciousActivityAlerts,
                         (value) =>
                             setState(() => _suspiciousActivityAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Account Lockout Alerts',
-                        'User account lockout notifications',
+                        context,
+                        t('account_lockout_alerts'),
+                        t('user_account_lockout_notifications'),
                         Icons.lock_outlined,
                         _accountLockoutAlerts,
                         (value) =>
                             setState(() => _accountLockoutAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Failed Login Alerts',
-                        'Failed login attempt notifications',
+                        context,
+                        t('failed_login_alerts'),
+                        t('failed_login_attempt_notifications'),
                         Icons.login_outlined,
                         _failedLoginAlerts,
                         (value) => setState(() => _failedLoginAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'User Deletion Alerts',
-                        'User account deletion notifications',
+                        context,
+                        t('user_deletion_alerts'),
+                        t('user_account_deletion_notifications'),
                         Icons.delete_outline,
                         _userDeletionAlerts,
                         (value) => setState(() => _userDeletionAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Bulk Action Alerts',
-                        'Bulk user management notifications',
+                        context,
+                        t('bulk_action_alerts'),
+                        t('bulk_user_management_notifications'),
                         Icons.group_outlined,
                         _bulkActionAlerts,
                         (value) => setState(() => _bulkActionAlerts = value),
@@ -390,51 +413,58 @@ class _AdminNotificationSettingsPageState
 
                   // Transaction Alerts Section
                   _buildSettingsSection(
-                    'Transaction Alerts',
+                    context,
+                    t('transaction_alerts'),
                     [
                       _buildSwitchTile(
-                        'Large Transaction Alerts',
-                        'High-value transaction notifications',
+                        context,
+                        t('large_transaction_alerts'),
+                        t('high_value_transaction_notifications'),
                         Icons.attach_money_outlined,
                         _largeTransactionAlerts,
                         (value) =>
                             setState(() => _largeTransactionAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Failed Transaction Alerts',
-                        'Failed transaction notifications',
+                        context,
+                        t('failed_transaction_alerts'),
+                        t('failed_transaction_notifications'),
                         Icons.cancel_outlined,
                         _failedTransactionAlerts,
                         (value) =>
                             setState(() => _failedTransactionAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Suspicious Transaction Alerts',
-                        'Suspicious transaction pattern alerts',
+                        context,
+                        t('suspicious_transaction_alerts'),
+                        t('suspicious_transaction_pattern_alerts'),
                         Icons.report_problem_outlined,
                         _suspiciousTransactionAlerts,
                         (value) => setState(
                             () => _suspiciousTransactionAlerts = value),
                       ),
                       _buildSwitchTile(
-                        'Daily Transaction Summary',
-                        'Daily transaction summary reports',
+                        context,
+                        t('daily_transaction_summary'),
+                        t('daily_transaction_summary_reports'),
                         Icons.summarize_outlined,
                         _dailyTransactionSummary,
                         (value) =>
                             setState(() => _dailyTransactionSummary = value),
                       ),
                       _buildSwitchTile(
-                        'Weekly Transaction Summary',
-                        'Weekly transaction summary reports',
+                        context,
+                        t('weekly_transaction_summary'),
+                        t('weekly_transaction_summary_reports'),
                         Icons.calendar_view_week_outlined,
                         _weeklyTransactionSummary,
                         (value) =>
                             setState(() => _weeklyTransactionSummary = value),
                       ),
                       _buildSwitchTile(
-                        'Monthly Transaction Summary',
-                        'Monthly transaction summary reports',
+                        context,
+                        t('monthly_transaction_summary'),
+                        t('monthly_transaction_summary_reports'),
                         Icons.calendar_view_month_outlined,
                         _monthlyTransactionSummary,
                         (value) =>
@@ -447,32 +477,37 @@ class _AdminNotificationSettingsPageState
 
                   // Notification Channels Section
                   _buildSettingsSection(
-                    'Notification Channels',
+                    context,
+                    t('notification_channels'),
                     [
                       _buildSwitchTile(
-                        'Email Notifications',
-                        'Receive notifications via email',
+                        context,
+                        t('email_notifications'),
+                        t('receive_notifications_via_email'),
                         Icons.email_outlined,
                         _emailNotifications,
                         (value) => setState(() => _emailNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Push App Notifications',
-                        'Receive notifications in the app',
+                        context,
+                        t('push_app_notifications'),
+                        t('receive_notifications_in_app'),
                         Icons.notifications_active_outlined,
                         _pushNotifications,
                         (value) => setState(() => _pushNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'SMS Notifications',
-                        'Receive SMS notifications',
+                        context,
+                        t('sms_notifications'),
+                        t('receive_sms_notifications'),
                         Icons.sms_outlined,
                         _smsNotifications,
                         (value) => setState(() => _smsNotifications = value),
                       ),
                       _buildSwitchTile(
-                        'Display Notification Count',
-                        'Show the number of unread notifications',
+                        context,
+                        t('display_notification_count'),
+                        t('show_unread_notifications_count'),
                         Icons.looks_one,
                         _displayNotificationCount,
                         (value) =>
@@ -485,54 +520,60 @@ class _AdminNotificationSettingsPageState
 
                   // Notification Preferences Section
                   _buildSettingsSection(
-                    'Notification Preferences',
+                    context,
+                    t('notification_preferences'),
                     [
                       _buildDropdownTile(
-                        'Notification Frequency',
-                        'How often to receive notifications',
+                        context,
+                        t('notification_frequency'),
+                        t('how_often_receive_notifications'),
                         Icons.schedule_outlined,
                         _notificationFrequency,
                         {
-                          'immediate': 'Immediate',
-                          'hourly': 'Hourly',
-                          'daily': 'Daily',
-                          'weekly': 'Weekly',
+                          'immediate': t('immediate'),
+                          'hourly': t('hourly'),
+                          'daily': t('daily'),
+                          'weekly': t('weekly'),
                         },
                         (value) =>
                             setState(() => _notificationFrequency = value!),
                       ),
                       _buildDropdownTile(
-                        'Timezone',
-                        'Your timezone for notifications',
+                        context,
+                        t('timezone_label'),
+                        t('your_timezone_for_notifications'),
                         Icons.access_time_outlined,
                         _timezone,
                         {
-                          'UTC': 'UTC (Coordinated Universal Time)',
-                          'EST': 'Eastern Standard Time',
-                          'PST': 'Pacific Standard Time',
-                          'IST': 'Indian Standard Time',
-                          'GMT': 'Greenwich Mean Time',
+                          'UTC': t('utc_coordinated_universal_time'),
+                          'EST': t('eastern_standard_time'),
+                          'PST': t('pacific_standard_time'),
+                          'IST': t('indian_standard_time'),
+                          'GMT': t('greenwich_mean_time'),
                         },
                         (value) => setState(() => _timezone = value!),
                       ),
                       _buildSwitchTile(
-                        'Quiet Hours',
-                        'Enable quiet hours for notifications',
+                        context,
+                        t('quiet_hours'),
+                        t('enable_quiet_hours_notifications'),
                         Icons.bedtime_outlined,
                         _quietHoursEnabled,
                         (value) => setState(() => _quietHoursEnabled = value),
                       ),
                       if (_quietHoursEnabled) ...[
                         _buildTimeTile(
-                          'Quiet Hours Start',
-                          'Start time for quiet hours',
+                          context,
+                          t('quiet_hours_start'),
+                          t('start_time_for_quiet_hours'),
                           Icons.nightlight_outlined,
                           _quietHoursStart,
                           () => _selectTime(context, true),
                         ),
                         _buildTimeTile(
-                          'Quiet Hours End',
-                          'End time for quiet hours',
+                          context,
+                          t('quiet_hours_end'),
+                          t('end_time_for_quiet_hours'),
                           Icons.wb_sunny_outlined,
                           _quietHoursEnd,
                           () => _selectTime(context, false),
@@ -548,24 +589,26 @@ class _AdminNotificationSettingsPageState
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: AppThemeColors.tinted(context,
+                          light: Colors.blue.withValues(alpha: 0.1),
+                          dark: Colors.blue.withValues(alpha: 0.22)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.notifications_active,
                               color: Colors.blue,
                               size: 20,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
-                              'Notification Status',
-                              style: TextStyle(
+                              t('notification_status'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.blue,
@@ -575,7 +618,7 @@ class _AdminNotificationSettingsPageState
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _getNotificationStatusText(),
+                          _getNotificationStatusText(context),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.blue,
@@ -590,27 +633,29 @@ class _AdminNotificationSettingsPageState
     );
   }
 
-  String _getNotificationStatusText() {
+  String _getNotificationStatusText(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     if (!_emailNotifications &&
         !_pushNotifications &&
         !_smsNotifications &&
         !_inAppNotifications) {
-      return 'All notifications are currently disabled.';
+      return t('all_notifications_disabled');
     }
 
     List<String> activeChannels = [];
-    if (_emailNotifications) activeChannels.add('Email');
-    if (_pushNotifications) activeChannels.add('Push');
-    if (_smsNotifications) activeChannels.add('SMS');
-    if (_inAppNotifications) activeChannels.add('In-App');
+    if (_emailNotifications) activeChannels.add(t('email'));
+    if (_pushNotifications) activeChannels.add(t('push'));
+    if (_smsNotifications) activeChannels.add(t('sms'));
+    if (_inAppNotifications) activeChannels.add(t('in_app'));
 
-    return 'Notifications are active via: ${activeChannels.join(', ')}';
+    return '${t('notifications_active_via')} ${activeChannels.join(', ')}';
   }
 
-  Widget _buildSettingsSection(String title, List<Widget> children) {
+  Widget _buildSettingsSection(
+      BuildContext context, String title, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -642,6 +687,7 @@ class _AdminNotificationSettingsPageState
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -652,17 +698,17 @@ class _AdminNotificationSettingsPageState
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Switch(
@@ -675,6 +721,7 @@ class _AdminNotificationSettingsPageState
   }
 
   Widget _buildDropdownTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -686,17 +733,17 @@ class _AdminNotificationSettingsPageState
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: DropdownButton<String>(
@@ -715,6 +762,7 @@ class _AdminNotificationSettingsPageState
   }
 
   Widget _buildTimeTile(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -725,17 +773,17 @@ class _AdminNotificationSettingsPageState
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: InkWell(

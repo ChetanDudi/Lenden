@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/app_widgets.dart';
 
 class ContactPage extends StatefulWidget {
@@ -20,7 +22,6 @@ class ContactPage extends StatefulWidget {
 class _ContactPageState extends State<ContactPage> {
   static const _sky = AppColors.cyan;
   static const _deepBlue = Color(0xFF0077B6);
-  static const _bg = Color(0xFFFAF9F6);
 
   bool _loading = true;
   String? _fetchError;
@@ -52,6 +53,35 @@ class _ContactPageState extends State<ContactPage> {
   ];
   String _selectedCategory = 'General Inquiry';
   String _categoryFilter = 'All';
+
+  String _categoryLabel(String cat, String Function(String) t) {
+    const keys = {
+      'All': 'all_label',
+      'Account & Profile': 'category_account_profile_label',
+      'Payments & Transactions': 'category_payments_transactions_label',
+      'Groups & Expenses': 'category_groups_expenses_label',
+      'Lending & Borrowing': 'category_lending_borrowing_label',
+      'Security & Privacy': 'category_security_privacy_label',
+      'Technical Issue': 'category_technical_issue_label',
+      'Feature Request': 'category_feature_request_label',
+      'Billing & Subscriptions': 'category_billing_subscriptions_label',
+      'General Inquiry': 'general_inquiry',
+      'Other': 'category_other_label',
+    };
+    final key = keys[cat];
+    return key != null ? t(key) : cat;
+  }
+
+  String _statusLabel(String status, String Function(String) t) {
+    const keys = {
+      'new': 'status_new_label',
+      'read': 'status_read_label',
+      'replied': 'status_replied_label',
+      'closed': 'status_closed_label',
+    };
+    final key = keys[status];
+    return key != null ? t(key) : status;
+  }
 
   @override
   void initState() {
@@ -128,13 +158,13 @@ class _ContactPageState extends State<ContactPage> {
         });
       } else {
         setState(() {
-          _fetchError = 'Failed to load contact details.';
+          _fetchError = AppLocalizations.of(context).t('failed_to_load_contact_details_message');
           _loading = false;
         });
       }
     } catch (_) {
       setState(() {
-        _fetchError = 'Network error.';
+        _fetchError = AppLocalizations.of(context).t('network_error_simple_message');
         _loading = false;
       });
     }
@@ -176,16 +206,18 @@ class _ContactPageState extends State<ContactPage> {
     if (target.isEmpty) return;
     final uri = Uri.tryParse(target);
     if (uri == null) {
-      _snack('Invalid contact link.');
+      _snack(AppLocalizations.of(context).t('invalid_contact_link_message'));
       return;
     }
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) _snack('Could not open this contact option.');
+    if (!launched && mounted) {
+      _snack(AppLocalizations.of(context).t('could_not_open_contact_option_message'));
+    }
   }
 
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    _snack('Copied to clipboard');
+    _snack(AppLocalizations.of(context).t('copied_to_clipboard_message'));
   }
 
   void _snack(String message) {
@@ -195,6 +227,7 @@ class _ContactPageState extends State<ContactPage> {
 
   Future<void> _submitMessage() async {
     if (!_formKey.currentState!.validate()) return;
+    final t = AppLocalizations.of(context).t;
     setState(() => _submitting = true);
     try {
       final response = await ApiClient.post(
@@ -220,11 +253,11 @@ class _ContactPageState extends State<ContactPage> {
         _loadMyMessages();
       } else {
         final body = jsonDecode(response.body);
-        _snack(body['error'] ?? 'Failed to send. Please try again.');
+        _snack(body['error'] ?? t('failed_to_send_try_again_message'));
         setState(() => _submitting = false);
       }
     } catch (_) {
-      _snack('Network error. Please check your connection.');
+      _snack(t('network_error_check_connection_message'));
       setState(() => _submitting = false);
     }
   }
@@ -294,33 +327,19 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   static const _faqItems = [
-    _FaqItem(
-      q: 'How do I request a refund for a transaction?',
-      a: 'Go to your transaction history, tap the transaction, and select "Report Issue". Our support team reviews it within 24–48 hours.',
-    ),
-    _FaqItem(
-      q: 'Is my financial data safe on LenDen?',
-      a: 'Yes. All data is encrypted in transit and at rest. We follow industry-standard security practices to keep your account and transactions secure.',
-    ),
-    _FaqItem(
-      q: 'How long does a payment take to process?',
-      a: 'Most payments are instant. In some cases it may take up to 24 hours depending on your bank\'s processing time.',
-    ),
-    _FaqItem(
-      q: 'How do I close or delete my LenDen account?',
-      a: 'Go to Settings → Privacy & Security → Account Management. You can deactivate or permanently delete your account there.',
-    ),
-    _FaqItem(
-      q: 'What should I do if I suspect unauthorized activity?',
-      a: 'Immediately contact us via email or WhatsApp with details. You can also lock your account from Settings. We treat all fraud reports with top priority.',
-    ),
+    _FaqItem(qKey: 'faq_refund_q', aKey: 'faq_refund_a'),
+    _FaqItem(qKey: 'faq_data_safety_q', aKey: 'faq_data_safety_a'),
+    _FaqItem(qKey: 'faq_payment_time_q', aKey: 'faq_payment_time_a'),
+    _FaqItem(qKey: 'faq_delete_account_q', aKey: 'faq_delete_account_a'),
+    _FaqItem(qKey: 'faq_fraud_q', aKey: 'faq_fraud_a'),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: _bg,
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -329,9 +348,9 @@ class _ContactPageState extends State<ContactPage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Contact Us',
-          style: TextStyle(
+        title: Text(
+          t('contact_us_title'),
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w700,
             fontSize: 18,
@@ -363,6 +382,7 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   Widget _buildBody() {
+    final t = AppLocalizations.of(context).t;
     final channels = _buildChannels();
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
@@ -375,7 +395,7 @@ class _ContactPageState extends State<ContactPage> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
@@ -401,10 +421,10 @@ class _ContactPageState extends State<ContactPage> {
                   Text(
                     (_config['heroTitle'] ?? 'Contact Us').toString(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0B1F33),
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -414,7 +434,7 @@ class _ContactPageState extends State<ContactPage> {
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.6,
-                      color: Colors.blueGrey.shade600,
+                      color: AppThemeColors.secondaryText(context),
                     ),
                   ),
                   if (_fetchError != null) ...[
@@ -454,7 +474,7 @@ class _ContactPageState extends State<ContactPage> {
                             size: 15, color: _deepBlue),
                         const SizedBox(width: 6),
                         Text(
-                          'Typically responds within 24 hours',
+                          t('typically_responds_24h_message'),
                           style: TextStyle(
                             fontSize: 12,
                             color: _deepBlue,
@@ -472,7 +492,7 @@ class _ContactPageState extends State<ContactPage> {
           const SizedBox(height: 26),
 
           // ── Contact channels ───────────────────────────────────
-          _sectionLabel('Reach Out'),
+          _sectionLabel(t('reach_out_label')),
           const SizedBox(height: 12),
           ...channels.map(
             (ch) => Padding(
@@ -494,14 +514,14 @@ class _ContactPageState extends State<ContactPage> {
           const SizedBox(height: 26),
 
           // ── Send a message form ────────────────────────────────
-          _sectionLabel('Send a Message'),
+          _sectionLabel(t('send_a_message_label')),
           const SizedBox(height: 12),
           _tricolorBorder(
             radius: 24,
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: _submitted ? _buildSuccess() : _buildForm(),
@@ -513,13 +533,13 @@ class _ContactPageState extends State<ContactPage> {
           // ── My Messages ────────────────────────────────────────
           Row(
             children: [
-              Expanded(child: _sectionLabel('My Messages')),
+              Expanded(child: _sectionLabel(t('my_messages_label'))),
               IconButton(
                 icon: const Icon(Icons.refresh_rounded, size: 18, color: _sky),
                 onPressed: _loadMyMessages,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                tooltip: 'Refresh',
+                tooltip: t('refresh_label'),
               ),
             ],
           ),
@@ -557,7 +577,7 @@ class _ContactPageState extends State<ContactPage> {
                         ),
                       ),
                       child: Text(
-                        cat,
+                        _categoryLabel(cat, t),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -582,16 +602,17 @@ class _ContactPageState extends State<ContactPage> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Center(
                   child: Text(
                     _myMessages.isEmpty
-                        ? 'No messages yet. Send us one below!'
-                        : 'No messages in this category.',
+                        ? t('no_messages_yet_below_message')
+                        : t('no_messages_in_category_message'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
+                    style: TextStyle(
+                        color: AppThemeColors.mutedText(context), fontSize: 13),
                   ),
                 ),
               ),
@@ -602,13 +623,13 @@ class _ContactPageState extends State<ContactPage> {
           const SizedBox(height: 26),
 
           // ── FAQ section ────────────────────────────────────────
-          _sectionLabel('Frequently Asked'),
+          _sectionLabel(t('frequently_asked_label')),
           const SizedBox(height: 12),
           _tricolorBorder(
             radius: 24,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -627,8 +648,9 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   Widget _buildMyMessageCard(Map<String, dynamic> msg) {
+    final t = AppLocalizations.of(context).t;
     final status = (msg['status'] as String?) ?? 'new';
-    final subject = (msg['subject'] as String?) ?? 'General Inquiry';
+    final subject = (msg['subject'] as String?) ?? t('general_inquiry');
     final message = (msg['message'] as String?) ?? '';
     final replyNote = (msg['replyNote'] as String?) ?? '';
     final category = (msg['category'] as String?) ?? '';
@@ -649,8 +671,8 @@ class _ContactPageState extends State<ContactPage> {
         radius: 20,
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFAF9F6),
+          decoration: BoxDecoration(
+            color: AppThemeColors.scaffoldBg(context),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -660,10 +682,10 @@ class _ContactPageState extends State<ContactPage> {
                   Expanded(
                     child: Text(
                       subject,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: Color(0xFF0B1F33),
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                   ),
@@ -678,7 +700,7 @@ class _ContactPageState extends State<ContactPage> {
                           color: statusColor.withValues(alpha: 0.35)),
                     ),
                     child: Text(
-                      status[0].toUpperCase() + status.substring(1),
+                      _statusLabel(status, t),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -700,7 +722,7 @@ class _ContactPageState extends State<ContactPage> {
                         Border.all(color: _sky.withValues(alpha: 0.25)),
                   ),
                   child: Text(
-                    category,
+                    _categoryLabel(category, t),
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -713,13 +735,15 @@ class _ContactPageState extends State<ContactPage> {
                 message,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade600),
+                style: TextStyle(
+                    fontSize: 13, color: AppThemeColors.secondaryText(context)),
               ),
               if (createdAt != null) ...[
                 const SizedBox(height: 5),
                 Text(
                   _formatMsgTime(createdAt),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  style: TextStyle(
+                      fontSize: 11, color: AppThemeColors.mutedText(context)),
                 ),
               ],
               if (hasReply) ...[
@@ -727,7 +751,9 @@ class _ContactPageState extends State<ContactPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F8FC),
+                    color: AppThemeColors.tinted(context,
+                        light: const Color(0xFFE8F8FC),
+                        dark: const Color(0xFF14323A)),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: _sky.withValues(alpha: 0.4)),
@@ -740,9 +766,9 @@ class _ContactPageState extends State<ContactPage> {
                           const Icon(Icons.reply_rounded,
                               size: 14, color: _sky),
                           const SizedBox(width: 6),
-                          const Text(
-                            'Admin Reply',
-                            style: TextStyle(
+                          Text(
+                            t('admin_reply_label'),
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: _sky,
@@ -755,7 +781,7 @@ class _ContactPageState extends State<ContactPage> {
                         replyNote,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.blueGrey.shade700,
+                          color: AppThemeColors.secondaryText(context),
                           height: 1.5,
                         ),
                       ),
@@ -788,10 +814,10 @@ class _ContactPageState extends State<ContactPage> {
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF0B1F33),
+            color: AppThemeColors.primaryText(context),
           ),
         ),
       ],
@@ -799,6 +825,7 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   Widget _buildSuccess() {
+    final t = AppLocalizations.of(context).t;
     return Column(
       children: [
         Container(
@@ -815,21 +842,21 @@ class _ContactPageState extends State<ContactPage> {
           ),
         ),
         const SizedBox(height: 14),
-        const Text(
-          'Message Sent!',
+        Text(
+          t('message_sent_label'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0B1F33),
+            color: AppThemeColors.primaryText(context),
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Thanks for reaching out. We\'ll get back to you within 24 hours.',
+          t('thanks_for_reaching_out_message'),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13,
-            color: Colors.blueGrey.shade600,
+            color: AppThemeColors.secondaryText(context),
             height: 1.5,
           ),
         ),
@@ -837,7 +864,7 @@ class _ContactPageState extends State<ContactPage> {
         TextButton.icon(
           onPressed: () => setState(() => _submitted = false),
           icon: const Icon(Icons.refresh_rounded, size: 18),
-          label: const Text('Send another message'),
+          label: Text(t('send_another_message_label')),
           style: TextButton.styleFrom(foregroundColor: _sky),
         ),
       ],
@@ -845,29 +872,33 @@ class _ContactPageState extends State<ContactPage> {
   }
 
   Widget _buildForm() {
+    final t = AppLocalizations.of(context).t;
     return Form(
       key: _formKey,
       child: Column(
         children: [
           _field(
             controller: _nameCtrl,
-            label: 'Your Name',
+            label: t('your_name_label'),
             icon: Icons.person_outline_rounded,
             readOnly: _nameLocked,
-            validator: (v) =>
-                (v?.trim().isEmpty ?? true) ? 'Please enter your name' : null,
+            validator: (v) => (v?.trim().isEmpty ?? true)
+                ? t('please_enter_your_name_message')
+                : null,
           ),
           const SizedBox(height: 12),
           _field(
             controller: _emailCtrl,
-            label: 'Email Address',
+            label: t('email_address_label'),
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             readOnly: _emailLocked,
             validator: (v) {
-              if (v?.trim().isEmpty ?? true) return 'Please enter your email';
+              if (v?.trim().isEmpty ?? true) {
+                return t('please_enter_your_email_message');
+              }
               if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+').hasMatch(v!.trim())) {
-                return 'Enter a valid email address';
+                return t('enter_a_valid_email_message');
               }
               return null;
             },
@@ -875,7 +906,7 @@ class _ContactPageState extends State<ContactPage> {
           const SizedBox(height: 12),
           _field(
             controller: _subjectCtrl,
-            label: 'Subject (optional)',
+            label: t('subject_optional_label'),
             icon: Icons.subject_rounded,
           ),
           const SizedBox(height: 16),
@@ -883,11 +914,11 @@ class _ContactPageState extends State<ContactPage> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Category',
+              t('category_label'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.blueGrey.shade600,
+                color: AppThemeColors.secondaryText(context),
               ),
             ),
           ),
@@ -919,7 +950,7 @@ class _ContactPageState extends State<ContactPage> {
                       ),
                     ),
                     child: Text(
-                      cat,
+                      _categoryLabel(cat, t),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -934,13 +965,15 @@ class _ContactPageState extends State<ContactPage> {
           const SizedBox(height: 16),
           _field(
             controller: _messageCtrl,
-            label: 'Message',
+            label: t('message'),
             icon: Icons.message_outlined,
             maxLines: 4,
             validator: (v) {
-              if (v?.trim().isEmpty ?? true) return 'Please enter your message';
+              if (v?.trim().isEmpty ?? true) {
+                return t('please_enter_your_message_message');
+              }
               if ((v?.trim().length ?? 0) < 10) {
-                return 'Message is too short (min. 10 characters)';
+                return t('message_too_short_message');
               }
               return null;
             },
@@ -960,7 +993,7 @@ class _ContactPageState extends State<ContactPage> {
                     )
                   : const Icon(Icons.send_rounded, size: 18),
               label: Text(
-                _submitting ? 'Sending…' : 'Send Message',
+                _submitting ? t('sending') : t('send_message_label'),
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
@@ -993,7 +1026,7 @@ class _ContactPageState extends State<ContactPage> {
   }) {
     final lockedBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: Colors.blueGrey.shade100),
+      borderSide: BorderSide(color: AppThemeColors.divider(context)),
     );
     return TextFormField(
       controller: controller,
@@ -1003,24 +1036,32 @@ class _ContactPageState extends State<ContactPage> {
       validator: validator,
       style: TextStyle(
         fontSize: 14,
-        color: readOnly ? Colors.blueGrey.shade500 : const Color(0xFF0B1F33),
+        color: readOnly
+            ? AppThemeColors.mutedText(context)
+            : AppThemeColors.primaryText(context),
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
-        prefixIcon: Icon(icon, size: 20, color: readOnly ? Colors.blueGrey.shade300 : _sky),
+        labelStyle: TextStyle(
+            color: AppThemeColors.secondaryText(context), fontSize: 13),
+        prefixIcon: Icon(icon,
+            size: 20,
+            color: readOnly ? AppThemeColors.mutedText(context) : _sky),
         suffixIcon: readOnly
-            ? Icon(Icons.lock_outline_rounded, size: 16, color: Colors.blueGrey.shade300)
+            ? Icon(Icons.lock_outline_rounded,
+                size: 16, color: AppThemeColors.mutedText(context))
             : null,
         filled: true,
-        fillColor: readOnly ? Colors.blueGrey.shade50 : _bg,
+        fillColor: readOnly
+            ? AppThemeColors.surfaceBg(context)
+            : AppThemeColors.scaffoldBg(context),
         border: readOnly ? lockedBorder : OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.blueGrey.shade200),
+          borderSide: BorderSide(color: AppThemeColors.border(context)),
         ),
         enabledBorder: readOnly ? lockedBorder : OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.blueGrey.shade200),
+          borderSide: BorderSide(color: AppThemeColors.border(context)),
         ),
         focusedBorder: readOnly ? lockedBorder : OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -1097,7 +1138,7 @@ class _ChannelCard extends StatelessWidget {
     final value = (entry.channel['value'] ?? '').toString();
 
     return Material(
-      color: Colors.white,
+      color: AppThemeColors.cardBg(context),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -1126,10 +1167,10 @@ class _ChannelCard extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF0B1F33),
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1137,7 +1178,7 @@ class _ChannelCard extends StatelessWidget {
                       value,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.blueGrey.shade600,
+                        color: AppThemeColors.secondaryText(context),
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -1148,12 +1189,12 @@ class _ChannelCard extends StatelessWidget {
               if (onCopy != null)
                 IconButton(
                   icon: Icon(Icons.copy_rounded,
-                      size: 18, color: Colors.blueGrey.shade400),
+                      size: 18, color: AppThemeColors.mutedText(context)),
                   onPressed: onCopy,
                   constraints:
                       const BoxConstraints(maxWidth: 36, maxHeight: 36),
                   padding: EdgeInsets.zero,
-                  tooltip: 'Copy',
+                  tooltip: AppLocalizations.of(context).t('copy_label'),
                 ),
               Icon(
                 Icons.arrow_forward_ios_rounded,
@@ -1189,10 +1230,10 @@ class _WaveClipper extends CustomClipper<Path> {
 }
 
 class _FaqItem {
-  final String q;
-  final String a;
+  final String qKey;
+  final String aKey;
 
-  const _FaqItem({required this.q, required this.a});
+  const _FaqItem({required this.qKey, required this.aKey});
 }
 
 class _FaqTileWidget extends StatefulWidget {
@@ -1264,11 +1305,13 @@ class _FaqTileWidgetState extends State<_FaqTileWidget>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    widget.item.q,
+                    AppLocalizations.of(context).t(widget.item.qKey),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _expanded ? _deepBlue : const Color(0xFF0B1F33),
+                      color: _expanded
+                          ? _deepBlue
+                          : AppThemeColors.primaryText(context),
                     ),
                   ),
                 ),
@@ -1281,10 +1324,10 @@ class _FaqTileWidgetState extends State<_FaqTileWidget>
           child: Padding(
             padding: const EdgeInsets.fromLTRB(58, 0, 18, 14),
             child: Text(
-              widget.item.a,
+              AppLocalizations.of(context).t(widget.item.aKey),
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.blueGrey.shade600,
+                color: AppThemeColors.secondaryText(context),
                 height: 1.6,
               ),
             ),
@@ -1294,7 +1337,7 @@ class _FaqTileWidgetState extends State<_FaqTileWidget>
           Divider(
             height: 1,
             thickness: 1,
-            color: Colors.blueGrey.shade100,
+            color: AppThemeColors.divider(context),
             indent: 18,
             endIndent: 18,
           ),

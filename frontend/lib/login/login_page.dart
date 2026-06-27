@@ -8,12 +8,15 @@ import '../session.dart';
 import 'email_password_login.dart';
 import 'username_password_login.dart';
 import 'email_otp_login.dart';
+import 'google_auth_service.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/tricolor_border_text_field.dart';
 import 'dart:ui' as ui;
 import '../utils/api_client.dart';
 import '../utils/http_interceptor.dart';
 import '../utils/responsive.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class UserLoginPage extends StatefulWidget {
   const UserLoginPage({super.key});
@@ -25,6 +28,7 @@ class UserLoginPage extends StatefulWidget {
 class _UserLoginPageState extends State<UserLoginPage> {
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _isDeactivated = false;
   Map<String, dynamic>? _recoverInfo;
 
@@ -268,6 +272,56 @@ class _UserLoginPageState extends State<UserLoginPage> {
     }
   }
 
+  void _loginWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      final result = await GoogleAuthService.loginWithGoogle(
+        deviceId: _deviceId,
+      );
+
+      if (result['success'] == true) {
+        final userOrAdmin = result['userOrAdmin'];
+        final userType = result['userType'] as String;
+        final token = result['accessToken'] as String;
+        final refreshToken = result['refreshToken'] as String;
+        final dailyLoginReward =
+            result['dailyLoginReward'] as Map<String, dynamic>?;
+
+        final session = Provider.of<SessionProvider>(context, listen: false);
+        await session.saveTokens(token, refreshToken);
+
+        final profileRes = await _fetchProfile(token, userType);
+        if (profileRes != null) {
+          profileRes['role'] = 'user';
+          session.setUser(profileRes);
+        } else {
+          final userData = Map<String, dynamic>.from(userOrAdmin);
+          userData['role'] = 'user';
+          session.setUser(userData);
+        }
+        await session.checkSubscriptionStatus();
+
+        if (dailyLoginReward != null && dailyLoginReward['awarded'] == true) {
+          final coins = dailyLoginReward['coinsAwarded'] ?? 1;
+          if (mounted) {
+            _showDailyLoginRewardNotification(coins);
+          }
+          await Future.delayed(const Duration(seconds: 3));
+        }
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/user/dashboard');
+        }
+      } else if (result['cancelled'] != true) {
+        _showErrorDialog(result['error'] ?? 'Google sign-in failed.');
+      }
+    } catch (e) {
+      _showErrorDialog('Google sign-in failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
   Widget _buildDeactivatedAccountWidget() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -288,7 +342,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
           const SizedBox(height: 8),
           Text(
             'Would you like to recover it and log in?',
-            style: TextStyle(fontSize: context.sp(13), color: Colors.black87),
+            style: TextStyle(
+                fontSize: context.sp(13),
+                color: AppThemeColors.primaryText(context)),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -384,8 +440,19 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Auth screens always render in English, regardless of the user's saved
+    // app language — they're shown before any user/locale is established.
+    return Localizations.override(
+      context: context,
+      locale: const Locale('en'),
+      child: Builder(builder: _buildPage),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: SizedBox(
         height: MediaQuery.sizeOf(context).height,
         child: Stack(
@@ -399,7 +466,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 clipper: TopWaveClipper(),
                 child: Container(
                   height: context.sh(78),
-                  color: AppColors.cyan,
+                  color: AppThemeColors.waveSolid(context),
                 ),
               ),
             ),
@@ -412,15 +479,15 @@ class _UserLoginPageState extends State<UserLoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(height: context.sh(18)),
-                      Text('Login',
+                      Text(t('login'),
                           style: TextStyle(
                               fontSize: context.sp(28),
                               fontWeight: FontWeight.bold,
-                              color: Colors.black),
+                              color: AppThemeColors.primaryText(context)),
                           textAlign: TextAlign.center),
                       const SizedBox(height: 8),
-                      Text('Hello Welcome Back',
-                          style: TextStyle(fontSize: context.sp(15), color: Colors.black),
+                      Text(t('welcome_back'),
+                          style: TextStyle(fontSize: context.sp(15), color: AppThemeColors.primaryText(context)),
                           textAlign: TextAlign.center),
                       SizedBox(height: context.sh(28)),
                       LoginIllustration(height: context.sh(160)),
@@ -733,11 +800,74 @@ class _UserLoginPageState extends State<UserLoginPage> {
                             ),
                           ),
                         ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                              child: Divider(
+                                  color: AppThemeColors.divider(context))),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(t('or'),
+                                style: TextStyle(
+                                    fontSize: context.sp(13),
+                                    color:
+                                        AppThemeColors.secondaryText(context))),
+                          ),
+                          Expanded(
+                              child: Divider(
+                                  color: AppThemeColors.divider(context))),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _isSubmitting || _isGoogleLoading
+                              ? null
+                              : _loginWithGoogle,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: AppThemeColors.cardBg(context),
+                            side: BorderSide(
+                                color: AppThemeColors.border(context)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: _isGoogleLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppThemeColors.primaryText(
+                                          context)),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const FaIcon(FontAwesomeIcons.google,
+                                        size: 18, color: Color(0xFFEA4335)),
+                                    const SizedBox(width: 10),
+                                    Text(t('sign_in_with_google'),
+                                        style: TextStyle(
+                                            fontSize: context.sp(15),
+                                            fontWeight: FontWeight.w600,
+                                            color: AppThemeColors.primaryText(
+                                                context))),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text("I Don\'t Have an Account ? ",
-                              style: TextStyle(fontSize: context.sp(13))),
+                              style: TextStyle(
+                                  fontSize: context.sp(13),
+                                  color: AppThemeColors.primaryText(context))),
                           GestureDetector(
                             onTap: _isSubmitting
                                 ? null
@@ -746,7 +876,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                             child: Text(
                               'Register',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: AppColors.cyan,
                                 fontWeight: FontWeight.bold,
                                 fontSize: context.sp(13),
                               ),

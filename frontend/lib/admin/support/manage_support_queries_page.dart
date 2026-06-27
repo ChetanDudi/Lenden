@@ -10,6 +10,8 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManageSupportQueriesPage extends StatefulWidget {
   @override
@@ -75,7 +77,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
           _queries.sort((a, b) => DateTime.parse(b['createdAt'])
               .compareTo(DateTime.parse(a['createdAt'])));
         });
-        _showStylishSnackBar('New query created!', Colors.green);
+        _showStylishSnackBar(AppLocalizations.of(context).t('new_query_created'), Colors.green);
       });
 
       socket?.on('support_query_updated', (data) {
@@ -91,7 +93,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
           _queries.sort((a, b) => DateTime.parse(b['createdAt'])
               .compareTo(DateTime.parse(a['createdAt'])));
         });
-        _showStylishSnackBar('Query updated!', Colors.orange);
+        _showStylishSnackBar(AppLocalizations.of(context).t('query_updated'), Colors.orange);
       });
 
       socket?.on('support_query_deleted', (data) {
@@ -99,7 +101,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
         setState(() {
           _queries.removeWhere((q) => q['_id'] == deletedQueryId);
         });
-        _showStylishSnackBar('Query deleted!', Colors.red);
+        _showStylishSnackBar(AppLocalizations.of(context).t('query_deleted'), Colors.red);
       });
 
       // Optionally, join a room for admin-specific updates if needed
@@ -163,8 +165,9 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
   }
 
   Future<void> _replyToQuery(String queryId, String replyText) async {
+    final t = AppLocalizations.of(context).t;
     if (replyText.isEmpty) {
-      _showStylishSnackBar('Reply cannot be empty.', Colors.red);
+      _showStylishSnackBar(t('reply_cannot_be_empty'), Colors.red);
       return;
     }
 
@@ -172,7 +175,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     final token = session.token;
 
     if (token == null) {
-      _showStylishSnackBar('Authentication token not found.', Colors.red);
+      _showStylishSnackBar(t('authentication_token_not_found'), Colors.red);
       return;
     }
 
@@ -183,7 +186,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       );
 
       if (response.statusCode == 200) {
-        _showStylishSnackBar('Reply added successfully!', Colors.green);
+        _showStylishSnackBar(t('reply_added_successfully'), Colors.green);
         final updatedQuery = jsonDecode(response.body)['query'];
         setState(() {
           int index =
@@ -195,17 +198,18 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       } else {
         final data = jsonDecode(response.body);
         _showStylishSnackBar(
-            data['error'] ?? 'Failed to add reply.', Colors.red);
+            data['error'] ?? t('failed_to_add_reply'), Colors.red);
       }
     } catch (e) {
-      _showStylishSnackBar('Network error while adding reply.', Colors.red);
+      _showStylishSnackBar(t('network_error_adding_reply'), Colors.red);
     }
   }
 
   Future<void> _editReply(
       String queryId, String replyId, String newReplyText) async {
+    final t = AppLocalizations.of(context).t;
     if (newReplyText.isEmpty) {
-      _showStylishSnackBar('Reply cannot be empty.', Colors.red);
+      _showStylishSnackBar(t('reply_cannot_be_empty'), Colors.red);
       return;
     }
 
@@ -213,7 +217,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     final token = session.token;
 
     if (token == null) {
-      _showStylishSnackBar('Authentication token not found.', Colors.red);
+      _showStylishSnackBar(t('authentication_token_not_found'), Colors.red);
       return;
     }
 
@@ -224,7 +228,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       );
 
       if (response.statusCode == 200) {
-        _showStylishSnackBar('Reply updated successfully!', Colors.green);
+        _showStylishSnackBar(t('reply_updated_successfully'), Colors.green);
         final updatedQuery = jsonDecode(response.body)['query'];
         setState(() {
           int index =
@@ -236,20 +240,21 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       } else {
         final data = jsonDecode(response.body);
         _showStylishSnackBar(
-            data['error'] ?? 'Failed to update reply.', Colors.red);
+            data['error'] ?? t('failed_to_update_reply'), Colors.red);
       }
     } catch (e) {
-      _showStylishSnackBar('Network error while editing reply.', Colors.red);
+      _showStylishSnackBar(t('network_error_editing_reply'), Colors.red);
     }
   }
 
   Future<void> _deleteReply(String queryId, String replyId) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.delete(
           '/api/admin/support/queries/$queryId/replies/$replyId');
 
       if (response.statusCode == 200) {
-        _showStylishSnackBar('Reply deleted successfully!', Colors.green);
+        _showStylishSnackBar(t('reply_deleted_successfully'), Colors.green);
         final updatedQuery = jsonDecode(response.body)['query'];
         setState(() {
           int index =
@@ -261,14 +266,15 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       } else {
         final data = jsonDecode(response.body);
         _showStylishSnackBar(
-            data['error'] ?? 'Failed to delete reply.', Colors.red);
+            data['error'] ?? t('failed_to_delete_reply'), Colors.red);
       }
     } catch (e) {
-      _showStylishSnackBar('Network error while deleting reply.', Colors.red);
+      _showStylishSnackBar(t('network_error_deleting_reply'), Colors.red);
     }
   }
 
   Future<void> _updateQueryStatus(String queryId, String status) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.patch(
         '/api/admin/support/queries/$queryId/status',
@@ -277,7 +283,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
 
       if (response.statusCode == 200) {
         _showStylishSnackBar(
-            'Query status updated successfully!', Colors.green);
+            t('query_status_updated_successfully'), Colors.green);
         final updatedQuery = jsonDecode(response.body)['query'];
         setState(() {
           int index =
@@ -289,10 +295,10 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       } else {
         final data = jsonDecode(response.body);
         _showStylishSnackBar(
-            data['error'] ?? 'Failed to update status.', Colors.red);
+            data['error'] ?? t('failed_to_update_status'), Colors.red);
       }
     } catch (e) {
-      _showStylishSnackBar('Network error while updating status.', Colors.red);
+      _showStylishSnackBar(t('network_error_updating_status'), Colors.red);
     }
   }
 
@@ -302,6 +308,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     String? assignedAdminId,
     String? internalNote,
   }) async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.patch(
         '/api/admin/support/queries/$queryId/workflow',
@@ -321,24 +328,25 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
           }
         });
         _showStylishSnackBar(
-          data['message'] ?? 'Support workflow updated',
+          data['message'] ?? t('support_workflow_updated'),
           Colors.green,
         );
       } else {
         _showStylishSnackBar(
-          data['error'] ?? 'Failed to update support workflow.',
+          data['error'] ?? t('failed_to_update_support_workflow'),
           Colors.red,
         );
       }
     } catch (e) {
       _showStylishSnackBar(
-        'Network error while updating support workflow.',
+        t('network_error_updating_support_workflow'),
         Colors.red,
       );
     }
   }
 
   Future<void> _exportQueries() async {
+    final t = AppLocalizations.of(context).t;
     try {
       final response = await ApiClient.get('/api/admin/support/queries/export');
       if (response.statusCode == 200) {
@@ -346,26 +354,29 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
         showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Support Export CSV'),
+            backgroundColor: AppThemeColors.cardBg(context),
+            title: Text(t('support_export_csv'),
+                style: TextStyle(color: AppThemeColors.primaryText(context))),
             content: SizedBox(
               width: 520,
               child: SingleChildScrollView(
-                child: SelectableText(response.body),
+                child: SelectableText(response.body,
+                    style: TextStyle(color: AppThemeColors.primaryText(context))),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
+                child: Text(t('close')),
               ),
             ],
           ),
         );
       } else {
-        _showStylishSnackBar('Failed to export support queries.', Colors.red);
+        _showStylishSnackBar(t('failed_export_support_queries'), Colors.red);
       }
     } catch (_) {
-      _showStylishSnackBar('Network error while exporting queries.', Colors.red);
+      _showStylishSnackBar(t('network_error_exporting_queries'), Colors.red);
     }
   }
 
@@ -379,6 +390,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     // Filter queries by search term if present
     List<dynamic> filteredQueries = _searchTerm.isEmpty
         ? _queries
@@ -408,7 +420,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -419,11 +431,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                  ),
-                ),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -435,14 +443,16 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Manage Support Queries',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            t('manage_support_queries'),
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
+                                color: AppThemeColors.iconOnWave(context)),
                           ),
                         ),
                       ),
@@ -454,16 +464,17 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   padding: const EdgeInsets.all(20.0),
                   child: TextField(
                     controller: _searchController,
+                    style: TextStyle(color: AppThemeColors.primaryText(context)),
                     decoration: InputDecoration(
-                      labelText: 'Search by Topic',
+                      labelText: t('search_by_topic'),
                       prefixIcon: Icon(Icons.search, color: AppColors.cyan),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16)),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppThemeColors.cardBg(context),
                       suffixIcon: _searchTerm.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear),
+                              icon: Icon(Icons.clear, color: AppThemeColors.secondaryText(context)),
                               onPressed: () {
                                 setState(() {
                                   _searchTerm = '';
@@ -488,18 +499,20 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       Icon(Icons.support_agent, color: AppColors.cyan),
                       SizedBox(width: 8),
                       Text(
-                        'All Support Queries',
+                        t('all_support_queries'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
-                          color: Color(0xFF0077B5),
+                          color: AppThemeColors.isDark(context)
+                              ? AppThemeColors.primaryText(context)
+                              : const Color(0xFF0077B5),
                         ),
                       ),
                       const Spacer(),
                       TextButton.icon(
                         onPressed: _exportQueries,
                         icon: const Icon(Icons.download_rounded),
-                        label: const Text('Export CSV'),
+                        label: Text(t('export_csv')),
                       ),
                     ],
                   ),
@@ -510,11 +523,11 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _buildSummaryChip('Open', '${_summary['open'] ?? 0}'),
-                      _buildSummaryChip('In Progress', '${_summary['inProgress'] ?? 0}'),
-                      _buildSummaryChip('Critical', '${_summary['critical'] ?? 0}'),
-                      _buildSummaryChip('Assigned To Me', '${_summary['assignedToMe'] ?? 0}'),
-                      _buildSummaryChip('Overdue', '${_summary['overdue'] ?? 0}'),
+                      _buildSummaryChip(t('open'), '${_summary['open'] ?? 0}'),
+                      _buildSummaryChip(t('in_progress'), '${_summary['inProgress'] ?? 0}'),
+                      _buildSummaryChip(t('critical'), '${_summary['critical'] ?? 0}'),
+                      _buildSummaryChip(t('assigned_to_me'), '${_summary['assignedToMe'] ?? 0}'),
+                      _buildSummaryChip(t('overdue'), '${_summary['overdue'] ?? 0}'),
                     ],
                   ),
                 ),
@@ -524,11 +537,11 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildLaneChip('all', 'All'),
-                      _buildLaneChip('open', 'Open'),
-                      _buildLaneChip('mine', 'Assigned to Me'),
-                      _buildLaneChip('critical', 'Critical'),
-                      _buildLaneChip('resolved', 'Resolved'),
+                      _buildLaneChip('all', t('all')),
+                      _buildLaneChip('open', t('open')),
+                      _buildLaneChip('mine', t('assigned_to_me')),
+                      _buildLaneChip('critical', t('critical')),
+                      _buildLaneChip('resolved', t('resolved')),
                     ],
                   ),
                 ),
@@ -539,18 +552,18 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _statusFilter,
-                          decoration: const InputDecoration(
-                            labelText: 'Status',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: t('status'),
+                            border: const OutlineInputBorder(),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: AppThemeColors.cardBg(context),
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 'all', child: Text('All')),
-                            DropdownMenuItem(value: 'open', child: Text('Open')),
-                            DropdownMenuItem(value: 'in_progress', child: Text('In Progress')),
-                            DropdownMenuItem(value: 'resolved', child: Text('Resolved')),
-                            DropdownMenuItem(value: 'closed', child: Text('Closed')),
+                          items: [
+                            DropdownMenuItem(value: 'all', child: Text(t('all'))),
+                            DropdownMenuItem(value: 'open', child: Text(t('open'))),
+                            DropdownMenuItem(value: 'in_progress', child: Text(t('in_progress'))),
+                            DropdownMenuItem(value: 'resolved', child: Text(t('resolved'))),
+                            DropdownMenuItem(value: 'closed', child: Text(t('closed'))),
                           ],
                           onChanged: (value) {
                             setState(() => _statusFilter = value ?? 'all');
@@ -562,18 +575,18 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _priorityFilter,
-                          decoration: const InputDecoration(
-                            labelText: 'Priority',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: t('priority'),
+                            border: const OutlineInputBorder(),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: AppThemeColors.cardBg(context),
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 'all', child: Text('All')),
-                            DropdownMenuItem(value: 'low', child: Text('Low')),
-                            DropdownMenuItem(value: 'normal', child: Text('Normal')),
-                            DropdownMenuItem(value: 'high', child: Text('High')),
-                            DropdownMenuItem(value: 'critical', child: Text('Critical')),
+                          items: [
+                            DropdownMenuItem(value: 'all', child: Text(t('all'))),
+                            DropdownMenuItem(value: 'low', child: Text(t('low'))),
+                            DropdownMenuItem(value: 'normal', child: Text(t('normal'))),
+                            DropdownMenuItem(value: 'high', child: Text(t('high'))),
+                            DropdownMenuItem(value: 'critical', child: Text(t('critical'))),
                           ],
                           onChanged: (value) {
                             setState(() => _priorityFilter = value ?? 'all');
@@ -585,16 +598,16 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _assignmentFilter,
-                          decoration: const InputDecoration(
-                            labelText: 'Assigned',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: t('assigned'),
+                            border: const OutlineInputBorder(),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: AppThemeColors.cardBg(context),
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 'all', child: Text('All')),
-                            DropdownMenuItem(value: 'mine', child: Text('Mine')),
-                            DropdownMenuItem(value: 'unassigned', child: Text('Unassigned')),
+                          items: [
+                            DropdownMenuItem(value: 'all', child: Text(t('all'))),
+                            DropdownMenuItem(value: 'mine', child: Text(t('mine'))),
+                            DropdownMenuItem(value: 'unassigned', child: Text(t('unassigned'))),
                           ],
                           onChanged: (value) {
                             setState(() => _assignmentFilter = value ?? 'all');
@@ -614,7 +627,8 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                               child: Text(_error!,
                                   style: TextStyle(color: Colors.red)))
                           : filteredQueries.isEmpty
-                              ? Center(child: Text('No support queries found.'))
+                              ? Center(child: Text(t('no_support_queries_found'),
+                                  style: TextStyle(color: AppThemeColors.secondaryText(context))))
                               : ListView.builder(
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 8),
@@ -652,14 +666,16 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
         '$label: $value',
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: Color(0xFF0077B5),
+          color: AppThemeColors.isDark(context)
+              ? AppThemeColors.primaryText(context)
+              : const Color(0xFF0077B5),
         ),
       ),
     );
@@ -671,15 +687,21 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       label: Text(label),
       selected: selected,
       onSelected: (_) => setState(() => _supportLane = value),
+      backgroundColor: AppThemeColors.cardBg(context),
       selectedColor: AppColors.cyan.withValues(alpha: 0.16),
       labelStyle: TextStyle(
         fontWeight: FontWeight.w700,
-        color: selected ? const Color(0xFF0077B5) : Colors.black87,
+        color: selected
+            ? (AppThemeColors.isDark(context)
+                ? AppThemeColors.primaryText(context)
+                : const Color(0xFF0077B5))
+            : AppThemeColors.primaryText(context),
       ),
     );
   }
 
   Widget _buildQueryCard(Map<String, dynamic> query) {
+    final t = AppLocalizations.of(context).t;
     final assignedAdmin = query['assignedAdmin'] is Map
         ? Map<String, dynamic>.from(query['assignedAdmin'])
         : null;
@@ -689,7 +711,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
       margin: EdgeInsets.symmetric(vertical: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 6,
-      color: Colors.white,
+      color: AppThemeColors.cardBg(context),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -705,7 +727,9 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0077B5)),
+                        color: AppThemeColors.isDark(context)
+                            ? AppThemeColors.primaryText(context)
+                            : const Color(0xFF0077B5)),
                   ),
                 ),
                 Container(
@@ -732,9 +756,9 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       color: Colors.red.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: const Text(
-                      'Overdue',
-                      style: TextStyle(
+                    child: Text(
+                      t('overdue'),
+                      style: const TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
@@ -746,11 +770,11 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
             SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                Icon(Icons.person, size: 18, color: AppThemeColors.secondaryText(context)),
                 SizedBox(width: 6),
                 Text(
-                  'User: ${query['user']?['email'] ?? query['user']?['username'] ?? 'Unknown'}',
-                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                  '${t('user_label')}: ${query['user']?['email'] ?? query['user']?['username'] ?? t('unknown')}',
+                  style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 14),
                 ),
               ],
             ),
@@ -766,7 +790,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    'Priority: ${(query['priority'] ?? 'normal').toString().toUpperCase()}',
+                    '${t('priority')}: ${(query['priority'] ?? 'normal').toString().toUpperCase()}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -777,22 +801,23 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    'Assigned: ${(assignedAdmin?['email'] ?? 'Unassigned').toString()}',
+                    '${t('assigned')}: ${(assignedAdmin?['email'] ?? t('unassigned')).toString()}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
             SizedBox(height: 10),
-            Text(query['description'], style: TextStyle(fontSize: 16)),
+            Text(query['description'],
+                style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context))),
             SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                Icon(Icons.access_time, size: 16, color: AppThemeColors.secondaryText(context)),
                 SizedBox(width: 4),
                 Text(
-                  'Submitted: ${_formatDateTime(query['createdAt'])}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  '${t('submitted')}: ${_formatDateTime(query['createdAt'])}',
+                  style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12),
                 ),
               ],
             ),
@@ -802,15 +827,15 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: (query['priority'] ?? 'normal').toString(),
-                    decoration: const InputDecoration(
-                      labelText: 'Priority',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('priority'),
+                      border: const OutlineInputBorder(),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'low', child: Text('Low')),
-                      DropdownMenuItem(value: 'normal', child: Text('Normal')),
-                      DropdownMenuItem(value: 'high', child: Text('High')),
-                      DropdownMenuItem(value: 'critical', child: Text('Critical')),
+                    items: [
+                      DropdownMenuItem(value: 'low', child: Text(t('low'))),
+                      DropdownMenuItem(value: 'normal', child: Text(t('normal'))),
+                      DropdownMenuItem(value: 'high', child: Text(t('high'))),
+                      DropdownMenuItem(value: 'critical', child: Text(t('critical'))),
                     ],
                     onChanged: (value) {
                       if (value != null) {
@@ -823,12 +848,12 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: assignedAdmin?['_id']?.toString() ?? '',
-                    decoration: const InputDecoration(
-                      labelText: 'Assign To',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('assign_to'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: [
-                      const DropdownMenuItem(value: '', child: Text('Unassigned')),
+                      DropdownMenuItem(value: '', child: Text(t('unassigned'))),
                       ..._admins.map(
                         (admin) => DropdownMenuItem(
                           value: admin['_id'].toString(),
@@ -852,14 +877,14 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
               child: OutlinedButton.icon(
                 onPressed: () => _showInternalNoteDialog(query['_id']),
                 icon: const Icon(Icons.sticky_note_2_outlined),
-                label: const Text('Add Internal Note'),
+                label: Text(t('add_internal_note')),
               ),
             ),
             if (internalNotes.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Text(
-                'Internal Notes',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                t('internal_notes'),
+                style: TextStyle(fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
               ),
               const SizedBox(height: 8),
               ...internalNotes.take(3).map<Widget>((note) {
@@ -870,7 +895,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   margin: const EdgeInsets.only(bottom: 6),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppThemeColors.surfaceBg(context),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -878,12 +903,12 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     children: [
                       Text(
                         (noteMap['noteText'] ?? '').toString(),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${noteMap['admin'] is Map ? (noteMap['admin']['email'] ?? '') : ''} • ${noteMap['timestamp'] != null ? _formatDateTime(noteMap['timestamp']) : ''}',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                        style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context)),
                       ),
                     ],
                   ),
@@ -911,15 +936,18 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     );
                   }).toList(),
                   style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Color(0xFF0077B5)),
-                  dropdownColor: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.isDark(context)
+                          ? AppThemeColors.primaryText(context)
+                          : const Color(0xFF0077B5)),
+                  dropdownColor: AppThemeColors.cardBg(context),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 SizedBox(width: 10),
                 ElevatedButton.icon(
                   onPressed: () => _showReplyDialog(query['_id']),
                   icon: Icon(Icons.reply, size: 18),
-                  label: Text('Reply'),
+                  label: Text(t('reply')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.cyan,
                     foregroundColor: Colors.white,
@@ -936,13 +964,14 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
   }
 
   Widget _buildReplies(String queryId, List<dynamic> replies) {
+    final t = AppLocalizations.of(context).t;
     return Padding(
       padding: const EdgeInsets.only(top: 18.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Replies:',
+            '${t('reply')}:',
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -954,7 +983,9 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
               margin: EdgeInsets.only(bottom: 10),
               padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: AppThemeColors.isDark(context)
+                    ? AppThemeColors.surfaceBg(context)
+                    : Colors.blue[50],
                 border: Border.all(color: AppColors.cyan, width: 1),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
@@ -968,31 +999,36 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   Row(
                     children: [
                       Icon(Icons.admin_panel_settings,
-                          size: 16, color: Color(0xFF0077B5)),
+                          size: 16,
+                          color: AppThemeColors.isDark(context)
+                              ? AppThemeColors.primaryText(context)
+                              : const Color(0xFF0077B5)),
                       SizedBox(width: 4),
                       Text(
-                        'Admin: ${reply['admin']?['email'] ?? 'Unknown'}',
+                        '${t('administrator')}: ${reply['admin']?['email'] ?? t('unknown')}',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: Color(0xFF0077B5)),
+                            color: AppThemeColors.isDark(context)
+                                ? AppThemeColors.primaryText(context)
+                                : const Color(0xFF0077B5)),
                       ),
                     ],
                   ),
                   SizedBox(height: 4),
                   Text(
                     reply['replyText'],
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                    style: TextStyle(fontSize: 15, color: AppThemeColors.primaryText(context)),
                   ),
                   SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(Icons.access_time,
-                          size: 13, color: Colors.grey[600]),
+                          size: 13, color: AppThemeColors.secondaryText(context)),
                       SizedBox(width: 3),
                       Text(
-                        'Replied: ${_formatDateTime(reply['timestamp'])}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                        '${t('replied')}: ${_formatDateTime(reply['timestamp'])}',
+                        style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 11),
                       ),
                     ],
                   ),
@@ -1001,16 +1037,19 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.edit,
-                            size: 18, color: Color(0xFF0077B5)),
+                            size: 18,
+                            color: AppThemeColors.isDark(context)
+                                ? AppThemeColors.primaryText(context)
+                                : const Color(0xFF0077B5)),
                         onPressed: () => _showEditReplyDialog(
                             queryId, reply['_id'], reply['replyText']),
-                        tooltip: 'Edit Reply',
+                        tooltip: t('edit_reply'),
                       ),
                       IconButton(
                         icon: Icon(Icons.delete,
                             size: 18, color: Colors.red[700]),
                         onPressed: () => _deleteReply(queryId, reply['_id']),
-                        tooltip: 'Delete Reply',
+                        tooltip: t('delete_reply'),
                       ),
                     ],
                   ),
@@ -1024,18 +1063,19 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
   }
 
   void _showReplyDialog(String queryId) {
+    final t = AppLocalizations.of(context).t;
     final TextEditingController replyController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemeColors.cardBg(context),
         child: Container(
           padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Add Reply',
+              Text(t('add_reply'),
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -1043,8 +1083,9 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
               SizedBox(height: 16),
               TextField(
                 controller: replyController,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
                 decoration: InputDecoration(
-                  labelText: 'Your Reply',
+                  labelText: t('your_reply'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1058,12 +1099,12 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Cancel'),
+                    child: Text(t('cancel')),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton.icon(
                     icon: Icon(Icons.send, color: Colors.white),
-                    label: Text('Send Reply'),
+                    label: Text(t('send_reply')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
@@ -1085,19 +1126,20 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
 
   void _showEditReplyDialog(
       String queryId, String replyId, String currentReplyText) {
+    final t = AppLocalizations.of(context).t;
     final TextEditingController editReplyController =
         TextEditingController(text: currentReplyText);
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemeColors.cardBg(context),
         child: Container(
           padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Edit Reply',
+              Text(t('edit_reply'),
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -1105,8 +1147,9 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
               SizedBox(height: 16),
               TextField(
                 controller: editReplyController,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
                 decoration: InputDecoration(
-                  labelText: 'Edit Your Reply',
+                  labelText: t('edit_your_reply'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1120,12 +1163,12 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Cancel'),
+                    child: Text(t('cancel')),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton.icon(
                     icon: Icon(Icons.save, color: Colors.white),
-                    label: Text('Save Changes'),
+                    label: Text(t('save_changes')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
@@ -1146,27 +1189,29 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
   }
 
   void _showInternalNoteDialog(String queryId) {
+    final t = AppLocalizations.of(context).t;
     final TextEditingController noteController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemeColors.cardBg(context),
         child: Container(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Add Internal Note',
-                  style: TextStyle(
+              Text(t('add_internal_note'),
+                  style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
                       color: AppColors.cyan)),
               const SizedBox(height: 16),
               TextField(
                 controller: noteController,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
                 decoration: InputDecoration(
-                  labelText: 'Internal Note (Admins only)',
+                  labelText: t('internal_note_admins_only'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1180,7 +1225,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(t('cancel')),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
@@ -1188,7 +1233,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                       _updateWorkflow(queryId, internalNote: noteController.text);
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Add Note'),
+                    child: Text(t('add_note')),
                   ),
                 ],
               ),

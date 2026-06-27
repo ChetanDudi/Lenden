@@ -6,6 +6,8 @@ import 'custom_warning_widget.dart';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
+import '../utils/theme_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -83,8 +85,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        CustomWarningWidget.showAnimatedError(
-            context, 'Error loading account information: ${e.toString()}');
+        CustomWarningWidget.showAnimatedError(context,
+            '${AppLocalizations.of(context).t('error_loading_account_info')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -99,7 +101,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     if (phone.isEmpty) return null; // optional field
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     if (digits.length != 10 || !RegExp(r'^[6-9]').hasMatch(digits)) {
-      return 'Enter a valid 10-digit Indian mobile number';
+      return AppLocalizations.of(context).t('valid_phone_error');
     }
     return null;
   }
@@ -129,22 +131,24 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          CustomWarningWidget.showAnimatedSuccess(
-              context, 'Account information updated successfully!');
+          CustomWarningWidget.showAnimatedSuccess(context,
+              AppLocalizations.of(context).t('account_info_updated_successfully'));
           await Provider.of<SessionProvider>(context, listen: false)
               .refreshUserProfile();
         }
       } else {
         final errorData = json.decode(response.body);
         if (mounted) {
-          CustomWarningWidget.showAnimatedError(context,
-              errorData['message'] ?? 'Failed to update account information');
+          CustomWarningWidget.showAnimatedError(
+              context,
+              errorData['message'] ??
+                  AppLocalizations.of(context).t('failed_update_account_info'));
         }
       }
     } catch (e) {
       if (mounted) {
         CustomWarningWidget.showAnimatedError(
-            context, 'Error: ${e.toString()}');
+            context, '${AppLocalizations.of(context).t('error_prefix')} ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -172,9 +176,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBgAlt,
-      appBar: transparentAppBar(context, title: 'Account Information', actions: [
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('account_information'), actions: [
         if (!_isLoading)
           TextButton(
             onPressed: _isSaving ? null : _updateAccountInformation,
@@ -184,9 +189,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    'Save',
-                    style: TextStyle(
+                : Text(
+                    t('save'),
+                    style: const TextStyle(
                       color: AppColors.cyan,
                       fontWeight: FontWeight.bold,
                     ),
@@ -205,7 +210,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -231,20 +236,20 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                                 color: AppColors.cyan,
                               ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Account Information',
+                        Text(
+                          t('account_information'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Manage your personal account details',
+                        Text(
+                          t('manage_personal_account_details'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -256,55 +261,55 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
                   // Account Information Section
                   _buildSettingsSection(
-                    'Personal Information',
+                    t('personal_information'),
                     [
                       _buildReadOnlyTileWithAvatar(
-                        'Username',
+                        t('username'),
                         _username,
                         Icons.person_outline,
                       ),
                       _buildReadOnlyTileWithAvatar(
-                        'Email',
+                        t('email'),
                         _email,
                         Icons.email_outlined,
                       ),
                       _buildEditableTile(
-                        'Full Name',
-                        'Enter your full name',
+                        t('full_name'),
+                        t('enter_full_name'),
                         Icons.badge_outlined,
                         _nameController,
                         TextInputType.name,
                       ),
                       _buildEditableTile(
-                        'Phone Number',
-                        'Enter your phone number',
+                        t('phone_number'),
+                        t('enter_phone_number'),
                         Icons.phone_outlined,
                         _phoneController,
                         TextInputType.phone,
                       ),
                       _buildEditableTile(
-                        'Address',
-                        'Enter your address',
+                        t('address'),
+                        t('enter_address'),
                         Icons.location_on_outlined,
                         _addressController,
                         TextInputType.streetAddress,
                         maxLines: 3,
                       ),
                       _buildDropdownTile(
-                        'Gender',
-                        'Select your gender',
+                        t('gender'),
+                        t('select_gender'),
                         Icons.person_outline,
                         _gender,
                         {
-                          'Male': 'Male',
-                          'Female': 'Female',
-                          'Other': 'Other',
+                          'Male': t('male'),
+                          'Female': t('female'),
+                          'Other': t('other'),
                         },
                         (value) => setState(() => _gender = value!),
                       ),
                       _buildDateTile(
-                        'Birthday',
-                        'Select your birthday',
+                        t('birthday'),
+                        t('select_birthday'),
                         Icons.cake_outlined,
                         _birthday,
                         () => _selectDate(context),
@@ -316,30 +321,30 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
                   // Account Status Section
                   _buildSettingsSection(
-                    'Account Status',
+                    t('account_status'),
                     [
                       _buildStatusTile(
-                        'Account Status',
-                        'Active',
+                        t('account_status'),
+                        t('active'),
                         Icons.check_circle_outline,
                         Colors.green,
                       ),
                       _buildStatusTile(
-                        'Email Verification',
-                        'Verified',
+                        t('email_verification'),
+                        t('verified'),
                         Icons.verified_outlined,
                         Colors.green,
                       ),
                       _buildStatusTile(
-                        'Member Since',
+                        t('member_since'),
                         _memberSince != null
                             ? _formatDate(_memberSince!)
-                            : 'Not available',
+                            : t('not_available'),
                         Icons.calendar_today_outlined,
                         Colors.blue,
                       ),
                       _buildRatingTile(
-                        'User Rating',
+                        t('user_rating'),
                         _rating,
                         Icons.star_outline,
                       ),
@@ -353,25 +358,27 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: AppThemeColors.tinted(context,
+                          light: Colors.blue.withValues(alpha: 0.1),
+                          dark: const Color(0xFF1A2733)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Account Information Tips:',
-                          style: TextStyle(
+                          t('account_info_tips'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.blue,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          '• Keep your information up to date for better service\n• Your username and email cannot be changed\n• Accurate information helps with account security\n• We use this information to personalize your experience',
-                          style: TextStyle(
+                          t('account_info_tips_body'),
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Colors.blue,
                           ),
@@ -388,7 +395,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   Widget _buildSettingsSection(String title, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -428,17 +435,17 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         value,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: Row(
@@ -451,9 +458,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               backgroundImage: NetworkImage(_profileImageUrl!),
             ),
           const SizedBox(width: 8),
-          const Icon(
+          Icon(
             Icons.lock_outline,
-            color: Colors.grey,
+            color: AppThemeColors.secondaryText(context),
             size: 16,
           ),
         ],
@@ -474,10 +481,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: TextField(
@@ -489,9 +496,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
         ),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -510,24 +517,24 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: DropdownButton<String>(
         value: value.isNotEmpty ? value : null,
         onChanged: onChanged,
         underline: Container(),
-        hint: const Text('Select'),
+        hint: Text(AppLocalizations.of(context).t('select')),
         items: options.entries.map((entry) {
           return DropdownMenuItem<String>(
             value: entry.key,
@@ -550,17 +557,17 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.grey,
+          color: AppThemeColors.secondaryText(context),
         ),
       ),
       trailing: GestureDetector(
@@ -572,7 +579,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            date != null ? _formatDate(date) : 'Select Date',
+            date != null ? _formatDate(date) : AppLocalizations.of(context).t('select_date'),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -595,10 +602,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Text(
@@ -622,10 +629,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       leading: Icon(icon, color: AppColors.cyan),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.black87,
+          color: AppThemeColors.primaryText(context),
         ),
       ),
       subtitle: Row(

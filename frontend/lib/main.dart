@@ -24,12 +24,21 @@ import 'widgets/notification_icon.dart';
 import 'utils/auth_navigation.dart';
 import 'utils/responsive.dart';
 import 'settings/about_page.dart';
+import 'utils/app_lock_service.dart';
+import 'widgets/app_lock_screen.dart';
+import 'utils/theme_provider.dart';
+import 'utils/locale_provider.dart';
+import 'l10n/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'utils/theme_helper.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SessionProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
       child: const AppInitializer(),
     ),
@@ -48,25 +57,54 @@ class _AppInitializerState extends State<AppInitializer>
   late Future<void> _bootstrapFuture;
   int? _pendingDailyRewardCoins;
   bool _dailyRewardDialogVisible = false;
+  bool _locked = false;
+  bool _wasBackgrounded = false;
+  String? _activeUserId;
+  SessionProvider? _session;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _session = Provider.of<SessionProvider>(context, listen: false);
+    _session!.addListener(_onSessionUserChanged);
     _bootstrapFuture = _initializeApp();
   }
 
   Future<void> _initializeApp() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     final startedAt = DateTime.now();
     await session.initSession();
     unawaited(_maybeQueueDailyReward(session));
+
+    // Each user/admin keeps their own theme and language — scope the loaded
+    // preferences to whoever is currently logged in (or the guest slot).
+    _activeUserId = session.user?['_id']?.toString();
+    unawaited(themeProvider.loadThemeMode(_activeUserId));
+    unawaited(localeProvider.loadLocale(_activeUserId));
+
+    if (session.token != null && await AppLockService.isEnabled()) {
+      _locked = true;
+    }
 
     final elapsed = DateTime.now().difference(startedAt);
     const minimumSplash = Duration(milliseconds: 700);
     if (elapsed < minimumSplash) {
       await Future.delayed(minimumSplash - elapsed);
     }
+  }
+
+  // Re-scopes theme/language storage whenever the logged-in account changes
+  // (login, logout, or switching accounts) so settings never leak between
+  // different users or admins sharing the same device.
+  void _onSessionUserChanged() {
+    final newUserId = _session?.user?['_id']?.toString();
+    if (newUserId == _activeUserId) return;
+    _activeUserId = newUserId;
+    Provider.of<ThemeProvider>(context, listen: false).loadThemeMode(newUserId);
+    Provider.of<LocaleProvider>(context, listen: false).loadLocale(newUserId);
   }
 
   Future<void> _maybeQueueDailyReward(SessionProvider session) async {
@@ -178,7 +216,19 @@ class _AppInitializerState extends State<AppInitializer>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _wasBackgrounded = true;
+    }
     if (state == AppLifecycleState.resumed) {
+      if (_wasBackgrounded) {
+        _wasBackgrounded = false;
+        final session = Provider.of<SessionProvider>(context, listen: false);
+        if (session.token != null) {
+          AppLockService.isEnabled().then((enabled) {
+            if (enabled && mounted) setState(() => _locked = true);
+          });
+        }
+      }
       final session = Provider.of<SessionProvider>(context, listen: false);
       if (session.token != null && session.user == null) {
         setState(() {
@@ -199,16 +249,29 @@ class _AppInitializerState extends State<AppInitializer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _session?.removeListener(_onSessionUserChanged);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.watch<ThemeProvider>().themeMode;
+    final locale = context.watch<LocaleProvider>().locale;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: appNavigatorKey,
       title: 'Lenden App',
+      themeMode: themeMode,
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
+        brightness: Brightness.light,
         primarySwatch: Colors.blue,
         fontFamily: 'Arial',
         scaffoldBackgroundColor: const Color(0xFFF8F6FA),
@@ -218,11 +281,32 @@ class _AppInitializerState extends State<AppInitializer>
           foregroundColor: Colors.black,
         ),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: AppColors.cyan,
+        fontFamily: 'Arial',
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        cardColor: const Color(0xFF1E1E1E),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+        ),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.cyan,
+          brightness: Brightness.dark,
+        ),
+      ),
       home: FutureBuilder<void>(
         future: _bootstrapFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const SplashScreen(autoNavigate: false);
+          }
+          if (_locked) {
+            return AppLockScreen(
+              onUnlocked: () => setState(() => _locked = false),
+            );
           }
           _showPendingDailyRewardIfNeeded();
           return const MyApp();
@@ -265,17 +349,19 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       drawer: Drawer(
         width: context.sw(200),
+        backgroundColor: AppThemeColors.cardBg(context),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(
-                color: AppColors.cyan,
+              decoration: BoxDecoration(
+                color: AppThemeColors.waveSolid(context),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -293,12 +379,12 @@ class HomePage extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.home),
-              title: const Text('Home'),
+              title: Text(t('home')),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.login),
-              title: const Text('Login'),
+              title: Text(t('login')),
               onTap: () {
                 final session =
                     Provider.of<SessionProvider>(context, listen: false);
@@ -315,7 +401,7 @@ class HomePage extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.person_add),
-              title: const Text('Register'),
+              title: Text(t('register')),
               onTap: () => Navigator.pushNamed(context, '/register'),
             ),
             ListTile(
@@ -348,7 +434,7 @@ class HomePage extends StatelessWidget {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(78),
-                color: AppColors.cyan,
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -366,7 +452,7 @@ class HomePage extends StatelessWidget {
                         // Menu icon (left)
                         Builder(
                           builder: (context) => IconButton(
-                            icon: const Icon(Icons.menu, color: Colors.black),
+                            icon: Icon(Icons.menu, color: AppThemeColors.primaryText(context)),
                             onPressed: () => Scaffold.of(context).openDrawer(),
                           ),
                         ),

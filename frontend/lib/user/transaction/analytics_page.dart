@@ -11,6 +11,8 @@ import '../../widgets/app_widgets.dart';
 import 'quick_transactions/quick_transactions_page.dart';
 import 'secure_transactions/view_secure_transactions_page.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final List<dynamic>? transactions;
@@ -77,13 +79,14 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     final email = session.user?['email'];
 
     if (email == null) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
         _secureLoading = false;
         _quickLoading = false;
         _groupLoading = false;
-        _secureError = 'User email not found.';
-        _quickError = 'User email not found.';
-        _groupError = 'User email not found.';
+        _secureError = t('user_email_not_found_message');
+        _quickError = t('user_email_not_found_message');
+        _groupError = t('user_email_not_found_message');
       });
       return;
     }
@@ -139,11 +142,12 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       });
     } catch (_) {
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
         _displayCurrencyError =
-            'Currency conversion options are not available right now.';
+            t('currency_conversion_unavailable_message');
       });
     }
   }
@@ -172,14 +176,16 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           _secureLoading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          _secureError = 'Failed to fetch secure transaction analytics.';
+          _secureError = t('failed_to_fetch_secure_analytics_message');
           _secureLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        _secureError = 'Unable to connect. Please check your internet connection.';
+        _secureError = t('unable_to_connect_check_internet_message');
         _secureLoading = false;
       });
     }
@@ -209,14 +215,16 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           _groupLoading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          _groupError = 'Failed to fetch group transaction analytics.';
+          _groupError = t('failed_to_fetch_group_analytics_message');
           _groupLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        _groupError = 'Unable to connect. Please check your internet connection.';
+        _groupError = t('unable_to_connect_check_internet_message');
         _groupLoading = false;
       });
     }
@@ -291,7 +299,44 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     'other':         {'label': 'Other',         'color': Color(0xFF90A4AE)},
   };
 
+  String _categoryDisplayLabel(String key, String Function(String) t) {
+    switch (key) {
+      case 'food':
+        return t('category_food_label');
+      case 'transport':
+        return t('category_transport_label');
+      case 'accommodation':
+        return t('category_stay_label');
+      case 'entertainment':
+        return t('category_fun_label');
+      case 'shopping':
+        return t('category_shopping_label');
+      case 'utilities':
+        return t('category_utilities_label');
+      case 'medical':
+        return t('category_medical_label');
+      case 'education':
+        return t('category_education_label');
+      default:
+        return t('other');
+    }
+  }
+
+  String _attentionItemDisplayLabel(String key, String Function(String) t) {
+    switch (key) {
+      case 'Overdue Interest':
+        return t('overdue_interest_label');
+      case 'Partially Cleared':
+        return t('partially_cleared_label');
+      case 'Missing Proof Files':
+        return t('missing_proof_files_label');
+      default:
+        return key;
+    }
+  }
+
   Widget _buildGroupInsights() {
+    final t = AppLocalizations.of(context).t;
     if (_groupDetailsLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
@@ -317,15 +362,15 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        // â”€â”€ Member contributions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        Text('Member Contributions',
+        // Member contributions
+        Text(t('member_contributions_label'),
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade900)),
+                color: AppThemeColors.primaryText(context))),
         const SizedBox(height: 4),
-        Text('Who paid into the group (total across all your groups)',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+        Text(t('who_paid_into_group_message'),
+            style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
         const SizedBox(height: 12),
         ...sortedContrib.take(8).map((entry) {
           final pct = maxContrib > 0 ? entry.value / maxContrib : 0.0;
@@ -357,7 +402,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 7,
-                    backgroundColor: Colors.grey[200],
+                    backgroundColor: AppThemeColors.border(context),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                         Color(0xFF2E7D32)),
                   ),
@@ -369,16 +414,16 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
         if (sortedCats.isNotEmpty) ...[
           const SizedBox(height: 28),
-          // â”€â”€ Top categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Text('Spending by Category',
+          // Top categories
+          Text(t('spending_by_category_label'),
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade900)),
+                  color: AppThemeColors.primaryText(context))),
           const SizedBox(height: 4),
-          Text('Across all your group expenses',
+          Text(t('across_all_group_expenses_message'),
               style:
-                  TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
           const SizedBox(height: 12),
           ...sortedCats.map((entry) {
             final meta = _kCategoryMeta[entry.key] ??
@@ -402,7 +447,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       ),
                       Expanded(
                         child: Text(
-                          meta['label'] as String,
+                          _categoryDisplayLabel(entry.key, t),
                           style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600),
@@ -421,7 +466,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     child: LinearProgressIndicator(
                       value: pct,
                       minHeight: 7,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: AppThemeColors.border(context),
                       valueColor: AlwaysStoppedAnimation<Color>(
                           meta['color'] as Color),
                     ),
@@ -459,14 +504,16 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           _quickLoading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          _quickError = 'Failed to fetch quick transaction analytics.';
+          _quickError = t('failed_to_fetch_quick_analytics_message');
           _quickLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        _quickError = 'Unable to connect. Please check your internet connection.';
+        _quickError = t('unable_to_connect_check_internet_message');
         _quickLoading = false;
       });
     }
@@ -494,14 +541,16 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           _quickTransactionsLoading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          _quickTransactionsError = 'Failed to load quick transactions.';
+          _quickTransactionsError = t('failed_to_load_quick_transactions_message');
           _quickTransactionsLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        _quickTransactionsError = 'Error: $e';
+        _quickTransactionsError = t('error_colon_label').replaceFirst('{error}', '$e');
         _quickTransactionsLoading = false;
       });
     }
@@ -517,8 +566,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       final resolvedEmail = email ??
           Provider.of<SessionProvider>(context, listen: false).user?['email'];
       if (resolvedEmail == null) {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          _secureTransactionsError = 'User email not found.';
+          _secureTransactionsError = t('user_email_not_found_message');
           _secureTransactionsLoading = false;
         });
         return;
@@ -537,14 +587,16 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           _secureTransactionsLoading = false;
         });
       } else {
+        final t = AppLocalizations.of(context).t;
         setState(() {
-          _secureTransactionsError = 'Failed to load secure transactions.';
+          _secureTransactionsError = t('failed_to_load_secure_transactions_message');
           _secureTransactionsLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
-        _secureTransactionsError = 'Error: $e';
+        _secureTransactionsError = t('error_colon_label').replaceFirst('{error}', '$e');
         _secureTransactionsLoading = false;
       });
     }
@@ -599,12 +651,13 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: _selectedDisplayCurrency,
+            dropdownColor: AppThemeColors.cardBg(context),
             icon: const Icon(Icons.keyboard_arrow_down_rounded),
             borderRadius: BorderRadius.circular(16),
             items: currencies
@@ -677,12 +730,13 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Map<String, String> _buildQuickInsights() {
+    final t = AppLocalizations.of(context).t;
     if (_quickTransactions.isEmpty) {
       return {
-        'biggestPending': 'â‚¹0.00',
-        'mostFrequentCounterparty': 'No data',
-        'thisMonthNetFlow': 'â‚¹0.00',
-        'averageQuickAmount': 'â‚¹0.00',
+        'biggestPending': _formatSelectedCurrencyValue(0),
+        'mostFrequentCounterparty': t('no_data_label'),
+        'thisMonthNetFlow': _formatSelectedCurrencyValue(0),
+        'averageQuickAmount': _formatSelectedCurrencyValue(0),
       };
     }
 
@@ -729,7 +783,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       }
     }
 
-    String mostFrequent = 'No data';
+    String mostFrequent = t('no_data_label');
     if (counterpartyCounts.isNotEmpty) {
       final top = counterpartyCounts.entries.reduce(
         (a, b) => a.value >= b.value ? a : b,
@@ -739,7 +793,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
     return {
       'biggestPending': biggestPending == null
-          ? 'â‚¹0.00'
+          ? _formatSelectedCurrencyValue(0)
           : _formatSelectedCurrencyValue(
               _displayAmountForTransaction(biggestPending),
             ),
@@ -752,21 +806,24 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   List<Map<String, dynamic>> _buildQuickBreakdown() {
+    final t = AppLocalizations.of(context).t;
     final total = _quickTransactions.length.toDouble();
     final lent = _quickTransactions
-        .where((t) => _roleForViewer(t) == 'lender')
+        .where((transaction) => _roleForViewer(transaction) == 'lender')
         .length
         .toDouble();
     final borrowed = total - lent;
-    final cleared =
-        _quickTransactions.where((t) => t['cleared'] == true).length.toDouble();
+    final cleared = _quickTransactions
+        .where((transaction) => transaction['cleared'] == true)
+        .length
+        .toDouble();
     final pending = total - cleared;
 
     return [
-      {'title': 'Lent', 'value': lent},
-      {'title': 'Borrowed', 'value': borrowed},
-      {'title': 'Cleared', 'value': cleared},
-      {'title': 'Pending', 'value': pending},
+      {'title': t('lent_label'), 'value': lent},
+      {'title': t('borrowed_label'), 'value': borrowed},
+      {'title': t('cleared_label'), 'value': cleared},
+      {'title': t('pending_label'), 'value': pending},
     ];
   }
 
@@ -814,12 +871,13 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Map<String, String> _buildSecureInsights() {
+    final t = AppLocalizations.of(context).t;
     if (_secureTransactions.isEmpty) {
       return {
-        'largestPending': 'â‚¹0.00',
-        'averageRepayment': 'No data',
-        'topCounterparty': 'No data',
-        'interestMix': '0 with interest / 0 no interest',
+        'largestPending': _formatSelectedCurrencyValue(0),
+        'averageRepayment': t('no_data_label'),
+        'topCounterparty': t('no_data_label'),
+        'interestMix': t('interest_mix_count_label').replaceFirst('{withCount}', '0').replaceFirst('{withoutCount}', '0'),
       };
     }
 
@@ -859,20 +917,20 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
 
     final topCounterparty = counterpartyCounts.isEmpty
-        ? 'No data'
+        ? t('no_data_label')
         : counterpartyCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
     final averageRepayment = repaymentSamples == 0
-        ? 'No data'
-        : '${(totalRepaymentDays / repaymentSamples).round()} days avg';
+        ? t('no_data_label')
+        : t('days_avg_label').replaceFirst('{days}', '${(totalRepaymentDays / repaymentSamples).round()}');
     final noInterest = _secureTransactions.length - withInterest;
 
     return {
       'largestPending': largestPending == null
-          ? 'â‚¹0.00'
+          ? _formatSelectedCurrencyValue(0)
           : _formatSelectedCurrencyValue(_secureDisplayAmount(largestPending)),
       'averageRepayment': averageRepayment,
       'topCounterparty': topCounterparty,
-      'interestMix': '$withInterest with interest / $noInterest no interest',
+      'interestMix': t('interest_mix_count_label').replaceFirst('{withCount}', '$withInterest').replaceFirst('{withoutCount}', '$noInterest'),
     };
   }
 
@@ -925,24 +983,26 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   String _buildSecureCurrencyContext() {
+    final t = AppLocalizations.of(context).t;
     final currencies = _secureTransactions
         .map((transaction) => (transaction['currency'] ?? 'INR').toString().toUpperCase())
         .toSet();
-    if (currencies.isEmpty) return 'No secure currency data available yet.';
+    if (currencies.isEmpty) return t('no_secure_currency_data_message');
     if (currencies.length == 1) {
-      return 'Most secure analytics are based on a single currency: ${currencies.first}.';
+      return t('single_currency_context_message').replaceFirst('{currency}', currencies.first);
     }
-    return 'Secure analytics include mixed currencies (${currencies.take(4).join(', ')}), so totals may blend converted and original values.';
+    return t('mixed_currency_context_message').replaceFirst('{currencies}', currencies.take(4).join(', '));
   }
 
   Map<String, String> _buildSecureExtendedInsights() {
+    final t = AppLocalizations.of(context).t;
     if (_secureTransactions.isEmpty) {
       return {
-        'netPosition': 'â‚¹0.00',
+        'netPosition': _formatSelectedCurrencyValue(0),
         'netPositionSign': '+',
         'partialPaymentRatio': '0%',
         'defaultRate': '0%',
-        'avgClearTime': 'No data',
+        'avgClearTime': t('no_data_label'),
       };
     }
 
@@ -992,8 +1052,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     final defaultRate =
         (overdueCount / _secureTransactions.length * 100);
     final avgClear = clearedCount == 0
-        ? 'No data'
-        : '${(totalClearDays / clearedCount).round()} days avg';
+        ? t('no_data_label')
+        : t('days_avg_label').replaceFirst('{days}', '${(totalClearDays / clearedCount).round()}');
 
     return {
       'netPosition': _formatSelectedCurrencyValue(netPosition.abs()),
@@ -1051,23 +1111,24 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   String _buildSecureForecastText() {
+    final t = AppLocalizations.of(context).t;
     final cleared = _secureTransactions
-        .where((t) =>
-            t['userCleared'] == true && t['counterpartyCleared'] == true)
+        .where((transaction) =>
+            transaction['userCleared'] == true && transaction['counterpartyCleared'] == true)
         .length;
     final total = _secureTransactions.length;
     final uncleared = total - cleared;
-    if (total == 0) return 'No transactions to forecast.';
-    if (uncleared == 0) return 'All transactions cleared! ðŸŽ‰';
+    if (total == 0) return t('no_transactions_to_forecast_message');
+    if (uncleared == 0) return t('all_transactions_cleared_message');
 
     if (cleared == 0) {
-      return '$uncleared transactions pending â€” start clearing to see forecast.';
+      return t('transactions_pending_start_clearing_message').replaceFirst('{count}', '$uncleared');
     }
 
     final now = DateTime.now();
     DateTime? earliest;
-    for (final t in _secureTransactions) {
-      final d = DateTime.tryParse((t['date'] ?? t['createdAt'] ?? '').toString());
+    for (final transaction in _secureTransactions) {
+      final d = DateTime.tryParse((transaction['date'] ?? transaction['createdAt'] ?? '').toString());
       if (d != null && (earliest == null || d.isBefore(earliest))) {
         earliest = d;
       }
@@ -1075,7 +1136,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     final months =
         earliest == null ? 1 : ((now.difference(earliest).inDays) / 30).ceil().clamp(1, 120);
     final clearRatePerMonth = cleared / months;
-    if (clearRatePerMonth <= 0) return 'Rate too slow to estimate.';
+    if (clearRatePerMonth <= 0) return t('rate_too_slow_to_estimate_message');
 
     final monthsNeeded = (uncleared / clearRatePerMonth).ceil();
     final forecastDate = DateTime(now.year, now.month + monthsNeeded);
@@ -1084,8 +1145,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     final mIdx = ((forecastDate.month - 1) % 12).clamp(0, 11);
-    return 'At current pace: ~$uncleared pending cleared by '
-        '${monthNames[mIdx]} ${forecastDate.year}';
+    return t('forecast_pending_cleared_by_message')
+        .replaceFirst('{count}', '$uncleared')
+        .replaceFirst('{month}', monthNames[mIdx])
+        .replaceFirst('{year}', '${forecastDate.year}');
   }
 
   List<Map<String, dynamic>> _buildQuickNetBalances() {
@@ -1179,18 +1242,19 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Widget _buildQuickTrendChart() {
+    final t = AppLocalizations.of(context).t;
     final spots = _buildQuickTrendSpots();
     final labels = _buildQuickTrendLabels();
     if (spots.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppThemeColors.border(context)),
         ),
-        child: const Center(
-          child: Text('No quick trend data available yet.'),
+        child: Center(
+          child: Text(t('no_quick_trend_data_message')),
         ),
       );
     }
@@ -1204,7 +1268,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       height: 260,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1255,7 +1319,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       child: Text(
                         shortened,
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: AppThemeColors.secondaryText(context),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1329,7 +1393,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           margin: const EdgeInsets.all(2),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
@@ -1340,10 +1404,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               const SizedBox(height: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black87,
+                  color: AppThemeColors.primaryText(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -1382,10 +1446,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: transparentAppBar(context, title: 'Analytics'),
-      backgroundColor: const Color(0xFFF7F8FC),
+      appBar: transparentAppBar(context, title: t('analytics_title_label')),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -1418,6 +1483,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Widget _buildBody() {
+    final t = AppLocalizations.of(context).t;
     if (analyticsSharing == false) {
       return Center(
         child: Padding(
@@ -1431,20 +1497,20 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 color: AppColors.cyan,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Analytics is disabled in your privacy settings.',
+              Text(
+                t('analytics_disabled_privacy_message'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppThemeColors.primaryText(context),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Enable analytics sharing to view your secure, quick, and group transaction insights.',
+                t('enable_analytics_sharing_message'),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(context)),
               ),
               const SizedBox(height: 28),
               ElevatedButton.icon(
@@ -1457,9 +1523,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   ).then((_) => _refreshActiveTab());
                 },
                 icon: const Icon(Icons.settings, color: Colors.white),
-                label: const Text(
-                  'Open Privacy Settings',
-                  style: TextStyle(color: Colors.white),
+                label: Text(
+                  t('open_privacy_settings_label'),
+                  style: const TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
@@ -1494,7 +1560,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             child: Container(
               margin: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.96),
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
@@ -1514,10 +1580,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 labelColor: Colors.white,
                 unselectedLabelColor: AppColors.cyan,
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                tabs: const [
-                  Tab(text: 'Secure Trxns'),
-                  Tab(text: 'Quick Trxns'),
-                  Tab(text: 'Groups Trxns'),
+                tabs: [
+                  Tab(text: t('secure_trxns_tab_label')),
+                  Tab(text: t('quick_trxns_tab_label')),
+                  Tab(text: t('groups_trxns_tab_label')),
                 ],
               ),
             ),
@@ -1532,62 +1598,62 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 analytics: _secureAnalytics,
                 loading: _secureLoading,
                 error: _secureError,
-                config: const _AnalyticsTabConfig(
-                  tabTitle: 'Secure Analytics',
-                  tabSubtitle:
-                      'See the most important lending and borrowing signals.',
+                config: _AnalyticsTabConfig(
+                  tabId: 'secure',
+                  tabTitle: t('secure_analytics_title_label'),
+                  tabSubtitle: t('secure_analytics_subtitle_message'),
                   metrics: [
                     _MetricDefinition(
                       id: 'totalLent',
-                      title: 'Total Lent',
-                      subtitle: 'Amount shared by you',
+                      title: t('total_lent_label'),
+                      subtitle: t('amount_shared_by_you_message'),
                       icon: Icons.arrow_upward_rounded,
-                      colors: [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
+                      colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'totalBorrowed',
-                      title: 'Total Borrowed',
-                      subtitle: 'Amount taken by you',
+                      title: t('total_borrowed_label'),
+                      subtitle: t('amount_taken_by_you_message'),
                       icon: Icons.arrow_downward_rounded,
-                      colors: [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
+                      colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'totalInterest',
-                      title: 'Interest',
-                      subtitle: 'Interest tracked so far',
+                      title: t('interest_label'),
+                      subtitle: t('interest_tracked_so_far_message'),
                       icon: Icons.percent_rounded,
-                      colors: [Color(0xFF58C4DD), Color(0xFF89E0EF)],
+                      colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'cleared',
-                      title: 'Cleared',
-                      subtitle: 'Fully cleared transactions',
+                      title: t('cleared_label'),
+                      subtitle: t('fully_cleared_transactions_message'),
                       icon: Icons.check_circle_outline_rounded,
-                      colors: [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
+                      colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                     ),
                     _MetricDefinition(
                       id: 'uncleared',
-                      title: 'Uncleared',
-                      subtitle: 'Pending transactions',
+                      title: t('uncleared_label'),
+                      subtitle: t('pending_transactions_message'),
                       icon: Icons.pending_actions_rounded,
-                      colors: [Color(0xFFFFB562), Color(0xFFFFD9A0)],
+                      colors: const [Color(0xFFFFB562), Color(0xFFFFD9A0)],
                     ),
                     _MetricDefinition(
                       id: 'total',
-                      title: 'Total Transactions',
-                      subtitle: 'All secure records',
+                      title: t('total_transactions_label'),
+                      subtitle: t('all_secure_records_message'),
                       icon: Icons.receipt_long_rounded,
-                      colors: [Color(0xFF57A4FF), Color(0xFF90C6FF)],
+                      colors: const [Color(0xFF57A4FF), Color(0xFF90C6FF)],
                     ),
                     _MetricDefinition(
                       id: 'monthly',
-                      title: 'Monthly Activity',
-                      subtitle: '12-month transaction trend',
+                      title: t('monthly_activity_label'),
+                      subtitle: t('twelve_month_transaction_trend_message'),
                       icon: Icons.show_chart_rounded,
-                      colors: [Color(0xFF6B7CFF), Color(0xFFB3BCFF)],
+                      colors: const [Color(0xFF6B7CFF), Color(0xFFB3BCFF)],
                       isTrend: true,
                     ),
                   ],
@@ -1597,62 +1663,62 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 analytics: _quickAnalytics,
                 loading: _quickLoading,
                 error: _quickError,
-                config: const _AnalyticsTabConfig(
-                  tabTitle: 'Quick Analytics',
-                  tabSubtitle:
-                      'Track your fast lending, borrowing, and pending quick records.',
+                config: _AnalyticsTabConfig(
+                  tabId: 'quick',
+                  tabTitle: t('quick_analytics_title_label'),
+                  tabSubtitle: t('quick_analytics_subtitle_message'),
                   metrics: [
                     _MetricDefinition(
                       id: 'totalLent',
-                      title: 'Total Lent',
-                      subtitle: 'Quick amount shared by you',
+                      title: t('total_lent_label'),
+                      subtitle: t('quick_amount_shared_by_you_message'),
                       icon: Icons.flash_on_rounded,
-                      colors: [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
+                      colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'totalBorrowed',
-                      title: 'Total Borrowed',
-                      subtitle: 'Quick amount taken by you',
+                      title: t('total_borrowed_label'),
+                      subtitle: t('quick_amount_taken_by_you_message'),
                       icon: Icons.bolt_rounded,
-                      colors: [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
+                      colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'totalInterest',
-                      title: 'Outstanding',
-                      subtitle: 'Uncleared quick amount',
+                      title: t('outstanding_label'),
+                      subtitle: t('uncleared_quick_amount_message'),
                       icon: Icons.account_balance_wallet_outlined,
-                      colors: [Color(0xFF58C4DD), Color(0xFF89E0EF)],
+                      colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'cleared',
-                      title: 'Cleared',
-                      subtitle: 'Quick transactions already closed',
+                      title: t('cleared_label'),
+                      subtitle: t('quick_transactions_already_closed_message'),
                       icon: Icons.check_circle_outline_rounded,
-                      colors: [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
+                      colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                     ),
                     _MetricDefinition(
                       id: 'uncleared',
-                      title: 'Uncleared',
-                      subtitle: 'Quick transactions still open',
+                      title: t('uncleared_label'),
+                      subtitle: t('quick_transactions_still_open_message'),
                       icon: Icons.pending_actions_rounded,
-                      colors: [Color(0xFFFFB562), Color(0xFFFFD9A0)],
+                      colors: const [Color(0xFFFFB562), Color(0xFFFFD9A0)],
                     ),
                     _MetricDefinition(
                       id: 'total',
-                      title: 'Total Transactions',
-                      subtitle: 'All quick records',
+                      title: t('total_transactions_label'),
+                      subtitle: t('all_quick_records_message'),
                       icon: Icons.receipt_long_rounded,
-                      colors: [Color(0xFF57A4FF), Color(0xFF90C6FF)],
+                      colors: const [Color(0xFF57A4FF), Color(0xFF90C6FF)],
                     ),
                     _MetricDefinition(
                       id: 'monthly',
-                      title: 'Monthly Activity',
-                      subtitle: '12-month quick trend',
+                      title: t('monthly_activity_label'),
+                      subtitle: t('twelve_month_quick_trend_message'),
                       icon: Icons.show_chart_rounded,
-                      colors: [Color(0xFF6B7CFF), Color(0xFFB3BCFF)],
+                      colors: const [Color(0xFF6B7CFF), Color(0xFFB3BCFF)],
                       isTrend: true,
                     ),
                   ],
@@ -1662,69 +1728,69 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 analytics: _groupAnalytics,
                 loading: _groupLoading,
                 error: _groupError,
-                config: const _AnalyticsTabConfig(
-                  tabTitle: 'Group Analytics',
-                  tabSubtitle:
-                      'Track contributions, dues, expenses, and group movement.',
+                config: _AnalyticsTabConfig(
+                  tabId: 'group',
+                  tabTitle: t('group_analytics_title_label'),
+                  tabSubtitle: t('group_analytics_subtitle_message'),
                   metrics: [
                     _MetricDefinition(
                       id: 'totalLent',
-                      title: 'Contributed',
-                      subtitle: 'What you paid into groups',
+                      title: t('contributed_label'),
+                      subtitle: t('what_you_paid_into_groups_message'),
                       icon: Icons.volunteer_activism_outlined,
-                      colors: [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
+                      colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'totalBorrowed',
-                      title: 'Your Share',
-                      subtitle: 'What belongs to you',
+                      title: t('your_share_title_label'),
+                      subtitle: t('what_belongs_to_you_message'),
                       icon: Icons.pie_chart_outline_rounded,
-                      colors: [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
+                      colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'totalInterest',
-                      title: 'Outstanding',
-                      subtitle: 'Amount still unsettled',
+                      title: t('outstanding_label'),
+                      subtitle: t('amount_still_unsettled_message'),
                       icon: Icons.account_balance_wallet_outlined,
-                      colors: [Color(0xFF58C4DD), Color(0xFF89E0EF)],
+                      colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                       isCurrency: true,
                     ),
                     _MetricDefinition(
                       id: 'cleared',
-                      title: 'Settled',
-                      subtitle: 'Splits already settled',
+                      title: t('settled_label'),
+                      subtitle: t('splits_already_settled_message'),
                       icon: Icons.task_alt_rounded,
-                      colors: [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
+                      colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                     ),
                     _MetricDefinition(
                       id: 'uncleared',
-                      title: 'Unsettled',
-                      subtitle: 'Splits still pending',
+                      title: t('unsettled_label'),
+                      subtitle: t('splits_still_pending_message'),
                       icon: Icons.hourglass_bottom_rounded,
-                      colors: [Color(0xFFFFB562), Color(0xFFFFD9A0)],
+                      colors: const [Color(0xFFFFB562), Color(0xFFFFD9A0)],
                     ),
                     _MetricDefinition(
                       id: 'total',
-                      title: 'Expenses',
-                      subtitle: 'Tracked group expenses',
+                      title: t('expenses_label'),
+                      subtitle: t('tracked_group_expenses_message'),
                       icon: Icons.receipt_rounded,
-                      colors: [Color(0xFF57A4FF), Color(0xFF90C6FF)],
+                      colors: const [Color(0xFF57A4FF), Color(0xFF90C6FF)],
                     ),
                     _MetricDefinition(
                       id: 'totalGroups',
-                      title: 'Groups',
-                      subtitle: 'Groups included in analytics',
+                      title: t('groups_label'),
+                      subtitle: t('groups_included_in_analytics_message'),
                       icon: Icons.groups_2_outlined,
-                      colors: [Color(0xFF7E74F1), Color(0xFFC0BCFF)],
+                      colors: const [Color(0xFF7E74F1), Color(0xFFC0BCFF)],
                     ),
                     _MetricDefinition(
                       id: 'monthly',
-                      title: 'Monthly Activity',
-                      subtitle: '12-month group trend',
+                      title: t('monthly_activity_label'),
+                      subtitle: t('twelve_month_group_trend_message'),
                       icon: Icons.show_chart_rounded,
-                      colors: [Color(0xFF6B7CFF), Color(0xFFB3BCFF)],
+                      colors: const [Color(0xFF6B7CFF), Color(0xFFB3BCFF)],
                       isTrend: true,
                     ),
                   ],
@@ -1743,6 +1809,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     required String? error,
     required _AnalyticsTabConfig config,
   }) {
+    final t = AppLocalizations.of(context).t;
     if (loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.cyan),
@@ -1768,7 +1835,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                  decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1778,11 +1845,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                         child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
                       ),
                       const SizedBox(height: 16),
-                      Text('Oops! Something went wrong',
+                      Text(t('oops_something_went_wrong_message'),
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
                           textAlign: TextAlign.center),
                       const SizedBox(height: 8),
-                      Text(error, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                      Text(error, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
                     ],
                   ),
                 ),
@@ -1801,7 +1868,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 child: ElevatedButton.icon(
                   onPressed: _refreshActiveTab,
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.cyan,
                     foregroundColor: Colors.white,
@@ -1820,8 +1887,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     if (analytics == null) {
       return _buildEmptyState(
         icon: Icons.analytics_outlined,
-        title: 'No analytics available',
-        message: 'We could not find enough data for this tab yet.',
+        title: t('no_analytics_available_label'),
+        message: t('not_enough_data_for_tab_message'),
       );
     }
 
@@ -1862,7 +1929,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     Expanded(
                       child: Text(
                         _displayCurrencyError ??
-                            'Conversion to $_selectedDisplayCurrency is not available for analytics yet. Showing INR values instead.',
+                            t('conversion_unavailable_for_analytics_message').replaceFirst('{currency}', _selectedDisplayCurrency),
                         style: const TextStyle(
                           color: Color(0xFFC62828),
                           fontWeight: FontWeight.w600,
@@ -1885,19 +1952,20 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   metric: heroMetrics[index],
                   analytics: analytics,
                   allMetrics: metrics,
+                  tabId: config.tabId,
                   tabTitle: config.tabTitle,
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            if (config.tabTitle == 'Secure Analytics') ...[
+            if (config.tabId == 'secure') ...[
               const SizedBox(height: 4),
               Text(
-                'Secure Insights',
+                t('secure_insights_label'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade900,
+                  color: AppThemeColors.primaryText(context),
                 ),
               ),
               const SizedBox(height: 10),
@@ -1933,8 +2001,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
                       _buildSummaryCard(
-                        title: 'Largest Pending',
-                        value: _buildSecureInsights()['largestPending'] ?? 'â‚¹0.00',
+                        title: t('largest_pending_label'),
+                        value: _buildSecureInsights()['largestPending'] ?? _formatSelectedCurrencyValue(0),
                         icon: Icons.priority_high_rounded,
                         colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                         useTricolorBorder: true,
@@ -1943,9 +2011,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                         ),
                       ),
                       _buildSummaryCard(
-                        title: 'Repayment Speed',
+                        title: t('repayment_speed_label'),
                         value:
-                            _buildSecureInsights()['averageRepayment'] ?? 'No data',
+                            _buildSecureInsights()['averageRepayment'] ?? t('no_data_label'),
                         icon: Icons.timer_outlined,
                         colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                         useTricolorBorder: true,
@@ -1954,21 +2022,21 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                         ),
                       ),
                       _buildSummaryCard(
-                        title: 'Top Counterparty',
-                        value: _buildSecureInsights()['topCounterparty'] ?? 'No data',
+                        title: t('top_counterparty_label'),
+                        value: _buildSecureInsights()['topCounterparty'] ?? t('no_data_label'),
                         icon: Icons.people_alt_rounded,
                         colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                         useTricolorBorder: true,
                         onTap: () => _openSecureFilteredPage(
                           globalSearch:
-                              _buildSecureInsights()['topCounterparty'] == 'No data'
+                              _buildSecureInsights()['topCounterparty'] == t('no_data_label')
                                   ? ''
                                   : _buildSecureInsights()['topCounterparty']!,
                         ),
                       ),
                       _buildSummaryCard(
-                        title: 'Interest Split',
-                        value: _buildSecureInsights()['interestMix'] ?? 'No data',
+                        title: t('interest_split_label'),
+                        value: _buildSecureInsights()['interestMix'] ?? t('no_data_label'),
                         icon: Icons.account_tree_outlined,
                         colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                         useTricolorBorder: true,
@@ -1981,11 +2049,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Risk / Attention',
+                  t('risk_attention_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1999,7 +2067,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     itemBuilder: (context, index) {
                       final item = _buildSecureAttentionItems()[index];
                       return _buildSummaryCard(
-                        title: item['title']!.toString(),
+                        title: _attentionItemDisplayLabel(item['title']!.toString(), t),
                         value: item['value']!.toString(),
                         icon: item['icon'] as IconData,
                         colors: List<Color>.from(item['colors'] as List),
@@ -2026,23 +2094,23 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: AppThemeColors.border(context)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.currency_exchange_rounded,
-                        color: Colors.blueGrey.shade600,
+                        color: AppThemeColors.secondaryText(context),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _buildSecureCurrencyContext(),
                           style: TextStyle(
-                            color: Colors.grey.shade700,
+                            color: AppThemeColors.secondaryText(context),
                             height: 1.35,
                             fontWeight: FontWeight.w600,
                           ),
@@ -2054,11 +2122,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 const SizedBox(height: 24),
                 // Extended metrics row
                 Text(
-                  'Extended Metrics',
+                  t('extended_metrics_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -2072,7 +2140,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                           const EdgeInsets.symmetric(horizontal: 20),
                       children: [
                         _buildSummaryCard(
-                          title: 'Net Position',
+                          title: t('net_position_label'),
                           value:
                               '${ext['netPositionSign']}${ext['netPosition']}',
                           icon: Icons.balance_rounded,
@@ -2083,7 +2151,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                           useTricolorBorder: true,
                         ),
                         _buildSummaryCard(
-                          title: 'Partial Pay Rate',
+                          title: t('partial_pay_rate_label'),
                           value: ext['partialPaymentRatio'] ?? '0%',
                           icon: Icons.payments_outlined,
                           colors: const [
@@ -2093,7 +2161,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                           useTricolorBorder: true,
                         ),
                         _buildSummaryCard(
-                          title: 'Default Rate',
+                          title: t('default_rate_label'),
                           value: ext['defaultRate'] ?? '0%',
                           icon: Icons.warning_amber_rounded,
                           colors: const [
@@ -2103,8 +2171,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                           useTricolorBorder: true,
                         ),
                         _buildSummaryCard(
-                          title: 'Avg Clear Time',
-                          value: ext['avgClearTime'] ?? 'No data',
+                          title: t('avg_clear_time_label'),
+                          value: ext['avgClearTime'] ?? t('no_data_label'),
                           icon: Icons.timer_outlined,
                           colors: const [
                             Color(0xFF58C4DD),
@@ -2119,26 +2187,26 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 const SizedBox(height: 24),
                 // Counterparty drilldown
                 Text(
-                  'Top Counterparties',
+                  t('top_counterparties_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('Most active lending/borrowing partners.',
+                Text(t('top_counterparties_subtitle_message'),
                     style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade500)),
+                        fontSize: 12, color: AppThemeColors.mutedText(context))),
                 const SizedBox(height: 12),
                 Builder(builder: (context) {
                   final partners = _buildSecureCounterpartyData();
                   if (partners.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text('No counterparty data yet.',
+                      child: Text(t('no_counterparty_data_message'),
                           style: TextStyle(
-                              color: Colors.grey.shade500)),
+                              color: AppThemeColors.mutedText(context))),
                     );
                   }
                   return Column(
@@ -2157,10 +2225,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(14),
                           border:
-                              Border.all(color: Colors.grey.shade200),
+                              Border.all(color: AppThemeColors.border(context)),
                           boxShadow: const [
                             BoxShadow(
                                 color: Colors.black12,
@@ -2197,11 +2265,12 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                                             fontSize: 14),
                                         overflow: TextOverflow.ellipsis),
                                     Text(
-                                        '$count txn${count > 1 ? 's' : ''}'
-                                        ' Â· $cleared cleared',
+                                        t('txn_count_cleared_message')
+                                            .replaceFirst('{count}', '$count')
+                                            .replaceFirst('{cleared}', '$cleared'),
                                         style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.grey.shade500)),
+                                            color: AppThemeColors.mutedText(context))),
                                   ],
                                 ),
                               ),
@@ -2232,7 +2301,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                                     ? (cleared / count).clamp(0.0, 1.0)
                                     : 0,
                                 minHeight: 6,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: AppThemeColors.border(context),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                     cleared == count
                                         ? Colors.green
@@ -2285,8 +2354,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Clearance Forecast',
-                                style: TextStyle(
+                            Text(t('clearance_forecast_label'),
+                                style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                     color: Color(0xFF0077B6))),
@@ -2295,7 +2364,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                               _buildSecureForecastText(),
                               style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade700,
+                                  color: AppThemeColors.secondaryText(context),
                                   height: 1.4),
                             ),
                           ],
@@ -2307,17 +2376,17 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               ],
               const SizedBox(height: 24),
             ],
-            if (config.tabTitle == 'Group Analytics') ...[
+            if (config.tabId == 'group') ...[
               _buildGroupInsights(),
             ],
-            if (config.tabTitle == 'Quick Analytics') ...[
+            if (config.tabId == 'quick') ...[
               const SizedBox(height: 4),
               Text(
-                'Quick Insights',
+                t('quick_insights_label'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade900,
+                  color: AppThemeColors.primaryText(context),
                 ),
               ),
               const SizedBox(height: 10),
@@ -2338,7 +2407,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     border: Border.all(color: const Color(0xFFFF6B6B)),
                   ),
                   child: Text(
-                    _quickTransactionsError ?? 'Unable to load quick insights.',
+                    _quickTransactionsError ?? t('unable_to_load_quick_insights_message'),
                     style: const TextStyle(
                       color: Color(0xFFC62828),
                       fontWeight: FontWeight.w600,
@@ -2353,34 +2422,34 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
                       _buildSummaryCard(
-                        title: 'Biggest Pending',
+                        title: t('biggest_pending_label'),
                         value:
-                            _buildQuickInsights()['biggestPending'] ?? 'â‚¹0.00',
+                            _buildQuickInsights()['biggestPending'] ?? _formatSelectedCurrencyValue(0),
                         icon: Icons.priority_high_rounded,
                         colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                         useTricolorBorder: true,
                       ),
                       _buildSummaryCard(
-                        title: 'Frequent Person',
+                        title: t('frequent_person_label'),
                         value:
                             _buildQuickInsights()['mostFrequentCounterparty'] ??
-                                'No data',
+                                t('no_data_label'),
                         icon: Icons.person_search_rounded,
                         colors: const [Color(0xFF7E74F1), Color(0xFFC0BCFF)],
                         useTricolorBorder: true,
                       ),
                       _buildSummaryCard(
-                        title: 'Month Net Flow',
+                        title: t('month_net_flow_label'),
                         value: _buildQuickInsights()['thisMonthNetFlow'] ??
-                            'â‚¹0.00',
+                            _formatSelectedCurrencyValue(0),
                         icon: Icons.swap_vert_circle_rounded,
                         colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                         useTricolorBorder: true,
                       ),
                       _buildSummaryCard(
-                        title: 'Average Amount',
+                        title: t('average_amount_label'),
                         value: _buildQuickInsights()['averageQuickAmount'] ??
-                            'â‚¹0.00',
+                            _formatSelectedCurrencyValue(0),
                         icon: Icons.analytics_rounded,
                         colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                         useTricolorBorder: true,
@@ -2390,11 +2459,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Per-Person Ledger',
+                  t('per_person_ledger_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -2437,7 +2506,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppThemeColors.cardBg(context),
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: Column(
@@ -2445,20 +2514,21 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    (item['name'] ?? item['email'] ?? 'Unknown')
+                                    (item['name'] ?? item['email'] ?? t('unknown_label'))
                                         .toString(),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
+                                      color: AppThemeColors.primaryText(context),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    isPositive ? 'You will get' : 'You owe',
+                                    isPositive ? t('you_will_get_label') : t('you_owe_label'),
                                     style: TextStyle(
-                                      color: Colors.grey.shade600,
+                                      color: AppThemeColors.secondaryText(context),
                                       fontSize: 12,
                                     ),
                                   ),
@@ -2484,22 +2554,22 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Quick Activity Trend',
+                  t('quick_activity_trend_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 12),
                 _buildQuickTrendChart(),
                 const SizedBox(height: 20),
                 Text(
-                  'Quick Breakdown',
+                  t('quick_breakdown_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -2552,7 +2622,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       );
                     },
                     icon: const Icon(Icons.list_alt_rounded),
-                    label: const Text('View Quick Transactions'),
+                    label: Text(t('view_quick_transactions_label')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.cyan,
                       shape: RoundedRectangleBorder(
@@ -2567,11 +2637,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Top Quick Partners',
+                  t('top_quick_partners_label'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -2579,11 +2649,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   builder: (context) {
                     final partners = _buildTopQuickPartners();
                     if (partners.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
-                          'No partner data is available yet.',
-                          style: TextStyle(color: Colors.grey),
+                          t('no_partner_data_message'),
+                          style: TextStyle(color: AppThemeColors.mutedText(context)),
                         ),
                       );
                     }
@@ -2630,7 +2700,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Quick interaction',
+                                  t('quick_interaction_label'),
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.85),
                                     fontSize: 12,
@@ -2659,19 +2729,19 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             ],
             const SizedBox(height: 24),
             Text(
-              'Analytics Options',
+              t('analytics_options_label'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade900,
+                color: AppThemeColors.primaryText(context),
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              'Open any option to view charts and related details.',
+              t('open_option_charts_message'),
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade600,
+                color: AppThemeColors.secondaryText(context),
               ),
             ),
             const SizedBox(height: 14),
@@ -2689,6 +2759,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 metric: metrics[index],
                 analytics: analytics,
                 allMetrics: metrics,
+                tabId: config.tabId,
                 tabTitle: config.tabTitle,
               ),
             ),
@@ -2702,6 +2773,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     _AnalyticsTabConfig config,
     Map<String, dynamic> analytics,
   ) {
+    final t = AppLocalizations.of(context).t;
     final total = ((analytics['total'] as num?) ?? 0).toInt();
     final displayCurrency = _hasMissingAnalyticsConversion()
         ? 'INR'
@@ -2718,7 +2790,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -2736,9 +2808,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               children: [
                 Text(
                   config.tabTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2747,7 +2820,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.35,
-                    color: Colors.grey.shade600,
+                    color: AppThemeColors.secondaryText(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -2761,7 +2834,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    'All monetary values in $displayCurrency',
+                    t('all_monetary_values_in_message').replaceFirst('{currency}', displayCurrency),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -2773,11 +2846,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 Row(
                   children: [
                     Text(
-                      'Show In',
+                      t('show_in_label'),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade800,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -2811,7 +2884,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Records',
+                  t('records_label'),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade700,
@@ -2819,7 +2892,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Peak ${peakMonth.toStringAsFixed(0)}',
+                  t('peak_value_message').replaceFirst('{value}', peakMonth.toStringAsFixed(0)),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -2838,10 +2911,11 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     required _AnalyticsMetric metric,
     required Map<String, dynamic> analytics,
     required List<_AnalyticsMetric> allMetrics,
+    required String tabId,
     required String tabTitle,
   }) {
     return GestureDetector(
-      onTap: () => _openMetricPage(metric, analytics, allMetrics, tabTitle),
+      onTap: () => _openMetricPage(metric, analytics, allMetrics, tabId, tabTitle),
       child: Container(
         width: 164,
         padding: const EdgeInsets.all(18),
@@ -2892,11 +2966,12 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     required _AnalyticsMetric metric,
     required Map<String, dynamic> analytics,
     required List<_AnalyticsMetric> allMetrics,
+    required String tabId,
     required String tabTitle,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(22),
-      onTap: () => _openMetricPage(metric, analytics, allMetrics, tabTitle),
+      onTap: () => _openMetricPage(metric, analytics, allMetrics, tabId, tabTitle),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
@@ -2916,7 +2991,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         child: Container(
           margin: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Padding(
@@ -2942,9 +3017,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   metric.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2963,7 +3039,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: AppThemeColors.secondaryText(context),
                   ),
                 ),
               ],
@@ -3010,9 +3086,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     _AnalyticsMetric metric,
     Map<String, dynamic> analytics,
     List<_AnalyticsMetric> allMetrics,
+    String tabId,
     String tabTitle,
   ) {
-    if (tabTitle == 'Secure Analytics') {
+    if (tabId == 'secure') {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -3067,16 +3144,17 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(context),
               ),
             ),
             const SizedBox(height: 10),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(context)),
             ),
           ],
         ),
@@ -3106,6 +3184,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final months = List<String>.from(analytics['months'] ?? const []);
     final monthlyCounts =
         (analytics['monthlyCounts'] as List<dynamic>? ?? const [])
@@ -3120,7 +3199,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
         allMetrics.where((item) => item.id != metric.id).take(2).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: transparentAppBar(context, title: metric.title),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -3184,8 +3263,8 @@ class _AnalyticsDetailPage extends StatelessWidget {
                     ),
                     child: Text(
                       hasMissingConversion
-                          ? 'Showing INR values'
-                          : 'Showing in ${selectedDisplayCurrency.toUpperCase()}',
+                          ? t('showing_inr_values_label')
+                          : t('showing_in_currency_message').replaceFirst('{currency}', selectedDisplayCurrency.toUpperCase()),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -3206,9 +3285,9 @@ class _AnalyticsDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: const Color(0xFFFF6B6B)),
                 ),
-                child: const Text(
-                  'Selected analytics currency is not available yet. Showing INR values instead.',
-                  style: TextStyle(
+                child: Text(
+                  t('currency_unavailable_showing_inr_message'),
+                  style: const TextStyle(
                     color: Color(0xFFC62828),
                     fontWeight: FontWeight.w600,
                   ),
@@ -3217,11 +3296,11 @@ class _AnalyticsDetailPage extends StatelessWidget {
             ],
             const SizedBox(height: 22),
             Text(
-              'Quick Facts',
+              t('quick_facts_label'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade900,
+                color: AppThemeColors.primaryText(context),
               ),
             ),
             const SizedBox(height: 12),
@@ -3229,7 +3308,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MiniInfoCard(
-                    title: 'Records',
+                    title: t('records_label'),
                     value: total.toStringAsFixed(0),
                     color: const Color(0xFF1B58B8),
                   ),
@@ -3237,7 +3316,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _MiniInfoCard(
-                    title: 'Completion',
+                    title: t('completion_label'),
                     value: '${(ratio * 100).toStringAsFixed(0)}%',
                     color: AppColors.cyan,
                   ),
@@ -3270,11 +3349,11 @@ class _AnalyticsDetailPage extends StatelessWidget {
             ],
             const SizedBox(height: 22),
             _ChartShell(
-              title: "Today's Stats",
+              title: t('todays_stats_label'),
               trailing: metric.isTrend
-                  ? const Text(
-                      '12 months',
-                      style: TextStyle(
+                  ? Text(
+                      t('twelve_months_label'),
+                      style: const TextStyle(
                         color: AppColors.cyan,
                         fontWeight: FontWeight.w600,
                       ),
@@ -3283,10 +3362,10 @@ class _AnalyticsDetailPage extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _LegendDot(
-                            color: const Color(0xFF7C9DFF), label: 'Cleared'),
+                            color: const Color(0xFF7C9DFF), label: t('cleared_label')),
                         const SizedBox(width: 12),
                         _LegendDot(
-                            color: const Color(0xFFFF8B7B), label: 'Pending'),
+                            color: const Color(0xFFFF8B7B), label: t('pending_label')),
                       ],
                     ),
               child: SizedBox(
@@ -3299,7 +3378,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
                       horizontalInterval: 5,
                       drawVerticalLine: false,
                       getDrawingHorizontalLine: (_) => FlLine(
-                        color: Colors.grey.shade200,
+                        color: Colors.grey.withValues(alpha: 0.16),
                         strokeWidth: 1,
                       ),
                     ),
@@ -3317,9 +3396,9 @@ class _AnalyticsDetailPage extends StatelessWidget {
                           reservedSize: 28,
                           getTitlesWidget: (value, meta) => Text(
                             value.toInt().toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey,
+                              color: AppThemeColors.secondaryText(context),
                             ),
                           ),
                         ),
@@ -3340,9 +3419,9 @@ class _AnalyticsDetailPage extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 label.length >= 7 ? label.substring(5) : label,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey,
+                                  color: AppThemeColors.secondaryText(context),
                                 ),
                               ),
                             );
@@ -3361,7 +3440,7 @@ class _AnalyticsDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             _ChartShell(
-              title: 'Needed Info',
+              title: t('needed_info_label'),
               child: Column(
                 children: [
                   _InfoRow(
@@ -3369,15 +3448,15 @@ class _AnalyticsDetailPage extends StatelessWidget {
                     value: metric.displayValue,
                   ),
                   _InfoRow(
-                    label: 'Total Records',
+                    label: t('total_records_label'),
                     value: total.toStringAsFixed(0),
                   ),
                   _InfoRow(
-                    label: 'Cleared',
+                    label: t('cleared_label'),
                     value: cleared.toStringAsFixed(0),
                   ),
                   _InfoRow(
-                    label: 'Pending',
+                    label: t('pending_label'),
                     value: pending.toStringAsFixed(0),
                     isLast: true,
                   ),
@@ -3480,7 +3559,7 @@ class _MiniInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -3506,7 +3585,7 @@ class _MiniInfoCard extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: AppThemeColors.secondaryText(context),
             ),
           ),
         ],
@@ -3532,7 +3611,7 @@ class _ChartShell extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -3550,9 +3629,10 @@ class _ChartShell extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context),
                   ),
                 ),
               ),
@@ -3594,7 +3674,7 @@ class _LegendDot extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade700,
+            color: AppThemeColors.secondaryText(context),
           ),
         ),
       ],
@@ -3620,7 +3700,7 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: isLast ? Colors.transparent : Colors.grey.shade200,
+            color: isLast ? Colors.transparent : AppThemeColors.border(context),
           ),
         ),
       ),
@@ -3631,15 +3711,16 @@ class _InfoRow extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade700,
+                color: AppThemeColors.secondaryText(context),
               ),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
+              color: AppThemeColors.primaryText(context),
             ),
           ),
         ],
@@ -3649,11 +3730,13 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _AnalyticsTabConfig {
+  final String tabId;
   final String tabTitle;
   final String tabSubtitle;
   final List<_MetricDefinition> metrics;
 
   const _AnalyticsTabConfig({
+    required this.tabId,
     required this.tabTitle,
     required this.tabSubtitle,
     required this.metrics,
