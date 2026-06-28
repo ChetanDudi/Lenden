@@ -1209,7 +1209,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
+                              child: Text(t('cancel')),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1247,7 +1247,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                 backgroundColor: AppColors.cyan,
                                 foregroundColor: Colors.white,
                               ),
-                              child: const Text('Save'),
+                              child: Text(t('save')),
                             ),
                           ),
                         ],
@@ -1273,6 +1273,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     required String lenderEmail,
     required String borrowerEmail,
   }) async {
+    final t = AppLocalizations.of(context).t;
     final amountController = TextEditingController(text: payment?['amount']?.toString() ?? '');
     final descriptionController = TextEditingController(text: payment?['description']?.toString() ?? '');
     DateTime? paidAt = DateTime.tryParse(payment?['paidAt']?.toString() ?? '');
@@ -1280,8 +1281,10 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
 
     return showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(payment == null ? 'Add Partial Payment' : 'Edit Partial Payment'),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
+        title: Text(payment == null ? t('add_partial_payment_title') : t('edit_partial_payment_title'),
+            style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
         content: StatefulBuilder(
           builder: (context, setDialogState) => SingleChildScrollView(
             child: Column(
@@ -1289,20 +1292,21 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
               children: [
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(labelText: 'Amount'),
+                  style: TextStyle(color: AppThemeColors.primaryText(context)),
+                  decoration: InputDecoration(labelText: t('amount_label')),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
                 DropdownButtonFormField<String>(
                   value: paidBy,
-                  decoration: const InputDecoration(labelText: 'Paid By'),
+                  decoration: InputDecoration(labelText: t('paid_by_label')),
                   items: [
                     DropdownMenuItem(
                       value: 'lender',
-                      child: Text('Lender ($lenderEmail)'),
+                      child: Text('${t('lender')} ($lenderEmail)'),
                     ),
                     DropdownMenuItem(
                       value: 'borrower',
-                      child: Text('Borrower ($borrowerEmail)'),
+                      child: Text('${t('borrower')} ($borrowerEmail)'),
                     ),
                   ],
                   onChanged: (value) {
@@ -1313,12 +1317,13 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                 ),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(labelText: 'Description'),
+                  style: TextStyle(color: AppThemeColors.primaryText(context)),
+                  decoration: InputDecoration(labelText: t('description_label')),
                 ),
                 ListTile(
-                  title: const Text('Paid At'),
+                  title: Text(t('paid_at_label'), style: TextStyle(color: AppThemeColors.primaryText(context))),
                   subtitle: Text(paidAt == null
-                      ? 'Select Date'
+                      ? t('select_date_label')
                       : _formatDate(paidAt!.toIso8601String())),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
@@ -1336,19 +1341,19 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t('cancel')),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context, {
+              Navigator.pop(dialogContext, {
                 'amount': double.tryParse(amountController.text) ?? 0,
                 'paidBy': paidBy,
                 'description': descriptionController.text,
                 'paidAt': paidAt?.toIso8601String(),
               });
             },
-            child: const Text('Save'),
+            child: Text(t('save')),
           ),
         ],
       ),
@@ -1356,6 +1361,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   }
 
   Widget _buildStatsRow() {
+    final t = AppLocalizations.of(context).t;
     final total = _transactions.length;
     final visible = _visibleTransactions.length;
     final totalAmount = _transactions.fold<double>(
@@ -1368,9 +1374,9 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     );
 
     final items = [
-      ('Total', '$total', Icons.receipt_long_rounded),
-      ('Showing', '$visible', Icons.visibility_rounded),
-      ('Amount', totalAmount.toStringAsFixed(2), Icons.payments_rounded),
+      (t('total_label'), '$total', Icons.receipt_long_rounded),
+      (t('showing_label'), '$visible', Icons.visibility_rounded),
+      (t('amount_label'), totalAmount.toStringAsFixed(2), Icons.payments_rounded),
     ];
 
     return Row(
@@ -1393,14 +1399,15 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     const SizedBox(height: 6),
                     Text(
                       item.$2,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                     Text(
                       item.$1,
-                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12),
                     ),
                   ],
                 ),
@@ -1421,16 +1428,17 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     Color color;
     IconData icon;
 
+    final t = AppLocalizations.of(context).t;
     if (userCleared && counterpartyCleared) {
-      label = 'Cleared';
+      label = t('cleared_label');
       color = Colors.green;
       icon = Icons.check_circle_rounded;
     } else if (isPartiallyPaid) {
-      label = 'Partially Paid';
+      label = t('partially_paid_label');
       color = Colors.orange;
       icon = Icons.donut_large_rounded;
     } else {
-      label = 'Pending';
+      label = t('pending');
       color = Colors.grey;
       icon = Icons.hourglass_empty_rounded;
     }
@@ -1445,6 +1453,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
   }
 
   Widget _buildTransactionCard(Map<String, dynamic> transaction, int index) {
+    final t = AppLocalizations.of(context).t;
     final amount = _displayValue(transaction['amount']);
     final currency = _displayValue(transaction['currency']);
     final lender = _displayValue(transaction['userEmail']);
@@ -1487,7 +1496,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   children: [
                     const Icon(Icons.arrow_upward_rounded, color: Colors.red, size: 20),
                     const SizedBox(width: 8),
-                    const Text('From:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(t('from_label'), style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     Expanded(child: Text(lender, overflow: TextOverflow.ellipsis)),
                   ],
@@ -1497,7 +1506,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   children: [
                     const Icon(Icons.arrow_downward_rounded, color: Colors.green, size: 20),
                     const SizedBox(width: 8),
-                    const Text('To:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(t('to_label'), style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     Expanded(child: Text(borrower, overflow: TextOverflow.ellipsis)),
                   ],
@@ -1507,7 +1516,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   children: [
                     Icon(Icons.calendar_today_rounded, color: Colors.grey[600], size: 16),
                     const SizedBox(width: 8),
-                    Text('Created: $createdAt'),
+                    Text(t('created_colon_label').replaceFirst('{date}', createdAt)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -1517,20 +1526,20 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                     TextButton.icon(
                       onPressed: () => _showFullDetailsDialog(transaction),
                       icon: const Icon(Icons.visibility_rounded),
-                      label: const Text('View'),
+                      label: Text(t('view_label')),
                     ),
                     const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () => _showEditTransactionDialog(transaction),
                       icon: const Icon(Icons.edit_rounded),
-                      label: const Text('Edit'),
+                      label: Text(t('edit')),
                       style: TextButton.styleFrom(foregroundColor: Colors.orange),
                     ),
                     const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () => _showDeleteConfirmationDialog(transaction),
                       icon: const Icon(Icons.delete_rounded),
-                      label: const Text('Delete'),
+                      label: Text(t('delete')),
                       style: TextButton.styleFrom(foregroundColor: Colors.red),
                     ),
                   ],
@@ -1545,11 +1554,12 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     final visibleTransactions = _visibleTransactions;
     final filteredTransactions = _transactions;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -1560,7 +1570,16 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                color: AppColors.cyan,
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                ),
               ),
             ),
           ),
@@ -1573,22 +1592,22 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Manage Transactions',
+                          t('manage_transactions_title'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.black),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
                         onPressed: _fetchTransactions,
                       ),
                     ],
@@ -1611,11 +1630,12 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                   _triBorder(
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: AppThemeColors.cardBg(context),
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: TextField(
                                         controller: _searchController,
+                                        style: TextStyle(color: AppThemeColors.primaryText(context)),
                                         onChanged: (value) {
                                           setState(() => _searchQuery = value);
                                           _searchDebounceTimer?.cancel();
@@ -1626,8 +1646,8 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                         },
                                         decoration: InputDecoration(
                                           border: InputBorder.none,
-                                          hintText:
-                                              'Search amount, lender, borrower, id, notes...',
+                                          hintText: t('search_transactions_hint'),
+                                          hintStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
                                           prefixIcon: const Icon(
                                             Icons.search_rounded,
                                             color: AppColors.cyan,
@@ -1657,7 +1677,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 12),
                                             decoration: BoxDecoration(
-                                              color: Colors.white,
+                                              color: AppThemeColors.cardBg(context),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
@@ -1665,6 +1685,8 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                               child: DropdownButton<String>(
                                                 value: _currencyFilter,
                                                 isExpanded: true,
+                                                dropdownColor: AppThemeColors.cardBg(context),
+                                                style: TextStyle(color: AppThemeColors.primaryText(context)),
                                                 items: _filterCurrencyOptions
                                                     .map(
                                                       (currency) =>
@@ -1691,7 +1713,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 12),
                                             decoration: BoxDecoration(
-                                              color: Colors.white,
+                                              color: AppThemeColors.cardBg(context),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
@@ -1699,18 +1721,20 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                               child: DropdownButton<String>(
                                                 value: _sortBy,
                                                 isExpanded: true,
-                                                items: const [
+                                                dropdownColor: AppThemeColors.cardBg(context),
+                                                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                                                items: [
                                                   DropdownMenuItem(
                                                     value: 'latest',
-                                                    child: Text('Latest'),
+                                                    child: Text(t('latest_label')),
                                                   ),
                                                   DropdownMenuItem(
                                                     value: 'amount_desc',
-                                                    child: Text('Amount High'),
+                                                    child: Text(t('amount_high')),
                                                   ),
                                                   DropdownMenuItem(
                                                     value: 'amount_asc',
-                                                    child: Text('Amount Low'),
+                                                    child: Text(t('amount_low')),
                                                   ),
                                                 ],
                                                 onChanged: (value) {
@@ -1728,18 +1752,18 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                                   _buildStatsRow(),
                                   const SizedBox(height: 16),
                                   if (filteredTransactions.isEmpty)
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 80),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 80),
                                       child: Column(
                                         children: [
                                           Icon(Icons.receipt_long_outlined,
-                                              size: 72, color: Colors.grey),
-                                          SizedBox(height: 12),
+                                              size: 72, color: AppThemeColors.mutedText(context)),
+                                          const SizedBox(height: 12),
                                           Text(
-                                            'No transactions found',
+                                            t('no_transactions_found'),
                                             style: TextStyle(
                                               fontSize: 18,
-                                              color: Colors.grey,
+                                              color: AppThemeColors.mutedText(context),
                                             ),
                                           ),
                                         ],

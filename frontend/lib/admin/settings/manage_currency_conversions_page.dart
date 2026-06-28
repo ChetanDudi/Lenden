@@ -446,7 +446,7 @@ class _ManageCurrencyConversionsPageState
                                         controller: _labelController,
                                         decoration: InputDecoration(
                                           labelText: t('label_optional'),
-                                          hintText: 'Singapore Dollar',
+                                          hintText: t('currency_label_hint_example'),
                                           filled: true,
                                           fillColor: AppThemeColors.surfaceBg(context),
                                           border: OutlineInputBorder(

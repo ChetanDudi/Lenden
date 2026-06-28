@@ -95,7 +95,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       final res = await ApiClient.get('/api/admin/ads');
       final data = _decodeJsonObject(res.body);
       if (res.statusCode != 200) {
-        throw Exception(_extractApiError(res.body, 'Failed to load ads'));
+        throw Exception(_extractApiError(res.body, AppLocalizations.of(context).t('failed_to_load_ads')));
       }
       setState(() {
         _ads = List<Map<String, dynamic>>.from(
@@ -317,8 +317,9 @@ class _ManageAdsPageState extends State<ManageAdsPage>
   }
 
   Future<void> _submitAd() async {
+    final t = AppLocalizations.of(context).t;
     if (_titleController.text.trim().isEmpty) {
-      setState(() => _error = 'Ad title is required.');
+      setState(() => _error = t('ad_title_required_message'));
       return;
     }
 
@@ -370,11 +371,11 @@ class _ManageAdsPageState extends State<ManageAdsPage>
 
       final validCodes = _isEditing ? [200] : [201];
       if (!validCodes.contains(res.statusCode)) {
-        throw Exception(_extractApiError(res.body, 'Failed to save ad'));
+        throw Exception(_extractApiError(res.body, t('failed_to_save_ad')));
       }
 
       final message =
-          _isEditing ? 'Ad edited successfully.' : 'Ad created successfully.';
+          _isEditing ? t('ad_edited_successfully_message') : t('ad_created_successfully_message');
       _resetForm();
       await _loadAds();
       if (!mounted) return;
@@ -394,40 +395,42 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       '/api/admin/ads/${ad['_id']}',
       body: {'active': !(ad['active'] == true)},
     );
+    if (!mounted) return;
+    final t = AppLocalizations.of(context).t;
     if (res.statusCode != 200) {
-      if (!mounted) return;
       _showStylishMessage(
-        _extractApiError(res.body, 'Failed to update ad status'),
+        _extractApiError(res.body, t('failed_to_update_ad_status')),
         true,
       );
       return;
     }
     await _loadAds();
     if (!mounted) return;
-    _showStylishMessage('Ad status updated.', false);
+    _showStylishMessage(t('ad_status_updated_message'), false);
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> ad) async {
+    final t = AppLocalizations.of(context).t;
     final shouldDelete = await _showConfirmDialog(
-      title: 'Delete Ad?',
-      message: 'Are you sure you want to delete "${(ad['title'] ?? '').toString()}"?',
-      confirmLabel: 'Delete',
+      title: t('delete_ad_title'),
+      message: '${t('confirm_delete_ad_message')} "${(ad['title'] ?? '').toString()}"?',
+      confirmLabel: t('delete'),
       confirmColor: Colors.redAccent,
     );
 
     if (shouldDelete == true) {
       final res = await ApiClient.delete('/api/admin/ads/${ad['_id']}');
+      if (!mounted) return;
       if (res.statusCode != 200) {
-        if (!mounted) return;
         _showStylishMessage(
-          _extractApiError(res.body, 'Failed to delete ad'),
+          _extractApiError(res.body, t('failed_to_delete_ad')),
           true,
         );
         return;
       }
       await _loadAds();
       if (!mounted) return;
-      _showStylishMessage('Ad deleted successfully.', false);
+      _showStylishMessage(t('ad_deleted_successfully_message'), false);
       if (_editingId == ad['_id']?.toString()) _resetForm();
     }
   }
@@ -438,9 +441,10 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     required String confirmLabel,
     required Color confirmColor,
   }) {
+    final t = AppLocalizations.of(context).t;
     return showDialog<bool>(
       context: context,
-      builder: (_) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           padding: const EdgeInsets.all(2),
@@ -455,7 +459,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(dialogContext),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -465,27 +469,27 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 const SizedBox(height: 12),
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(dialogContext)),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(height: 1.45),
+                  style: TextStyle(height: 1.45, color: AppThemeColors.secondaryText(dialogContext)),
                 ),
                 const SizedBox(height: 18),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: Text(t('cancel')),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
+                        onPressed: () => Navigator.pop(dialogContext, true),
                         style: ElevatedButton.styleFrom(backgroundColor: confirmColor),
                         child: Text(confirmLabel),
                       ),
@@ -571,8 +575,9 @@ class _ManageAdsPageState extends State<ManageAdsPage>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -583,12 +588,15 @@ class _ManageAdsPageState extends State<ManageAdsPage>
               clipper: TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.waveSolid(context),
+                  gradient: AppThemeColors.isDark(context)
+                      ? null
+                      : const LinearGradient(
+                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                 ),
               ),
             ),
@@ -602,16 +610,16 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Manage Ads',
+                          t('manage_ads_label'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Colors.black,
+                            color: AppThemeColors.iconOnWave(context),
                           ),
                         ),
                       ),
@@ -633,20 +641,22 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: TabBar(
                         controller: _tabController,
                         labelColor: AppColors.cyan,
-                        unselectedLabelColor: Colors.black54,
+                        unselectedLabelColor: AppThemeColors.secondaryText(context),
                         indicator: BoxDecoration(
-                          color: const Color(0xFFEAF5FF),
+                          color: AppThemeColors.tinted(context,
+                              light: const Color(0xFFEAF5FF),
+                              dark: const Color(0xFF15232D)),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        tabs: const [
-                          Tab(text: 'Create'),
-                          Tab(text: 'Manage'),
+                        tabs: [
+                          Tab(text: t('create')),
+                          Tab(text: t('manage')),
                         ],
                       ),
                     ),
@@ -699,6 +709,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
   }
 
   Widget _buildComposer() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -712,7 +723,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -726,73 +737,75 @@ class _ManageAdsPageState extends State<ManageAdsPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isEditing ? 'Edit Ad' : 'Create New Ad',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              _isEditing ? t('edit_ad_title') : t('create_new_ad_title'),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Ad Title',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('ad_title_label'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _bodyController,
               maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Ad Text',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('ad_text_label'),
+                border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _ctaTextController,
-              decoration: const InputDecoration(
-                labelText: 'Call-To-Action Text',
-                helperText:
-                    'Optional. This becomes the button text users tap, like Learn More or Open Offer.',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('call_to_action_text_label'),
+                helperText: t('cta_text_helper_desc'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _ctaUrlController,
-              decoration: const InputDecoration(
-                labelText: 'Call-To-Action URL',
-                helperText:
-                    'Optional. Add the full link starting with http:// or https:// for the CTA button.',
-                border: OutlineInputBorder(),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('call_to_action_url_label'),
+                helperText: t('cta_url_helper_desc'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _audience,
-              decoration: const InputDecoration(
-                labelText: 'Audience',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t('audience_label'),
+                border: const OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Users')),
-                DropdownMenuItem(value: 'subscribed', child: Text('Subscribed Only')),
-                DropdownMenuItem(value: 'nonsubscribed', child: Text('Non-Subscribed Only')),
+              items: [
+                DropdownMenuItem(value: 'all', child: Text(t('all_users_label'))),
+                DropdownMenuItem(value: 'subscribed', child: Text(t('subscribed_only_label'))),
+                DropdownMenuItem(value: 'nonsubscribed', child: Text(t('non_subscribed_only_label'))),
               ],
               onChanged: (value) =>
                   setState(() => _audience = value ?? 'nonsubscribed'),
             ),
             const SizedBox(height: 12),
             _buildStylishDateTimePicker(
-              label: 'Starts At',
-              helperText: 'Choose when this ad should start appearing to eligible users.',
+              label: t('starts_at_label'),
+              helperText: t('starts_at_helper_desc'),
               value: _startsAt,
               onPick: (dt) => setState(() => _startsAt = dt),
             ),
             const SizedBox(height: 12),
             _buildStylishDateTimePicker(
-              label: 'Ends At',
-              helperText: 'Optional. Choose when this ad should stop appearing.',
+              label: t('ends_at_label'),
+              helperText: t('ends_at_helper_desc'),
               value: _endsAt,
               onPick: (dt) => setState(() => _endsAt = dt),
               onClear: () => setState(() => _endsAt = null),
@@ -800,19 +813,21 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             const SizedBox(height: 12),
             TextField(
               controller: _placementsController,
-              decoration: const InputDecoration(
-                labelText: 'Placements',
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('placements_label'),
                 hintText: 'dashboard, home, offers',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _tagsController,
-              decoration: const InputDecoration(
-                labelText: 'Tags',
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              decoration: InputDecoration(
+                labelText: t('tags_label'),
                 hintText: 'festival, finance, rewards',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -821,9 +836,9 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _priorityWeight,
-                    decoration: const InputDecoration(
-                      labelText: 'Priority Weight',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('priority_weight_label'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: const [
                       DropdownMenuItem(value: 1, child: Text('1')),
@@ -840,9 +855,9 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _dailyCapPerUser,
-                    decoration: const InputDecoration(
-                      labelText: 'Daily Cap / User',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t('daily_cap_per_user_label'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: const [
                       DropdownMenuItem(value: 1, child: Text('1')),
@@ -858,9 +873,9 @@ class _ManageAdsPageState extends State<ManageAdsPage>
               ],
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Video close button timing',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            Text(
+              t('video_close_button_timing_label'),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -870,14 +885,14 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 _buildVideoCloseChip(25, '25%'),
                 _buildVideoCloseChip(50, '50%'),
                 _buildVideoCloseChip(75, '75%'),
-                _buildVideoCloseChip(100, 'At End'),
+                _buildVideoCloseChip(100, t('at_end_label')),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              'For video ads, the close button appears after the selected part of the video has played. Text and image ads can be closed immediately.',
+              t('video_close_button_timing_desc'),
               style: TextStyle(
-                color: Colors.grey.shade700,
+                color: AppThemeColors.secondaryText(context),
                 height: 1.4,
                 fontWeight: FontWeight.w500,
               ),
@@ -886,7 +901,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _active,
-              title: const Text('Keep ad active'),
+              title: Text(t('keep_ad_active_label'), style: TextStyle(color: AppThemeColors.primaryText(context))),
               onChanged: (value) => setState(() => _active = value),
             ),
             const SizedBox(height: 8),
@@ -895,7 +910,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
               icon: const Icon(Icons.attach_file),
               label: Text(
                 _selectedMedia == null
-                    ? 'Pick Image / Video'
+                    ? t('pick_image_video_label')
                     : _selectedMedia!.name,
               ),
             ),
@@ -920,7 +935,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Cancel Edit'),
+                      child: Text(t('cancel_edit_label')),
                     ),
                   ),
                 if (_isEditing) const SizedBox(width: 12),
@@ -936,8 +951,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                     ),
                     child: Text(
                       _submitting
-                          ? (_isEditing ? 'Saving...' : 'Uploading...')
-                          : (_isEditing ? 'Save Changes' : 'Create Ad'),
+                          ? (_isEditing ? t('saving_ellipsis_label') : t('uploading_ellipsis_label'))
+                          : (_isEditing ? t('save_changes_label') : t('create_ad_label')),
                     ),
                   ),
                 ),
@@ -950,10 +965,11 @@ class _ManageAdsPageState extends State<ManageAdsPage>
   }
 
   Widget _buildManageHeader() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
@@ -966,24 +982,24 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Manage Ads',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          Text(
+            t('manage_ads_label'),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(context)),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildSummaryChip('Active', '${_adSummary['active']}'),
-              _buildSummaryChip('Views', '${_adSummary['impressions']}'),
-              _buildSummaryChip('Clicks', '${_adSummary['clicks']}'),
-              _buildSummaryChip('Reports', '${_adSummary['reports']}'),
+              _buildSummaryChip(t('active'), '${_adSummary['active']}'),
+              _buildSummaryChip(t('views_label'), '${_adSummary['impressions']}'),
+              _buildSummaryChip(t('clicks_label'), '${_adSummary['clicks']}'),
+              _buildSummaryChip(t('reports_label'), '${_adSummary['reports']}'),
               _buildSummaryChip(
-                'CTR',
+                t('ctr_label'),
                 '${(_adSummary['ctr'] as double).toStringAsFixed(1)}%',
               ),
-              _buildSummaryChip('Watch', '${_adSummary['watch']}s'),
+              _buildSummaryChip(t('watch_label'), '${_adSummary['watch']}s'),
             ],
           ),
           const SizedBox(height: 12),
@@ -991,13 +1007,13 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildFilterChip('all', 'All'),
-              _buildFilterChip('mine', 'Mine'),
-              _buildFilterChip('active', 'Active'),
-              _buildFilterChip('reported', 'Reported'),
-              _buildFilterChip('image', 'Images'),
-              _buildFilterChip('video', 'Videos'),
-              _buildFilterChip('text', 'Text'),
+              _buildFilterChip('all', t('all_label')),
+              _buildFilterChip('mine', t('mine_label')),
+              _buildFilterChip('active', t('active')),
+              _buildFilterChip('reported', t('reported_label')),
+              _buildFilterChip('image', t('images_label')),
+              _buildFilterChip('video', t('videos_label')),
+              _buildFilterChip('text', t('text_label')),
             ],
           ),
           const SizedBox(height: 12),
@@ -1005,7 +1021,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? 'Show Latest 3' : 'View All'),
+              child: Text(_showAll ? t('show_latest_3_label') : t('view_all_label')),
             ),
           ),
         ],
@@ -1019,9 +1035,10 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       label: Text(label),
       selected: selected,
       onSelected: (_) => setState(() => _filter = value),
-      selectedColor: const Color(0xFFEAF5FF),
+      selectedColor: AppThemeColors.tinted(context,
+          light: const Color(0xFFEAF5FF), dark: const Color(0xFF15232D)),
       labelStyle: TextStyle(
-        color: selected ? AppColors.cyan : Colors.black87,
+        color: selected ? AppColors.cyan : AppThemeColors.primaryText(context),
         fontWeight: FontWeight.w700,
       ),
     );
@@ -1031,12 +1048,13 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5FF),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFEAF5FF), dark: const Color(0xFF15232D)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(color: Colors.black87),
+          style: TextStyle(color: AppThemeColors.primaryText(context)),
           children: [
             TextSpan(
               text: '$value ',
@@ -1056,21 +1074,23 @@ class _ManageAdsPageState extends State<ManageAdsPage>
   }
 
   Widget _buildEmptyState() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Text(
-        'No ads found for this filter.',
+      child: Text(
+        t('no_ads_found_for_filter_message'),
         textAlign: TextAlign.center,
-        style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
+        style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context)),
       ),
     );
   }
 
   Widget _buildAdCard(Map<String, dynamic> ad) {
+    final t = AppLocalizations.of(context).t;
     final createdBy = ad['createdBy'];
     final createdByEmail =
         createdBy is Map ? (createdBy['email'] ?? '').toString() : '';
@@ -1098,7 +1118,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Column(
@@ -1110,7 +1130,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                   child: Text(
                     (ad['title'] ?? '').toString(),
                     style:
-                        const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(context)),
                   ),
                 ),
                 Container(
@@ -1123,7 +1143,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    ad['active'] == true ? 'Active' : 'Inactive',
+                    ad['active'] == true ? t('active') : t('inactive'),
                     style: TextStyle(
                       color: ad['active'] == true ? Colors.green.shade800 : Colors.redAccent,
                       fontWeight: FontWeight.w700,
@@ -1134,7 +1154,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
             ),
             const SizedBox(height: 8),
             Text(
-              '${(ad['mediaKind'] ?? 'none').toString().toUpperCase()} media',
+              '${(ad['mediaKind'] ?? 'none').toString().toUpperCase()} ${t('media_label')}',
               style: const TextStyle(
                 color: AppColors.cyan,
                 fontWeight: FontWeight.w700,
@@ -1144,7 +1164,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
               const SizedBox(height: 10),
               Text(
                 (ad['body'] ?? '').toString(),
-                style: const TextStyle(height: 1.45, color: Colors.black87),
+                style: TextStyle(height: 1.45, color: AppThemeColors.primaryText(context)),
               ),
             ],
             const SizedBox(height: 14),
@@ -1152,31 +1172,31 @@ class _ManageAdsPageState extends State<ManageAdsPage>
               spacing: 10,
               runSpacing: 10,
               children: [
-                _buildMetaChip(Icons.person_outline, 'By: $createdByEmail'),
-                _buildMetaChip(Icons.schedule, 'Published: ${_formatDateTime(ad['createdAt'])}'),
-                _buildMetaChip(Icons.filter_alt_outlined, 'Audience: ${(ad['audience'] ?? 'nonsubscribed')}'),
-                _buildMetaChip(Icons.remove_red_eye_outlined, 'Views: ${((ad['stats'] ?? {})['impressions'] ?? 0)}'),
-                _buildMetaChip(Icons.ads_click, 'Clicks: ${((ad['stats'] ?? {})['clicks'] ?? 0)}'),
-                _buildMetaChip(Icons.report_gmailerrorred_outlined, 'Reports: ${((ad['stats'] ?? {})['reports'] ?? 0)}'),
-                _buildMetaChip(Icons.visibility_off_outlined, 'Hides: ${((ad['stats'] ?? {})['hides'] ?? 0)}'),
-                _buildMetaChip(Icons.group_outlined, 'Reach: ${((ad['stats'] ?? {})['uniqueUsers'] ?? 0)} users'),
-                _buildMetaChip(Icons.av_timer_outlined, 'Avg watch: ${((ad['stats'] ?? {})['averageWatchSeconds'] ?? 0)}s'),
+                _buildMetaChip(Icons.person_outline, '${t('by_label')} $createdByEmail'),
+                _buildMetaChip(Icons.schedule, '${t('published_colon_label')} ${_formatDateTime(ad['createdAt'])}'),
+                _buildMetaChip(Icons.filter_alt_outlined, '${t('audience_label')}: ${(ad['audience'] ?? 'nonsubscribed')}'),
+                _buildMetaChip(Icons.remove_red_eye_outlined, '${t('views_label')}: ${((ad['stats'] ?? {})['impressions'] ?? 0)}'),
+                _buildMetaChip(Icons.ads_click, '${t('clicks_label')}: ${((ad['stats'] ?? {})['clicks'] ?? 0)}'),
+                _buildMetaChip(Icons.report_gmailerrorred_outlined, '${t('reports_label')}: ${((ad['stats'] ?? {})['reports'] ?? 0)}'),
+                _buildMetaChip(Icons.visibility_off_outlined, '${t('hides_label')}: ${((ad['stats'] ?? {})['hides'] ?? 0)}'),
+                _buildMetaChip(Icons.group_outlined, '${t('reach_label')}: ${((ad['stats'] ?? {})['uniqueUsers'] ?? 0)} ${t('users_label').toLowerCase()}'),
+                _buildMetaChip(Icons.av_timer_outlined, '${t('avg_watch_label')}: ${((ad['stats'] ?? {})['averageWatchSeconds'] ?? 0)}s'),
                 if (wasEdited)
-                  _buildMetaChip(Icons.edit_outlined, 'Edited: ${_formatDateTime(ad['updatedAt'])}'),
+                  _buildMetaChip(Icons.edit_outlined, '${t('edited_colon_label')} ${_formatDateTime(ad['updatedAt'])}'),
                 if ((ad['mediaKind'] ?? 'none').toString() == 'video')
                   _buildMetaChip(
                     Icons.timer_outlined,
-                    'Close at: ${_videoCloseLabel(ad['videoCloseAtPercent'])}',
+                    '${t('close_at_label')}: ${_videoCloseLabel(ad['videoCloseAtPercent'], t)}',
                   ),
-                _buildMetaChip(Icons.speed_outlined, 'Weight: ${(ad['priorityWeight'] ?? 1)}'),
-                _buildMetaChip(Icons.today_outlined, 'Cap: ${(ad['dailyCapPerUser'] ?? 3)}/day'),
+                _buildMetaChip(Icons.speed_outlined, '${t('weight_label')}: ${(ad['priorityWeight'] ?? 1)}'),
+                _buildMetaChip(Icons.today_outlined, '${t('cap_label')}: ${(ad['dailyCapPerUser'] ?? 3)}${t('per_day_suffix')}'),
               ],
             ),
             if (recentReports.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text(
-                'Recent report reasons',
-                style: TextStyle(
+              Text(
+                t('recent_report_reasons_label'),
+                style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   color: AppColors.cyan,
                 ),
@@ -1186,8 +1206,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                 (report) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    '• ${(report['reason'] ?? '').toString().trim().isEmpty ? 'No reason provided' : report['reason']}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    '• ${(report['reason'] ?? '').toString().trim().isEmpty ? t('no_reason_provided_label') : report['reason']}',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
                   ),
                 ),
               ),
@@ -1199,7 +1219,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                   child: OutlinedButton.icon(
                     onPressed: canManage ? () => _startEditing(ad) : null,
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit'),
+                    label: Text(t('edit')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1210,7 +1230,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                       backgroundColor: Colors.redAccent,
                     ),
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
+                    label: Text(t('delete')),
                   ),
                 ),
               ],
@@ -1220,13 +1240,13 @@ class _ManageAdsPageState extends State<ManageAdsPage>
               contentPadding: EdgeInsets.zero,
               value: ad['active'] == true,
               onChanged: canManage ? (_) => _toggleAd(ad) : null,
-              title: const Text('Show this ad to users'),
+              title: Text(t('show_ad_to_users_label'), style: TextStyle(color: AppThemeColors.primaryText(context))),
             ),
             if (!canManage)
               Text(
-                'Only the creator admin or a superadmin can edit or delete this ad.',
+                t('only_creator_or_superadmin_can_edit_delete_message'),
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: AppThemeColors.secondaryText(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1240,7 +1260,8 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F8FB),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF4F8FB), dark: const Color(0xFF1B2730)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -1250,7 +1271,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
           ),
         ],
       ),
@@ -1271,23 +1292,24 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     );
   }
 
-  String _videoCloseLabel(dynamic value) {
+  String _videoCloseLabel(dynamic value, String Function(String) t) {
     final percent = int.tryParse(value?.toString() ?? '') ?? 100;
     switch (percent) {
       case 25:
-        return '25% played';
+        return t('percent_25_played_label');
       case 50:
-        return '50% played';
+        return t('percent_50_played_label');
       case 75:
-        return '75% played';
+        return t('percent_75_played_label');
       default:
-        return 'End of video';
+        return t('end_of_video_label');
     }
   }
 
   String _formatDateTime(dynamic value) {
+    final t = AppLocalizations.of(context).t;
     final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
-    if (date == null) return 'Unknown';
+    if (date == null) return t('unknown');
     const months = [
       'Jan',
       'Feb',

@@ -50,7 +50,6 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   void _connectSocket() {
-    final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
     final token = session.token;
     if (token == null) return;
@@ -75,7 +74,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         if (data['user'] != null &&
             data['user']['_id'] == session.user?['_id']) {
           setState(() => _queries.insert(0, data));
-          _snack(t('query_created_message'), Colors.green);
+          _snack(AppLocalizations.of(context).t('query_created_message'), Colors.green);
         }
       });
 
@@ -90,13 +89,13 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
           _queries.sort((a, b) => DateTime.parse(b['createdAt'])
               .compareTo(DateTime.parse(a['createdAt'])));
         });
-        _snack(t('query_updated_message'), Colors.orange);
+        _snack(AppLocalizations.of(context).t('query_updated_message'), Colors.orange);
       });
 
       socket?.on('support_query_deleted', (data) {
         setState(() =>
             _queries.removeWhere((q) => q['_id'] == data['queryId']));
-        _snack(t('query_deleted_message'), Colors.red);
+        _snack(AppLocalizations.of(context).t('query_deleted_message'), Colors.red);
       });
     } catch (e) {
       print('Error connecting to socket: $e');
@@ -104,7 +103,6 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
   }
 
   Future<void> _fetchUserQueries() async {
-    final t = AppLocalizations.of(context).t;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -119,12 +117,14 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         });
       } else {
         final data = jsonDecode(response.body);
+        final t = AppLocalizations.of(context).t;
         setState(() {
           _error = data['error'] ?? t('failed_to_load_queries_message');
           _isLoading = false;
         });
       }
     } catch (e) {
+      final t = AppLocalizations.of(context).t;
       setState(() {
         _error = t('an_error_occurred_message').replaceFirst('{error}', '$e');
         _isLoading = false;

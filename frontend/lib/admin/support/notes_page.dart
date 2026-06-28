@@ -90,7 +90,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
       }
     } catch (e) {
       setState(() {
-        error = 'Failed to load notes';
+        error = AppLocalizations.of(context).t('failed_to_load_notes');
         loading = false;
       });
     }
@@ -739,7 +739,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                                                 Expanded(
                                                   child: Text(
                                                     note['title'] ??
-                                                        '(No Title)',
+                                                        t('no_title_label'),
                                                     style: const TextStyle(
                                                       fontSize: 18,
                                                       fontWeight:

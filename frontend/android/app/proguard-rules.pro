@@ -31,3 +31,11 @@
 # ── AndroidX ─────────────────────────────────────────────────────────────────
 -keep class androidx.** { *; }
 -dontwarn androidx.**
+
+# ── ML Kit Text Recognition (only the Latin script is bundled; the plugin's ──
+# ── code references the optional Chinese/Devanagari/Japanese/Korean ──────────
+# ── recognizers even when their dependencies aren't included) ────────────────
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**

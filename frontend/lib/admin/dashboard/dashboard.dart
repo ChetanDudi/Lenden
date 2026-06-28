@@ -16,6 +16,7 @@ import '../support/manage_contact_page.dart';
 import '../support/manage_support_queries_page.dart';
 import '../../widgets/notification_icon.dart';
 import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 import '../digitise/manage_subscriptions_page.dart';
 import '../digitise/manage_gift_cards_page.dart';
 import '../digitise/manage_referral_settings_page.dart';
@@ -107,7 +108,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) {
         throw Exception(
-          (data['message'] ?? 'Failed to load admin overview').toString(),
+          (data['message'] ?? AppLocalizations.of(context).t('failed_to_load_admin_overview')).toString(),
         );
       }
 
@@ -140,12 +141,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         body: const {},
       );
       final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       if (response.statusCode != 200) {
         throw Exception(
-          (data['message'] ?? 'Failed to clear pending users').toString(),
+          (data['message'] ?? t('failed_to_clear_pending_users')).toString(),
         );
       }
-      if (!mounted) return;
       final modifiedCount = (data['modifiedCount'] ?? 0) as num;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -160,7 +162,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 colors: [
                   (modifiedCount > 0 ? AppColors.cyan : Colors.green)
                       .withValues(alpha: 0.14),
-                  Colors.white,
+                  AppThemeColors.cardBg(context),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -180,11 +182,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    (data['message'] ?? 'No pending users were left to review')
+                    (data['message'] ?? t('no_pending_users_left_to_review'))
                         .toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                 ),
@@ -275,14 +277,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return _adminPermissions[key] != false;
   }
 
-  List<_AdminDashboardItem> _dashboardItems(BuildContext context) => [
+  List<_AdminDashboardItem> _dashboardItems(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
+    return [
         _AdminDashboardItem(
           id: 'manage_users',
           permissionKey: 'canManageUsers',
           icon: Icons.people_alt_rounded,
-          label: 'Manage Users',
-          caption: 'Review and control user accounts',
-          actionLabel: 'Users',
+          label: t('manage_users_label'),
+          caption: t('review_and_control_user_accounts_desc'),
+          actionLabel: t('users_label'),
           backgroundColor: const Color(0xFFEDEBFA),
           iconColor: const Color(0xFF304E96),
           onTap: () {
@@ -296,9 +300,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_transactions',
           permissionKey: 'canManageTransactions',
           icon: Icons.receipt_long_rounded,
-          label: 'Manage Secure Transactions',
-          caption: 'Inspect and control secure records',
-          actionLabel: 'Secure',
+          label: t('manage_secure_transactions_label'),
+          caption: t('inspect_and_control_secure_records_desc'),
+          actionLabel: t('secure_label'),
           backgroundColor: const Color(0xFFE8F4EC),
           iconColor: const Color(0xFF1E6B3B),
           onTap: () {
@@ -312,9 +316,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'notes',
           permissionKey: 'canManageSettings',
           icon: Icons.route_rounded,
-          label: 'Notes',
-          caption: 'Open internal notes and references',
-          actionLabel: 'Notes',
+          label: t('notes_label'),
+          caption: t('open_internal_notes_and_references_desc'),
+          actionLabel: t('notes_label'),
           backgroundColor: const Color(0xFFF5EAF4),
           iconColor: const Color(0xFF8A2F7B),
           onTap: () {
@@ -328,9 +332,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_groups',
           permissionKey: 'canManageTransactions',
           icon: Icons.group_work_rounded,
-          label: 'Manage Groups',
-          caption: 'Handle group activity and expenses',
-          actionLabel: 'Groups',
+          label: t('manage_groups_label'),
+          caption: t('handle_group_activity_and_expenses_desc'),
+          actionLabel: t('groups_label'),
           backgroundColor: const Color(0xFFF3F2E8),
           iconColor: const Color(0xFF8B7A30),
           onTap: () {
@@ -344,9 +348,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_quick_transactions',
           permissionKey: 'canManageTransactions',
           icon: Icons.flash_on_rounded,
-          label: 'Manage Quick Transactions',
-          caption: 'Inspect and manage quick transaction records',
-          actionLabel: 'Quick',
+          label: t('manage_quick_transactions_label'),
+          caption: t('inspect_and_manage_quick_transaction_records_desc'),
+          actionLabel: t('quick_label'),
           backgroundColor: const Color(0xFFE8F0FE),
           iconColor: const Color(0xFF1A56DB),
           onTap: () {
@@ -361,9 +365,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'track_user_activity',
           permissionKey: 'canManageUsers',
           icon: Icons.insights_rounded,
-          label: 'Track User Activity',
-          caption: 'Monitor user-side platform behaviour',
-          actionLabel: 'Track',
+          label: t('track_user_activity'),
+          caption: t('monitor_user_side_platform_behaviour_desc'),
+          actionLabel: t('track_label'),
           backgroundColor: const Color(0xFFE8F2FB),
           iconColor: const Color(0xFF1D5D91),
           onTap: () {
@@ -377,9 +381,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_subscription',
           permissionKey: 'canManageSettings',
           icon: Icons.tune_rounded,
-          label: 'Manage Subscription',
-          caption: 'Adjust admin-side product controls',
-          actionLabel: 'Subscription',
+          label: t('manage_subscription_label'),
+          caption: t('adjust_admin_side_product_controls_desc'),
+          actionLabel: t('subscription_label'),
           backgroundColor: const Color(0xFFEAF6F0),
           iconColor: const Color(0xFF296D4E),
           onTap: () {
@@ -393,9 +397,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_gift_cards',
           permissionKey: 'canManageDigitise',
           icon: Icons.card_giftcard_rounded,
-          label: 'Manage Gift Cards',
-          caption: 'Create and control gift card inventory',
-          actionLabel: 'Cards',
+          label: t('manage_gift_cards_label'),
+          caption: t('create_and_control_gift_card_inventory_desc'),
+          actionLabel: t('cards_label'),
           backgroundColor: const Color(0xFFFCEFE4),
           iconColor: const Color(0xFF9B5B21),
           onTap: () {
@@ -409,9 +413,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'referral_settings',
           permissionKey: 'canManageDigitise',
           icon: Icons.share_rounded,
-          label: 'Referral Settings',
-          caption: 'Tune referral rewards and flows',
-          actionLabel: 'Referral',
+          label: t('referral_settings_label'),
+          caption: t('tune_referral_rewards_and_flows_desc'),
+          actionLabel: t('referral_label'),
           backgroundColor: const Color(0xFFEAF0FF),
           iconColor: const Color(0xFF405FB5),
           onTap: () {
@@ -427,9 +431,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_offers',
           permissionKey: 'canManageDigitise',
           icon: Icons.local_offer_rounded,
-          label: 'Manage Offers',
-          caption: 'Publish and update admin offers',
-          actionLabel: 'Offers',
+          label: t('manage_offers_label'),
+          caption: t('publish_and_update_admin_offers_desc'),
+          actionLabel: t('offers_label'),
           backgroundColor: const Color(0xFFF4EAF0),
           iconColor: const Color(0xFF8C2C62),
           onTap: () {
@@ -443,9 +447,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'contact_settings',
           permissionKey: 'canManageSettings',
           icon: Icons.contact_phone_rounded,
-          label: 'Contact Settings',
-          caption: 'Update support and contact details',
-          actionLabel: 'Contact',
+          label: t('contact_settings_label'),
+          caption: t('update_support_and_contact_details_desc'),
+          actionLabel: t('contact_label'),
           backgroundColor: const Color(0xFFE8F7FA),
           iconColor: const Color(0xFF0B8FAC),
           onTap: () {
@@ -459,9 +463,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'support_queries',
           permissionKey: 'canManageSupport',
           icon: Icons.support_agent_rounded,
-          label: 'Help & Support',
-          caption: 'Resolve support queues and user issues',
-          actionLabel: 'Support',
+          label: t('help_and_support_label'),
+          caption: t('resolve_support_queues_and_user_issues_desc'),
+          actionLabel: t('support_label'),
           backgroundColor: const Color(0xFFEAF8F6),
           iconColor: const Color(0xFF11806A),
           onTap: () {
@@ -475,9 +479,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'manage_disputes',
           permissionKey: 'canManageSupport',
           icon: Icons.gavel_rounded,
-          label: 'Manage Disputes',
-          caption: 'Review and resolve transaction disputes',
-          actionLabel: 'Disputes',
+          label: t('manage_disputes_label'),
+          caption: t('review_and_resolve_transaction_disputes_desc'),
+          actionLabel: t('disputes_label'),
           backgroundColor: const Color(0xFFFCEEE6),
           iconColor: const Color(0xFFD2691E),
           onTap: () {
@@ -491,9 +495,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'fraud_alerts',
           permissionKey: 'canManageTransactions',
           icon: Icons.security_rounded,
-          label: 'Fraud Alerts',
-          caption: 'Automated anomaly and fraud detection',
-          actionLabel: 'Alerts',
+          label: t('fraud_alerts_label'),
+          caption: t('automated_anomaly_and_fraud_detection_desc'),
+          actionLabel: t('alerts_label'),
           backgroundColor: const Color(0xFFFDEAEA),
           iconColor: const Color(0xFFB71C1C),
           onTap: () {
@@ -507,9 +511,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'content_analytics',
           permissionKey: 'canManageContent',
           icon: Icons.query_stats_rounded,
-          label: 'Content Analytics',
-          caption: 'Track admin content performance and moderation',
-          actionLabel: 'Analytics',
+          label: t('content_analytics_label'),
+          caption: t('track_admin_content_performance_and_moderation_desc'),
+          actionLabel: t('analytics_colon'),
           backgroundColor: const Color(0xFFEAF1FF),
           iconColor: const Color(0xFF3157B7),
           onTap: () {
@@ -525,9 +529,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'app_ratings',
           permissionKey: 'canManageContent',
           icon: Icons.star_rounded,
-          label: 'App Ratings',
-          caption: 'Review ratings coming from the app',
-          actionLabel: 'Ratings',
+          label: t('app_ratings_label'),
+          caption: t('review_ratings_coming_from_the_app_desc'),
+          actionLabel: t('ratings_label'),
           backgroundColor: const Color(0xFFF7F2E8),
           iconColor: const Color(0xFF8B6E24),
           onTap: () {
@@ -538,9 +542,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'user_feedbacks',
           permissionKey: 'canManageContent',
           icon: Icons.feedback_rounded,
-          label: 'User Feedbacks',
-          caption: 'Read submitted feedback and issues',
-          actionLabel: 'Feedback',
+          label: t('user_feedbacks_label'),
+          caption: t('read_submitted_feedback_and_issues_desc'),
+          actionLabel: t('feedback_label'),
           backgroundColor: const Color(0xFFEAF5F8),
           iconColor: const Color(0xFF236D86),
           onTap: () {
@@ -551,9 +555,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'contact_messages',
           permissionKey: 'canManageSupport',
           icon: Icons.contact_mail_rounded,
-          label: 'Contact Messages',
-          caption: 'View and respond to contact form submissions',
-          actionLabel: 'Messages',
+          label: t('contact_messages_label'),
+          caption: t('view_and_respond_to_contact_form_submissions_desc'),
+          actionLabel: t('messages_label'),
           backgroundColor: const Color(0xFFE8F3FF),
           iconColor: const Color(0xFF1A5FAB),
           onTap: () {
@@ -568,9 +572,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           id: 'audit_logs',
           permissionKey: 'canViewAuditLogs',
           icon: Icons.history_rounded,
-          label: 'Audit Logs',
-          caption: 'Review all admin actions and changes',
-          actionLabel: 'Logs',
+          label: t('audit_logs_label'),
+          caption: t('review_all_admin_actions_and_changes_desc'),
+          actionLabel: t('logs_label'),
           backgroundColor: const Color(0xFFF0EAF8),
           iconColor: const Color(0xFF5B2D8E),
           onTap: () {
@@ -584,6 +588,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         if (item.permissionKey == null) return true;
         return _hasPermission(item.permissionKey!);
       }).toList();
+  }
 
   String _normalizeSearch(String value) {
     return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
@@ -684,6 +689,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final dashboardItems = _dashboardItems(context);
+    final t = AppLocalizations.of(context).t;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -697,14 +703,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(color: AppColors.cyan),
-                child: Text('Menu',
-                    style: TextStyle(color: Colors.white, fontSize: 24)),
+              DrawerHeader(
+                decoration: const BoxDecoration(color: AppColors.cyan),
+                child: Text(t('menu_label'),
+                    style: const TextStyle(color: Colors.white, fontSize: 24)),
               ),
               ListTile(
                 leading: const Icon(Icons.dashboard),
-                title: const Text('Dashboard'),
+                title: Text(t('dashboard_label')),
                 onTap: () {
                   Navigator.of(context).pop(); // Close drawer
                 },
@@ -712,7 +718,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_hasPermission('canManageSettings'))
                 ListTile(
                   leading: const Icon(Icons.settings),
-                  title: const Text('Settings'),
+                  title: Text(t('settings_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, '/admin/settings');
@@ -721,7 +727,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_hasPermission('canManageSettings'))
                 ListTile(
                   leading: const Icon(Icons.currency_exchange_rounded),
-                  title: const Text('Currency Rates'),
+                  title: Text(t('currency_rates_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -736,7 +742,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_hasPermission('canManageSupport'))
                 ListTile(
                   leading: const Icon(Icons.help_center),
-                  title: const Text('Help & Support'),
+                  title: Text(t('help_and_support_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -748,7 +754,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_hasPermission('canManageContent'))
                 ListTile(
                   leading: const Icon(Icons.campaign_outlined),
-                  title: const Text('Updates'),
+                  title: Text(t('updates_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -762,7 +768,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_hasPermission('canManageContent'))
                 ListTile(
                   leading: const Icon(Icons.ondemand_video_outlined),
-                  title: const Text('Ads'),
+                  title: Text(t('ads_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -774,7 +780,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_hasPermission('canManageContent'))
                 ListTile(
                   leading: const Icon(Icons.query_stats_outlined),
-                  title: const Text('Content Analytics'),
+                  title: Text(t('content_analytics_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -788,7 +794,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               if (_isSuperAdmin)
                 ListTile(
                   leading: const Icon(Icons.admin_panel_settings_outlined),
-                  title: const Text('Admin Roles'),
+                  title: Text(t('admin_roles_label')),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -801,7 +807,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ListTile(
                 leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
+                title: Text(t('logout')),
                 onTap: () => _confirmLogout(context),
               ),
             ],
@@ -842,7 +848,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           },
                           onSubmitted: _performSearch,
                           decoration: InputDecoration(
-                            hintText: 'Search admin sections',
+                            hintText: t('search_admin_sections_hint'),
                             prefixIcon: const Icon(
                               Icons.search_rounded,
                               color: AppColors.cyan,
@@ -871,16 +877,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Admin Options',
+                        Text(
+                          t('admin_options_label'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Switch between detailed cards or compact admin grid.',
+                          t('switch_between_cards_or_grid_desc'),
                           style: TextStyle(
                             fontSize: 13,
                             color: AppThemeColors.secondaryText(context),
@@ -914,7 +921,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _buildAdminLayoutChip(
-                                      label: 'Single View',
+                                      label: t('single_view_label'),
                                       selected: !_useCompactAdminOptions,
                                       onTap: () {
                                         setState(() {
@@ -923,7 +930,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                       },
                                     ),
                                     _buildAdminLayoutChip(
-                                      label: 'Grid View',
+                                      label: t('grid_view_label'),
                                       selected: _useCompactAdminOptions,
                                       onTap: () {
                                         setState(() {
@@ -973,8 +980,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.black),
+                            icon: Icon(Icons.arrow_back,
+                                color: AppThemeColors.iconOnWave(context)),
                             onPressed: () async {
                               final popped =
                                   await Navigator.of(context).maybePop();
@@ -985,7 +992,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           ),
                           Builder(
                             builder: (context) => IconButton(
-                              icon: const Icon(Icons.menu, color: Colors.black),
+                              icon: Icon(Icons.menu, color: AppThemeColors.iconOnWave(context)),
                               onPressed: () =>
                                   Scaffold.of(context).openDrawer(),
                             ),
@@ -1027,9 +1034,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.logout,
-                                color: Colors.black, size: 28),
-                            tooltip: 'Logout',
+                            icon: Icon(Icons.logout,
+                                color: AppThemeColors.iconOnWave(context), size: 28),
+                            tooltip: t('logout'),
                             onPressed: () => _confirmLogout(context),
                           ),
                         ],
@@ -1142,6 +1149,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildOverviewSection() {
+    final t = AppLocalizations.of(context).t;
     final sessionUser =
         Provider.of<SessionProvider>(context, listen: false).user;
     final summary = _dashboardSummary ?? const <String, dynamic>{};
@@ -1164,11 +1172,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             .toList() ??
         const <Map<String, dynamic>>[];
     final adminName =
-        (admin['name'] ?? sessionUser?['name'] ?? 'Admin').toString();
+        (admin['name'] ?? sessionUser?['name'] ?? t('admin_label')).toString();
     final adminRoleText =
         ((admin['isSuperAdmin'] ?? sessionUser?['isSuperAdmin']) == true)
-            ? 'Superadmin control is active for this session.'
-            : 'Admin control is active for this session.';
+            ? t('superadmin_control_active_message')
+            : t('admin_control_active_message');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1194,7 +1202,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         end: Alignment.bottomRight,
                       ).createShader(bounds),
                       child: Text(
-                        'Welcome back, $adminName',
+                        '${t('welcome_back_comma_label')} $adminName',
                         style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
@@ -1207,7 +1215,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Text(
                       adminRoleText,
                       style: TextStyle(
-                        color: Colors.grey[700],
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -1238,7 +1246,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -1259,7 +1267,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          _showOverviewPanel ? 'Hide Box' : 'Open Box',
+                          _showOverviewPanel ? t('hide_box_label') : t('open_box_label'),
                           style: const TextStyle(
                             color: AppColors.cyan,
                             fontWeight: FontWeight.w800,
@@ -1294,7 +1302,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF8FD),
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFEAF8FD),
+                      dark: const Color(0xFF152229)),
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Column(
@@ -1302,13 +1312,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Admin Snapshot',
+                            t('admin_snapshot_label'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Colors.black,
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                         ),
@@ -1322,9 +1332,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             Icons.keyboard_arrow_up_rounded,
                             color: AppColors.cyan,
                           ),
-                          label: const Text(
-                            'Hide',
-                            style: TextStyle(
+                          label: Text(
+                            t('hide_label'),
+                            style: const TextStyle(
                               color: AppColors.cyan,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1387,7 +1397,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             children: [
                               Expanded(
                                 child: _buildHealthChip(
-                                  'Unread Admin Alerts',
+                                  t('unread_admin_alerts_label'),
                                   (health['unreadAdminNotifications'] ?? 0)
                                       .toString(),
                                 ),
@@ -1395,7 +1405,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: _buildHealthChip(
-                                  'Reported Ads',
+                                  t('reported_ads_label'),
                                   (health['reportedAds'] ?? 0).toString(),
                                 ),
                               ),
@@ -1407,14 +1417,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               children: [
                                 Expanded(
                                   child: _buildHealthChip(
-                                    'Draft Updates',
+                                    t('draft_updates_label'),
                                     (health['draftUpdates'] ?? 0).toString(),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: _buildHealthChip(
-                                    'Scheduled Updates',
+                                    t('scheduled_updates_label'),
                                     (health['scheduledUpdates'] ?? 0)
                                         .toString(),
                                   ),
@@ -1426,7 +1436,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               children: [
                                 Expanded(
                                   child: _buildHealthChip(
-                                    'Superadmins',
+                                    t('superadmins_label'),
                                     (health['superAdmins'] ?? 0).toString(),
                                   ),
                                 ),
@@ -1468,7 +1478,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                       vertical: 8,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: AppThemeColors.cardBg(context),
                                       borderRadius: BorderRadius.circular(18),
                                     ),
                                     child: Row(
@@ -1476,8 +1486,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                       children: [
                                         Text(
                                           _expandHealthAlerts
-                                              ? 'Show Less'
-                                              : 'View More Alerts',
+                                              ? t('show_less_label')
+                                              : t('view_more_alerts_label'),
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -1512,32 +1522,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Priority Queue',
-          style: const TextStyle(
+          t('priority_queue_label'),
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: AppThemeColors.primaryText(context),
           ),
         ),
         const SizedBox(height: 8),
         if (_loadingOverview)
           const SizedBox.shrink()
         else if (_overviewError != null)
-          const Text(
-            'Overview is unavailable right now, but admin tools are still available below.',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            t('overview_unavailable_message'),
+            style: TextStyle(color: AppThemeColors.secondaryText(context)),
           )
         else if (priorityItems.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Text(
-              'Nothing urgent is waiting right now. You can continue with regular admin tasks below.',
+            child: Text(
+              t('nothing_urgent_waiting_message'),
               style: TextStyle(
-                color: Colors.black87,
+                color: AppThemeColors.primaryText(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1653,6 +1664,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     String message, {
     required VoidCallback onRetry,
   }) {
+    final t = AppLocalizations.of(context).t;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -1667,12 +1679,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
             ),
           ),
           TextButton(
             onPressed: onRetry,
-            child: const Text('Retry'),
+            child: Text(t('retry')),
           ),
         ],
       ),
@@ -1680,6 +1692,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildPriorityCard(Map<String, dynamic> item) {
+    final t = AppLocalizations.of(context).t;
     final tone = (item['tone'] ?? 'info').toString();
     final toneColor = tone == 'critical'
         ? Colors.redAccent
@@ -1706,7 +1719,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -1730,16 +1743,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     children: [
                       Text(
                         (item['title'] ?? '').toString(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         (item['description'] ?? '').toString(),
                         style: TextStyle(
-                          color: Colors.grey[700],
+                          color: AppThemeColors.secondaryText(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1773,11 +1787,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 ),
                               );
                             },
-                            child: const Text('Review'),
+                            child: Text(t('review_label')),
                           ),
                           TextButton(
                             onPressed: _clearPendingUsers,
-                            child: const Text('Review All'),
+                            child: Text(t('review_all_label')),
                           ),
                         ],
                       ),
@@ -1864,12 +1878,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
+      builder: (context) {
+        final t = AppLocalizations.of(context).t;
+        return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white,
+            color: AppThemeColors.cardBg(context),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
@@ -1907,9 +1923,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: Column(
                   children: [
                     Text(
-                      'Are you sure?',
+                      t('are_you_sure_title'),
                       style: TextStyle(
-                        color: Colors.black,
+                        color: AppThemeColors.primaryText(context),
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
@@ -1917,9 +1933,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Do you want to logout?',
+                      t('do_you_want_to_logout_message'),
                       style: TextStyle(
-                        color: Colors.grey[700],
+                        color: AppThemeColors.secondaryText(context),
                         fontSize: 16,
                       ),
                       textAlign: TextAlign.center,
@@ -1934,11 +1950,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.of(context).pop(false),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[100],
-                                foregroundColor: Colors.grey[700],
+                                backgroundColor: AppThemeColors.surfaceBg(context),
+                                foregroundColor: AppThemeColors.secondaryText(context),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: Colors.grey[300]!),
+                                  side: BorderSide(color: AppThemeColors.divider(context)),
                                 ),
                                 padding: EdgeInsets.symmetric(vertical: 16),
                                 elevation: 0,
@@ -1949,7 +1965,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   Icon(Icons.close, size: 20),
                                   SizedBox(width: 8),
                                   Text(
-                                    'NO',
+                                    t('no').toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -1982,7 +1998,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   Icon(Icons.logout, size: 20),
                                   SizedBox(width: 8),
                                   Text(
-                                    'YES',
+                                    t('yes').toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -2001,7 +2017,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ],
           ),
         ),
-      ),
+      );
+      },
     );
     if (confirmed == true) {
       await Provider.of<SessionProvider>(context, listen: false).logout();

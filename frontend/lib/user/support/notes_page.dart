@@ -1,7 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({Key? key}) : super(key: key);
@@ -66,17 +68,19 @@ class _NotesPageState extends State<NotesPage> {
         loading = false;
       });
     } else {
-      setState(() { error = 'Failed to load notes'; loading = false; });
+      final t = AppLocalizations.of(context).t;
+      setState(() { error = t('failed_to_load_notes'); loading = false; });
     }
   }
 
   Future<void> createOrEditNote({Map<String, dynamic>? note}) async {
+    final t = AppLocalizations.of(context).t;
     final titleController = TextEditingController(text: note?['title'] ?? '');
     final contentController = TextEditingController(text: note?['content'] ?? '');
     final isEdit = note != null;
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           elevation: 0,
@@ -84,7 +88,7 @@ class _NotesPageState extends State<NotesPage> {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              color: Colors.white,
+              color: AppThemeColors.cardBg(dialogContext),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -100,11 +104,11 @@ class _NotesPageState extends State<NotesPage> {
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Text(
-                      isEdit ? 'Edit Note' : 'New Note',
+                      isEdit ? t('edit_note') : t('new_note'),
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: AppThemeColors.primaryText(dialogContext),
                       ),
                     ),
                   ),
@@ -112,21 +116,21 @@ class _NotesPageState extends State<NotesPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: TextField(
                       controller: titleController,
-                      style: TextStyle(color: Colors.black87),
+                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
                       decoration: InputDecoration(
-                        hintText: 'Title',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintText: t('title'),
+                        hintStyle: TextStyle(color: AppThemeColors.mutedText(dialogContext)),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: AppThemeColors.surfaceBg(dialogContext),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderSide: BorderSide(color: AppThemeColors.divider(dialogContext)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black87),
+                          borderSide: BorderSide(color: AppThemeColors.primaryText(dialogContext)),
                         ),
-                        counterStyle: TextStyle(color: Colors.grey[600]),
+                        counterStyle: TextStyle(color: AppThemeColors.secondaryText(dialogContext)),
                       ),
                       maxLength: 50,
                     ),
@@ -136,20 +140,20 @@ class _NotesPageState extends State<NotesPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: TextField(
                       controller: contentController,
-                      style: TextStyle(color: Colors.black87),
+                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext)),
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Enter note...',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintText: t('enter_note'),
+                        hintStyle: TextStyle(color: AppThemeColors.mutedText(dialogContext)),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: AppThemeColors.surfaceBg(dialogContext),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
+                          borderSide: BorderSide(color: AppThemeColors.divider(dialogContext)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black87),
+                          borderSide: BorderSide(color: AppThemeColors.primaryText(dialogContext)),
                         ),
                       ),
                     ),
@@ -161,8 +165,8 @@ class _NotesPageState extends State<NotesPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(dialogContext), fontSize: 16)),
                         ),
                         SizedBox(width: 10),
                         ElevatedButton(
@@ -175,10 +179,10 @@ class _NotesPageState extends State<NotesPage> {
                             final title = titleController.text.trim();
                             final content = contentController.text.trim();
                             if (title.isEmpty || content.isEmpty) return;
-                            Navigator.pop(context, {'title': title, 'content': content});
+                            Navigator.pop(dialogContext, {'title': title, 'content': content});
                           },
                           child: Text(
-                            isEdit ? 'Update' : 'Create',
+                            isEdit ? t('update_label') : t('create'),
                             style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -229,9 +233,11 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> deleteNote(String id) async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -244,20 +250,20 @@ class _NotesPageState extends State<NotesPage> {
               child: Icon(Icons.delete_outline, color: Colors.red, size: 24),
             ),
             SizedBox(width: 12),
-            Text('Delete Note', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            Text(t('delete_note'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppThemeColors.primaryText(dialogContext))),
           ],
         ),
         content: Text(
-          'Are you sure you want to delete this note? This action cannot be undone.',
-          style: TextStyle(fontSize: 15, color: Colors.grey[700]),
+          t('delete_note_confirm'),
+          style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(dialogContext)),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             style: TextButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 15, fontWeight: FontWeight.w600)),
+            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(dialogContext), fontSize: 15, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -266,8 +272,8 @@ class _NotesPageState extends State<NotesPage> {
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               elevation: 0,
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(t('delete'), style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -297,12 +303,13 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   void _showSortBottomSheet() {
+    final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (sheetContext) => Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(sheetContext),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
@@ -316,7 +323,7 @@ class _NotesPageState extends State<NotesPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppThemeColors.divider(sheetContext),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -334,19 +341,19 @@ class _NotesPageState extends State<NotesPage> {
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'Sort By',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                    t('sort_by_label'),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(sheetContext)),
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-            _buildSortOption('created_desc', 'Newest First', Icons.new_releases),
-            _buildSortOption('created_asc', 'Oldest First', Icons.access_time),
-            _buildSortOption('updated_desc', 'Recently Updated', Icons.update),
-            _buildSortOption('updated_asc', 'Least Updated', Icons.history),
-            _buildSortOption('title_az', 'Title A-Z', Icons.sort_by_alpha),
-            _buildSortOption('title_za', 'Title Z-A', Icons.sort_by_alpha),
+            Divider(height: 1, thickness: 1, color: AppThemeColors.divider(sheetContext)),
+            _buildSortOption('created_desc', t('newest_first_label'), Icons.new_releases),
+            _buildSortOption('created_asc', t('oldest_first_label'), Icons.access_time),
+            _buildSortOption('updated_desc', t('recently_updated'), Icons.update),
+            _buildSortOption('updated_asc', t('least_updated'), Icons.history),
+            _buildSortOption('title_az', t('title_a_z'), Icons.sort_by_alpha),
+            _buildSortOption('title_za', t('title_z_a'), Icons.sort_by_alpha),
             SizedBox(height: 20),
           ],
         ),
@@ -379,7 +386,7 @@ class _NotesPageState extends State<NotesPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.blue : Colors.grey[600],
+              color: isSelected ? Colors.blue : AppThemeColors.secondaryText(context),
               size: 20,
             ),
             SizedBox(width: 16),
@@ -388,7 +395,7 @@ class _NotesPageState extends State<NotesPage> {
                 label,
                 style: TextStyle(
                   fontSize: 15,
-                  color: isSelected ? Colors.blue : Colors.grey[800],
+                  color: isSelected ? Colors.blue : AppThemeColors.primaryText(context),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -403,8 +410,9 @@ class _NotesPageState extends State<NotesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
           Positioned(
@@ -436,7 +444,7 @@ class _NotesPageState extends State<NotesPage> {
                       Expanded(
                         child: Center(
                           child: Text(
-                            'LenDen Notes',
+                            t('lenden_notes_title'),
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -474,28 +482,28 @@ class _NotesPageState extends State<NotesPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: Colors.grey[400], size: 20),
+                      Icon(Icons.search, color: AppThemeColors.mutedText(context), size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           onChanged: filterNotes,
+                          style: TextStyle(fontSize: 15, color: AppThemeColors.primaryText(context)),
                           decoration: InputDecoration(
-                            hintText: 'Search notes...',
-                            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
+                            hintText: t('search_notes'),
+                            hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 15),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          style: const TextStyle(fontSize: 15),
                         ),
                       ),
                       if (searchQuery.isNotEmpty)
                         IconButton(
-                          icon: Icon(Icons.clear, color: Colors.grey[400], size: 20),
+                          icon: Icon(Icons.clear, color: AppThemeColors.mutedText(context), size: 20),
                           onPressed: () => filterNotes(''),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -536,18 +544,18 @@ class _NotesPageState extends State<NotesPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.filter_list, color: Colors.black87, size: 18),
+                            Icon(Icons.filter_list, color: AppThemeColors.primaryText(context), size: 18),
                             SizedBox(width: 6),
                             Text(
-                              'Sort',
+                              t('sort_label'),
                               style: TextStyle(
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -560,13 +568,13 @@ class _NotesPageState extends State<NotesPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Notes List
             Expanded(
               child: loading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.black87))
+                  ? Center(child: CircularProgressIndicator(color: AppThemeColors.primaryText(context)))
                   : error != null
                       ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
                       : filteredNotes.isEmpty
@@ -574,16 +582,16 @@ class _NotesPageState extends State<NotesPage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.note_outlined, size: 64, color: Colors.grey[300]),
+                                  Icon(Icons.note_outlined, size: 64, color: AppThemeColors.mutedText(context)),
                                   SizedBox(height: 16),
                                   Text(
-                                    'No notes yet',
-                                    style: TextStyle(color: Colors.grey[400], fontSize: 18, fontWeight: FontWeight.w500),
+                                    t('no_notes_yet'),
+                                    style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 18, fontWeight: FontWeight.w500),
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    'Tap + to create your first note',
-                                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                                    t('tap_plus_to_create_note'),
+                                    style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -628,7 +636,7 @@ class _NotesPageState extends State<NotesPage> {
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    note['title'] ?? '(No Title)',
+                                                    note['title'] ?? t('no_title_label'),
                                                     style: const TextStyle(
                                                       fontSize: 18,
                                                       fontWeight: FontWeight.bold,
@@ -666,11 +674,11 @@ class _NotesPageState extends State<NotesPage> {
                                                             ),
                                                             SizedBox(width: 12),
                                                             Text(
-                                                              'Edit Note',
+                                                              t('edit_note'),
                                                               style: TextStyle(
                                                                 fontSize: 15,
                                                                 fontWeight: FontWeight.w500,
-                                                                color: Colors.black87,
+                                                                color: AppThemeColors.primaryText(context),
                                                               ),
                                                             ),
                                                           ],
@@ -695,7 +703,7 @@ class _NotesPageState extends State<NotesPage> {
                                                             ),
                                                             SizedBox(width: 12),
                                                             Text(
-                                                              'Delete Note',
+                                                              t('delete_note'),
                                                               style: TextStyle(
                                                                 fontSize: 15,
                                                                 fontWeight: FontWeight.w500,
@@ -719,7 +727,7 @@ class _NotesPageState extends State<NotesPage> {
                                                 Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
                                                 SizedBox(width: 4),
                                                 Text(
-                                                  'Created: ${_formatDate(note['createdAt'])}',
+                                                  t('created_colon_label').replaceAll('{date}', _formatDate(note['createdAt'])),
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     color: Colors.grey[600],
@@ -729,7 +737,7 @@ class _NotesPageState extends State<NotesPage> {
                                                 Icon(Icons.update, size: 12, color: Colors.grey[600]),
                                                 SizedBox(width: 4),
                                                 Text(
-                                                  'Updated: ${_formatDate(note['updatedAt'])}',
+                                                  t('updated_colon_label').replaceAll('{date}', _formatDate(note['updatedAt'])),
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     color: Colors.grey[600],

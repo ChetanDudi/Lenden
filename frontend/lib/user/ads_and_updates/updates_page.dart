@@ -73,7 +73,6 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   }
 
   Future<void> _loadUpdates() async {
-    final t = AppLocalizations.of(context).t;
     setState(() {
       _loading = true;
       _error = null;
@@ -83,6 +82,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       final res = await ApiClient.get('/api/app-updates');
       final data = _decodeJson(res.body);
       if (res.statusCode != 200) {
+        final t = AppLocalizations.of(context).t;
         throw Exception((data['error'] ?? t('failed_to_load_updates_message')).toString());
       }
       setState(() {

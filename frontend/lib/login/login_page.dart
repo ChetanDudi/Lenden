@@ -11,6 +11,7 @@ import 'email_otp_login.dart';
 import 'google_auth_service.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/tricolor_border_text_field.dart';
+import '../widgets/google_logo_icon.dart';
 import 'dart:ui' as ui;
 import '../utils/api_client.dart';
 import '../utils/http_interceptor.dart';
@@ -821,43 +822,45 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         ],
                       ),
                       const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: _isSubmitting || _isGoogleLoading
-                              ? null
-                              : _loginWithGoogle,
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: AppThemeColors.cardBg(context),
-                            side: BorderSide(
-                                color: AppThemeColors.border(context)),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                      TricolorBorderTextField(
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: _isSubmitting || _isGoogleLoading
+                                ? null
+                                : _loginWithGoogle,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: _isGoogleLoading
+                                ? SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppThemeColors.primaryText(
+                                            context)),
+                                  )
+                                : Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                    children: [
+                                      const GoogleLogoIcon(size: 18),
+                                      const SizedBox(width: 10),
+                                      Text(t('sign_in_with_google'),
+                                          style: TextStyle(
+                                              fontSize: context.sp(15),
+                                              fontWeight: FontWeight.w600,
+                                              color: AppThemeColors
+                                                  .primaryText(context))),
+                                    ],
+                                  ),
                           ),
-                          child: _isGoogleLoading
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppThemeColors.primaryText(
-                                          context)),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const FaIcon(FontAwesomeIcons.google,
-                                        size: 18, color: Color(0xFFEA4335)),
-                                    const SizedBox(width: 10),
-                                    Text(t('sign_in_with_google'),
-                                        style: TextStyle(
-                                            fontSize: context.sp(15),
-                                            fontWeight: FontWeight.w600,
-                                            color: AppThemeColors.primaryText(
-                                                context))),
-                                  ],
-                                ),
                         ),
                       ),
                       const SizedBox(height: 18),

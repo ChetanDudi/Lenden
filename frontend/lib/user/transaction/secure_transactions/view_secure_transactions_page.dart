@@ -185,7 +185,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Future<void> _loadDisplayCurrencies() async {
-    final t = AppLocalizations.of(context).t;
     try {
       final data = await DisplayCurrencyHelper.load();
       if (!mounted) return;
@@ -200,6 +199,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       });
     } catch (_) {
       if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
       setState(() {
         _displayCurrencyData = null;
         _selectedDisplayCurrency = 'INR';
@@ -367,6 +367,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   }
 
   Future<void> fetchTransactions() async {
+    // Yield once so any caller invoking this directly from initState() never
+    // touches AppLocalizations.of(context) before initState() has returned.
+    await Future.value();
+    if (!mounted) return;
     final t = AppLocalizations.of(context).t;
     setState(() {
       loading = true;

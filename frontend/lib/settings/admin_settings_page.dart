@@ -16,6 +16,8 @@ import 'admin_system_maintenance_page.dart';
 import '../utils/responsive.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/theme_provider.dart';
+import '../utils/locale_provider.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -140,6 +142,119 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   ),
 
                   const SizedBox(height: 24),
+
+                  // Preferences
+                  sectionLabel(t('preferences')),
+                  const SizedBox(height: 8),
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, _) {
+                      final t = AppLocalizations.of(context).t;
+                      final modeLabel = {
+                        ThemeMode.system: t('system_default'),
+                        ThemeMode.light: t('light'),
+                        ThemeMode.dark: t('dark'),
+                      }[themeProvider.themeMode]!;
+                      return _buildTile(
+                        context: context,
+                        title: t('dark_mode'),
+                        icon: Icons.dark_mode_outlined,
+                        subtitle: modeLabel,
+                        onTap: () async {
+                          final selected = await showDialog<ThemeMode>(
+                            context: context,
+                            builder: (context) => SimpleDialog(
+                              backgroundColor: AppThemeColors.cardBg(context),
+                              title: Text(t('dark_mode'),
+                                  style: TextStyle(
+                                      color: AppThemeColors.primaryText(context))),
+                              children: [
+                                for (final mode in ThemeMode.values)
+                                  RadioListTile<ThemeMode>(
+                                    title: Text(
+                                      {
+                                        ThemeMode.system: t('system_default'),
+                                        ThemeMode.light: t('light'),
+                                        ThemeMode.dark: t('dark'),
+                                      }[mode]!,
+                                      style: TextStyle(
+                                          color: AppThemeColors.primaryText(context)),
+                                    ),
+                                    value: mode,
+                                    groupValue: themeProvider.themeMode,
+                                    activeColor: AppColors.cyan,
+                                    onChanged: (v) => Navigator.pop(context, v),
+                                  ),
+                              ],
+                            ),
+                          );
+                          if (selected != null) {
+                            await themeProvider.setThemeMode(selected);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  Consumer<LocaleProvider>(
+                    builder: (context, localeProvider, _) {
+                      final t = AppLocalizations.of(context).t;
+                      final current = localeProvider.locale?.languageCode;
+                      final label = current == 'hi'
+                          ? t('hindi')
+                          : current == 'en'
+                              ? t('english')
+                              : t('system_default');
+                      return _buildTile(
+                        context: context,
+                        title: t('language'),
+                        icon: Icons.language_outlined,
+                        subtitle: label,
+                        onTap: () async {
+                          final selected = await showDialog<String?>(
+                            context: context,
+                            builder: (context) => SimpleDialog(
+                              backgroundColor: AppThemeColors.cardBg(context),
+                              title: Text(t('language'),
+                                  style: TextStyle(
+                                      color: AppThemeColors.primaryText(context))),
+                              children: [
+                                RadioListTile<String?>(
+                                  title: Text(t('system_default'),
+                                      style: TextStyle(
+                                          color: AppThemeColors.primaryText(context))),
+                                  value: null,
+                                  groupValue: current,
+                                  activeColor: AppColors.cyan,
+                                  onChanged: (v) => Navigator.pop(context, v),
+                                ),
+                                RadioListTile<String?>(
+                                  title: Text(t('english'),
+                                      style: TextStyle(
+                                          color: AppThemeColors.primaryText(context))),
+                                  value: 'en',
+                                  groupValue: current,
+                                  activeColor: AppColors.cyan,
+                                  onChanged: (v) => Navigator.pop(context, v),
+                                ),
+                                RadioListTile<String?>(
+                                  title: Text(t('hindi'),
+                                      style: TextStyle(
+                                          color: AppThemeColors.primaryText(context))),
+                                  value: 'hi',
+                                  groupValue: current,
+                                  activeColor: AppColors.cyan,
+                                  onChanged: (v) => Navigator.pop(context, v),
+                                ),
+                              ],
+                            ),
+                          );
+                          await localeProvider.setLocale(
+                              selected == null ? null : Locale(selected));
+                        },
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
 
                   // System Management
                   sectionLabel(t('system_management')),

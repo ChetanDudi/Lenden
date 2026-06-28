@@ -67,7 +67,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
       }
     } catch (e) {
       if (mounted) {
-        showSnack(context, 'Error loading user details: ${e.toString()}', isError: true);
+        showSnack(context, '${AppLocalizations.of(context).t('error_loading_user_details')}: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
@@ -1009,10 +1009,11 @@ class _UserDetailsPageState extends State<UserDetailsPage>
   }
 
   Widget _buildActivityCard(Map<String, dynamic> activity) {
+    final t = AppLocalizations.of(context).t;
     final action = (activity['action'] ?? 'activity').toString();
     final timestamp = activity['timestamp'];
     final when = _formatDate(timestamp);
-    final title = (activity['title'] ?? _getActivityTitle(action)).toString();
+    final title = (activity['title'] ?? _getActivityTitle(action, t)).toString();
     final description = (activity['description'] ?? '').toString();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1086,20 +1087,20 @@ class _UserDetailsPageState extends State<UserDetailsPage>
     }
   }
 
-  String _getActivityTitle(String action) {
+  String _getActivityTitle(String action, String Function(String) t) {
     switch (action) {
       case 'user_registration':
-        return 'New user registered';
+        return t('new_user_registered_label');
       case 'user_login':
-        return 'User logged in';
+        return t('user_logged_in_label');
       case 'user_logout':
-        return 'User logged out';
+        return t('user_logged_out_label');
       case 'profile_update':
-        return 'Profile updated';
+        return t('profile_updated_label');
       case 'password_change':
-        return 'Password changed';
+        return t('password_changed_label');
       default:
-        return 'Activity logged';
+        return t('activity_logged_label');
     }
   }
 
@@ -1138,11 +1139,13 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           widget.user['adminNotes'] = notes;
         });
         _adminNoteController.clear();
-        showSnack(context, 'Internal note added successfully');
+        if (!mounted) return;
+        showSnack(context, AppLocalizations.of(context).t('internal_note_added_successfully'));
       } else {
-        throw Exception((data['message'] ?? 'Failed to add note').toString());
+        throw Exception((data['message'] ?? AppLocalizations.of(context).t('failed_to_add_note')).toString());
       }
     } catch (e) {
+      if (!mounted) return;
       showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
@@ -1187,33 +1190,38 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           widget.user.addAll(Map<String, dynamic>.from(data['user']));
         });
         _suspensionReasonController.clear();
-        showSnack(context, (data['message'] ?? 'Suspension updated').toString());
+        if (!mounted) return;
+        showSnack(context, (data['message'] ?? AppLocalizations.of(context).t('suspension_updated_message')).toString());
       } else {
-        throw Exception((data['message'] ?? 'Failed to update suspension').toString());
+        throw Exception((data['message'] ?? AppLocalizations.of(context).t('failed_to_update_suspension')).toString());
       }
     } catch (e) {
+      if (!mounted) return;
       showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }
 
   Future<void> _forceLogoutUser() async {
+    final t = AppLocalizations.of(context).t;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(ctx),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Force Logout User?'),
-        content: const Text(
-          'This will immediately invalidate all active sessions. The user will be logged out from all devices.',
+        title: Text(t('force_logout_user_title'), style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+        content: Text(
+          t('force_logout_user_all_devices_desc'),
+          style: TextStyle(color: AppThemeColors.secondaryText(ctx)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
             icon: const Icon(Icons.logout_rounded),
-            label: const Text('Force Logout'),
+            label: Text(t('force_logout_label')),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -1237,9 +1245,9 @@ class _UserDetailsPageState extends State<UserDetailsPage>
           });
         }
         if (!mounted) return;
-        showSnack(context, (data['message'] ?? 'User logged out from all devices').toString(), isError: true);
+        showSnack(context, (data['message'] ?? t('user_logged_out_all_devices_message')).toString(), isError: true);
       } else {
-        throw Exception((data['message'] ?? 'Failed to force logout').toString());
+        throw Exception((data['message'] ?? t('failed_to_force_logout_short')).toString());
       }
     } catch (e) {
       if (!mounted) return;
@@ -1254,12 +1262,14 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         body: const {},
       );
       final data = json.decode(response.body);
+      final t = AppLocalizations.of(context).t;
 
       if (response.statusCode == 200) {
         setState(() {
           widget.user['isVerified'] = true;
         });
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
@@ -1284,7 +1294,7 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      (data['message'] ?? 'Pending user marked as verified')
+                      (data['message'] ?? t('pending_user_marked_verified'))
                           .toString(),
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
@@ -1298,10 +1308,11 @@ class _UserDetailsPageState extends State<UserDetailsPage>
         );
       } else {
         throw Exception(
-          (data['message'] ?? 'Failed to review pending user').toString(),
+          (data['message'] ?? t('failed_to_review_pending_user')).toString(),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       showSnack(context, e.toString().replaceFirst('Exception: ', ''), isError: true);
     }
   }

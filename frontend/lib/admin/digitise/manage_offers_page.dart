@@ -96,7 +96,6 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
   }
 
   Future<void> _fetchOffers() async {
-    final t = AppLocalizations.of(context).t;
     setState(() => _loading = true);
     final qp = <String>[
       'page=$_page',
@@ -125,6 +124,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
     }
 
     setState(() => _loading = false);
+    final t = AppLocalizations.of(context).t;
     _showStylishMessage(
       _errorFromBody(res.body, fallback: t('failed_to_fetch_offers')),
       isError: true,

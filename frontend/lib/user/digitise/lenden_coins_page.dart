@@ -4,6 +4,8 @@ import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class LenDenCoinsPage extends StatefulWidget {
   final int coins;
@@ -53,7 +55,8 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
       final res = await ApiClient.get('/api/coins/history?limit=80');
       final data = jsonDecode(res.body);
       if (res.statusCode != 200) {
-        throw Exception((data['error'] ?? 'Failed to fetch history').toString());
+        final t = AppLocalizations.of(context).t;
+        throw Exception((data['error'] ?? t('failed_to_fetch_history_message')).toString());
       }
 
       setState(() {
@@ -82,10 +85,11 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF7F8FC),
-      appBar: transparentAppBar(context, title: 'LenDen Coins'),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: transparentAppBar(context, title: t('lenden_coins_title')),
       body: Stack(
         children: [
           Positioned(
@@ -115,21 +119,23 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                   _buildBalanceCard(),
                   const SizedBox(height: 18),
                   _buildInfoCard(
-                    title: 'History Tracking',
+                    title: t('history_tracking_title'),
                     icon: Icons.manage_search_rounded,
                     color: const Color(0xFFEAF4FF),
+                    darkColor: const Color(0xFF15324A),
                     textColor: const Color(0xFF124E78),
-                    message:
-                        'Coin history is loaded only when you tap Fetch History. This keeps the page lighter and gives you control over when it refreshes.',
+                    darkTextColor: const Color(0xFFBFE3FF),
+                    message: t('coin_history_lazy_load_message'),
                   ),
                   const SizedBox(height: 14),
                   _buildInfoCard(
-                    title: 'Tracked Sources',
+                    title: t('tracked_sources_title'),
                     icon: Icons.account_tree_outlined,
                     color: const Color(0xFFFFF8E7),
+                    darkColor: const Color(0xFF3A2E12),
                     textColor: const Color(0xFF7A4F01),
-                    message:
-                        'We now track coin earnings and spending across login rewards, referrals, offers, gift cards, leaderboard rewards, transactions, and chat coin usage.',
+                    darkTextColor: const Color(0xFFFFD479),
+                    message: t('tracked_coin_sources_message'),
                   ),
                   const SizedBox(height: 20),
                   _buildFetchPanel(),
@@ -149,6 +155,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildBalanceCard() {
+    final t = AppLocalizations.of(context).t;
     return tricolorBorder(
       radius: 30,
       child: Container(
@@ -181,9 +188,9 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Current Balance',
-                    style: TextStyle(
+                  Text(
+                    t('current_balance_label'),
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.white70,
@@ -208,9 +215,9 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                           ),
                         ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Available LenDen Coins',
-                    style: TextStyle(fontSize: 13, color: Colors.white),
+                  Text(
+                    t('available_lenden_coins_label'),
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
                   ),
                 ],
               ),
@@ -225,14 +232,20 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
     required String title,
     required IconData icon,
     required Color color,
+    required Color darkColor,
     required Color textColor,
+    required Color darkTextColor,
     required String message,
   }) {
+    final resolvedColor =
+        AppThemeColors.tinted(context, light: color, dark: darkColor);
+    final resolvedTextColor = AppThemeColors.tinted(context,
+        light: textColor, dark: darkTextColor);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color,
+        color: resolvedColor,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
@@ -248,10 +261,12 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.82),
+              color: AppThemeColors.tinted(context,
+                  light: Colors.white.withValues(alpha: 0.82),
+                  dark: Colors.black.withValues(alpha: 0.25)),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: textColor),
+            child: Icon(icon, color: resolvedTextColor),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -263,7 +278,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: textColor,
+                    color: resolvedTextColor,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -272,7 +287,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
-                    color: textColor,
+                    color: resolvedTextColor,
                   ),
                 ),
               ],
@@ -284,11 +299,12 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildFetchPanel() {
+    final t = AppLocalizations.of(context).t;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -306,7 +322,9 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF4FF),
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFEAF4FF),
+                      dark: const Color(0xFF15324A)),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -315,10 +333,13 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Coin History',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  t('coin_history_label'),
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(context)),
                 ),
               ),
             ],
@@ -326,11 +347,11 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
           const SizedBox(height: 12),
           Text(
             _hasFetchedHistory
-                ? 'Tap below whenever you want the latest earning and spending trail.'
-                : 'History is not fetched automatically. Tap below to load all tracked earning and spending entries.',
+                ? t('tap_below_latest_coin_trail_message')
+                : t('coin_history_not_fetched_automatically_message'),
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade700,
+              color: AppThemeColors.secondaryText(context),
               height: 1.45,
             ),
           ),
@@ -358,10 +379,10 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                   : Icon(_hasFetchedHistory ? Icons.refresh : Icons.download),
               label: Text(
                 _isFetchingHistory
-                    ? 'Fetching...'
+                    ? t('fetching_ellipsis_message')
                     : _hasFetchedHistory
-                        ? 'Refresh History'
-                        : 'Fetch History',
+                        ? t('refresh_history_label')
+                        : t('fetch_history_label'),
               ),
             ),
           ),
@@ -381,6 +402,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildSummaryPanel() {
+    final t = AppLocalizations.of(context).t;
     final totalEarned = (_summary?['totalEarned'] ?? 0) as num;
     final totalSpent = (_summary?['totalSpent'] ?? 0) as num;
     final sources = List<Map<String, dynamic>>.from(_summary?['sources'] ?? []);
@@ -388,16 +410,19 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Overview',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        Text(
+          t('overview_label'),
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppThemeColors.primaryText(context)),
         ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildStatCard(
-                title: 'Earned',
+                title: t('earned_label'),
                 value: '+${totalEarned.toInt()}',
                 accent: const Color(0xFF2E7D32),
                 background: const Color(0xFFEAF8EC),
@@ -407,7 +432,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                title: 'Spent',
+                title: t('spent_label'),
                 value: '-${totalSpent.toInt()}',
                 accent: const Color(0xFFC62828),
                 background: const Color(0xFFFFEBEE),
@@ -423,7 +448,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
@@ -431,19 +456,24 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Source Split',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    Text(
+                      t('source_split_label'),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                     const SizedBox(width: 6),
-                    Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade500),
+                    Icon(Icons.chevron_right,
+                        size: 18, color: AppThemeColors.mutedText(context)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 if (sources.isEmpty)
                   Text(
-                    'No tracked source entries yet.',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    t('no_tracked_source_entries_message'),
+                    style:
+                        TextStyle(color: AppThemeColors.secondaryText(context)),
                   )
                 else
                   SizedBox(
@@ -503,27 +533,33 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildSourceChip(Map<String, dynamic> source) {
+    final t = AppLocalizations.of(context).t;
     final earned = (source['earned'] ?? 0) as num;
     final spent = (source['spent'] ?? 0) as num;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FB),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF4F7FB), dark: const Color(0xFF233040)),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD9E8F5)),
+        border: Border.all(
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFD9E8F5), dark: const Color(0xFF35495C))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            (source['label'] ?? 'Source').toString(),
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            (source['label'] ?? t('source_label')).toString(),
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppThemeColors.primaryText(context)),
           ),
           const SizedBox(height: 4),
           Text(
             '+${earned.toInt()}  /  -${spent.toInt()}',
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: AppThemeColors.secondaryText(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -533,12 +569,16 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildHistoryPanel() {
+    final t = AppLocalizations.of(context).t;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'History',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        Text(
+          t('history_label'),
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppThemeColors.primaryText(context)),
         ),
         const SizedBox(height: 12),
         if (_entries.isEmpty)
@@ -546,7 +586,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemeColors.cardBg(context),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -556,10 +596,12 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                 ),
               ],
             ),
-            child: const Text(
-              'No tracked coin entries yet.',
+            child: Text(
+              t('no_tracked_coin_entries_message'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppThemeColors.secondaryText(context)),
             ),
           )
         else
@@ -571,6 +613,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   }
 
   Widget _buildHistoryTile(Map<String, dynamic> entry) {
+    final t = AppLocalizations.of(context).t;
     final isEarned = (entry['direction'] ?? '') == 'earned';
     final accent = isEarned ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
     final bg = isEarned ? const Color(0xFFEAF8EC) : const Color(0xFFFFEBEE);
@@ -582,7 +625,7 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -606,24 +649,25 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                 children: [
                   Text(
                     (entry['title'] ?? '').toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 15,
+                      color: AppThemeColors.primaryText(context),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     (entry['description'] ?? '').toString(),
                     style: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: AppThemeColors.secondaryText(context),
                       height: 1.35,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _formatDate(entry['occurredAt']),
+                    _formatDate(entry['occurredAt'], t),
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: AppThemeColors.mutedText(context),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -646,8 +690,8 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
     );
   }
 
-  String _formatDate(dynamic rawDate) {
-    if (rawDate == null) return 'Unknown time';
+  String _formatDate(dynamic rawDate, String Function(String) t) {
+    if (rawDate == null) return t('unknown_time_message');
     final parsed = DateTime.tryParse(rawDate.toString());
     if (parsed == null) return rawDate.toString();
     final local = parsed.toLocal();
