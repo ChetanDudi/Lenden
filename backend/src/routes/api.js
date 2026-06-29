@@ -500,6 +500,7 @@ module.exports = (io) => {
   router.get('/subscription/faqs', subscriptionController.getFaqs);
 
   // Payment routes (Razorpay)
+  router.get('/payment/config', auth, paymentController.getPaymentConfig);
   router.post('/payment/create-order', auth, paymentController.createOrder);
   router.post('/payment/verify', auth, paymentController.verifyPayment);
   router.post('/payment/verify-manual', auth, manualPaymentVerifyLimiter, paymentController.verifyManualPayment);

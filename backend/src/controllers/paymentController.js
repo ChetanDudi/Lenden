@@ -31,6 +31,16 @@ const getRazorpay = () => {
   });
 };
 
+// Non-secret payment config the app needs at runtime (e.g. the Payment Handle
+// link for the manual-verification flow) — kept server-side so it can be
+// changed without an app rebuild/store resubmission.
+exports.getPaymentConfig = async (req, res) => {
+  if (!process.env.RAZORPAY_PAYMENT_LINK) {
+    return res.status(500).json({ error: 'Razorpay payment link not configured' });
+  }
+  res.json({ razorpayPaymentLink: process.env.RAZORPAY_PAYMENT_LINK });
+};
+
 // Create a Razorpay order for a subscription plan
 exports.createOrder = async (req, res) => {
   const { planId } = req.body;

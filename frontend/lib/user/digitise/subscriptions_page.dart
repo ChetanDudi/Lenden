@@ -127,8 +127,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Future<void> _fetchSubscriptionData() async {
-    await Future.wait(
-        [_fetchPlans(), _fetchBenefits(), _fetchFaqs(), _fetchWalletBalance()]);
+    await Future.wait([
+      _fetchPlans(),
+      _fetchBenefits(),
+      _fetchFaqs(),
+      _fetchWalletBalance(),
+      _fetchPaymentConfig(),
+    ]);
   }
 
   Future<void> _fetchWalletBalance() async {
@@ -302,8 +307,19 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     });
   }
 
-  static const String _razorpayPaymentLink =
-      'https://razorpay.me/@chetanprakashdudi';
+  String? _razorpayPaymentLink;
+
+  Future<void> _fetchPaymentConfig() async {
+    try {
+      final res = await ApiClient.get('/api/payment/config');
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (mounted) {
+          setState(() => _razorpayPaymentLink = data['razorpayPaymentLink']);
+        }
+      }
+    } catch (_) {}
+  }
 
   Future<void> _startPayment() async {
     final t = AppLocalizations.of(context).t;
@@ -318,6 +334,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       return;
     }
 
+    if (_razorpayPaymentLink == null) {
+      showSnack(context, t('payment_config_unavailable_message'), isError: true);
+      _fetchPaymentConfig();
+      return;
+    }
+
     final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
     _showManualPaymentSheet(plan);
   }
@@ -326,10 +348,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       plan.price - (plan.price * (plan.discount / 100));
 
   Future<void> _openManualPaymentLink(double amount) async {
+    if (_razorpayPaymentLink == null) return;
     // razorpay.me Payment Handle pages don't support an amount query param —
     // passing one breaks the page with a generic error, so the payer must
     // type the amount in themselves on Razorpay's page.
-    final uri = Uri.parse(_razorpayPaymentLink);
+    final uri = Uri.parse(_razorpayPaymentLink!);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
