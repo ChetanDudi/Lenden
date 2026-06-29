@@ -111,7 +111,13 @@ exports.verifyPayment = async (req, res) => {
   let created;
   try {
     await session.withTransaction(async () => {
-      // Replay check inside the transaction — snapshot isolation prevents concurrent duplicates
+      // Fast-path replay check — catches the common case (same ID submitted
+      // twice, not concurrently) without waiting on a duplicate-key error.
+      // The actual race-proof guard is the partial unique index on
+      // razorpayPaymentId (see models/subscription.js): if two requests for
+      // the same payment ID run at the same instant, this check can pass for
+      // both, but the loser's Subscription.create below will fail with a
+      // duplicate-key error, caught below and mapped to the same 409.
       const alreadyUsed = await Subscription.findOne({ razorpayPaymentId }).session(session);
       if (alreadyUsed) throw Object.assign(new Error('Payment already applied'), { code: 'ALREADY_USED' });
 
@@ -158,7 +164,7 @@ exports.verifyPayment = async (req, res) => {
       },
     });
   } catch (err) {
-    if (err.code === 'ALREADY_USED') return res.status(409).json({ error: 'Payment already applied' });
+    if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'Payment already applied' });
     console.error('Error verifying payment:', err);
     res.status(500).json({ error: 'Failed to activate subscription' });
   } finally {
@@ -215,6 +221,10 @@ exports.verifyManualPayment = async (req, res) => {
   let created;
   try {
     await session.withTransaction(async () => {
+      // Fast-path check for the common case; the partial unique index on
+      // razorpayPaymentId (models/subscription.js) is what actually closes
+      // the race if two requests for the same ID land at the same instant —
+      // see the catch block below for the duplicate-key (code 11000) case.
       const alreadyUsed = await Subscription.findOne({ razorpayPaymentId: paymentId }).session(session);
       if (alreadyUsed) throw Object.assign(new Error('Payment already applied'), { code: 'ALREADY_USED' });
 
@@ -256,7 +266,7 @@ exports.verifyManualPayment = async (req, res) => {
       },
     });
   } catch (err) {
-    if (err.code === 'ALREADY_USED') return res.status(409).json({ error: 'This payment has already been used to activate a subscription.' });
+    if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'This payment has already been used to activate a subscription.' });
     console.error('Error verifying manual payment:', err);
     res.status(500).json({ error: 'Failed to activate subscription' });
   } finally {

@@ -220,6 +220,11 @@ exports.getAllSubscriptions = async (req, res) => {
         const { search } = req.query;
         let subscriptions;
 
+        // Returns every subscription (active, expired, free, paid — any status), newest
+        // first. The admin UI has its own All/Active/Expired filter and sort options
+        // that work off endDate, so pre-filtering to status:'active' here only hid
+        // expired and legacy records (some older documents predate the status field
+        // and don't match an exact 'active' equality match) from that UI.
         if (search) {
             const safeSearch = escapeRegex(search.toString().trim());
             const users = await User.find({
@@ -235,13 +240,15 @@ exports.getAllSubscriptions = async (req, res) => {
 
             const userIds = users.map(user => user._id);
 
-            subscriptions = await Subscription.find({ user: { $in: userIds }, status: 'active' }).populate('user', 'name email');
+            subscriptions = await Subscription.find({ user: { $in: userIds } })
+                .sort({ createdAt: -1 })
+                .populate('user', 'name email');
 
             if (subscriptions.length === 0) {
-                return res.status(404).json({ message: 'No active subscription found for this user' });
+                return res.status(404).json({ message: 'No subscription found for this user' });
             }
         } else {
-            subscriptions = await Subscription.find({ status: 'active' }).populate('user', 'name email');
+            subscriptions = await Subscription.find({}).sort({ createdAt: -1 }).populate('user', 'name email');
         }
 
         res.status(200).json(subscriptions);

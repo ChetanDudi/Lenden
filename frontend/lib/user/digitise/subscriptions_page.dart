@@ -15,7 +15,10 @@ import '../../widgets/payment_success_page.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/wave_widget.dart' show MediumTopWaveClipper, AltBottomWaveClipper;
+import '../../widgets/wave_widget.dart'
+    show MediumTopWaveClipper, AltBottomWaveClipper;
+import '../support/help_support_page.dart';
+import '../support/contact_page.dart';
 
 // Models
 class SubscriptionPlan {
@@ -103,25 +106,42 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.science_rounded, size: 13, color: Color(0xFFF57F17)),
+            const Icon(Icons.science_rounded,
+                size: 13, color: Color(0xFFF57F17)),
             const SizedBox(width: 6),
             Text(t('razorpay_test_mode_hint_label'),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFF57F17))),
           ]),
           const SizedBox(height: 4),
           Row(children: [
-            const Icon(Icons.credit_card_rounded, size: 12, color: Color(0xFF795548)),
+            const Icon(Icons.credit_card_rounded,
+                size: 12, color: Color(0xFF795548)),
             const SizedBox(width: 5),
-            Text(t('card_colon_label'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
-            const Expanded(child: Text('4111 1111 1111 1111  |  12/28  |  CVV 123  |  OTP 1234',
-              style: TextStyle(fontSize: 11, color: Color(0xFF795548)))),
+            Text(t('card_colon_label'),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF795548))),
+            const Expanded(
+                child: Text(
+                    '4111 1111 1111 1111  |  12/28  |  CVV 123  |  OTP 1234',
+                    style: TextStyle(fontSize: 11, color: Color(0xFF795548)))),
           ]),
           const SizedBox(height: 2),
           Row(children: [
-            const Icon(Icons.phone_android_rounded, size: 12, color: Color(0xFF795548)),
+            const Icon(Icons.phone_android_rounded,
+                size: 12, color: Color(0xFF795548)),
             const SizedBox(width: 5),
-            Text(t('upi_colon_label'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
-            const Text('success@razorpay', style: TextStyle(fontSize: 11, color: Color(0xFF795548))),
+            Text(t('upi_colon_label'),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF795548))),
+            const Text('success@razorpay',
+                style: TextStyle(fontSize: 11, color: Color(0xFF795548))),
           ]),
         ],
       ),
@@ -179,7 +199,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   }
 
   Future<void> _fetchSubscriptionData() async {
-    await Future.wait([_fetchPlans(), _fetchBenefits(), _fetchFaqs(), _fetchWalletBalance()]);
+    await Future.wait(
+        [_fetchPlans(), _fetchBenefits(), _fetchFaqs(), _fetchWalletBalance()]);
   }
 
   Future<void> _fetchWalletBalance() async {
@@ -187,7 +208,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       final res = await ApiClient.get('/api/wallet/balance');
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
-        if (mounted) setState(() => _walletBalance = (data['balance'] ?? 0).toDouble());
+        if (mounted)
+          setState(() => _walletBalance = (data['balance'] ?? 0).toDouble());
       }
     } catch (_) {}
   }
@@ -225,8 +247,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
   String _formatPlanAmount(double amountInInr) {
     final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert('INR', targetCurrency) ??
-        (targetCurrency == 'INR');
+    final canConvert =
+        _displayCurrencyData?.canConvert('INR', targetCurrency) ??
+            (targetCurrency == 'INR');
     if (!canConvert) {
       return '₹${amountInInr.toStringAsFixed(2)}';
     }
@@ -236,9 +259,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           targetCurrency,
         ) ??
         amountInInr;
-    final symbol =
-        _displayCurrencyData?.symbolFor(targetCurrency) ??
-            (targetCurrency == 'INR' ? '₹' : targetCurrency);
+    final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ??
+        (targetCurrency == 'INR' ? '₹' : targetCurrency);
     return '$symbol${converted.toStringAsFixed(2)}';
   }
 
@@ -275,7 +297,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     value: currency['code'],
                     child: Text(
                       '${currency['symbol']} ${currency['code']}',
-                      style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context)),
                     ),
                   ),
                 )
@@ -350,7 +374,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     });
   }
 
-  static const String _razorpayPaymentLink = 'https://razorpay.me/@chetanprakashdudi';
+  static const String _razorpayPaymentLink =
+      'https://razorpay.me/@chetanprakashdudi';
 
   Future<void> _startPayment() async {
     final t = AppLocalizations.of(context).t;
@@ -386,10 +411,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final paymentIdController = TextEditingController();
     bool verifying = false;
     String? errorText;
+    bool hasClickedPayNow = false;
+    bool hasAttemptedVerify = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: AppThemeColors.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -397,25 +426,41 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
+            bool canClose() => !hasClickedPayNow || hasAttemptedVerify;
+
+            void tryClose() {
+              if (canClose()) {
+                Navigator.of(sheetContext).pop();
+              } else {
+                showSnack(
+                    sheetContext, t('enter_payment_id_before_closing_message'),
+                    isError: true);
+              }
+            }
+
             Future<void> verify() async {
               final paymentId = paymentIdController.text.trim();
               if (paymentId.isEmpty) {
-                setSheetState(() => errorText = t('please_enter_payment_id_message'));
+                setSheetState(
+                    () => errorText = t('please_enter_payment_id_message'));
                 return;
               }
               setSheetState(() {
                 verifying = true;
+                hasAttemptedVerify = true;
                 errorText = null;
               });
               try {
-                final res = await ApiClient.post('/api/payment/verify-manual', body: {
+                final res =
+                    await ApiClient.post('/api/payment/verify-manual', body: {
                   'paymentId': paymentId,
                   'planId': plan.id,
                 });
                 if (res.statusCode == 200) {
                   if (!mounted) return;
                   Navigator.of(sheetContext).pop();
-                  final session = Provider.of<SessionProvider>(context, listen: false);
+                  final session =
+                      Provider.of<SessionProvider>(context, listen: false);
                   await session.checkSubscriptionStatus();
                   await session.fetchSubscriptionHistory();
                   if (!mounted) return;
@@ -424,7 +469,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   final err = jsonDecode(res.body);
                   setSheetState(() {
                     verifying = false;
-                    errorText = err['error'] ?? t('payment_verification_failed_generic_message');
+                    errorText = err['error'] ??
+                        t('payment_verification_failed_generic_message');
                   });
                 }
               } catch (e) {
@@ -435,78 +481,210 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               }
             }
 
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    t('pay_for_plan_label').replaceFirst('{plan}', plan.name),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppThemeColors.primaryText(context),
+            return PopScope(
+              canPop: canClose(),
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) {
+                  showSnack(sheetContext,
+                      t('enter_payment_id_before_closing_message'),
+                      isError: true);
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            t('pay_for_plan_label')
+                                .replaceFirst('{plan}', plan.name),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(context),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close,
+                              color: AppThemeColors.secondaryText(context)),
+                          onPressed: tryClose,
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    t('amount_to_pay_colon_label').replaceFirst('{amount}', '₹${actualPrice.toStringAsFixed(2)}'),
-                    style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(context)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    t('enter_this_amount_manually_message'),
-                    style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => _openManualPaymentLink(actualPrice),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(t('pay_now_open_link_label')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 6),
+                    Text(
+                      t('amount_to_pay_colon_label').replaceFirst(
+                          '{amount}', '₹${actualPrice.toStringAsFixed(2)}'),
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: AppThemeColors.secondaryText(context)),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    t('after_paying_enter_payment_id_message'),
-                    style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: paymentIdController,
-                    enabled: !verifying,
-                    decoration: InputDecoration(
-                      hintText: 'pay_XXXXXXXXXXXXXX',
-                      errorText: errorText,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8E1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: const Color(0xFFFFCC02), width: 1),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              size: 16, color: Color(0xFFF57F17)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              t('pay_exact_amount_warning_message')
+                                  .replaceFirst('{amount}',
+                                      '₹${actualPrice.toStringAsFixed(2)}'),
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFF57F17)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  ElevatedButton(
-                    onPressed: verifying ? null : verify,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: const Color(0xFF2196F3), width: 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.info_outline_rounded,
+                                  size: 16, color: Color(0xFF1565C0)),
+                              const SizedBox(width: 6),
+                              Text(
+                                t('before_you_pay_label'),
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1565C0)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            t('save_payment_id_and_receipt_message'),
+                            style: const TextStyle(
+                                fontSize: 12.5, color: Color(0xFF1565C0)),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: verifying
-                        ? const SizedBox(
-                            height: 20, width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(t('verify_and_activate_label')),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setSheetState(() => hasClickedPayNow = true);
+                        _openManualPaymentLink(actualPrice);
+                      },
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text(t('pay_now_open_link_label')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      t('after_paying_enter_payment_id_message'),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: AppThemeColors.secondaryText(context)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: paymentIdController,
+                      enabled: !verifying,
+                      decoration: InputDecoration(
+                        hintText: 'pay_XXXXXXXXXXXXXX',
+                        errorText: errorText,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ElevatedButton(
+                      onPressed: verifying ? null : verify,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: verifying
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : Text(t('verify_and_activate_label')),
+                    ),
+                    if (errorText != null && !verifying) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        t('need_help_with_payment_message'),
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            color: AppThemeColors.secondaryText(context)),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.help_center, size: 16),
+                              label: Text(t('help_and_support'),
+                                  style: const TextStyle(fontSize: 12.5)),
+                              onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => HelpSupportPage())),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.contact_support, size: 16),
+                              label: Text(t('contact_us_title'),
+                                  style: const TextStyle(fontSize: 12.5)),
+                              onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => ContactPage())),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
             );
           },
@@ -541,12 +719,20 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         _showSuccessDialog();
       } else {
         final err = jsonDecode(verifyRes.body);
-        showSnack(context, t('payment_verification_failed_message').replaceFirst('{error}', err['error'] ?? ''), isError: true);
+        showSnack(
+            context,
+            t('payment_verification_failed_message')
+                .replaceFirst('{error}', err['error'] ?? ''),
+            isError: true);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isProcessingPayment = false);
-      showSnack(context, t('payment_done_verification_error_message').replaceFirst('{error}', '$e'), isError: true);
+      showSnack(
+          context,
+          t('payment_done_verification_error_message')
+              .replaceFirst('{error}', '$e'),
+          isError: true);
     }
   }
 
@@ -555,14 +741,21 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final t = AppLocalizations.of(context).t;
     setState(() => _isProcessingPayment = false);
     final message = response.message ?? t('payment_failed_label');
-    showSnack(context, t('payment_cancelled_or_failed_message').replaceFirst('{message}', message), isError: true);
+    showSnack(
+        context,
+        t('payment_cancelled_or_failed_message')
+            .replaceFirst('{message}', message),
+        isError: true);
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
     if (!mounted) return;
     final t = AppLocalizations.of(context).t;
     setState(() => _isProcessingPayment = false);
-    showSnack(context, t('external_wallet_selected_message').replaceFirst('{wallet}', response.walletName ?? ''));
+    showSnack(
+        context,
+        t('external_wallet_selected_message')
+            .replaceFirst('{wallet}', response.walletName ?? ''));
   }
 
   Future<void> _payViaWallet() async {
@@ -579,31 +772,38 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
     final actualPrice = plan.price * (1 - plan.discount / 100);
     if (_walletBalance < actualPrice) {
-      showSnack(context, t('insufficient_wallet_balance_message')
-          .replaceFirst('{needed}', actualPrice.toStringAsFixed(2))
-          .replaceFirst('{available}', _walletBalance.toStringAsFixed(2)), isError: true);
+      showSnack(
+          context,
+          t('insufficient_wallet_balance_message')
+              .replaceFirst('{needed}', actualPrice.toStringAsFixed(2))
+              .replaceFirst('{available}', _walletBalance.toStringAsFixed(2)),
+          isError: true);
       return;
     }
     setState(() => _isPayingViaWallet = true);
     try {
-      final res = await ApiClient.post('/api/wallet/pay-subscription', body: {'planId': plan.id});
+      final res = await ApiClient.post('/api/wallet/pay-subscription',
+          body: {'planId': plan.id});
       if (!mounted) return;
       setState(() => _isPayingViaWallet = false);
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
-        setState(() => _walletBalance = (data['balance'] ?? _walletBalance).toDouble());
+        setState(() =>
+            _walletBalance = (data['balance'] ?? _walletBalance).toDouble());
         await session.checkSubscriptionStatus();
         await session.fetchSubscriptionHistory();
         if (!mounted) return;
         _showSuccessDialog();
       } else {
         final err = json.decode(res.body);
-        showSnack(context, err['error'] ?? t('wallet_payment_failed_message'), isError: true);
+        showSnack(context, err['error'] ?? t('wallet_payment_failed_message'),
+            isError: true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isPayingViaWallet = false);
-        showSnack(context, t('error_colon_label').replaceFirst('{error}', '$e'), isError: true);
+        showSnack(context, t('error_colon_label').replaceFirst('{error}', '$e'),
+            isError: true);
       }
     }
   }
@@ -615,9 +815,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     try {
       final plan = _plans.firstWhere((p) => p.name == _selectedPlan!);
       planPrice = plan.price * (1 - plan.discount / 100);
-      if (plan.discount > 0) planLabel = t('plan_with_discount_off_label')
-          .replaceFirst('{plan}', plan.name)
-          .replaceFirst('{discount}', '${plan.discount}');
+      if (plan.discount > 0)
+        planLabel = t('plan_with_discount_off_label')
+            .replaceFirst('{plan}', plan.name)
+            .replaceFirst('{discount}', '${plan.discount}');
     } catch (_) {}
 
     Navigator.push(
@@ -626,7 +827,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         builder: (_) => PaymentSuccessPage(
           title: t('subscription_activated_label'),
           amount: planPrice,
-          transactionType: t('subscription_em_dash_plan_label').replaceFirst('{plan}', planLabel),
+          transactionType: t('subscription_em_dash_plan_label')
+              .replaceFirst('{plan}', planLabel),
           extraDetails: {t('status_label'): t('premium_member_check_label')},
           onDone: () => Navigator.of(context).pop(),
         ),
@@ -679,7 +881,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(t('go_premium_label'),
-            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            style: const TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -754,7 +957,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       children: [
         Text(
           t('subscription_history_label'),
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppThemeColors.primaryText(context)),
         ),
         const SizedBox(height: 15),
 
@@ -827,7 +1033,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               selectedColor: AppColors.cyan,
               backgroundColor: AppThemeColors.cardBg(context),
               labelStyle: TextStyle(
-                color: _filterOption == filter ? Colors.white : AppThemeColors.primaryText(context),
+                color: _filterOption == filter
+                    ? Colors.white
+                    : AppThemeColors.primaryText(context),
               ),
             );
           }).toList(),
@@ -851,8 +1059,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             final endDate = DateTime.parse(sub['endDate']);
             final isActive =
                 sub['status'] == 'active' && endDate.isAfter(DateTime.now());
-            final paymentMethod = (sub['paymentMethod'] ?? 'razorpay').toString();
-            final actualPrice = ((sub['actualPrice'] ?? sub['price'] ?? 0) as num).toDouble();
+            final paymentMethod =
+                (sub['paymentMethod'] ?? 'razorpay').toString();
+            final actualPrice =
+                ((sub['actualPrice'] ?? sub['price'] ?? 0) as num).toDouble();
             final duration = ((sub['duration'] ?? 0) as num).toInt();
 
             IconData pmIcon;
@@ -886,7 +1096,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 ),
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isActive ? const Color(0xFFE8F5E9) : Colors.grey[200],
                   borderRadius: BorderRadius.circular(20),
@@ -899,82 +1110,123 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(
-                        sub['subscriptionPlan'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        isActive
-                            ? t('active_until_message').replaceFirst('{date}', endDate.toLocal().toString().substring(0, 10))
-                            : t('expired_on_message').replaceFirst('{date}', endDate.toLocal().toString().substring(0, 10)),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                      ),
-                      if (isActive) ...[
-                        const SizedBox(height: 3),
-                        Builder(builder: (_) {
-                          final daysLeft = endDate.difference(DateTime.now()).inDays;
-                          final hoursLeft = endDate.difference(DateTime.now()).inHours % 24;
-                          final label = daysLeft > 0
-                              ? t('days_left_message').replaceFirst('{count}', '$daysLeft')
-                              : hoursLeft > 0
-                                  ? t('hours_left_message').replaceFirst('{count}', '$hoursLeft')
-                                  : t('expiring_soon_label');
-                          final color = daysLeft <= 3
-                              ? Colors.orange
-                              : AppColors.cyan;
-                          return Row(
-                            children: [
-                              Icon(Icons.timer_outlined, size: 12, color: color),
-                              const SizedBox(width: 4),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sub['subscriptionPlan'] ?? '',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            isActive
+                                ? t('active_until_message').replaceFirst(
+                                    '{date}',
+                                    endDate
+                                        .toLocal()
+                                        .toString()
+                                        .substring(0, 10))
+                                : t('expired_on_message').replaceFirst(
+                                    '{date}',
+                                    endDate
+                                        .toLocal()
+                                        .toString()
+                                        .substring(0, 10)),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[700]),
+                          ),
+                          if (isActive) ...[
+                            const SizedBox(height: 3),
+                            Builder(builder: (_) {
+                              final daysLeft =
+                                  endDate.difference(DateTime.now()).inDays;
+                              final hoursLeft =
+                                  endDate.difference(DateTime.now()).inHours %
+                                      24;
+                              final label = daysLeft > 0
+                                  ? t('days_left_message')
+                                      .replaceFirst('{count}', '$daysLeft')
+                                  : hoursLeft > 0
+                                      ? t('hours_left_message')
+                                          .replaceFirst('{count}', '$hoursLeft')
+                                      : t('expiring_soon_label');
+                              final color = daysLeft <= 3
+                                  ? Colors.orange
+                                  : AppColors.cyan;
+                              return Row(
+                                children: [
+                                  Icon(Icons.timer_outlined,
+                                      size: 12, color: color),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: color,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }),
+                          ],
+                          const SizedBox(height: 5),
+                          Row(children: [
+                            // Payment method badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: pmColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: pmColor.withValues(alpha: 0.4),
+                                    width: 0.8),
+                              ),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(pmIcon, size: 10, color: pmColor),
+                                    const SizedBox(width: 3),
+                                    Text(pmLabel,
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: pmColor,
+                                            fontWeight: FontWeight.w600)),
+                                  ]),
+                            ),
+                            if (actualPrice > 0) ...[
+                              const SizedBox(width: 6),
                               Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: color,
-                                ),
+                                '₹${actualPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFF8000)),
                               ),
                             ],
-                          );
-                        }),
-                      ],
-                      const SizedBox(height: 5),
-                      Row(children: [
-                        // Payment method badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: pmColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: pmColor.withValues(alpha: 0.4), width: 0.8),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(pmIcon, size: 10, color: pmColor),
-                            const SizedBox(width: 3),
-                            Text(pmLabel, style: TextStyle(fontSize: 10, color: pmColor, fontWeight: FontWeight.w600)),
+                            if (duration > 0) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                  t('duration_days_count_message')
+                                      .replaceFirst('{duration}', '$duration'),
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.grey[600])),
+                            ],
                           ]),
-                        ),
-                        if (actualPrice > 0) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            '₹${actualPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF8000)),
-                          ),
-                        ],
-                        if (duration > 0) ...[
-                          const SizedBox(width: 6),
-                          Text(t('duration_days_count_message').replaceFirst('{duration}', '$duration'), style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                        ],
-                      ]),
-                    ]),
+                        ]),
                   ),
                   const SizedBox(width: 8),
                   Chip(
                     label: Text(
-                      isActive ? t('active_caps_label') : t('expired_caps_label'),
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                      isActive
+                          ? t('active_caps_label')
+                          : t('expired_caps_label'),
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                     backgroundColor: isActive ? Colors.green : Colors.grey,
                     padding: EdgeInsets.zero,
@@ -993,7 +1245,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   _showAllHistory = !_showAllHistory;
                 });
               },
-              child: Text(_showAllHistory ? t('show_less_label') : t('view_all_label')),
+              child: Text(
+                  _showAllHistory ? t('show_less_label') : t('view_all_label')),
             ),
           ),
 
@@ -1074,7 +1327,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                       SizedBox(width: 20),
                       _buildStatCard(
                           Icons.workspace_premium,
-                          session.subscriptionPlan?.split(' ')[0] ?? t('na_label'),
+                          session.subscriptionPlan?.split(' ')[0] ??
+                              t('na_label'),
                           t('plan_label')),
                     ],
                   ),
@@ -1111,13 +1365,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   children: [
                     Text(
                       t('subscription_details_label'),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87),
                     ),
                     Icon(Icons.edit, color: AppColors.cyan),
                   ],
                 ),
                 const SizedBox(height: 20),
-                _buildInfoRow(t('plan_colon_label'), session.subscriptionPlan ?? t('na_label')),
+                _buildInfoRow(t('plan_colon_label'),
+                    session.subscriptionPlan ?? t('na_label')),
                 const SizedBox(height: 10),
                 _buildInfoRow(
                     t('expires_on_colon_label'),
@@ -1129,7 +1387,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 const SizedBox(height: 20),
                 Text(
                   t('premium_features_colon_label'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
                 ),
                 const SizedBox(height: 10),
                 ..._benefits.asMap().entries.map((entry) {
@@ -1145,19 +1406,28 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => setState(() => _showRenewalSection = !_showRenewalSection),
+            onPressed: () =>
+                setState(() => _showRenewalSection = !_showRenewalSection),
             icon: Icon(
-              _showRenewalSection ? Icons.keyboard_arrow_up_rounded : Icons.refresh_rounded,
+              _showRenewalSection
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.refresh_rounded,
               color: AppColors.cyan,
             ),
             label: Text(
-              _showRenewalSection ? t('hide_renewal_options_label') : t('renew_extend_subscription_label'),
-              style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 15),
+              _showRenewalSection
+                  ? t('hide_renewal_options_label')
+                  : t('renew_extend_subscription_label'),
+              style: const TextStyle(
+                  color: AppColors.cyan,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15),
             ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppColors.cyan, width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
           ),
         ),
@@ -1192,7 +1462,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           ]),
         ),
         const SizedBox(height: 16),
-        Text(t('select_a_plan_label'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+        Text(t('select_a_plan_label'),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(context))),
         const SizedBox(height: 12),
         if (_isLoadingPlans)
           const Center(child: CircularProgressIndicator())
@@ -1211,23 +1485,40 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5))
+            ],
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _startPayment,
+            onPressed: (_isProcessingPayment || _isPayingViaWallet)
+                ? null
+                : _startPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               disabledBackgroundColor: Colors.transparent,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
             ),
             icon: _isProcessingPayment
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.black))
                 : const Icon(Icons.payment, color: Colors.black),
             label: Text(
-              _isProcessingPayment ? t('processing_ellipsis_label') : t('renew_via_razorpay_label'),
-              style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.bold),
+              _isProcessingPayment
+                  ? t('processing_ellipsis_label')
+                  : t('renew_via_razorpay_label'),
+              style: const TextStyle(
+                  fontSize: 17,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -1236,7 +1527,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           const Expanded(child: Divider(thickness: 1.2)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(t('or_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+            child: Text(t('or_label'),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[500])),
           ),
           const Expanded(child: Divider(thickness: 1.2)),
         ]),
@@ -1249,26 +1544,42 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             border: Border.all(color: AppColors.cyan, width: 2),
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _payViaWallet,
+            onPressed: (_isProcessingPayment || _isPayingViaWallet)
+                ? null
+                : _payViaWallet,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF0F9FF),
               shadowColor: Colors.transparent,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22)),
             ),
             icon: _isPayingViaWallet
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
-                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: AppColors.cyan))
+                : const Icon(Icons.account_balance_wallet_rounded,
+                    color: AppColors.cyan),
             label: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isPayingViaWallet ? t('processing_ellipsis_label') : t('renew_via_lenden_wallet_label'),
-                  style: const TextStyle(fontSize: 17, color: AppColors.cyan, fontWeight: FontWeight.bold),
+                  _isPayingViaWallet
+                      ? t('processing_ellipsis_label')
+                      : t('renew_via_lenden_wallet_label'),
+                  style: const TextStyle(
+                      fontSize: 17,
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold),
                 ),
                 if (!_isPayingViaWallet)
-                  Text(t('balance_amount_message').replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)), style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text(
+                      t('balance_amount_message').replaceFirst(
+                          '{amount}', _walletBalance.toStringAsFixed(2)),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               ],
             ),
           ),
@@ -1312,7 +1623,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(title,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.black87)),
         Text(value, style: const TextStyle(color: Colors.black87)),
       ],
     );
@@ -1333,7 +1646,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         // Benefits Section
         Text(
           t('premium_benefits_label'),
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppThemeColors.primaryText(context)),
         ),
         const SizedBox(height: 15),
         if (_isLoadingBenefits)
@@ -1355,7 +1671,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           children: [
             Text(
               t('select_a_plan_label'),
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context)),
             ),
             TextButton.icon(
               onPressed: () {
@@ -1364,7 +1683,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 });
               },
               icon: Icon(_showComparison ? Icons.grid_view : Icons.view_list),
-              label: Text(_showComparison ? t('list_view_label') : t('compare_label')),
+              label: Text(
+                  _showComparison ? t('list_view_label') : t('compare_label')),
             ),
           ],
         ),
@@ -1373,7 +1693,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           children: [
             Text(
               t('show_in_label'),
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context)),
             ),
             const SizedBox(width: 10),
             _buildCurrencySelector(),
@@ -1391,7 +1714,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ),
             child: Text(
               _displayCurrencyError ??
-                  t('conversion_unavailable_subscription_message').replaceFirst('{currency}', _selectedDisplayCurrency),
+                  t('conversion_unavailable_subscription_message')
+                      .replaceFirst('{currency}', _selectedDisplayCurrency),
               style: const TextStyle(
                 color: Color(0xFFC62828),
                 fontWeight: FontWeight.w600,
@@ -1440,20 +1764,32 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ],
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _startPayment,
+            onPressed: (_isProcessingPayment || _isPayingViaWallet)
+                ? null
+                : _startPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               disabledBackgroundColor: Colors.transparent,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
             ),
             icon: _isProcessingPayment
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.black))
                 : const Icon(Icons.payment, color: Colors.black),
             label: Text(
-              _isProcessingPayment ? t('processing_ellipsis_label') : t('pay_via_razorpay_label'),
-              style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.bold),
+              _isProcessingPayment
+                  ? t('processing_ellipsis_label')
+                  : t('pay_via_razorpay_label'),
+              style: const TextStyle(
+                  fontSize: 17,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -1465,7 +1801,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           const Expanded(child: Divider(thickness: 1.2)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(t('or_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+            child: Text(t('or_label'),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[500])),
           ),
           const Expanded(child: Divider(thickness: 1.2)),
         ]),
@@ -1480,27 +1820,41 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             border: Border.all(color: AppColors.cyan, width: 2),
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet) ? null : _payViaWallet,
+            onPressed: (_isProcessingPayment || _isPayingViaWallet)
+                ? null
+                : _payViaWallet,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF0F9FF),
               shadowColor: Colors.transparent,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22)),
             ),
             icon: _isPayingViaWallet
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
-                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: AppColors.cyan))
+                : const Icon(Icons.account_balance_wallet_rounded,
+                    color: AppColors.cyan),
             label: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isPayingViaWallet ? t('processing_ellipsis_label') : t('pay_via_lenden_wallet_label'),
-                  style: const TextStyle(fontSize: 17, color: AppColors.cyan, fontWeight: FontWeight.bold),
+                  _isPayingViaWallet
+                      ? t('processing_ellipsis_label')
+                      : t('pay_via_lenden_wallet_label'),
+                  style: const TextStyle(
+                      fontSize: 17,
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold),
                 ),
                 if (!_isPayingViaWallet)
                   Text(
-                    t('balance_amount_message').replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)),
+                    t('balance_amount_message').replaceFirst(
+                        '{amount}', _walletBalance.toStringAsFixed(2)),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
               ],
@@ -1602,7 +1956,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     final isSelected = _selectedPlan == plan.name;
     final discountedPrice = plan.price * (1 - plan.discount / 100);
     // Mark the most popular plan: index 1 when 3+ plans, otherwise index 0
-    final isPopular = _plans.length >= 3 ? index == 1 : (_plans.length == 2 ? index == 1 : index == 0);
+    final isPopular = _plans.length >= 3
+        ? index == 1
+        : (_plans.length == 2 ? index == 1 : index == 0);
 
     return GestureDetector(
       onTap: () {
@@ -1685,7 +2041,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              t('for_days_message').replaceFirst('{duration}', '${plan.duration}'),
+                              t('for_days_message').replaceFirst(
+                                  '{duration}', '${plan.duration}'),
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
@@ -1698,7 +2055,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                                       color: Colors.orange, size: 16),
                                   SizedBox(width: 4),
                                   Text(
-                                    t('free_days_message').replaceFirst('{count}', '${plan.free}'),
+                                    t('free_days_message').replaceFirst(
+                                        '{count}', '${plan.free}'),
                                     style: TextStyle(
                                       color: Colors.orange,
                                       fontWeight: FontWeight.bold,
@@ -1750,7 +2108,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.star_rounded, color: Colors.white, size: 11),
                   const SizedBox(width: 3),
-                  Text(t('most_popular_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                  Text(t('most_popular_label'),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11)),
                 ]),
               ),
             ),
@@ -1768,8 +2130,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   ),
                 ),
                 child: Text(
-                  t('percent_off_message').replaceFirst('{discount}', '${plan.discount}'),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  t('percent_off_message')
+                      .replaceFirst('{discount}', '${plan.discount}'),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
                 ),
               ),
             ),
@@ -1837,7 +2203,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      t('for_days_message').replaceFirst('{duration}', '${plan.duration}'),
+                      t('for_days_message')
+                          .replaceFirst('{duration}', '${plan.duration}'),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -1880,7 +2247,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
+          style: const TextStyle(
+              fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
         ),
       ],
     );
@@ -1906,9 +2274,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         ),
         child: ListTile(
           leading: Icon(icon, color: AppColors.cyan, size: 40),
-          title:
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-          subtitle: subtitle.isNotEmpty ? Text(subtitle, style: const TextStyle(color: Colors.black87)) : null,
+          title: Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.black87)),
+          subtitle: subtitle.isNotEmpty
+              ? Text(subtitle, style: const TextStyle(color: Colors.black87))
+              : null,
         ),
       ),
     );
@@ -1938,7 +2309,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               SizedBox(width: 10),
               Text(
                 t('faqs_label'),
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context)),
               ),
             ],
           ),
@@ -1978,7 +2352,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         child: ExpansionTile(
           title: Text(
             question,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87),
+            style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.black87),
           ),
           children: [
             Padding(

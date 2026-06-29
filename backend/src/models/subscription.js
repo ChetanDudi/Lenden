@@ -51,8 +51,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     razorpayPaymentId: {
         type: String,
-        default: null,
-        index: true
+        default: null
     },
     paymentMethod: {
         type: String,
@@ -60,5 +59,20 @@ const subscriptionSchema = new mongoose.Schema({
         default: 'razorpay'
     }
 }, { timestamps: true });
+
+// Partial unique index: only enforces uniqueness where razorpayPaymentId is an
+// actual string, so the many documents with it left as null (wallet/admin
+// grants) never collide with each other. This is the real defense against two
+// requests racing to redeem the same Razorpay payment ID at once — an
+// application-level "does a Subscription with this ID already exist?" check
+// inside a transaction does NOT prevent that, because MongoDB's snapshot
+// isolation lets two concurrent transactions both read "not found" before
+// either commits. With this index, whichever insert loses the race fails with
+// a duplicate-key error (code 11000), which the controllers below translate
+// into the same 409 "already used" response as the explicit replay check.
+subscriptionSchema.index(
+    { razorpayPaymentId: 1 },
+    { unique: true, partialFilterExpression: { razorpayPaymentId: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

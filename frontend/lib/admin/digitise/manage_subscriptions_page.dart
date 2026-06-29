@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/wave_widget.dart' show MediumTopWaveClipper, AltBottomWaveClipper;
+import '../../widgets/wave_widget.dart'
+    show MediumTopWaveClipper, AltBottomWaveClipper;
 
 class AdminFeaturesPage extends StatefulWidget {
   @override
@@ -355,8 +357,7 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                             spacing: 8,
                             children: [
                               IconButton(
-                                icon:
-                                    Icon(Icons.edit, color: AppColors.cyan),
+                                icon: Icon(Icons.edit, color: AppColors.cyan),
                                 onPressed: () => _showPlanDialog(plan: plan),
                               ),
                               IconButton(
@@ -604,7 +605,9 @@ class _PlanDialogState extends State<PlanDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.plan == null ? t('add_plan_title') : t('edit_plan_title'),
+                    widget.plan == null
+                        ? t('add_plan_title')
+                        : t('edit_plan_title'),
                     style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -1278,8 +1281,8 @@ class _FaqsTabState extends State<FaqsTab> {
                               child: Text(
                                 faq.answer,
                                 style: TextStyle(
-                                    color: AppThemeColors.secondaryText(
-                                        context),
+                                    color:
+                                        AppThemeColors.secondaryText(context),
                                     fontSize: 14),
                               ),
                             ),
@@ -1294,8 +1297,7 @@ class _FaqsTabState extends State<FaqsTab> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               IconButton(
-                                icon:
-                                    Icon(Icons.edit, color: AppColors.cyan),
+                                icon: Icon(Icons.edit, color: AppColors.cyan),
                                 onPressed: () => _showFaqDialog(faq: faq),
                               ),
                               IconButton(
@@ -1428,7 +1430,8 @@ class _FaqsTabState extends State<FaqsTab> {
       } else {
         final body =
             response.body.isNotEmpty ? json.decode(response.body) : null;
-        showStylishSnackBar(context, body?['message'] ?? t('failed_to_delete_faq'),
+        showStylishSnackBar(
+            context, body?['message'] ?? t('failed_to_delete_faq'),
             isError: true);
       }
     }
@@ -1532,7 +1535,9 @@ class _FaqDialogState extends State<FaqDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.faq == null ? t('add_faq_title') : t('edit_faq_title'),
+                    widget.faq == null
+                        ? t('add_faq_title')
+                        : t('edit_faq_title'),
                     style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -1637,6 +1642,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
   String? _error;
   String _statusFilter = 'all';
   String _sortBy = 'newest';
+  bool _showAll = false;
   final TextEditingController _searchController = TextEditingController();
 
   List<dynamic> get _filteredSubs {
@@ -1669,10 +1675,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
               .toString()
               .compareTo((b['createdAt'] ?? '').toString());
         case 'ending_soon':
-          final aEnd =
-              DateTime.tryParse(a['endDate'] ?? '') ?? DateTime(9999);
-          final bEnd =
-              DateTime.tryParse(b['endDate'] ?? '') ?? DateTime(9999);
+          final aEnd = DateTime.tryParse(a['endDate'] ?? '') ?? DateTime(9999);
+          final bEnd = DateTime.tryParse(b['endDate'] ?? '') ?? DateTime(9999);
           return aEnd.compareTo(bEnd);
         case 'price_high':
           return ((b['price'] as num?) ?? 0)
@@ -1733,8 +1737,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
         final body =
             response.body.isNotEmpty ? json.decode(response.body) : null;
         setState(() {
-          _error =
-              (body?['message'] ?? t('failed_to_load_subscriptions')).toString();
+          _error = (body?['message'] ?? t('failed_to_load_subscriptions'))
+              .toString();
           _isLoading = false;
         });
       }
@@ -1751,8 +1755,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
       context: context,
       builder: (context) {
         return EditSubscriptionDialog(
-            subscription: subscription,
-            onSave: () => _fetchSubscriptions());
+            subscription: subscription, onSave: () => _fetchSubscriptions());
       },
     );
   }
@@ -1880,10 +1883,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                 'newest', t('newest_first'), Icons.arrow_downward_rounded),
             _buildSortTile(
                 'oldest', t('oldest_first'), Icons.arrow_upward_rounded),
-            _buildSortTile(
-                'ending_soon', t('ending_soon_label'), Icons.hourglass_bottom_rounded),
-            _buildSortTile(
-                'price_high', t('highest_price_label'), Icons.attach_money_rounded),
+            _buildSortTile('ending_soon', t('ending_soon_label'),
+                Icons.hourglass_bottom_rounded),
+            _buildSortTile('price_high', t('highest_price_label'),
+                Icons.attach_money_rounded),
             const SizedBox(height: 24),
           ],
         ),
@@ -1901,7 +1904,9 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? AppColors.cyan : AppThemeColors.secondaryText(context),
+          color: isSelected
+              ? AppColors.cyan
+              : AppThemeColors.secondaryText(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -1936,7 +1941,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            color: selected ? Colors.white : AppThemeColors.secondaryText(context),
+            color:
+                selected ? Colors.white : AppThemeColors.secondaryText(context),
           ),
         ),
       ),
@@ -1946,11 +1952,9 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
   Widget _buildSubCard(dynamic sub, int index) {
     final t = AppLocalizations.of(context).t;
     final now = DateTime.now();
-    final endDate =
-        DateTime.tryParse((sub['endDate'] ?? '').toString());
+    final endDate = DateTime.tryParse((sub['endDate'] ?? '').toString());
     final isExpired = endDate != null && endDate.isBefore(now);
-    final daysLeft =
-        endDate != null ? endDate.difference(now).inDays : null;
+    final daysLeft = endDate != null ? endDate.difference(now).inDays : null;
     final isFree = sub['free'] == true;
     final planName =
         (sub['subscriptionPlan'] ?? t('plan_fallback_label')).toString();
@@ -1982,8 +1986,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
         decoration: BoxDecoration(
           color: isExpired
               ? AppThemeColors.tinted(context,
-                  light: const Color(0xFFFFF5F5),
-                  dark: const Color(0xFF3A2326))
+                  light: const Color(0xFFFFF5F5), dark: const Color(0xFF3A2326))
               : _getCardColor(context, index),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -1994,8 +1997,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor:
-                      AppColors.cyan.withValues(alpha: 0.15),
+                  backgroundColor: AppColors.cyan.withValues(alpha: 0.15),
                   child: Text(
                     userName.isNotEmpty
                         ? userName.substring(0, 1).toUpperCase()
@@ -2037,8 +2039,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                       decoration: BoxDecoration(
                         color: isFree
                             ? Colors.green.withValues(alpha: 0.12)
-                            : AppColors.cyan
-                                .withValues(alpha: 0.12),
+                            : AppColors.cyan.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -2048,9 +2049,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isFree
-                              ? Colors.green
-                              : AppColors.cyan,
+                          color: isFree ? Colors.green : AppColors.cyan,
                         ),
                       ),
                     ),
@@ -2140,8 +2139,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                   label: Text(t('edit')),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.cyan,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -2153,8 +2152,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                   label: Text(t('deactivate_label')),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -2221,8 +2220,8 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                               hintStyle: TextStyle(
                                   color: AppThemeColors.mutedText(context)),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 12),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
                         ),
@@ -2249,8 +2248,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _buildStatusChip(
-                                'all', t('all'), AppColors.cyan),
+                            _buildStatusChip('all', t('all'), AppColors.cyan),
                             const SizedBox(width: 8),
                             _buildStatusChip(
                                 'active', t('active'), Colors.green),
@@ -2315,8 +2313,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                                 size: 48, color: Colors.red[300]),
                             const SizedBox(height: 12),
                             Text(_error!,
-                                style:
-                                    const TextStyle(color: Colors.red)),
+                                style: const TextStyle(color: Colors.red)),
                             const SizedBox(height: 16),
                             ElevatedButton.icon(
                               onPressed: _fetchSubscriptions,
@@ -2349,11 +2346,28 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
                         : RefreshIndicator(
                             onRefresh: _fetchSubscriptions,
                             child: ListView.builder(
-                              padding:
-                                  const EdgeInsets.only(bottom: 24),
-                              itemCount: filtered.length,
-                              itemBuilder: (_, i) =>
-                                  _buildSubCard(filtered[i], i),
+                              padding: const EdgeInsets.only(bottom: 24),
+                              itemCount: (_showAll
+                                      ? filtered.length
+                                      : math.min(3, filtered.length)) +
+                                  (filtered.length > 3 ? 1 : 0),
+                              itemBuilder: (_, i) {
+                                final itemsToShow = _showAll
+                                    ? filtered.length
+                                    : math.min(3, filtered.length);
+                                if (i == itemsToShow) {
+                                  return Center(
+                                    child: TextButton(
+                                      onPressed: () =>
+                                          setState(() => _showAll = !_showAll),
+                                      child: Text(_showAll
+                                          ? t('show_less_label')
+                                          : '${t('view_all_label')} (${filtered.length})'),
+                                    ),
+                                  );
+                                }
+                                return _buildSubCard(filtered[i], i);
+                              },
                             ),
                           ),
           ),
@@ -2514,9 +2528,8 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                   _buildStylishTextField(
                     label: t('subscription_plan_label'),
                     initialValue: _subscriptionPlan,
-                    validator: (value) => value!.isEmpty
-                        ? t('please_enter_a_plan_name')
-                        : null,
+                    validator: (value) =>
+                        value!.isEmpty ? t('please_enter_a_plan_name') : null,
                     onSaved: (value) => _subscriptionPlan = value!,
                   ),
                   _buildStylishTextField(
@@ -2577,8 +2590,8 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                             '${_endDate.toLocal().toString().substring(0, 10)}',
                             style: TextStyle(
                                 color: AppThemeColors.primaryText(context))),
-                        trailing: Icon(Icons.calendar_today,
-                            color: AppColors.cyan),
+                        trailing:
+                            Icon(Icons.calendar_today, color: AppColors.cyan),
                         onTap: () => _selectEndDate(context),
                       ),
                     ),
