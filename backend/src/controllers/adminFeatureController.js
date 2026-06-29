@@ -49,8 +49,10 @@ exports.createSubscriptionPlan = async (req, res) => {
     try {
         const permitted = await ensureDigitisePermission(req, res);
         if (!permitted) return;
-        const { name, price, duration, features, offer, discount, free } = req.body;
-        const newPlan = new SubscriptionPlan({ name, price, duration, features, offer, discount, free });
+        const { name, price, duration, features, discount, free } = req.body;
+        if (!(price > 0)) return res.status(400).json({ message: 'Price must be greater than 0' });
+        if (!(duration > 0)) return res.status(400).json({ message: 'Duration must be greater than 0' });
+        const newPlan = new SubscriptionPlan({ name, price, duration, features, discount, free });
         await newPlan.save();
         res.status(201).json({ message: 'Subscription plan created successfully', plan: newPlan });
     } catch (error) {
@@ -74,8 +76,10 @@ exports.updateSubscriptionPlan = async (req, res) => {
         const permitted = await ensureDigitisePermission(req, res);
         if (!permitted) return;
         const { id } = req.params;
-        const { name, price, duration, features, isAvailable, offer, discount, free } = req.body;
-        const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(id, { name, price, duration, features, isAvailable, offer, discount, free }, { new: true });
+        const { name, price, duration, features, isAvailable, discount, free } = req.body;
+        if (price !== undefined && !(price > 0)) return res.status(400).json({ message: 'Price must be greater than 0' });
+        if (duration !== undefined && !(duration > 0)) return res.status(400).json({ message: 'Duration must be greater than 0' });
+        const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(id, { name, price, duration, features, isAvailable, discount, free }, { new: true });
         if (!updatedPlan) {
             return res.status(404).json({ message: 'Subscription plan not found' });
         }
@@ -263,6 +267,8 @@ exports.updateUserSubscription = async (req, res) => {
         if (!permitted) return;
         const { id } = req.params;
         const { subscriptionPlan, duration, price, discount, free, endDate } = req.body;
+        if (duration !== undefined && !(duration > 0)) return res.status(400).json({ message: 'Duration must be greater than 0' });
+        if (price !== undefined && price < 0) return res.status(400).json({ message: 'Price cannot be negative' });
         const updatedSubscription = await Subscription.findByIdAndUpdate(id, { subscriptionPlan, duration, price, discount, free, endDate }, { new: true });
         if (!updatedSubscription) {
             return res.status(404).json({ message: 'Subscription not found' });

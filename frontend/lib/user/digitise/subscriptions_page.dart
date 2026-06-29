@@ -1,11 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -93,61 +90,6 @@ class SubscriptionsPage extends StatefulWidget {
 }
 
 class _SubscriptionsPageState extends State<SubscriptionsPage> {
-  Widget get _razorpayTestHint {
-    final t = AppLocalizations.of(context).t;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFFCC02), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            const Icon(Icons.science_rounded,
-                size: 13, color: Color(0xFFF57F17)),
-            const SizedBox(width: 6),
-            Text(t('razorpay_test_mode_hint_label'),
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFF57F17))),
-          ]),
-          const SizedBox(height: 4),
-          Row(children: [
-            const Icon(Icons.credit_card_rounded,
-                size: 12, color: Color(0xFF795548)),
-            const SizedBox(width: 5),
-            Text(t('card_colon_label'),
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF795548))),
-            const Expanded(
-                child: Text(
-                    '4111 1111 1111 1111  |  12/28  |  CVV 123  |  OTP 1234',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF795548)))),
-          ]),
-          const SizedBox(height: 2),
-          Row(children: [
-            const Icon(Icons.phone_android_rounded,
-                size: 12, color: Color(0xFF795548)),
-            const SizedBox(width: 5),
-            Text(t('upi_colon_label'),
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF795548))),
-            const Text('success@razorpay',
-                style: TextStyle(fontSize: 11, color: Color(0xFF795548))),
-          ]),
-        ],
-      ),
-    );
-  }
-
   String? _selectedPlan;
   String _searchQuery = '';
   String _filterOption = 'All'; // All, Active, Expired
@@ -163,16 +105,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   bool _isLoadingPlans = false;
   bool _isLoadingBenefits = false;
   bool _isLoadingFaqs = false;
-  bool _isProcessingPayment = false;
   bool _isPayingViaWallet = false;
   bool _showRenewalSection = false;
   double _walletBalance = 0;
-  String? _pendingPlanId;
-
-  Razorpay? _razorpay;
-
-  bool get _isMobilePlatform =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -183,17 +118,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         .checkSubscriptionStatus();
     _loadDisplayCurrencies();
     _fetchSubscriptionData();
-    if (_isMobilePlatform) {
-      _razorpay = Razorpay();
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-    }
   }
 
   @override
   void dispose() {
-    _razorpay?.clear();
     _searchController.dispose();
     super.dispose();
   }
@@ -691,71 +619,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         );
       },
     );
-  }
-
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    if (!mounted) return;
-    final t = AppLocalizations.of(context).t;
-    // Step 3: Verify payment signature on backend
-    try {
-      final verifyRes = await ApiClient.post(
-        '/api/payment/verify',
-        body: {
-          'razorpayOrderId': response.orderId,
-          'razorpayPaymentId': response.paymentId,
-          'razorpaySignature': response.signature,
-          'planId': _pendingPlanId,
-        },
-      );
-
-      if (!mounted) return;
-      setState(() => _isProcessingPayment = false);
-
-      if (verifyRes.statusCode == 200) {
-        final session = Provider.of<SessionProvider>(context, listen: false);
-        await session.checkSubscriptionStatus();
-        await session.fetchSubscriptionHistory();
-        if (!mounted) return;
-        _showSuccessDialog();
-      } else {
-        final err = jsonDecode(verifyRes.body);
-        showSnack(
-            context,
-            t('payment_verification_failed_message')
-                .replaceFirst('{error}', err['error'] ?? ''),
-            isError: true);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isProcessingPayment = false);
-      showSnack(
-          context,
-          t('payment_done_verification_error_message')
-              .replaceFirst('{error}', '$e'),
-          isError: true);
-    }
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    if (!mounted) return;
-    final t = AppLocalizations.of(context).t;
-    setState(() => _isProcessingPayment = false);
-    final message = response.message ?? t('payment_failed_label');
-    showSnack(
-        context,
-        t('payment_cancelled_or_failed_message')
-            .replaceFirst('{message}', message),
-        isError: true);
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    if (!mounted) return;
-    final t = AppLocalizations.of(context).t;
-    setState(() => _isProcessingPayment = false);
-    showSnack(
-        context,
-        t('external_wallet_selected_message')
-            .replaceFirst('{wallet}', response.walletName ?? ''));
   }
 
   Future<void> _payViaWallet() async {
@@ -1473,8 +1336,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         else
           ..._plans.asMap().entries.map((e) => _buildPlanCard(e.value, e.key)),
         const SizedBox(height: 20),
-        _razorpayTestHint,
-        const SizedBox(height: 12),
         // Razorpay button
         Container(
           width: double.infinity,
@@ -1493,9 +1354,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ],
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet)
-                ? null
-                : _startPayment,
+            onPressed: _isPayingViaWallet ? null : _startPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
@@ -1504,17 +1363,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
             ),
-            icon: _isProcessingPayment
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.black))
-                : const Icon(Icons.payment, color: Colors.black),
+            icon: const Icon(Icons.payment, color: Colors.black),
             label: Text(
-              _isProcessingPayment
-                  ? t('processing_ellipsis_label')
-                  : t('renew_via_razorpay_label'),
+              t('renew_via_razorpay_label'),
               style: const TextStyle(
                   fontSize: 17,
                   color: Colors.black,
@@ -1544,9 +1395,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             border: Border.all(color: AppColors.cyan, width: 2),
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet)
-                ? null
-                : _payViaWallet,
+            onPressed: _isPayingViaWallet ? null : _payViaWallet,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF0F9FF),
               shadowColor: Colors.transparent,
@@ -1743,8 +1592,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
         const SizedBox(height: 30),
 
-        _razorpayTestHint,
-        const SizedBox(height: 12),
         // Subscribe Button — Razorpay
         Container(
           width: double.infinity,
@@ -1764,9 +1611,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ],
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet)
-                ? null
-                : _startPayment,
+            onPressed: _isPayingViaWallet ? null : _startPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
@@ -1775,17 +1620,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
             ),
-            icon: _isProcessingPayment
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.black))
-                : const Icon(Icons.payment, color: Colors.black),
+            icon: const Icon(Icons.payment, color: Colors.black),
             label: Text(
-              _isProcessingPayment
-                  ? t('processing_ellipsis_label')
-                  : t('pay_via_razorpay_label'),
+              t('pay_via_razorpay_label'),
               style: const TextStyle(
                   fontSize: 17,
                   color: Colors.black,
@@ -1820,9 +1657,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             border: Border.all(color: AppColors.cyan, width: 2),
           ),
           child: ElevatedButton.icon(
-            onPressed: (_isProcessingPayment || _isPayingViaWallet)
-                ? null
-                : _payViaWallet,
+            onPressed: _isPayingViaWallet ? null : _payViaWallet,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF0F9FF),
               shadowColor: Colors.transparent,

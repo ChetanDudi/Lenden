@@ -1,46 +1,7 @@
 const Subscription = require('../models/subscription');
-const User = require('../models/user');
-const mongoose = require('mongoose');
 const SubscriptionPlan = require('../models/subscriptionPlan');
 const PremiumBenefit = require('../models/premiumBenefit');
 const Faq = require('../models/faq');
-
-// Update or create a subscription
-exports.updateSubscription = async (req, res) => {
-    const { subscriptionPlan, duration, price, discount, free } = req.body; // duration in months
-    const userId = req.user._id;
-
-    try {
-        // Expire all existing subscriptions for the user
-        await Subscription.updateMany({ user: userId }, { $set: { status: 'expired' } });
-
-        const subscribedDate = new Date();
-        const endDate = new Date(subscribedDate);
-        endDate.setDate(endDate.getDate() + duration + free);
-
-        const actualPrice = price - (price * (discount / 100));
-
-        // Create new subscription
-        const subscription = new Subscription({
-            user: userId,
-            subscribed: true,
-            subscriptionPlan,
-            duration,
-            price,
-            discount,
-            actualPrice,
-            free,
-            subscribedDate,
-            endDate,
-            status: 'active'
-        });
-        await subscription.save();
-
-        res.status(200).json({ message: 'Subscription updated successfully', subscription });
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating subscription' });
-    }
-};
 
 // Get subscription status for the logged-in user
 exports.getSubscriptionStatus = async (req, res) => {

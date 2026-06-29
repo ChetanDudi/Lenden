@@ -490,8 +490,7 @@ module.exports = (io) => {
   // Group Chat routes
   router.get('/group-chat/messages/:groupTransactionId', auth, groupChatController.getGroupMessages);
 
-  // Subscription routes (update is admin-only — normal users must go through /payment/verify)
-  router.post('/subscription/update', auth, isAdmin, subscriptionController.updateSubscription);
+  // Subscription routes
   router.get('/subscription/status', auth, subscriptionController.getSubscriptionStatus);
   router.get('/subscription/history', auth, subscriptionController.getSubscriptionHistory);
 

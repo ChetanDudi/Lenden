@@ -112,7 +112,6 @@ class SubscriptionPlan {
   final int duration;
   final List<String> features;
   final bool isAvailable;
-  final String? offer;
   final int discount;
   final int free;
 
@@ -123,7 +122,6 @@ class SubscriptionPlan {
       required this.duration,
       required this.features,
       required this.isAvailable,
-      this.offer,
       required this.discount,
       required this.free});
 
@@ -135,7 +133,6 @@ class SubscriptionPlan {
       duration: json['duration'],
       features: List<String>.from(json['features']),
       isAvailable: json['isAvailable'],
-      offer: json['offer'],
       discount: json['discount'] ?? 0,
       free: json['free'] ?? 0,
     );
@@ -181,6 +178,8 @@ class SubscriptionPlansTab extends StatefulWidget {
 class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
   List<SubscriptionPlan> _plans = [];
   Map<String, bool> _isToggling = {};
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -210,14 +209,33 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
   }
 
   Future<void> _fetchPlans() async {
-    final response = await ApiClient.get('/api/admin/subscription-plans');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+    final t = AppLocalizations.of(context).t;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final response = await ApiClient.get('/api/admin/subscription-plans');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _plans = data.map((item) => SubscriptionPlan.fromJson(item)).toList();
+          _isLoading = false;
+        });
+      } else {
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        setState(() {
+          _error = (body?['message'] ?? t('failed_to_load_plans_message'))
+              .toString();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _plans = data.map((item) => SubscriptionPlan.fromJson(item)).toList();
+        _error = '${t('error_prefix')} $e';
+        _isLoading = false;
       });
-    } else {
-      // Handle error
     }
   }
 
@@ -243,7 +261,11 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
         _fetchPlans();
         showSnack(context, t('plan_availability_updated_successfully'));
       } else {
-        // handle error
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        showStylishSnackBar(context,
+            body?['message'] ?? t('failed_to_update_plan_availability_message'),
+            isError: true);
       }
     } catch (e) {
       showStylishSnackBar(context, '${t('an_error_occurred')}: $e',
@@ -261,118 +283,149 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
     final t = AppLocalizations.of(context).t;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: _plans.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox,
-                      size: 80, color: AppThemeColors.mutedText(context)),
-                  SizedBox(height: 16),
-                  Text(
-                    t('nothing_here'),
-                    style: TextStyle(
-                        fontSize: 20,
-                        color: AppThemeColors.secondaryText(context),
-                        fontWeight: FontWeight.bold),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 48, color: Colors.red[300]),
+                      const SizedBox(height: 12),
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _fetchPlans,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(t('retry')),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    t('add_first_subscription_plan'),
-                    style: TextStyle(
-                        fontSize: 14, color: AppThemeColors.mutedText(context)),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: _plans.length,
-              itemBuilder: (context, index) {
-                final plan = _plans[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      colors: [Colors.orange, Colors.white, Colors.green],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _getCardColor(context, index),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                )
+              : _plans.isEmpty
+                  ? Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      plan.name,
-                                      style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppThemeColors.primaryText(
-                                              context)),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      '₹${plan.price} ${t('for_label')} ${plan.duration} ${t('days_label')}',
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: AppThemeColors.secondaryText(
-                                              context)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _isToggling[plan.id] ?? false
-                                  ? SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : Switch(
-                                      value: plan.isAvailable,
-                                      onChanged: (value) {
-                                        _togglePlanAvailability(plan, value);
-                                      },
-                                      activeColor: Colors.green,
-                                    ),
-                            ],
+                          Icon(Icons.inbox,
+                              size: 80,
+                              color: AppThemeColors.mutedText(context)),
+                          SizedBox(height: 16),
+                          Text(
+                            t('nothing_here'),
+                            style: TextStyle(
+                                fontSize: 20,
+                                color: AppThemeColors.secondaryText(context),
+                                fontWeight: FontWeight.bold),
                           ),
-                          SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit, color: AppColors.cyan),
-                                onPressed: () => _showPlanDialog(plan: plan),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deletePlan(plan.id),
-                              ),
-                            ],
+                          SizedBox(height: 8),
+                          Text(
+                            t('add_first_subscription_plan'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: AppThemeColors.mutedText(context)),
                           ),
                         ],
                       ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.all(16),
+                      itemCount: _plans.length,
+                      itemBuilder: (context, index) {
+                        final plan = _plans[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _getCardColor(context, index),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              plan.name,
+                                              style: TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppThemeColors
+                                                      .primaryText(context)),
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              '₹${plan.price} ${t('for_label')} ${plan.duration} ${t('days_label')}',
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: AppThemeColors
+                                                      .secondaryText(context)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      _isToggling[plan.id] ?? false
+                                          ? SizedBox(
+                                              height: 24,
+                                              width: 24,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2),
+                                            )
+                                          : Switch(
+                                              value: plan.isAvailable,
+                                              onChanged: (value) {
+                                                _togglePlanAvailability(
+                                                    plan, value);
+                                              },
+                                              activeColor: Colors.green,
+                                            ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.edit,
+                                            color: AppColors.cyan),
+                                        onPressed: () =>
+                                            _showPlanDialog(plan: plan),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () => _deletePlan(plan.id),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                );
-              },
-            ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30),
@@ -625,32 +678,56 @@ class _PlanDialogState extends State<PlanDialog> {
                     label: t('price_rupees_label'),
                     initialValue: _price.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_a_price') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_a_price');
+                      final parsed = double.tryParse(value);
+                      if (parsed == null || parsed <= 0)
+                        return t('please_enter_a_valid_price');
+                      return null;
+                    },
                     onSaved: (value) => _price = double.parse(value!),
                   ),
                   _buildStylishTextField(
                     label: t('duration_days_label'),
                     initialValue: _duration.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_a_duration') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_a_duration');
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed <= 0)
+                        return t('please_enter_a_valid_duration');
+                      return null;
+                    },
                     onSaved: (value) => _duration = int.parse(value!),
                   ),
                   _buildStylishTextField(
                     label: t('discount_percent_label'),
                     initialValue: _discount.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_a_discount') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_a_discount');
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed < 0 || parsed > 100)
+                        return t('please_enter_a_valid_discount');
+                      return null;
+                    },
                     onSaved: (value) => _discount = int.parse(value!),
                   ),
                   _buildStylishTextField(
                     label: t('free_days_label'),
                     initialValue: _free.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_free_days') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_free_days');
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed < 0)
+                        return t('please_enter_a_valid_free_days');
+                      return null;
+                    },
                     onSaved: (value) => _free = int.parse(value!),
                   ),
                   _buildStylishTextField(
@@ -752,6 +829,8 @@ class PremiumBenefitsTab extends StatefulWidget {
 
 class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
   List<PremiumBenefit> _benefits = [];
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -781,14 +860,34 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
   }
 
   Future<void> _fetchBenefits() async {
-    final response = await ApiClient.get('/api/admin/premium-benefits');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+    final t = AppLocalizations.of(context).t;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final response = await ApiClient.get('/api/admin/premium-benefits');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _benefits =
+              data.map((item) => PremiumBenefit.fromJson(item)).toList();
+          _isLoading = false;
+        });
+      } else {
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        setState(() {
+          _error = (body?['message'] ?? t('failed_to_load_benefits_message'))
+              .toString();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _benefits = data.map((item) => PremiumBenefit.fromJson(item)).toList();
+        _error = '${t('error_prefix')} $e';
+        _isLoading = false;
       });
-    } else {
-      // Handle error
     }
   }
 
@@ -797,77 +896,105 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
     final t = AppLocalizations.of(context).t;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: _benefits.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox,
-                      size: 80, color: AppThemeColors.mutedText(context)),
-                  SizedBox(height: 16),
-                  Text(
-                    t('nothing_here'),
-                    style: TextStyle(
-                        fontSize: 20,
-                        color: AppThemeColors.secondaryText(context),
-                        fontWeight: FontWeight.bold),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 48, color: Colors.red[300]),
+                      const SizedBox(height: 12),
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _fetchBenefits,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(t('retry')),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    t('add_first_premium_benefit'),
-                    style: TextStyle(
-                        fontSize: 14, color: AppThemeColors.mutedText(context)),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: _benefits.length,
-              itemBuilder: (context, index) {
-                final benefit = _benefits[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      colors: [Colors.orange, Colors.white, Colors.green],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _getCardColor(context, index),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: ListTile(
-                      leading: Icon(Icons.check_circle,
-                          color: AppColors.cyan, size: 32),
-                      title: Text(benefit.text,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppThemeColors.primaryText(context))),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                )
+              : _benefits.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          IconButton(
-                            icon: Icon(Icons.edit, color: AppColors.cyan),
-                            onPressed: () =>
-                                _showBenefitDialog(benefit: benefit),
+                          Icon(Icons.inbox,
+                              size: 80,
+                              color: AppThemeColors.mutedText(context)),
+                          SizedBox(height: 16),
+                          Text(
+                            t('nothing_here'),
+                            style: TextStyle(
+                                fontSize: 20,
+                                color: AppThemeColors.secondaryText(context),
+                                fontWeight: FontWeight.bold),
                           ),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteBenefit(benefit.id),
+                          SizedBox(height: 8),
+                          Text(
+                            t('add_first_premium_benefit'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: AppThemeColors.mutedText(context)),
                           ),
                         ],
                       ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.all(16),
+                      itemCount: _benefits.length,
+                      itemBuilder: (context, index) {
+                        final benefit = _benefits[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _getCardColor(context, index),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: ListTile(
+                              leading: Icon(Icons.check_circle,
+                                  color: AppColors.cyan, size: 32),
+                              title: Text(benefit.text,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          AppThemeColors.primaryText(context))),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon:
+                                        Icon(Icons.edit, color: AppColors.cyan),
+                                    onPressed: () =>
+                                        _showBenefitDialog(benefit: benefit),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _deleteBenefit(benefit.id),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                );
-              },
-            ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30),
@@ -1173,6 +1300,8 @@ class FaqsTab extends StatefulWidget {
 
 class _FaqsTabState extends State<FaqsTab> {
   List<Faq> _faqs = [];
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -1202,14 +1331,33 @@ class _FaqsTabState extends State<FaqsTab> {
   }
 
   Future<void> _fetchFaqs() async {
-    final response = await ApiClient.get('/api/admin/faqs');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+    final t = AppLocalizations.of(context).t;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final response = await ApiClient.get('/api/admin/faqs');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _faqs = data.map((item) => Faq.fromJson(item)).toList();
+          _isLoading = false;
+        });
+      } else {
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        setState(() {
+          _error =
+              (body?['message'] ?? t('failed_to_load_faqs_message')).toString();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _faqs = data.map((item) => Faq.fromJson(item)).toList();
+        _error = '${t('error_prefix')} $e';
+        _isLoading = false;
       });
-    } else {
-      // Handle error
     }
   }
 
@@ -1218,101 +1366,132 @@ class _FaqsTabState extends State<FaqsTab> {
     final t = AppLocalizations.of(context).t;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: _faqs.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox,
-                      size: 80, color: AppThemeColors.mutedText(context)),
-                  SizedBox(height: 16),
-                  Text(
-                    t('nothing_here'),
-                    style: TextStyle(
-                        fontSize: 20,
-                        color: AppThemeColors.secondaryText(context),
-                        fontWeight: FontWeight.bold),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 48, color: Colors.red[300]),
+                      const SizedBox(height: 12),
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _fetchFaqs,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(t('retry')),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    t('add_first_faq'),
-                    style: TextStyle(
-                        fontSize: 14, color: AppThemeColors.mutedText(context)),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: _faqs.length,
-              itemBuilder: (context, index) {
-                final faq = _faqs[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      colors: [Colors.orange, Colors.white, Colors.green],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _getCardColor(context, index),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Column(
-                      children: [
-                        ExpansionTile(
-                          leading: Icon(Icons.help_outline,
-                              color: AppColors.cyan, size: 28),
-                          title: Text(
-                            faq.question,
+                )
+              : _faqs.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox,
+                              size: 80,
+                              color: AppThemeColors.mutedText(context)),
+                          SizedBox(height: 16),
+                          Text(
+                            t('nothing_here'),
                             style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                color: AppThemeColors.primaryText(context)),
+                                fontSize: 20,
+                                color: AppThemeColors.secondaryText(context),
+                                fontWeight: FontWeight.bold),
                           ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                              child: Text(
-                                faq.answer,
-                                style: TextStyle(
-                                    color:
-                                        AppThemeColors.secondaryText(context),
-                                    fontSize: 14),
-                              ),
+                          SizedBox(height: 8),
+                          Text(
+                            t('add_first_faq'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: AppThemeColors.mutedText(context)),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.all(16),
+                      itemCount: _faqs.length,
+                      itemBuilder: (context, index) {
+                        final faq = _faqs[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                          ],
-                          tilePadding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit, color: AppColors.cyan),
-                                onPressed: () => _showFaqDialog(faq: faq),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteFaq(faq.id),
-                              ),
-                            ],
                           ),
-                        ),
-                      ],
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _getCardColor(context, index),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Column(
+                              children: [
+                                ExpansionTile(
+                                  leading: Icon(Icons.help_outline,
+                                      color: AppColors.cyan, size: 28),
+                                  title: Text(
+                                    faq.question,
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                        color: AppThemeColors.primaryText(
+                                            context)),
+                                  ),
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 0, 16, 8),
+                                      child: Text(
+                                        faq.answer,
+                                        style: TextStyle(
+                                            color: AppThemeColors.secondaryText(
+                                                context),
+                                            fontSize: 14),
+                                      ),
+                                    ),
+                                  ],
+                                  tilePadding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.edit,
+                                            color: AppColors.cyan),
+                                        onPressed: () =>
+                                            _showFaqDialog(faq: faq),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () => _deleteFaq(faq.id),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                );
-              },
-            ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30),
@@ -1834,14 +2013,23 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab> {
     );
 
     if (confirmed == true) {
-      final response = await ApiClient.put(
-        '/api/admin/subscriptions/$subscriptionId/deactivate',
-        body: {},
-      );
-      if (response.statusCode == 200) {
-        _fetchSubscriptions();
-      } else {
-        // Handle error
+      try {
+        final response = await ApiClient.put(
+          '/api/admin/subscriptions/$subscriptionId/deactivate',
+          body: {},
+        );
+        if (response.statusCode == 200) {
+          _fetchSubscriptions();
+          showSnack(context, t('subscription_deactivated_successfully'));
+        } else {
+          final body =
+              response.body.isNotEmpty ? json.decode(response.body) : null;
+          showSnack(context,
+              body?['message'] ?? t('failed_to_deactivate_subscription'),
+              isError: true);
+        }
+      } catch (e) {
+        showSnack(context, '${t('an_error_occurred')}: $e', isError: true);
       }
     }
   }
@@ -2416,6 +2604,7 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
   late int _discount;
   late int _free;
   late DateTime _endDate;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -2536,32 +2725,56 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                     label: t('duration_days_label'),
                     initialValue: _duration.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_a_duration') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_a_duration');
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed <= 0)
+                        return t('please_enter_a_valid_duration');
+                      return null;
+                    },
                     onSaved: (value) => _duration = int.parse(value!),
                   ),
                   _buildStylishTextField(
                     label: t('price_label'),
                     initialValue: _price.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_a_price') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_a_price');
+                      final parsed = double.tryParse(value);
+                      if (parsed == null || parsed <= 0)
+                        return t('please_enter_a_valid_price');
+                      return null;
+                    },
                     onSaved: (value) => _price = double.parse(value!),
                   ),
                   _buildStylishTextField(
                     label: t('discount_percent_label'),
                     initialValue: _discount.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_a_discount') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_a_discount');
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed < 0 || parsed > 100)
+                        return t('please_enter_a_valid_discount');
+                      return null;
+                    },
                     onSaved: (value) => _discount = int.parse(value!),
                   ),
                   _buildStylishTextField(
                     label: t('free_days_label'),
                     initialValue: _free.toString(),
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        value!.isEmpty ? t('please_enter_free_days') : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return t('please_enter_free_days');
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed < 0)
+                        return t('please_enter_a_valid_free_days');
+                      return null;
+                    },
                     onSaved: (value) => _free = int.parse(value!),
                   ),
                   SizedBox(height: 16),
@@ -2606,8 +2819,15 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                       ),
                       SizedBox(width: 8),
                       ElevatedButton(
-                        onPressed: _saveSubscription,
-                        child: Text(t('save')),
+                        onPressed: _isSaving ? null : _saveSubscription,
+                        child: _isSaving
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(t('save')),
                       ),
                     ],
                   ),
@@ -2621,24 +2841,37 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
   }
 
   void _saveSubscription() async {
+    final t = AppLocalizations.of(context).t;
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      final response = await ApiClient.put(
-        '/api/admin/subscriptions/${widget.subscription['_id']}',
-        body: {
-          'subscriptionPlan': _subscriptionPlan,
-          'duration': _duration,
-          'price': _price,
-          'discount': _discount,
-          'free': _free,
-          'endDate': _endDate.toIso8601String(),
-        },
-      );
-      if (response.statusCode == 200) {
-        widget.onSave();
-        Navigator.of(context).pop();
-      } else {
-        // Handle error
+      setState(() => _isSaving = true);
+      try {
+        final response = await ApiClient.put(
+          '/api/admin/subscriptions/${widget.subscription['_id']}',
+          body: {
+            'subscriptionPlan': _subscriptionPlan,
+            'duration': _duration,
+            'price': _price,
+            'discount': _discount,
+            'free': _free,
+            'endDate': _endDate.toIso8601String(),
+          },
+        );
+        if (response.statusCode == 200) {
+          widget.onSave();
+          Navigator.of(context).pop();
+          showSnack(context, t('subscription_updated_successfully'));
+        } else {
+          final body =
+              response.body.isNotEmpty ? json.decode(response.body) : null;
+          showSnack(
+              context, body?['message'] ?? t('failed_to_update_subscription'),
+              isError: true);
+        }
+      } catch (e) {
+        showSnack(context, '${t('an_error_occurred')}: $e', isError: true);
+      } finally {
+        if (mounted) setState(() => _isSaving = false);
       }
     }
   }
