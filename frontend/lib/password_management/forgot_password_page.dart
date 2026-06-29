@@ -7,6 +7,7 @@ import '../utils/api_client.dart';
 import '../utils/responsive.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/wave_widget.dart' show DeepTopWaveClipper, AltBottomWaveClipper;
 
 class UserForgotPasswordPage extends StatefulWidget {
   final String? prefillEmail;
@@ -290,9 +291,9 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
-                height: context.sh(78),
+                height: context.sh(170),
                 color: AppThemeColors.waveSolid(context),
                 child: SafeArea(
                   bottom: false,
@@ -319,7 +320,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: BottomWaveClipper(),
+              clipper: const AltBottomWaveClipper(),
               child: Container(
                 height: 90,
                 color: AppThemeColors.waveSolid(context),
@@ -527,40 +528,4 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
   }
 }
 
-// Add TopWaveClipper and BottomWaveClipper from login_page.dart here
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
 // ... Add _buildOtpInput widget placeholder for now ...

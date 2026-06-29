@@ -17,13 +17,14 @@ import '../support/manage_support_queries_page.dart';
 import '../../widgets/notification_icon.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
 import '../digitise/manage_subscriptions_page.dart';
 import '../digitise/manage_gift_cards_page.dart';
 import '../digitise/manage_referral_settings_page.dart';
 import '../digitise/manage_offers_page.dart';
 import '../ads_and_updates/content_analytics_page.dart';
 import '../manage_users/admin_roles_page.dart';
-import '../settings/manage_currency_conversions_page.dart';
+import '../currency_conversion/manage_currency_conversions_page.dart';
 import '../ads_and_updates/manage_updates_page.dart';
 import '../ads_and_updates/manage_ads_page.dart';
 import '../audit/audit_logs_page.dart';
@@ -820,7 +821,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             SafeArea(
               child: SingleChildScrollView(
                 controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 80, 16, 24),
+                padding: EdgeInsets.fromLTRB(16, context.sh(90), 16, 24),
                 child: Column(
                   children: [
                     Container(
@@ -958,9 +959,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               left: 0,
               right: 0,
               child: ClipPath(
-                clipper: TopWaveClipper(),
+                clipper: const DeepTopWaveClipper(),
                 child: Container(
-                  height: context.sh(78),
+                  height: context.sh(85),
                   color: AppThemeColors.waveSolid(context),
                 ),
               ),
@@ -981,7 +982,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         children: [
                           IconButton(
                             icon: Icon(Icons.arrow_back,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                             onPressed: () async {
                               final popped =
                                   await Navigator.of(context).maybePop();
@@ -992,7 +993,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           ),
                           Builder(
                             builder: (context) => IconButton(
-                              icon: Icon(Icons.menu, color: AppThemeColors.iconOnWave(context)),
+                              icon: Icon(Icons.menu, color: AppThemeColors.primaryText(context)),
                               onPressed: () =>
                                   Scaffold.of(context).openDrawer(),
                             ),
@@ -1035,7 +1036,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           ),
                           IconButton(
                             icon: Icon(Icons.logout,
-                                color: AppThemeColors.iconOnWave(context), size: 28),
+                                color: AppThemeColors.primaryText(context), size: 28),
                             tooltip: t('logout'),
                             onPressed: () => _confirmLogout(context),
                           ),
@@ -2050,25 +2051,6 @@ class _AdminDashboardItem {
     required this.onTap,
   });
 }
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
 
 class LogoutDialogWaveClipper extends CustomClipper<Path> {
   @override

@@ -667,7 +667,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: context.sh(78),
+                height: context.sh(70),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import '../../profile/profile_page.dart' hide TopWaveClipper;
+import '../../profile/profile_page.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
@@ -396,7 +396,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -406,19 +406,19 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                             style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                           ),
                         ),
                       ),
                       IconButton(
                         icon: Icon(Icons.sort_rounded,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         tooltip: t('sort'),
                         onPressed: _showSortSheet,
                       ),
                       IconButton(
                         icon: Icon(Icons.refresh_rounded,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         tooltip: t('refresh'),
                         onPressed: _fetchFeedbacks,
                       ),

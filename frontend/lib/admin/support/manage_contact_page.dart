@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
@@ -270,7 +270,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       Expanded(
                         child: Text(
@@ -279,7 +279,7 @@ class _ManageContactPageState extends State<ManageContactPage> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
@@ -292,9 +292,9 @@ class _ManageContactPageState extends State<ManageContactPage> {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : Icon(Icons.save_outlined,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                         label: Text(t('save'),
-                            style: TextStyle(color: AppThemeColors.iconOnWave(context))),
+                            style: TextStyle(color: AppThemeColors.primaryText(context))),
                       ),
                     ],
                   ),

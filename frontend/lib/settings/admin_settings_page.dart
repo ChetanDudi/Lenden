@@ -38,7 +38,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       appBar: transparentAppBar(context, title: t('admin_settings')),
       body: Stack(
         children: [
-          cyanWaveHeader(context, height: context.sh(78)),
+          cyanWaveHeader(context, height: context.sh(150)),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),

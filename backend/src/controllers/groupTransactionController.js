@@ -567,8 +567,17 @@ exports.addExpense = async (req, res) => {
           return res.status(accessError.status).json({ error: accessError.error });
         }
 
-        user.lenDenCoins -= EXPENSE_COST;
-        await user.save();
+        const updatedCoinUser = await User.findOneAndUpdate(
+          { _id: user._id, lenDenCoins: { $gte: EXPENSE_COST } },
+          { $inc: { lenDenCoins: -EXPENSE_COST } },
+          { new: true }
+        );
+        if (!updatedCoinUser) {
+          return res.status(400).json({
+            error: 'Insufficient LenDen coins to add this expense.',
+          });
+        }
+        user.lenDenCoins = updatedCoinUser.lenDenCoins;
         await recordCoinLedgerEntry({
           userId: user._id,
           direction: 'spent',
@@ -759,6 +768,11 @@ exports.addExpense = async (req, res) => {
     }
   } catch (err) {
     console.error('Error in addExpense:', err);
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -813,6 +827,12 @@ exports.otpVerifySettle = async (req, res) => {
     const { userId, otp } = req.body;
     const group = await GroupTransaction.findById(groupId);
     if (!group || !group._pendingOtp) return res.status(400).json({ error: 'No pending OTP' });
+    const OTP_EXPIRY_MS = 10 * 60 * 1000;
+    if (Date.now() - new Date(group._pendingOtp.createdAt).getTime() > OTP_EXPIRY_MS) {
+      group._pendingOtp = undefined;
+      await group.save();
+      return res.status(400).json({ error: 'OTP expired. Please request a new OTP.' });
+    }
     if (group._pendingOtp.userId !== userId || group._pendingOtp.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
     // Settle balance
     const bal = group.balances.find(b => b.user.toString() === userId.toString());
@@ -1281,9 +1301,14 @@ exports.deleteExpense = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
-}; 
+};
 
 // Edit expense (only the person who created the expense)
 exports.editExpense = async (req, res) => {
@@ -1479,9 +1504,14 @@ exports.editExpense = async (req, res) => {
       console.error('Failed to log group activity or send email:', e);
     }
   } catch (err) {
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
-}; 
+};
 
 exports.settleMemberExpenses = async (req, res) => {
   try {
@@ -1584,6 +1614,11 @@ exports.settleMemberExpenses = async (req, res) => {
     }
   } catch (err) {
     console.error('Error settling member expenses:', err);
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -1635,6 +1670,11 @@ exports.recordMemberPayment = async (req, res) => {
 
     res.json({ group: groupObj });
   } catch (err) {
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -1698,6 +1738,11 @@ exports.selfSettleExpenses = async (req, res) => {
       console.error('Failed to log group activity:', e);
     }
   } catch (err) {
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -1817,9 +1862,14 @@ exports.settleExpenseSplits = async (req, res) => {
     }
   } catch (err) {
     console.error('Error settling expense splits:', err);
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This group was updated by someone else at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Server error' });
   }
-}; 
+};
 
 // Send leave request to group creator
 exports.sendLeaveRequest = async (req, res) => {

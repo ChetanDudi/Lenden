@@ -8,6 +8,7 @@ import 'edit_profile_page.dart';
 import '../widgets/app_colors.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/wave_widget.dart' show DeepTopWaveClipper;
 
 
 class ProfilePage extends StatefulWidget {
@@ -157,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
                 height: context.sh(78),
                 color: AppThemeColors.waveSolid(context),
@@ -416,21 +417,4 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
 

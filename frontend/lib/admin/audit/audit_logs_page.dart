@@ -289,7 +289,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -299,7 +299,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                             style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                           ),
                         ),
                       ),
@@ -335,7 +335,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                           ),
                           IconButton(
                             icon: Icon(Icons.refresh_rounded,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                             onPressed: _fetchLogs,
                           ),
                         ],

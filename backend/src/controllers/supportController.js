@@ -73,7 +73,7 @@ const getCurrentAdmin = async (req) => {
 const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 // Helper: Delete queries older than 7 days
-const deleteOldQueries = async () => {
+const deleteOldQueries = async (io) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const oldQueries = await SupportQuery.find({ createdAt: { $lt: sevenDaysAgo } });
   for (const query of oldQueries) {
@@ -86,7 +86,7 @@ module.exports = (io) => {
   // User creates a new support query
   const createSupportQuery = async (req, res) => {
     try {
-      await deleteOldQueries();
+      await deleteOldQueries(io);
       const { topic, description } = req.body;
       const userId = req.user._id; // Assuming user ID is available from auth middleware
 
@@ -124,7 +124,7 @@ module.exports = (io) => {
   // User views their own support queries
   const getUserSupportQueries = async (req, res) => {
     try {
-      await deleteOldQueries();
+      await deleteOldQueries(io);
       const userId = req.user._id;
       const queries = await SupportQuery.find({ user: userId }).sort({ createdAt: -1 });
       res.status(200).json({ queries });
@@ -137,7 +137,7 @@ module.exports = (io) => {
   // User updates their own support query (only if no admin reply yet)
   const updateSupportQuery = async (req, res) => {
     try {
-      await deleteOldQueries();
+      await deleteOldQueries(io);
       const { queryId } = req.params;
       const { topic, description } = req.body;
       const userId = req.user._id;
@@ -182,7 +182,7 @@ module.exports = (io) => {
   // Admin views all support queries
   const getAllSupportQueries = async (req, res) => {
     try {
-      await deleteOldQueries();
+      await deleteOldQueries(io);
       const currentAdmin = await getCurrentAdmin(req);
       if (!hasSupportPermission(currentAdmin)) {
         return res.status(403).json({ error: 'You do not have permission to manage support queries' });
@@ -402,7 +402,7 @@ module.exports = (io) => {
         return res.status(404).json({ error: 'Support query not found' });
       }
 
-      query.replies.id(replyId).remove();
+      query.replies.pull({ _id: replyId });
       await query.save();
 
       // Populate the query for emission after reply deletion

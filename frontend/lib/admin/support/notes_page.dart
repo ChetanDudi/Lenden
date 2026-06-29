@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
@@ -514,7 +514,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                    icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                     onPressed: () {
                       Navigator.pushReplacementNamed(
                           context, '/admin/dashboard');
@@ -527,7 +527,7 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: AppThemeColors.iconOnWave(context),
+                          color: AppThemeColors.primaryText(context),
                           letterSpacing: 1.2,
                         ),
                       ),

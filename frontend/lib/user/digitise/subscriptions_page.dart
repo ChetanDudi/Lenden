@@ -14,6 +14,7 @@ import '../../widgets/payment_success_page.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart' show MediumTopWaveClipper, AltBottomWaveClipper;
 
 // Models
 class SubscriptionPlan {
@@ -594,7 +595,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 left: 0,
                 right: 0,
                 child: ClipPath(
-                  clipper: TopWaveClipper(),
+                  clipper: const MediumTopWaveClipper(),
                   child: Container(
                     height: context.sh(156),
                     color: AppColors.cyan,
@@ -606,7 +607,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 right: 0,
                 bottom: 0,
                 child: ClipPath(
-                  clipper: BottomWaveClipper(),
+                  clipper: const AltBottomWaveClipper(),
                   child: Container(
                     height: MediaQuery.of(context).size.height * 0.13,
                     color: AppColors.cyan,
@@ -1896,42 +1897,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       ),
     );
   }
-}
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.35);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.5,
-        size.width * 0.5, size.height * 0.35);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.2, size.width, size.height * 0.35);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class EnhancedParachutePainter extends CustomPainter {

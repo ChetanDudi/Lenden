@@ -276,7 +276,7 @@ class _ManageCurrencyConversionsPageState
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       Expanded(
                         child: Text(
@@ -285,14 +285,14 @@ class _ManageCurrencyConversionsPageState
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: _loading ? null : _loadRates,
                         icon: Icon(Icons.refresh_rounded,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                     ],
                   ),

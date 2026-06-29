@@ -213,13 +213,7 @@ exports.verifyP2PPayment = async (req, res) => {
     return res.status(400).json({ error: 'Payment verification failed: invalid signature' });
   }
 
-  // ── Step 2: replay check ─────────────────────────────────────────────────────
-  const alreadyUsed = await WalletTransaction.findOne({ razorpayPaymentId });
-  if (alreadyUsed) {
-    return res.status(409).json({ error: 'Payment already applied' });
-  }
-
-  // ── Step 3: fetch payment details from Razorpay ──────────────────────────────
+  // ── Step 2: fetch payment details from Razorpay ──────────────────────────────
   const razorpay = getRazorpay();
   const payment = await razorpay.payments.fetch(razorpayPaymentId);
   const notes = payment.notes || {};
@@ -228,10 +222,14 @@ exports.verifyP2PPayment = async (req, res) => {
 
   const recipient = toEmail ? await User.findOne({ email: toEmail.toLowerCase().trim() }) : null;
 
-  // ── Step 4: atomic DB writes inside a session ────────────────────────────────
+  // ── Step 3: atomic DB writes inside a session ────────────────────────────────
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
+      // Replay check inside the transaction — snapshot isolation prevents concurrent duplicates
+      const alreadyUsed = await WalletTransaction.findOne({ razorpayPaymentId }).session(session);
+      if (alreadyUsed) throw Object.assign(new Error('Payment already applied'), { code: 'ALREADY_USED' });
+
       if (recipient) {
         // Credit recipient's wallet
         await User.findByIdAndUpdate(
@@ -310,6 +308,8 @@ exports.verifyP2PPayment = async (req, res) => {
 
     res.json({ message: 'Payment verified and settled', amount: amountInRupees });
   } catch (err) {
+    if (err.code === 'ALREADY_USED') return res.status(409).json({ error: 'Payment already applied' });
+    console.error('Error verifying P2P payment:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
     session.endSession();

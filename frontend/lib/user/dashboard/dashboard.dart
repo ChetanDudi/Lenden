@@ -35,6 +35,7 @@ import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
 
 enum _QuickActionsViewStyle {
   grid,
@@ -228,6 +229,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     _adTimer?.cancel();
     if (!mounted) return;
     final session = Provider.of<SessionProvider>(context, listen: false);
+    // Ads are a user-only feature — never show them to an admin session.
+    if (session.role == 'admin') return;
     if (session.isSubscribed) return;
     if (_adsShownThisSession >= 3) return;
     if (_lastAdShownAt != null &&
@@ -249,7 +252,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     }
 
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.role == 'admin' || session.isSubscribed) return;
 
     try {
       final res = await ApiClient.get('/api/ads/random');
@@ -1352,7 +1355,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               left: 0,
               right: 0,
               child: ClipPath(
-                clipper: TopWaveClipper(),
+                clipper: const DeepTopWaveClipper(),
                 child: Container(
                   height: context.sh(78),
                   color: AppThemeColors.waveSolid(context),
@@ -2625,23 +2628,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   }
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
 
 // Vertical mirror of TopWaveClipper — wave edge at top, solid teal below
 class _BottomNavWaveClipper extends CustomClipper<Path> {

@@ -10,6 +10,7 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart';
 
 class UserNotificationsPage extends StatefulWidget {
   const UserNotificationsPage({Key? key}) : super(key: key);
@@ -212,9 +213,9 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
-                height: context.sh(78),
+                height: context.sh(170),
                 color: AppThemeColors.waveSolid(context),
               ),
             ),
@@ -727,28 +728,3 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   }
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height * 0.7,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.4,
-      size.width,
-      size.height * 0.7,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

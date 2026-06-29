@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../session.dart';
@@ -444,7 +444,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -452,7 +452,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                           child: Text(
                             t('manage_support_queries'),
                             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                           ),
                         ),
                       ),

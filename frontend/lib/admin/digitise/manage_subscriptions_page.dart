@@ -7,6 +7,7 @@ import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart' show MediumTopWaveClipper, AltBottomWaveClipper;
 
 class AdminFeaturesPage extends StatefulWidget {
   @override
@@ -38,16 +39,16 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
       appBar: AppBar(
         title: Text(t('manage_subscription_title'),
             style: TextStyle(
-                color: AppThemeColors.iconOnWave(context),
+                color: AppThemeColors.primaryText(context),
                 fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: AppThemeColors.iconOnWave(context)),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppThemeColors.iconOnWave(context),
+          labelColor: AppThemeColors.primaryText(context),
           unselectedLabelColor:
-              AppThemeColors.iconOnWave(context).withValues(alpha: 0.7),
+              AppThemeColors.primaryText(context).withValues(alpha: 0.7),
           indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
@@ -65,7 +66,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const MediumTopWaveClipper(),
               child: Container(
                 height: context.sh(156),
                 color: AppThemeColors.waveSolid(context),
@@ -77,7 +78,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
             right: 0,
             bottom: 0,
             child: ClipPath(
-              clipper: BottomWaveClipper(),
+              clipper: const AltBottomWaveClipper(),
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.13,
                 color: AppThemeColors.waveSolid(context),
@@ -1623,43 +1624,6 @@ class _FaqDialogState extends State<FaqDialog> {
       }
     }
   }
-}
-
-// Wave Clippers
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.35);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.5,
-        size.width * 0.5, size.height * 0.35);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.2, size.width, size.height * 0.35);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class ManageSubscriptionsTab extends StatefulWidget {

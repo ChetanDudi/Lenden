@@ -11,7 +11,7 @@ import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
-import 'create_secure_transaction_page.dart' hide TopWaveClipper;
+import 'create_secure_transaction_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';

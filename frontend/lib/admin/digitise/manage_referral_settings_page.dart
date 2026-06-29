@@ -229,7 +229,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -239,7 +239,7 @@ class _ReferralSettingsPageState extends State<ReferralSettingsPage> {
                             style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                           ),
                         ),
                       ),

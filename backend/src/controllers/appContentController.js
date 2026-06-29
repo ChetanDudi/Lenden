@@ -945,6 +945,11 @@ exports.deleteAd = async (req, res) => {
 
 exports.getRandomActiveAd = async (req, res) => {
   try {
+    // Ads are a user-only feature — never serve them to admin accounts.
+    if (req.user?.role === 'admin') {
+      return res.json({ ad: null });
+    }
+
     const now = new Date();
     const platform = getPlatformFromRequest(req);
     const userId = req.user?._id;

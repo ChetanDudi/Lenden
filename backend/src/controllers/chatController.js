@@ -103,12 +103,16 @@ module.exports = (io) => {
                     const needsCoins = dailyLimitReached || totalFreeUsed;
 
                     if (needsCoins) {
-                        if (sender.lenDenCoins < MESSAGE_COST) {
+                        const updatedSender = await User.findOneAndUpdate(
+                            { _id: sender._id, lenDenCoins: { $gte: MESSAGE_COST } },
+                            { $inc: { lenDenCoins: -MESSAGE_COST } },
+                            { new: true }
+                        );
+                        if (!updatedSender) {
                             socket.emit('createMessageError', { ...data, error: 'Insufficient LenDen coins to send a message. Please subscribe or earn more coins.' });
                             return;
                         }
-                        sender.lenDenCoins -= MESSAGE_COST;
-                        await sender.save();
+                        sender.lenDenCoins = updatedSender.lenDenCoins;
                         await recordCoinLedgerEntry({
                             userId: sender._id,
                             direction: 'spent',

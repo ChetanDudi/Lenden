@@ -3,4 +3,11 @@
 //
 // Canonical source: lib/admin/widgets/top_wave_clipper.dart
 export '../admin/widgets/top_wave_clipper.dart'
-    show TopWaveClipper, BottomWaveClipper;
+    show
+        TopWaveClipper,
+        DeepTopWaveClipper,
+        DeeperTopWaveClipper,
+        MediumTopWaveClipper,
+        ScaledDeepTopWaveClipper,
+        BottomWaveClipper,
+        AltBottomWaveClipper;

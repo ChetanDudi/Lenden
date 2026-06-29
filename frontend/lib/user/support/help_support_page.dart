@@ -363,14 +363,14 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
             child: ClipPath(
               clipper: _HelpWaveClipper(),
               child: Container(
-                height: 115,
+                height: 75,
                 color: _cyan,
               ),
             ),
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 60, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

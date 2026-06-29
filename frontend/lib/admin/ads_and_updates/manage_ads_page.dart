@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
@@ -610,7 +610,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                       ),
                       Expanded(
                         child: Text(
@@ -619,7 +619,7 @@ class _ManageAdsPageState extends State<ManageAdsPage>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),

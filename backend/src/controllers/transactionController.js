@@ -971,6 +971,11 @@ exports.clearTransaction = async (req, res) => {
     res.json({ success: true, userCleared: transaction.userCleared, counterpartyCleared: transaction.counterpartyCleared, fullyCleared: transaction.userCleared && transaction.counterpartyCleared });
   } catch (err) {
     console.error('clearTransaction error:', err);
+    if (err.name === 'VersionError') {
+      return res.status(409).json({
+        error: 'This transaction was updated elsewhere at the same time. Please try again.',
+      });
+    }
     res.status(500).json({ error: 'Failed to clear transaction' });
   }
 };

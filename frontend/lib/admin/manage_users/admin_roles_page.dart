@@ -291,7 +291,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                       ),
                       Expanded(
                         child: Text(
@@ -300,7 +300,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
@@ -309,7 +309,7 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                           await _loadAdmins();
                           await _loadAuditLogs();
                         },
-                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)),
                       ),
                     ],
                   ),

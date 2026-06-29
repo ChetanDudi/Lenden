@@ -212,17 +212,11 @@ exports.login = async (req, res) => {
     // Search in both User and Admin tables
     const user = await User.findOne({ $or: [{ username }, { email: username }] });
     const admin = await Admin.findOne({ $or: [{ username }, { email: username }] });
-    
-    
-    if (user) {
-    }
-    if (admin) {
-    }
-    
+
     if (!user && !admin) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     // Check if it's a user
     if (user) {
       if (user.deactivatedAccount) {
@@ -233,8 +227,14 @@ exports.login = async (req, res) => {
           username: user.username
         });
       }
+      if (!user.password) {
+        return res.status(400).json({
+          error: 'This account was created with Google Sign-In. Please log in with Google, or use "Forgot Password" to set a password.',
+          authProvider: 'google',
+        });
+      }
       const match = await bcrypt.compare(password, user.password);
-      
+
       if (!match) {
         return res.status(401).json({ error: 'Incorrect password' });
       }

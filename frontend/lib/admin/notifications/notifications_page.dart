@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
@@ -8,6 +8,7 @@ import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart';
 
 class AdminNotificationsPage extends StatefulWidget {
   const AdminNotificationsPage({Key? key}) : super(key: key);
@@ -477,7 +478,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
                 height: context.sh(156),
                 color: AppThemeColors.waveSolid(context),
@@ -493,7 +494,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -503,7 +504,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
@@ -1226,28 +1227,3 @@ class _NotificationCategoryChip {
   });
 }
 
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height * 0.7,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.4,
-      size.width,
-      size.height * 0.7,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

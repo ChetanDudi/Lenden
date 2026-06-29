@@ -1398,7 +1398,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -1408,7 +1408,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
                             style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: AppThemeColors.iconOnWave(context)),
+                                color: AppThemeColors.primaryText(context)),
                           ),
                         ),
                       ),

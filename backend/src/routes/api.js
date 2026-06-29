@@ -13,6 +13,7 @@ module.exports = (io) => {
   const editProfileController = require('../controllers/editProfileController');
   const auth = require('../middleware/auth');
   const sessionTimeout = require('../middleware/sessionTimeout');
+  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter } = require('../middleware/rateLimit');
   const fs = require('fs');
   const multer = require('multer');
   const os = require('os');
@@ -112,23 +113,23 @@ module.exports = (io) => {
     router.get('/ratings/me', auth, ratingController.getMyRatings);
     router.post('/ratings', auth, ratingController.rateUser);
     router.patch('/ratings/:ratingId', auth, ratingController.updateRating);
-    router.get('/ratings/user-avg', ratingController.getUserAvgRating);
+    router.get('/ratings/user-avg', auth, ratingController.getUserAvgRating);
 
   // User routes
   router.post('/users/register', userController.register);
-  router.post('/users/verify-otp', userController.verifyOtp);
-  router.post('/users/resend-otp', userController.resendOtp);
-  router.post('/users/login', userController.login);
+  router.post('/users/verify-otp', otpVerifyLimiter, userController.verifyOtp);
+  router.post('/users/resend-otp', otpSendLimiter, userController.resendOtp);
+  router.post('/users/login', loginLimiter, userController.login);
   router.post('/users/google-login', userController.googleLogin);
   router.post('/users/check-username', userController.checkUsername);
   router.post('/users/check-email', userController.checkEmail);
   router.get('/users/list', auth, isAdmin, userController.listUsers);
-  router.post('/users/send-login-otp', userController.sendLoginOtp);
-  router.post('/users/verify-login-otp', userController.verifyLoginOtp);
-  router.post('/users/login-with-otp', userController.verifyLoginOtp);
-  router.post('/users/send-reset-otp', forgotPasswordController.sendResetOtp);
-  router.post('/users/verify-reset-otp', forgotPasswordController.verifyResetOtp);
-  router.post('/users/reset-password', forgotPasswordController.resetPassword);
+  router.post('/users/send-login-otp', otpSendLimiter, userController.sendLoginOtp);
+  router.post('/users/verify-login-otp', otpVerifyLimiter, userController.verifyLoginOtp);
+  router.post('/users/login-with-otp', otpVerifyLimiter, userController.verifyLoginOtp);
+  router.post('/users/send-reset-otp', otpSendLimiter, forgotPasswordController.sendResetOtp);
+  router.post('/users/verify-reset-otp', otpVerifyLimiter, forgotPasswordController.verifyResetOtp);
+  router.post('/users/reset-password', passwordResetLimiter, forgotPasswordController.resetPassword);
   router.post('/users/recover-account', userController.recoverAccount);
   
   // Token management routes

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
@@ -428,7 +428,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       Expanded(
                         child: Text(
@@ -437,7 +437,7 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),

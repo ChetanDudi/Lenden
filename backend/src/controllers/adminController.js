@@ -895,39 +895,14 @@ const updateSecuritySettings = async (req, res) => {
 // Get notification settings
 const getNotificationSettings = async (req, res) => {
   try {
-    const notificationSettings = {
-      systemAlerts: true,
-      maintenanceAlerts: true,
-      errorAlerts: true,
-      performanceAlerts: true,
-      securityAlerts: true,
-      backupAlerts: true,
-      newUserAlerts: true,
-      suspiciousActivityAlerts: true,
-      accountLockoutAlerts: true,
-      failedLoginAlerts: true,
-      userDeletionAlerts: true,
-      bulkActionAlerts: true,
-      largeTransactionAlerts: true,
-      failedTransactionAlerts: true,
-      suspiciousTransactionAlerts: true,
-      dailyTransactionSummary: true,
-      weeklyTransactionSummary: true,
-      monthlyTransactionSummary: false,
-      emailNotifications: true,
-      pushNotifications: true,
-      smsNotifications: false,
-      inAppNotifications: true,
-      notificationFrequency: 'immediate',
-      quietHoursEnabled: false,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-      timezone: 'UTC'
-    };
+    const currentAdmin = await getCurrentAdmin(req);
+    if (!currentAdmin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
 
     res.json({
       success: true,
-      settings: notificationSettings
+      settings: currentAdmin.notificationSettings
     });
   } catch (error) {
     console.error('Error fetching notification settings:', error);
@@ -939,14 +914,36 @@ const getNotificationSettings = async (req, res) => {
 };
 
 // Update notification settings
+const NOTIFICATION_SETTING_KEYS = [
+  'systemAlerts', 'maintenanceAlerts', 'errorAlerts', 'performanceAlerts',
+  'securityAlerts', 'backupAlerts', 'newUserAlerts', 'suspiciousActivityAlerts',
+  'accountLockoutAlerts', 'failedLoginAlerts', 'userDeletionAlerts', 'bulkActionAlerts',
+  'largeTransactionAlerts', 'failedTransactionAlerts', 'suspiciousTransactionAlerts',
+  'dailyTransactionSummary', 'weeklyTransactionSummary', 'monthlyTransactionSummary',
+  'emailNotifications', 'pushNotifications', 'smsNotifications', 'inAppNotifications',
+  'notificationFrequency', 'quietHoursEnabled', 'quietHoursStart', 'quietHoursEnd',
+  'timezone', 'displayNotificationCount',
+];
+
 const updateNotificationSettings = async (req, res) => {
   try {
-    const settings = req.body;
+    const currentAdmin = await getCurrentAdmin(req);
+    if (!currentAdmin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
 
+    const settings = req.body || {};
+    for (const key of NOTIFICATION_SETTING_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        currentAdmin.notificationSettings[key] = settings[key];
+      }
+    }
+    await currentAdmin.save();
 
     res.json({
       success: true,
-      message: 'Notification settings updated successfully'
+      message: 'Notification settings updated successfully',
+      settings: currentAdmin.notificationSettings
     });
   } catch (error) {
     console.error('Error updating notification settings:', error);

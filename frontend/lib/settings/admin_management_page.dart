@@ -997,7 +997,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
             child: ClipPath(
               clipper: TopWaveClipper(),
               child: Container(
-                height: context.sh(78),
+                height: context.sh(170),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.cyan, Color(0xFF48CAE4)],

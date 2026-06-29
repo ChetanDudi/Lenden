@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'dart:convert';
@@ -9,6 +9,7 @@ import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart' show MediumTopWaveClipper, AltBottomWaveClipper;
 
 // Model for Gift Card
 class GiftCard {
@@ -900,14 +901,14 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(t('manage_gift_cards'),
-            style: TextStyle(color: AppThemeColors.iconOnWave(context), fontWeight: FontWeight.bold)),
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: AppThemeColors.iconOnWave(context)),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppThemeColors.iconOnWave(context),
-          unselectedLabelColor: AppThemeColors.iconOnWave(context).withValues(alpha: 0.7),
+          labelColor: AppThemeColors.primaryText(context),
+          unselectedLabelColor: AppThemeColors.primaryText(context).withValues(alpha: 0.7),
           indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
@@ -923,7 +924,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const MediumTopWaveClipper(),
               child: Container(
                 height: context.sh(156),
                 color: AppThemeColors.waveSolid(context),
@@ -935,7 +936,7 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
             right: 0,
             bottom: 0,
             child: ClipPath(
-              clipper: BottomWaveClipper(),
+              clipper: const AltBottomWaveClipper(),
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.13,
                 color: AppThemeColors.waveSolid(context),
@@ -959,40 +960,3 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
   }
 }
 
-
-// Reusing wave clippers from admin_features_page.dart
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.35);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.5,
-        size.width * 0.5, size.height * 0.35);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.2, size.width, size.height * 0.35);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

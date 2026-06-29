@@ -474,7 +474,7 @@ class _ManageQuickTransactionsPageState
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -484,12 +484,12 @@ class _ManageQuickTransactionsPageState
                           style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: AppThemeColors.iconOnWave(context)),
+                              color: AppThemeColors.primaryText(context)),
                         ),
                       ),
                       IconButton(
                         icon: Icon(Icons.refresh,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: _fetchTransactions,
                       ),
                     ],

@@ -102,7 +102,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                       Expanded(
                         child: Text(
@@ -111,14 +111,14 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: _loadAnalytics,
                         icon: Icon(Icons.refresh,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                       ),
                     ],
                   ),

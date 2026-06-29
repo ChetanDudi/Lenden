@@ -1,4 +1,4 @@
-﻿import 'package:elegant_notification/elegant_notification.dart';
+import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +23,7 @@ import './recurring_templates_page.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/wave_widget.dart';
 
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
@@ -247,22 +248,34 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 borderRadius: BorderRadius.circular(21),
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(18)),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
-                      child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
+                      decoration: BoxDecoration(
+                          color: Colors.red[50], shape: BoxShape.circle),
+                      child: Icon(Icons.wifi_off_rounded,
+                          size: 48, color: Colors.red[400]),
                     ),
                     const SizedBox(height: 16),
                     Text(t('oops_something_went_wrong'),
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[700]),
                         textAlign: TextAlign.center),
                     const SizedBox(height: 8),
-                    Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
+                    Text(message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: AppThemeColors.secondaryText(context))),
                   ],
                 ),
               ),
@@ -271,7 +284,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                  colors: [
+                    Color(0xFFFF9933),
+                    Color(0xFFFFFFFF),
+                    Color(0xFF138808)
+                  ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -281,12 +298,15 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               child: ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(t('retry'),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28)),
                   elevation: 0,
                 ),
               ),
@@ -467,10 +487,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
 
     // Rule: if daily limit is expired → hard block; free attempts are also paused.
-    if (!session.isSubscribed && transaction == null &&
-        dailyQuickRemaining != null && dailyQuickRemaining <= 0) {
+    if (!session.isSubscribed &&
+        transaction == null &&
+        dailyQuickRemaining != null &&
+        dailyQuickRemaining <= 0) {
       showDailyLimitDialog(context,
-          message: AppLocalizations.of(context).t('daily_quick_transactions_limit_reached_message'));
+          message: AppLocalizations.of(context)
+              .t('daily_quick_transactions_limit_reached_message'));
       return;
     }
 
@@ -492,7 +515,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       }
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,
-        featureName: AppLocalizations.of(context).t('quick_transaction_feature_name'),
+        featureName:
+            AppLocalizations.of(context).t('quick_transaction_feature_name'),
         coinCost: coinCost,
         currentCoins: coins,
       );
@@ -507,8 +531,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           useCoins: shouldUseCoins,
           prefillCounterpartyEmail: prefillEmail,
           blockedEmails: _blockedEmails,
-          dailyRemaining:
-              _dailyLimits?['limits']?['quickTransactions']?['remaining'],
+          dailyRemaining: _dailyLimits?['limits']?['quickTransactions']
+              ?['remaining'],
           isSubscribed: session.isSubscribed,
         ),
       ),
@@ -537,18 +561,23 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       final txn = result['transaction'] ?? result;
 
       final amt = (txn['amount'] as num?)?.toDouble();
-      final recipient = (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '').toString();
+      final recipient =
+          (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '')
+              .toString();
       final role = (txn['role'] ?? '').toString();
       final extraDetails = <String, String>{
         if (role.isNotEmpty) t('role_label_colon'): role,
-        if (giftCardAwarded == true && awardedCard != null) t('bonus_label_colon'): t('gift_card_won_emoji'),
+        if (giftCardAwarded == true && awardedCard != null)
+          t('bonus_label_colon'): t('gift_card_won_emoji'),
       };
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
-            title: transaction != null ? t('transaction_updated_exclaim') : t('transaction_created_exclaim'),
+            title: transaction != null
+                ? t('transaction_updated_exclaim')
+                : t('transaction_created_exclaim'),
             amount: amt,
             recipientName: recipient.isNotEmpty ? recipient : null,
             transactionType: t('quick_transaction_feature_name'),
@@ -564,9 +593,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               title: Text(t('congratulations_title')),
               description: Text(t('won_gift_card_message')),
               action: GestureDetector(
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => GiftCardPage())),
-                child: Text(t('view_label'), style: TextStyle(color: Colors.blue)),
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => GiftCardPage())),
+                child:
+                    Text(t('view_label'), style: TextStyle(color: Colors.blue)),
               ),
             ).show(context);
           }
@@ -578,8 +608,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   // Pin-aware local sort for display ordering (pinned first)
   void _applyPinSort() {
     filteredTransactions.sort((a, b) {
-      final aPinned = _pinnedTransactionIds.contains((a['_id'] ?? '').toString());
-      final bPinned = _pinnedTransactionIds.contains((b['_id'] ?? '').toString());
+      final aPinned =
+          _pinnedTransactionIds.contains((a['_id'] ?? '').toString());
+      final bPinned =
+          _pinnedTransactionIds.contains((b['_id'] ?? '').toString());
       return aPinned == bPinned ? 0 : (aPinned ? -1 : 1);
     });
   }
@@ -737,16 +769,20 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       if (searchQuery.isNotEmpty) params['search'] = searchQuery;
       if (sortBy != 'created_desc') params['sortBy'] = sortBy;
       if (filterBy != 'all') params['filterBy'] = filterBy;
-      if (_roleFilter != 'all') params['role'] = _roleFilter == 'lent' ? 'lender' : 'borrower';
+      if (_roleFilter != 'all')
+        params['role'] = _roleFilter == 'lent' ? 'lender' : 'borrower';
       if (_dateFilter != 'all') params['dateFilter'] = _dateFilter;
       if (_showFavouritesOnly) params['favouritesOnly'] = 'true';
-      if (_selectedCounterparty != 'all') params['counterparty'] = _selectedCounterparty;
+      if (_selectedCounterparty != 'all')
+        params['counterparty'] = _selectedCounterparty;
 
       final queryString = params.isEmpty
           ? ''
-          : '?' + params.entries
-              .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-              .join('&');
+          : '?' +
+              params.entries
+                  .map((e) =>
+                      '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+                  .join('&');
 
       final res = await ApiClient.get('/api/quick-transactions$queryString');
       if (res.statusCode == 200) {
@@ -804,8 +840,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
 
     // Daily limit expired → hard block (free attempts also paused until tomorrow).
-    if (!session.isSubscribed && transaction == null &&
-        dailyQuickRemaining != null && dailyQuickRemaining <= 0) {
+    if (!session.isSubscribed &&
+        transaction == null &&
+        dailyQuickRemaining != null &&
+        dailyQuickRemaining <= 0) {
       showDailyLimitDialog(context,
           message: t('daily_quick_transactions_limit_reached_message'));
       return;
@@ -843,8 +881,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           transaction: transaction,
           useCoins: shouldUseCoins,
           blockedEmails: _blockedEmails,
-          dailyRemaining:
-              _dailyLimits?['limits']?['quickTransactions']?['remaining'],
+          dailyRemaining: _dailyLimits?['limits']?['quickTransactions']
+              ?['remaining'],
           isSubscribed: session.isSubscribed,
         ),
       ),
@@ -863,18 +901,23 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       final txn = result['transaction'] ?? result;
 
       final amt = (txn['amount'] as num?)?.toDouble();
-      final recipient = (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '').toString();
+      final recipient =
+          (txn['counterpartyEmail'] ?? txn['counterpartyName'] ?? '')
+              .toString();
       final role = (txn['role'] ?? '').toString();
       final extraDetails = <String, String>{
         if (role.isNotEmpty) t('role_label_colon'): role,
-        if (giftCardAwarded == true && awardedCard != null) t('bonus_label_colon'): t('gift_card_won_emoji'),
+        if (giftCardAwarded == true && awardedCard != null)
+          t('bonus_label_colon'): t('gift_card_won_emoji'),
       };
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
-            title: transaction != null ? t('transaction_updated_exclaim') : t('transaction_created_exclaim'),
+            title: transaction != null
+                ? t('transaction_updated_exclaim')
+                : t('transaction_created_exclaim'),
             amount: amt,
             recipientName: recipient.isNotEmpty ? recipient : null,
             transactionType: t('quick_transaction_feature_name'),
@@ -890,9 +933,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               title: Text(t('congratulations_title')),
               description: Text(t('won_gift_card_message')),
               action: GestureDetector(
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => GiftCardPage())),
-                child: Text(t('view_label'), style: TextStyle(color: Colors.blue)),
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => GiftCardPage())),
+                child:
+                    Text(t('view_label'), style: TextStyle(color: Colors.blue)),
               ),
             ).show(context);
           }
@@ -913,12 +957,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 fontWeight: FontWeight.bold,
                 color: AppThemeColors.primaryText(dialogContext))),
         content: Text(t('confirm_delete_quick_transaction'),
-            style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
+            style:
+                TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(t('cancel'),
-                style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
+                style: TextStyle(
+                    color: AppThemeColors.secondaryText(dialogContext))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -927,7 +973,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                   borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(t('delete'), style: const TextStyle(color: Colors.white)),
+            child:
+                Text(t('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -970,12 +1017,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 fontWeight: FontWeight.bold,
                 color: AppThemeColors.primaryText(dialogContext))),
         content: Text(t('confirm_clear_transaction_message'),
-            style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
+            style:
+                TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(t('cancel'),
-                style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
+                style: TextStyle(
+                    color: AppThemeColors.secondaryText(dialogContext))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -984,7 +1033,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                   borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(t('clear'), style: const TextStyle(color: Colors.white)),
+            child:
+                Text(t('clear'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1064,8 +1114,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           initialDescription: transaction['description']?.toString(),
           initialRole: _roleForViewer(transaction),
           blockedEmails: _blockedEmails,
-          dailyRemaining:
-              _dailyLimits?['limits']?['quickTransactions']?['remaining'],
+          dailyRemaining: _dailyLimits?['limits']?['quickTransactions']
+              ?['remaining'],
           isSubscribed:
               Provider.of<SessionProvider>(context, listen: false).isSubscribed,
         ),
@@ -1098,7 +1148,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     final viewerRole = _roleForViewer(transaction) == 'lender'
         ? t('you_lent_label')
         : t('you_borrowed_label');
-    final status = transaction['cleared'] == true ? t('cleared') : t('pending_label');
+    final status =
+        transaction['cleared'] == true ? t('cleared') : t('pending_label');
     return [
       t('lenden_quick_transaction_label'),
       '${t('amount_colon_label')} ${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())}',
@@ -1141,7 +1192,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               Navigator.pop(dialogContext);
               ElegantNotification.success(
                 title: Text(t('copied_label')),
-                description: Text(t('quick_transaction_receipt_copied_message')),
+                description:
+                    Text(t('quick_transaction_receipt_copied_message')),
               ).show(context);
             },
             child: Text(t('copy_label')),
@@ -1242,7 +1294,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       context,
       counterpartyEmail: email,
       amount: amount,
-      description: transaction['description']?.toString() ?? t('quick_transaction_settlement_label'),
+      description: transaction['description']?.toString() ??
+          t('quick_transaction_settlement_label'),
       counterpartyPhone: phone,
       quickTransactionId: id,
       onSuccess: () async {
@@ -1254,10 +1307,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             _applyPinSort();
           });
         }
-        final res = await ApiClient.put('/api/quick-transactions/$id/clear', body: {});
+        final res =
+            await ApiClient.put('/api/quick-transactions/$id/clear', body: {});
         if (!mounted) return;
         if (res.statusCode == 200) {
-          showSnack(context, t('payment_successful_transaction_settled_message'));
+          showSnack(
+              context, t('payment_successful_transaction_settled_message'));
         }
       },
     );
@@ -1281,8 +1336,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     } else {
       ElegantNotification.error(
         title: Text(t('error')),
-        description:
-            Text((body['error'] ?? t('unable_to_request_settlement_message')).toString()),
+        description: Text(
+            (body['error'] ?? t('unable_to_request_settlement_message'))
+                .toString()),
       ).show(context);
     }
   }
@@ -1315,12 +1371,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           if (res.statusCode == 200) {
             // Refresh list with enriched users
             fetchQuickTransactions();
-            showSnack(context, t('payment_successful_settlement_complete_message'));
+            showSnack(
+                context, t('payment_successful_settlement_complete_message'));
           } else {
             // Payment went through but backend update failed – still refresh
             fetchQuickTransactions();
-            showSnack(context,
-                t('payment_done_status_update_failed_message'),
+            showSnack(context, t('payment_done_status_update_failed_message'),
                 isError: true);
           }
         },
@@ -1340,13 +1396,15 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ElegantNotification.success(
         title: Text(t('settlement_rejected_title')),
         description: Text(
-            (body['message'] ?? t('settlement_rejected_success_message')).toString()),
+            (body['message'] ?? t('settlement_rejected_success_message'))
+                .toString()),
       ).show(context);
     } else {
       ElegantNotification.error(
         title: Text(t('error')),
         description: Text(
-            (body['error'] ?? t('unable_to_reject_settlement_message')).toString()),
+            (body['error'] ?? t('unable_to_reject_settlement_message'))
+                .toString()),
       ).show(context);
     }
   }
@@ -1648,7 +1706,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? AppColors.cyan : AppThemeColors.primaryText(context),
+          color:
+              isSelected ? AppColors.cyan : AppThemeColors.primaryText(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -1684,508 +1743,185 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      body: Stack(
-        children: [
-          // Main content
-          SafeArea(
-            child: RefreshIndicator(
-              onRefresh: fetchQuickTransactions,
-              color: AppColors.cyan,
-              child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(top: 80, bottom: MediaQuery.of(context).padding.bottom + 110),
-              child: Column(
-                children: [
-                  Consumer<SessionProvider>(
-                    builder: (context, session, child) {
-                      if (session.isSubscribed) {
-                        return Text(t('unlimited_quick_transactions_message'),
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppThemeColors.primaryText(context)));
-                      }
-                      final remaining = session.freeQuickTransactionsRemaining;
-                      if (remaining == null) {
-                        return SizedBox.shrink();
-                      }
-                      return Text(
-                          t('free_quick_transactions_remaining_message')
-                              .replaceFirst('{count}', '$remaining'),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(context.sh(156)),
+        child: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, '/user/dashboard');
+                },
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Text(
+                    t('quick_transactions_title'),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          iconTheme: const IconThemeData(color: Colors.black),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.repeat_rounded, color: Colors.black),
+              tooltip: t('recurring_templates_title'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const RecurringTemplatesPage()),
+                );
+              },
+            ),
+          ],
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: context.sh(156),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: fetchQuickTransactions,
+          color: AppColors.cyan,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom + 110),
+            child: Column(
+              children: [
+                Consumer<SessionProvider>(
+                  builder: (context, session, child) {
+                    if (session.isSubscribed) {
+                      return Text(t('unlimited_quick_transactions_message'),
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AppThemeColors.primaryText(context)));
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  if (!loading && error == null && transactions.isNotEmpty) ...[
-                    _buildQuickStatCards(),
-                    const SizedBox(height: 10),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AnalyticsPage(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.analytics_outlined),
-                          label: Text(t('open_quick_analytics_label')),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.cyan,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
+                    }
+                    final remaining = session.freeQuickTransactionsRemaining;
+                    if (remaining == null) {
+                      return SizedBox.shrink();
+                    }
+                    return Text(
+                        t('free_quick_transactions_remaining_message')
+                            .replaceFirst('{count}', '$remaining'),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context)));
+                  },
+                ),
+                const SizedBox(height: 12),
+                if (!loading && error == null && transactions.isNotEmpty) ...[
+                  _buildQuickStatCards(),
+                  const SizedBox(height: 10),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Stack(
-                      alignment: Alignment.centerRight,
-                      children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildRoleChip(t('all'), 'all', Icons.apps_rounded),
-                              const SizedBox(width: 8),
-                              _buildRoleChip(t('they_owe_label'), 'lent',
-                                  Icons.arrow_upward_rounded),
-                              const SizedBox(width: 8),
-                              _buildRoleChip(t('i_owe_label'), 'borrowed',
-                                  Icons.arrow_downward_rounded),
-                              const SizedBox(width: 8),
-                              _buildClearedChip(),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: _toggleShowFavourites,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: _showFavouritesOnly
-                                        ? AppColors.cyan
-                                        : AppThemeColors.cardBg(context),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: _showFavouritesOnly
-                                          ? AppColors.cyan
-                                          : AppThemeColors.border(context),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.favorite,
-                                        size: 18,
-                                        color: _showFavouritesOnly
-                                            ? Colors.white
-                                            : AppThemeColors.secondaryText(context),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        t('favourites_label'),
-                                        style: TextStyle(
-                                          color: _showFavouritesOnly
-                                              ? Colors.white
-                                              : AppThemeColors.primaryText(context),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 28),
-                            ],
-                          ),
-                        ),
-                        IgnorePointer(
-                          child: Container(
-                            width: 34,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppThemeColors.cardBg(context).withValues(alpha: 0.0),
-                                  AppThemeColors.cardBg(context).withValues(alpha: 0.86),
-                                  AppThemeColors.cardBg(context),
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AnalyticsPage(),
                             ),
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: Text(
-                                '->',
-                                style: TextStyle(
-                                  color: AppThemeColors.secondaryText(context),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.analytics_outlined),
+                        label: Text(t('open_quick_analytics_label')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Search Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(27),
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.white, Colors.green],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
                           ),
-                        ],
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppThemeColors.cardBg(context),
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search,
-                                color: AppThemeColors.mutedText(context), size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                onChanged: (value) {
-                                  setState(() => searchQuery = value);
-                                  _searchDebounceTimer?.cancel();
-                                  _searchDebounceTimer = Timer(
-                                    const Duration(milliseconds: 300),
-                                    fetchQuickTransactions,
-                                  );
-                                },
-                                onSubmitted: (_) =>
-                                    FocusScope.of(context).unfocus(),
-                                decoration: InputDecoration(
-                                  hintText: t('search_by_description_amount_user_hint'),
-                                  hintStyle: TextStyle(
-                                      color: AppThemeColors.mutedText(context), fontSize: 15),
-                                  border: InputBorder.none,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    color: AppThemeColors.primaryText(context)),
-                              ),
-                            ),
-                            if (searchQuery.isNotEmpty)
-                              IconButton(
-                                icon: Icon(Icons.clear,
-                                    color: AppThemeColors.mutedText(context), size: 20),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => searchQuery = '');
-                                  _searchDebounceTimer?.cancel();
-                                  fetchQuickTransactions();
-                                },
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                          ],
                         ),
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 16),
-                  if (_displayCurrencyError != null ||
-                      _hasMissingConversionForQuickTransactions())
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF1F1),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFFF6B6B)),
-                        ),
+                ],
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.error_outline,
-                                color: Color(0xFFD62828), size: 20),
+                            _buildRoleChip(t('all'), 'all', Icons.apps_rounded),
                             const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _displayCurrencyError ??
-                                    t('conversion_not_available_quick_transactions_message')
-                                        .replaceFirst('{currency}', _selectedDisplayCurrency),
-                                style: const TextStyle(
-                                  color: Color(0xFFD62828),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(18),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Colors.orange,
-                                  Colors.white,
-                                  Colors.green
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  isExpanded: true,
-                                  value: _selectedCounterparty,
-                                  icon: const Icon(
-                                      Icons.keyboard_arrow_down_rounded),
-                                  items: counterpartyOptions
-                                      .map(
-                                        (item) => DropdownMenuItem<String>(
-                                          value: item['email'],
-                                          child: Text(
-                                            item['label'] ?? t('all_people_label'),
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                                color: AppThemeColors.primaryText(context)),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) {
-                                    if (value == null) return;
-                                    _applyCounterpartyFilter(value);
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              t('show_in_label'),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: AppThemeColors.primaryText(context),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            _buildCurrencySelector(),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Filter and Sort buttons
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Filter button
-                        GestureDetector(
-                          onTap: _showFilterOptions,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Colors.orange,
-                                  Colors.white,
-                                  Colors.green
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    filterBy == 'all'
-                                        ? Icons.filter_alt_outlined
-                                        : Icons.filter_alt,
-                                    color: filterBy == 'all'
-                                        ? AppThemeColors.primaryText(context)
-                                        : AppColors.cyan,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    _filterSummaryLabel(),
-                                    style: TextStyle(
-                                      color: !_hasActiveFilters()
-                                          ? AppThemeColors.primaryText(context)
-                                          : AppColors.cyan,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Sort button
-                        GestureDetector(
-                          onTap: _showSortOptions,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Colors.orange,
-                                  Colors.white,
-                                  Colors.green
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.sort,
-                                      color: AppThemeColors.primaryText(context), size: 18),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    _sortSummaryLabel(),
-                                    style: TextStyle(
-                                      color: AppThemeColors.primaryText(context),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (_hasActiveFilters()) ...[
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: _resetFilters,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.orange,
-                                    Colors.white,
-                                    Colors.green
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
+                            _buildRoleChip(t('they_owe_label'), 'lent',
+                                Icons.arrow_upward_rounded),
+                            const SizedBox(width: 8),
+                            _buildRoleChip(t('i_owe_label'), 'borrowed',
+                                Icons.arrow_downward_rounded),
+                            const SizedBox(width: 8),
+                            _buildClearedChip(),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: _toggleShowFavourites,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: AppThemeColors.cardBg(context),
+                                  color: _showFavouritesOnly
+                                      ? AppColors.cyan
+                                      : AppThemeColors.cardBg(context),
                                   borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: _showFavouritesOnly
+                                        ? AppColors.cyan
+                                        : AppThemeColors.border(context),
+                                  ),
                                 ),
                                 child: Row(
-                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.restart_alt_rounded,
-                                        color: Color(0xFFD62828), size: 18),
+                                    Icon(
+                                      Icons.favorite,
+                                      size: 18,
+                                      color: _showFavouritesOnly
+                                          ? Colors.white
+                                          : AppThemeColors.secondaryText(
+                                              context),
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      t('reset_label'),
-                                      style: const TextStyle(
-                                        color: Color(0xFFD62828),
-                                        fontSize: 14,
+                                      t('favourites_label'),
+                                      style: TextStyle(
+                                        color: _showFavouritesOnly
+                                            ? Colors.white
+                                            : AppThemeColors.primaryText(
+                                                context),
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -2193,270 +1929,592 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 28),
+                          ],
+                        ),
+                      ),
+                      IgnorePointer(
+                        child: Container(
+                          width: 34,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppThemeColors.cardBg(context)
+                                    .withValues(alpha: 0.0),
+                                AppThemeColors.cardBg(context)
+                                    .withValues(alpha: 0.86),
+                                AppThemeColors.cardBg(context),
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Transactions List
-                  loading
-                      ? Center(
-                          child:
-                              CircularProgressIndicator(color: AppThemeColors.primaryText(context)))
-                      : error != null
-                          ? _buildErrorState(error!, fetchQuickTransactions)
-                          : filteredTransactions.isEmpty
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                          _showFavouritesOnly
-                                              ? Icons.star_border_rounded
-                                              : Icons.receipt_long,
-                                          size: 80, color: AppThemeColors.mutedText(context)),
-                                      const SizedBox(height: 20),
-                                      Text(
-                                        _showFavouritesOnly
-                                            ? t('no_favourite_transactions_found_message')
-                                            : searchQuery.isNotEmpty ||
-                                                filterBy != 'all' ||
-                                                _roleFilter != 'all' ||
-                                                _dateFilter != 'all' ||
-                                                _selectedCounterparty != 'all'
-                                            ? t('no_transactions_found_message')
-                                            : t('no_quick_transactions_yet_message'),
-                                        style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppThemeColors.secondaryText(context)),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        _showFavouritesOnly
-                                            ? t('mark_transaction_favourite_to_see_here_message')
-                                            : searchQuery.isNotEmpty ||
-                                                filterBy != 'all' ||
-                                                _roleFilter != 'all' ||
-                                                _dateFilter != 'all' ||
-                                                _selectedCounterparty != 'all'
-                                            ? t('try_adjusting_search_or_filters_message')
-                                            : t('tap_plus_button_to_create_first_one_message'),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            color: AppThemeColors.mutedText(context)),
-                                      ),
-                                      if (_hasActiveFilters()) ...[
-                                        const SizedBox(height: 18),
-                                        GestureDetector(
-                                          onTap: _resetFilters,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(24),
-                                              gradient: const LinearGradient(
-                                                colors: [
-                                                  Colors.orange,
-                                                  Colors.white,
-                                                  Colors.green,
-                                                ],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              ),
-                                            ),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 18,
-                                                vertical: 10,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: AppThemeColors.cardBg(context),
-                                                borderRadius:
-                                                    BorderRadius.circular(22),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.refresh_rounded,
-                                                    color: AppColors.cyan,
-                                                    size: 18,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    t('reset_filters_label'),
-                                                    style: TextStyle(
-                                                      color: AppThemeColors.primaryText(context),
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                )
-                              : Column(
-                                  children: [
-                                    ListView(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      padding: const EdgeInsets.fromLTRB(
-                                          20.0, 8, 20.0, 20.0),
-                                      children: groupedTransactions.entries
-                                          .expand((entry) {
-                                        final sectionIndex = groupedTransactions
-                                            .keys
-                                            .toList()
-                                            .indexOf(entry.key);
-                                        return <Widget>[
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                top: 6, bottom: 10),
-                                            child: Text(
-                                              entry.key,
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppThemeColors.primaryText(context),
-                                              ),
-                                            ),
-                                          ),
-                                          ...entry.value
-                                              .asMap()
-                                              .entries
-                                              .map((item) {
-                                            return Padding(
-                                              key: ValueKey(
-                                                  (item.value['_id'] ?? '')
-                                                      .toString()),
-                                              padding: const EdgeInsets.only(
-                                                  bottom: 16),
-                                              child: _buildQuickTransactionCard(
-                                                item.value,
-                                                sectionIndex + item.key,
-                                              ),
-                                            );
-                                          }),
-                                        ];
-                                      }).toList(),
-                                    ),
-                                    if (filteredTransactions.length > 3)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 20.0),
-                                        child: TextButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              _showAll = !_showAll;
-                                            });
-                                          },
-                                          child: Text(
-                                            _showAll
-                                                ? t('show_less_label')
-                                                : t('see_all_transactions_label'),
-                                            style: TextStyle(
-                                              color: AppThemeColors.primaryText(context),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                ],
-              ),
-            ), // closes SingleChildScrollView
-            ), // closes RefreshIndicator
-          ),
-
-          // Blue wave at top - reduced to half size
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: TopWaveClipper(),
-              child: Container(
-                height: context.sh(78),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Text(
+                              '->',
+                              style: TextStyle(
+                                color: AppThemeColors.secondaryText(context),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
-          ),
-
-          // Header on wave
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 16.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.black),
-                      onPressed: () {
-                        Navigator.pushReplacementNamed(
-                            context, '/user/dashboard');
-                      },
+                const SizedBox(height: 24),
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(27),
+                      gradient: const LinearGradient(
+                        colors: [Colors.orange, Colors.white, Colors.green],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      child: Center(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Text(
-                            t('quick_transactions_title'),
-                            maxLines: 1,
-                            softWrap: false,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppThemeColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search,
+                              color: AppThemeColors.mutedText(context),
+                              size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (value) {
+                                setState(() => searchQuery = value);
+                                _searchDebounceTimer?.cancel();
+                                _searchDebounceTimer = Timer(
+                                  const Duration(milliseconds: 300),
+                                  fetchQuickTransactions,
+                                );
+                              },
+                              onSubmitted: (_) =>
+                                  FocusScope.of(context).unfocus(),
+                              decoration: InputDecoration(
+                                hintText:
+                                    t('search_by_description_amount_user_hint'),
+                                hintStyle: TextStyle(
+                                    color: AppThemeColors.mutedText(context),
+                                    fontSize: 15),
+                                border: InputBorder.none,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppThemeColors.primaryText(context)),
+                            ),
+                          ),
+                          if (searchQuery.isNotEmpty)
+                            IconButton(
+                              icon: Icon(Icons.clear,
+                                  color: AppThemeColors.mutedText(context),
+                                  size: 20),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => searchQuery = '');
+                                _searchDebounceTimer?.cancel();
+                                fetchQuickTransactions();
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                if (_displayCurrencyError != null ||
+                    _hasMissingConversionForQuickTransactions())
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF1F1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFFF6B6B)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Color(0xFFD62828), size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _displayCurrencyError ??
+                                  t('conversion_not_available_quick_transactions_message')
+                                      .replaceFirst('{currency}',
+                                          _selectedDisplayCurrency),
+                              style: const TextStyle(
+                                color: Color(0xFFD62828),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.cardBg(context),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: _selectedCounterparty,
+                                icon: const Icon(
+                                    Icons.keyboard_arrow_down_rounded),
+                                items: counterpartyOptions
+                                    .map(
+                                      (item) => DropdownMenuItem<String>(
+                                        value: item['email'],
+                                        child: Text(
+                                          item['label'] ??
+                                              t('all_people_label'),
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: AppThemeColors.primaryText(
+                                                  context)),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  _applyCounterpartyFilter(value);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            t('show_in_label'),
                             style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                              letterSpacing: 1.2,
-                              shadows: [
-                                Shadow(color: Colors.black26, blurRadius: 4)
+                              fontWeight: FontWeight.w700,
+                              color: AppThemeColors.primaryText(context),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _buildCurrencySelector(),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Filter and Sort buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Filter button
+                      GestureDetector(
+                        onTap: _showFilterOptions,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.cardBg(context),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  filterBy == 'all'
+                                      ? Icons.filter_alt_outlined
+                                      : Icons.filter_alt,
+                                  color: filterBy == 'all'
+                                      ? AppThemeColors.primaryText(context)
+                                      : AppColors.cyan,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  _filterSummaryLabel(),
+                                  style: TextStyle(
+                                    color: !_hasActiveFilters()
+                                        ? AppThemeColors.primaryText(context)
+                                        : AppColors.cyan,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.repeat_rounded, color: Colors.black),
-                      tooltip: t('recurring_templates_title'),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const RecurringTemplatesPage()),
-                        );
-                      },
-                    ),
-                  ],
+                      // Sort button
+                      GestureDetector(
+                        onTap: _showSortOptions,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppThemeColors.cardBg(context),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.sort,
+                                    color: AppThemeColors.primaryText(context),
+                                    size: 18),
+                                SizedBox(width: 6),
+                                Text(
+                                  _sortSummaryLabel(),
+                                  style: TextStyle(
+                                    color: AppThemeColors.primaryText(context),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_hasActiveFilters()) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _resetFilters,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.orange,
+                                  Colors.white,
+                                  Colors.green
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppThemeColors.cardBg(context),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.restart_alt_rounded,
+                                      color: Color(0xFFD62828), size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    t('reset_label'),
+                                    style: const TextStyle(
+                                      color: Color(0xFFD62828),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 20),
+
+                // Transactions List
+                loading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                            color: AppThemeColors.primaryText(context)))
+                    : error != null
+                        ? _buildErrorState(error!, fetchQuickTransactions)
+                        : filteredTransactions.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                        _showFavouritesOnly
+                                            ? Icons.star_border_rounded
+                                            : Icons.receipt_long,
+                                        size: 80,
+                                        color:
+                                            AppThemeColors.mutedText(context)),
+                                    const SizedBox(height: 20),
+                                    Text(
+                                      _showFavouritesOnly
+                                          ? t(
+                                              'no_favourite_transactions_found_message')
+                                          : searchQuery.isNotEmpty ||
+                                                  filterBy != 'all' ||
+                                                  _roleFilter != 'all' ||
+                                                  _dateFilter != 'all' ||
+                                                  _selectedCounterparty != 'all'
+                                              ? t('no_transactions_found_message')
+                                              : t('no_quick_transactions_yet_message'),
+                                      style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppThemeColors.secondaryText(
+                                              context)),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      _showFavouritesOnly
+                                          ? t(
+                                              'mark_transaction_favourite_to_see_here_message')
+                                          : searchQuery.isNotEmpty ||
+                                                  filterBy != 'all' ||
+                                                  _roleFilter != 'all' ||
+                                                  _dateFilter != 'all' ||
+                                                  _selectedCounterparty != 'all'
+                                              ? t('try_adjusting_search_or_filters_message')
+                                              : t('tap_plus_button_to_create_first_one_message'),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: AppThemeColors.mutedText(
+                                              context)),
+                                    ),
+                                    if (_hasActiveFilters()) ...[
+                                      const SizedBox(height: 18),
+                                      GestureDetector(
+                                        onTap: _resetFilters,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(24),
+                                            gradient: const LinearGradient(
+                                              colors: [
+                                                Colors.orange,
+                                                Colors.white,
+                                                Colors.green,
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 18,
+                                              vertical: 10,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppThemeColors.cardBg(
+                                                  context),
+                                              borderRadius:
+                                                  BorderRadius.circular(22),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.refresh_rounded,
+                                                  color: AppColors.cyan,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  t('reset_filters_label'),
+                                                  style: TextStyle(
+                                                    color: AppThemeColors
+                                                        .primaryText(context),
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  ListView(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20.0, 8, 20.0, 20.0),
+                                    children: groupedTransactions.entries
+                                        .expand((entry) {
+                                      final sectionIndex = groupedTransactions
+                                          .keys
+                                          .toList()
+                                          .indexOf(entry.key);
+                                      return <Widget>[
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              top: 6, bottom: 10),
+                                          child: Text(
+                                            entry.key,
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppThemeColors.primaryText(
+                                                  context),
+                                            ),
+                                          ),
+                                        ),
+                                        ...entry.value
+                                            .asMap()
+                                            .entries
+                                            .map((item) {
+                                          return Padding(
+                                            key: ValueKey(
+                                                (item.value['_id'] ?? '')
+                                                    .toString()),
+                                            padding: const EdgeInsets.only(
+                                                bottom: 16),
+                                            child: _buildQuickTransactionCard(
+                                              item.value,
+                                              sectionIndex + item.key,
+                                            ),
+                                          );
+                                        }),
+                                      ];
+                                    }).toList(),
+                                  ),
+                                  if (filteredTransactions.length > 3)
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 20.0),
+                                      child: TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _showAll = !_showAll;
+                                          });
+                                        },
+                                        child: Text(
+                                          _showAll
+                                              ? t('show_less_label')
+                                              : t('see_all_transactions_label'),
+                                          style: TextStyle(
+                                            color: AppThemeColors.primaryText(
+                                                context),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+              ],
             ),
-          ),
-        ],
+          ), // closes SingleChildScrollView
+        ), // closes RefreshIndicator
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
@@ -2594,337 +2652,356 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: SingleChildScrollView(
-              // Added vertical scroll
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            // Added horizontal scroll for amount
-                            scrollDirection: Axis.horizontal,
-                            child: Text(
-                              '${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())} • ${(_displayCurrencyData?.canConvert((transaction['currency'] ?? 'INR').toString(), _selectedDisplayCurrency) ?? ((transaction['currency'] ?? 'INR').toString().toUpperCase() == _selectedDisplayCurrency.toUpperCase())) ? _selectedDisplayCurrency : (transaction['currency'] ?? 'INR')}',
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ), // note cards keep a fixed light bg (_getNoteColor); black87 stays readable regardless of theme
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => _togglePinTransaction(
-                              (transaction['_id'] ?? '').toString()),
-                          icon: Icon(
-                            isPinned ? Icons.star : Icons.star_border_rounded,
-                            color:
-                                isPinned ? Colors.amber[700] : Colors.grey[600],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              _toggleQuickTransactionFavourite(transaction),
-                          icon: Icon(
-                            _isQuickTransactionFavourited(transaction)
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            color: _isQuickTransactionFavourited(transaction)
-                                ? Colors.redAccent
-                                : Colors.grey[600],
-                          ),
-                        ),
-                        if (isCleared)
-                          Text(
-                            t('cleared'),
-                            style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              createOrEditQuickTransaction(
-                                  transaction: transaction);
-                            } else if (value == 'duplicate') {
-                              _duplicateQuickTransaction(transaction);
-                            } else if (value == 'delete') {
-                              deleteQuickTransaction(transaction['_id']);
-                            } else if (value == 'request_settlement') {
-                              _requestSettlement(transaction);
-                            } else if (value == 'accept_settlement') {
-                              _respondSettlement(transaction, 'accept');
-                            } else if (value == 'reject_settlement') {
-                              _respondSettlement(transaction, 'reject');
-                            } else if (value == 'pay_now') {
-                              _payNow(transaction);
-                            } else if (value == 'share') {
-                              _showReceiptDialog(transaction);
-                            } else if (value == 'pin') {
-                              _togglePinTransaction(
-                                  (transaction['_id'] ?? '').toString());
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            if (!isCleared)
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Text(t('edit')),
-                              ),
-                            if (!isCleared &&
-                                (settlementStatus == 'none' ||
-                                    settlementStatus == 'rejected') &&
-                                roleForViewer == 'lender')
-                              PopupMenuItem(
-                                value: 'request_settlement',
-                                child: Text(t('request_settlement_label')),
-                              ),
-                            if (!isCleared && roleForViewer == 'borrower')
-                              PopupMenuItem(
-                                value: 'pay_now',
-                                child: Row(children: [
-                                  const Icon(Icons.payment_rounded, size: 16, color: AppColors.cyan),
-                                  const SizedBox(width: 8),
-                                  Text(t('pay_now_real_money_label'), style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
-                            if (_canRespondToSettlement(transaction))
-                              PopupMenuItem(
-                                value: 'accept_settlement',
-                                child: Text(t('accept_settlement_label')),
-                              ),
-                            if (_canRespondToSettlement(transaction))
-                              PopupMenuItem(
-                                value: 'reject_settlement',
-                                child: Text(t('reject_settlement_label')),
-                              ),
-                            PopupMenuItem(
-                              value: 'duplicate',
-                              child: Text(t('duplicate_label')),
-                            ),
-                            PopupMenuItem(
-                              value: 'share',
-                              child: Text(t('share_receipt_label')),
-                            ),
-                            PopupMenuItem(
-                              value: 'pin',
-                              child: Text(isPinned ? t('unpin_label') : t('pin_label')),
-                            ),
-                            if (isCleared)
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text(t('delete')),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildStatusChip(
-                          isCleared
-                              ? t('cleared')
-                              : settlementStatus == 'pending'
-                                  ? t('pending_label')
-                                  : t('open_label'),
-                          isCleared
-                              ? Colors.green
-                              : settlementStatus == 'pending'
-                                  ? Colors.orange
-                                  : Colors.blueGrey,
-                          isCleared
-                              ? Icons.check_circle_outline
-                              : settlementStatus == 'pending'
-                                  ? Icons.pending_actions_rounded
-                                  : Icons.receipt_long_rounded,
-                        ),
-                        _buildStatusChip(
-                          roleForViewer == 'lender'
-                              ? t('you_lent_label')
-                              : t('you_borrowed_label'),
-                          roleForViewer == 'lender'
-                              ? const Color(0xFF1B58B8)
-                              : const Color(0xFFD95F02),
-                          roleForViewer == 'lender'
-                              ? Icons.north_east_rounded
-                              : Icons.south_west_rounded,
-                        ),
-                        if (isPinned)
-                          _buildStatusChip(
-                            t('pinned_label'),
-                            Colors.amber[800]!,
-                            Icons.star_rounded,
-                          ),
-                        if (settlementStatus != 'none')
-                          _buildStatusChip(
-                            _settlementStatusLabel(transaction),
-                            settlementStatus == 'accepted'
-                                ? Colors.green
-                                : settlementStatus == 'rejected'
-                                    ? Colors.red
-                                    : Colors.teal,
-                            settlementStatus == 'accepted'
-                                ? Icons.verified_rounded
-                                : settlementStatus == 'rejected'
-                                    ? Icons.close_rounded
-                                    : Icons.handshake_rounded,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      // Added horizontal scroll for description
-                      scrollDirection: Axis.horizontal,
-                      child: Text(
-                        transaction['description'] ?? '',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      // Added horizontal scroll for user info
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                // Added vertical scroll
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            (counterparty?['name'] ??
-                                    counterparty?['email'] ??
-                                    t('unknown_label'))
-                                .toString(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                          Expanded(
+                            child: SingleChildScrollView(
+                              // Added horizontal scroll for amount
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                '${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())} • ${(_displayCurrencyData?.canConvert((transaction['currency'] ?? 'INR').toString(), _selectedDisplayCurrency) ?? ((transaction['currency'] ?? 'INR').toString().toUpperCase() == _selectedDisplayCurrency.toUpperCase())) ? _selectedDisplayCurrency : (transaction['currency'] ?? 'INR')}',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ), // note cards keep a fixed light bg (_getNoteColor); black87 stays readable regardless of theme
+                              ),
                             ),
                           ),
-                          SizedBox(width: 16),
-                          Text(
-                            '${transaction['date']?.substring(0, 10)} at ${transaction['time']}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                          IconButton(
+                            onPressed: () => _togglePinTransaction(
+                                (transaction['_id'] ?? '').toString()),
+                            icon: Icon(
+                              isPinned ? Icons.star : Icons.star_border_rounded,
+                              color: isPinned
+                                  ? Colors.amber[700]
+                                  : Colors.grey[600],
                             ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                _toggleQuickTransactionFavourite(transaction),
+                            icon: Icon(
+                              _isQuickTransactionFavourited(transaction)
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: _isQuickTransactionFavourited(transaction)
+                                  ? Colors.redAccent
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                          if (isCleared)
+                            Text(
+                              t('cleared'),
+                              style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                createOrEditQuickTransaction(
+                                    transaction: transaction);
+                              } else if (value == 'duplicate') {
+                                _duplicateQuickTransaction(transaction);
+                              } else if (value == 'delete') {
+                                deleteQuickTransaction(transaction['_id']);
+                              } else if (value == 'request_settlement') {
+                                _requestSettlement(transaction);
+                              } else if (value == 'accept_settlement') {
+                                _respondSettlement(transaction, 'accept');
+                              } else if (value == 'reject_settlement') {
+                                _respondSettlement(transaction, 'reject');
+                              } else if (value == 'pay_now') {
+                                _payNow(transaction);
+                              } else if (value == 'share') {
+                                _showReceiptDialog(transaction);
+                              } else if (value == 'pin') {
+                                _togglePinTransaction(
+                                    (transaction['_id'] ?? '').toString());
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              if (!isCleared)
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text(t('edit')),
+                                ),
+                              if (!isCleared &&
+                                  (settlementStatus == 'none' ||
+                                      settlementStatus == 'rejected') &&
+                                  roleForViewer == 'lender')
+                                PopupMenuItem(
+                                  value: 'request_settlement',
+                                  child: Text(t('request_settlement_label')),
+                                ),
+                              if (!isCleared && roleForViewer == 'borrower')
+                                PopupMenuItem(
+                                  value: 'pay_now',
+                                  child: Row(children: [
+                                    const Icon(Icons.payment_rounded,
+                                        size: 16, color: AppColors.cyan),
+                                    const SizedBox(width: 8),
+                                    Text(t('pay_now_real_money_label'),
+                                        style: const TextStyle(
+                                            color: AppColors.cyan,
+                                            fontWeight: FontWeight.w600)),
+                                  ]),
+                                ),
+                              if (_canRespondToSettlement(transaction))
+                                PopupMenuItem(
+                                  value: 'accept_settlement',
+                                  child: Text(t('accept_settlement_label')),
+                                ),
+                              if (_canRespondToSettlement(transaction))
+                                PopupMenuItem(
+                                  value: 'reject_settlement',
+                                  child: Text(t('reject_settlement_label')),
+                                ),
+                              PopupMenuItem(
+                                value: 'duplicate',
+                                child: Text(t('duplicate_label')),
+                              ),
+                              PopupMenuItem(
+                                value: 'share',
+                                child: Text(t('share_receipt_label')),
+                              ),
+                              PopupMenuItem(
+                                value: 'pin',
+                                child: Text(isPinned
+                                    ? t('unpin_label')
+                                    : t('pin_label')),
+                              ),
+                              if (isCleared)
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text(t('delete')),
+                                ),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _isCurrentUserCreator(transaction)
-                          ? t('created_by_you_label')
-                          : t('created_by_name_label').replaceFirst('{name}',
-                              '${creatorName['name'] ?? creatorName['email'] ?? t('unknown_label')}'),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    if (!isCleared && roleForViewer == 'borrower') ...[
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Colors.white, Colors.green],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildStatusChip(
+                            isCleared
+                                ? t('cleared')
+                                : settlementStatus == 'pending'
+                                    ? t('pending_label')
+                                    : t('open_label'),
+                            isCleared
+                                ? Colors.green
+                                : settlementStatus == 'pending'
+                                    ? Colors.orange
+                                    : Colors.blueGrey,
+                            isCleared
+                                ? Icons.check_circle_outline
+                                : settlementStatus == 'pending'
+                                    ? Icons.pending_actions_rounded
+                                    : Icons.receipt_long_rounded,
                           ),
-                        ),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.cyan,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
+                          _buildStatusChip(
+                            roleForViewer == 'lender'
+                                ? t('you_lent_label')
+                                : t('you_borrowed_label'),
+                            roleForViewer == 'lender'
+                                ? const Color(0xFF1B58B8)
+                                : const Color(0xFFD95F02),
+                            roleForViewer == 'lender'
+                                ? Icons.north_east_rounded
+                                : Icons.south_west_rounded,
+                          ),
+                          if (isPinned)
+                            _buildStatusChip(
+                              t('pinned_label'),
+                              Colors.amber[800]!,
+                              Icons.star_rounded,
                             ),
-                            icon: const Icon(Icons.payment_rounded, color: Colors.white, size: 18),
-                            label: Text(t('pay_now_real_money_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            onPressed: () => _payNow(transaction),
+                          if (settlementStatus != 'none')
+                            _buildStatusChip(
+                              _settlementStatusLabel(transaction),
+                              settlementStatus == 'accepted'
+                                  ? Colors.green
+                                  : settlementStatus == 'rejected'
+                                      ? Colors.red
+                                      : Colors.teal,
+                              settlementStatus == 'accepted'
+                                  ? Icons.verified_rounded
+                                  : settlementStatus == 'rejected'
+                                      ? Icons.close_rounded
+                                      : Icons.handshake_rounded,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        // Added horizontal scroll for description
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          transaction['description'] ?? '',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
                           ),
                         ),
                       ),
-                    ],
-                    if (settlementStatus == 'pending') ...[
                       const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F7FB),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFF7AD7EA)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      SingleChildScrollView(
+                        // Added horizontal scroll for user info
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              requestedByYou
-                                  ? t('settlement_requested_by_you_label')
-                                  : t('settlement_requested_by_other_user_label'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0087A8),
+                              (counterparty?['name'] ??
+                                      counterparty?['email'] ??
+                                      t('unknown_label'))
+                                  .toString(),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
                               ),
                             ),
-                            if (_canRespondToSettlement(transaction)) ...[
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () => _respondSettlement(
-                                          transaction, 'reject'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                      ),
-                                      child: Text(
-                                        t('reject_label'),
-                                        style: const TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () => _respondSettlement(
-                                          transaction, 'accept'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                      ),
-                                      child: Text(
-                                        t('accept'),
-                                        style: const TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            SizedBox(width: 16),
+                            Text(
+                              '${transaction['date']?.substring(0, 10)} at ${transaction['time']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
                               ),
-                            ],
+                            ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _isCurrentUserCreator(transaction)
+                            ? t('created_by_you_label')
+                            : t('created_by_name_label').replaceFirst('{name}',
+                                '${creatorName['name'] ?? creatorName['email'] ?? t('unknown_label')}'),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      if (!isCleared && roleForViewer == 'borrower') ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.orange,
+                                Colors.white,
+                                Colors.green
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.cyan,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.payment_rounded,
+                                  color: Colors.white, size: 18),
+                              label: Text(t('pay_now_real_money_label'),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                              onPressed: () => _payNow(transaction),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (settlementStatus == 'pending') ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F7FB),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFF7AD7EA)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                requestedByYou
+                                    ? t('settlement_requested_by_you_label')
+                                    : t('settlement_requested_by_other_user_label'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0087A8),
+                                ),
+                              ),
+                              if (_canRespondToSettlement(transaction)) ...[
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () => _respondSettlement(
+                                            transaction, 'reject'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                        ),
+                                        child: Text(
+                                          t('reject_label'),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () => _respondSettlement(
+                                            transaction, 'accept'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                        ),
+                                        child: Text(
+                                          t('accept'),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ));
+        ));
   }
 }
 
@@ -3047,9 +3124,7 @@ class _QuickTransactionFilterPageState
               : AppThemeColors.surfaceBg(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected
-                ? AppColors.cyan
-                : AppThemeColors.border(context),
+            color: selected ? AppColors.cyan : AppThemeColors.border(context),
           ),
         ),
         child: Row(
@@ -3242,7 +3317,8 @@ class _QuickTransactionFilterPageState
                                               fontWeight: selected
                                                   ? FontWeight.w800
                                                   : FontWeight.w700,
-                                              color: AppThemeColors.primaryText(context),
+                                              color: AppThemeColors.primaryText(
+                                                  context),
                                             ),
                                           ),
                                         ),
@@ -3253,7 +3329,8 @@ class _QuickTransactionFilterPageState
                                               : t('filter_quick_transactions_for_counterparty_message'),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: AppThemeColors.secondaryText(context),
+                                            color: AppThemeColors.secondaryText(
+                                                context),
                                           ),
                                         ),
                                       ],
@@ -3304,7 +3381,8 @@ class _QuickTransactionFilterPageState
                     title: t('status_label'),
                     subtitle: t('choose_transaction_status_message'),
                     backgroundColor: AppThemeColors.tinted(context,
-                        light: const Color(0xFFFFFCF7), dark: const Color(0xFF2A2620)),
+                        light: const Color(0xFFFFFCF7),
+                        dark: const Color(0xFF2A2620)),
                     child: Column(
                       children: [
                         _buildChoiceRow(
@@ -3337,7 +3415,8 @@ class _QuickTransactionFilterPageState
                     title: t('role_label'),
                     subtitle: t('focus_on_lent_or_borrowed_message'),
                     backgroundColor: AppThemeColors.tinted(context,
-                        light: const Color(0xFFF7FAFF), dark: const Color(0xFF1E2233)),
+                        light: const Color(0xFFF7FAFF),
+                        dark: const Color(0xFF1E2233)),
                     child: Column(
                       children: [
                         _buildChoiceRow(
@@ -3370,7 +3449,8 @@ class _QuickTransactionFilterPageState
                     title: t('date_range_label'),
                     subtitle: t('pick_quick_date_window_message'),
                     backgroundColor: AppThemeColors.tinted(context,
-                        light: const Color(0xFFF7FBF8), dark: const Color(0xFF1A2A1E)),
+                        light: const Color(0xFFF7FBF8),
+                        dark: const Color(0xFF1A2A1E)),
                     child: Column(
                       children: [
                         _buildChoiceRow(
@@ -3454,7 +3534,8 @@ class _QuickTransactionFilterPageState
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: AppThemeColors.secondaryText(context),
+                                      color:
+                                          AppThemeColors.secondaryText(context),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -3467,7 +3548,8 @@ class _QuickTransactionFilterPageState
                                       style: TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w800,
-                                        color: AppThemeColors.primaryText(context),
+                                        color:
+                                            AppThemeColors.primaryText(context),
                                       ),
                                     ),
                                   ),
@@ -3498,7 +3580,8 @@ class _QuickTransactionFilterPageState
                     subtitle:
                         t('enable_disable_control_shown_in_front_message'),
                     backgroundColor: AppThemeColors.tinted(context,
-                        light: const Color(0xFFFFF8FA), dark: const Color(0xFF2A1E22)),
+                        light: const Color(0xFFFFF8FA),
+                        dark: const Color(0xFF2A1E22)),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -3507,7 +3590,8 @@ class _QuickTransactionFilterPageState
                       decoration: BoxDecoration(
                         color: AppThemeColors.surfaceBg(context),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppThemeColors.border(context)),
+                        border:
+                            Border.all(color: AppThemeColors.border(context)),
                       ),
                       child: Row(
                         children: [
@@ -3606,21 +3690,3 @@ class _QuickTransactionFilterPageState
 }
 
 // _QuickTransactionDialog removed — replaced by CreateEditQuickTransactionPage
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

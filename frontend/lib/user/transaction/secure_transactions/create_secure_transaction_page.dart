@@ -1,4 +1,4 @@
-﻿//This file is to create Transactions.
+//This file is to create Transactions.
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:intl/intl.dart';
@@ -23,38 +23,15 @@ import '../../../utils/responsive.dart';
 import '../../../utils/receipt_ocr_service.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.8);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height * 0.8,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.6,
-      size.width,
-      size.height * 0.8,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
+import '../../../widgets/wave_widget.dart'
+    show DeeperTopWaveClipper, TopWaveClipper;
 
 class TransactionPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
   final bool useCoins;
 
-  const TransactionPage({Key? key, this.prefillCounterpartyEmail, this.useCoins = false})
+  const TransactionPage(
+      {Key? key, this.prefillCounterpartyEmail, this.useCoins = false})
       : super(key: key);
 
   @override
@@ -214,7 +191,8 @@ class _TransactionPageState extends State<TransactionPage> {
     final t = AppLocalizations.of(context).t;
     final days = _remainingDaysCount();
     if (days == null) return t('not_scheduled_label');
-    if (days < 0) return t('days_overdue_label').replaceFirst('{count}', '${days.abs()}');
+    if (days < 0)
+      return t('days_overdue_label').replaceFirst('{count}', '${days.abs()}');
     return t('days_remaining_label').replaceFirst('{count}', '$days');
   }
 
@@ -222,7 +200,8 @@ class _TransactionPageState extends State<TransactionPage> {
     final savedAt = _lastDraftSavedAt;
     if (savedAt == null) return _draftStatusMessage;
     final t = AppLocalizations.of(context).t;
-    return t('draft_saved_at_label').replaceFirst('{time}', DateFormat('hh:mm a').format(savedAt));
+    return t('draft_saved_at_label')
+        .replaceFirst('{time}', DateFormat('hh:mm a').format(savedAt));
   }
 
   Widget _buildRepaymentPreviewCard() {
@@ -232,7 +211,8 @@ class _TransactionPageState extends State<TransactionPage> {
     if (principal == null || repayment == null) return const SizedBox.shrink();
 
     final interestValue = math.max(repayment - principal, 0).toDouble();
-    final needsReturnDate = _interestType != 'none' && _expectedReturnDate == null;
+    final needsReturnDate =
+        _interestType != 'none' && _expectedReturnDate == null;
 
     return Container(
       padding: const EdgeInsets.all(2),
@@ -285,12 +265,14 @@ class _TransactionPageState extends State<TransactionPage> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                _buildPreviewStat(t('principal_label'), _formatPreviewAmount(principal)),
+                _buildPreviewStat(
+                    t('principal_label'), _formatPreviewAmount(principal)),
                 _buildPreviewStat(
                   t('est_interest_label'),
                   _formatPreviewAmount(interestValue),
                 ),
-                _buildPreviewStat(t('est_repayment_label'), _formatPreviewAmount(repayment)),
+                _buildPreviewStat(
+                    t('est_repayment_label'), _formatPreviewAmount(repayment)),
                 _buildPreviewStat(t('tenure_label'), _repaymentTenureLabel()),
               ],
             ),
@@ -403,8 +385,7 @@ class _TransactionPageState extends State<TransactionPage> {
             item(
               icon: Icons.event_available_rounded,
               title: t('expected_return_date_label'),
-              value:
-                  DateFormat('MMM d, yyyy').format(_expectedReturnDate!),
+              value: DateFormat('MMM d, yyyy').format(_expectedReturnDate!),
               color: Colors.green,
             ),
             const SizedBox(height: 10),
@@ -541,7 +522,9 @@ class _TransactionPageState extends State<TransactionPage> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: complete || active ? color : AppThemeColors.cardBg(context),
+                    color: complete || active
+                        ? color
+                        : AppThemeColors.cardBg(context),
                     shape: BoxShape.circle,
                     border: Border.all(color: color, width: 2),
                   ),
@@ -597,9 +580,21 @@ class _TransactionPageState extends State<TransactionPage> {
       ),
       child: Row(
         children: [
-          step(number: 1, title: t('enter_details_label'), active: !step2Ready, complete: step2Ready),
-          step(number: 2, title: t('verify_emails_label'), active: step2Ready && !step3Ready, complete: step3Ready),
-          step(number: 3, title: t('create_txn_label'), active: step3Ready, complete: false),
+          step(
+              number: 1,
+              title: t('enter_details_label'),
+              active: !step2Ready,
+              complete: step2Ready),
+          step(
+              number: 2,
+              title: t('verify_emails_label'),
+              active: step2Ready && !step3Ready,
+              complete: step3Ready),
+          step(
+              number: 3,
+              title: t('create_txn_label'),
+              active: step3Ready,
+              complete: false),
         ],
       ),
     );
@@ -608,7 +603,9 @@ class _TransactionPageState extends State<TransactionPage> {
   Widget _buildTransactionPreviewCard() {
     final t = AppLocalizations.of(context).t;
     final amount = _parsedPrincipalAmount();
-    final roleLabel = _role == 'lender' ? t('you_are_lending_label') : t('you_are_borrowing_label');
+    final roleLabel = _role == 'lender'
+        ? t('you_are_lending_label')
+        : t('you_are_borrowing_label');
     final counterparty = _counterpartyEmailController.text.trim().isEmpty
         ? t('not_selected_yet_label')
         : _counterpartyEmailController.text.trim();
@@ -616,7 +613,9 @@ class _TransactionPageState extends State<TransactionPage> {
         ? t('not_selected_label')
         : DateFormat('MMM d, yyyy').format(_selectedDate!);
     final returnLabel = _expectedReturnDate == null
-        ? (_interestType == 'none' ? t('not_needed_label') : t('select_expected_return_date_label'))
+        ? (_interestType == 'none'
+            ? t('not_needed_label')
+            : t('select_expected_return_date_label'))
         : DateFormat('MMM d, yyyy').format(_expectedReturnDate!);
 
     return Container(
@@ -653,7 +652,9 @@ class _TransactionPageState extends State<TransactionPage> {
                 _buildPreviewStat(t('role_label'), roleLabel),
                 _buildPreviewStat(
                   t('amount_label'),
-                  amount == null ? t('enter_amount_label') : _formatPreviewAmount(amount),
+                  amount == null
+                      ? t('enter_amount_label')
+                      : _formatPreviewAmount(amount),
                 ),
                 _buildPreviewStat(t('counterparty_label'), counterparty),
                 _buildPreviewStat(
@@ -767,7 +768,8 @@ class _TransactionPageState extends State<TransactionPage> {
     _lastDraftSavedAt = DateTime.now();
     if (mounted) {
       setState(() {
-        _draftStatusMessage = AppLocalizations.of(context).t('draft_saved_label');
+        _draftStatusMessage =
+            AppLocalizations.of(context).t('draft_saved_label');
       });
     }
   }
@@ -790,7 +792,8 @@ class _TransactionPageState extends State<TransactionPage> {
     _lastDraftSavedAt = null;
     if (mounted) {
       setState(() {
-        _draftStatusMessage = AppLocalizations.of(context).t('no_saved_draft_label');
+        _draftStatusMessage =
+            AppLocalizations.of(context).t('no_saved_draft_label');
       });
     }
   }
@@ -865,7 +868,8 @@ class _TransactionPageState extends State<TransactionPage> {
             minute: int.tryParse('${time['minute']}') ?? 0,
           );
         }
-        _draftStatusMessage = AppLocalizations.of(context).t('draft_restored_label');
+        _draftStatusMessage =
+            AppLocalizations.of(context).t('draft_restored_label');
       });
     } catch (_) {
       await _clearDraft();
@@ -909,7 +913,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   alignment: Alignment.center,
                   children: [
                     ClipPath(
-                      clipper: TopWaveClipper(),
+                      clipper: const DeeperTopWaveClipper(),
                       child: Container(
                         height: 86,
                         decoration: BoxDecoration(
@@ -982,7 +986,8 @@ class _TransactionPageState extends State<TransactionPage> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: accentColor.withValues(alpha: 0.45)),
+                      side: BorderSide(
+                          color: accentColor.withValues(alpha: 0.45)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -1040,7 +1045,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   alignment: Alignment.center,
                   children: [
                     ClipPath(
-                      clipper: TopWaveClipper(),
+                      clipper: const DeeperTopWaveClipper(),
                       child: Container(
                         height: 86,
                         decoration: BoxDecoration(
@@ -1225,8 +1230,7 @@ class _TransactionPageState extends State<TransactionPage> {
               return Container(
                 decoration: BoxDecoration(
                   color: AppThemeColors.cardBg(context),
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
                   children: [
@@ -1252,10 +1256,11 @@ class _TransactionPageState extends State<TransactionPage> {
                           Text(
                               filtered.length == 1
                                   ? t('friend_count_singular_label')
-                                  : t('friend_count_plural_label')
-                                      .replaceFirst('{count}', '${filtered.length}'),
+                                  : t('friend_count_plural_label').replaceFirst(
+                                      '{count}', '${filtered.length}'),
                               style: TextStyle(
-                                  color: AppThemeColors.secondaryText(context), fontSize: 13)),
+                                  color: AppThemeColors.secondaryText(context),
+                                  fontSize: 13)),
                         ],
                       ),
                     ),
@@ -1263,7 +1268,8 @@ class _TransactionPageState extends State<TransactionPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: TextField(
                         autofocus: false,
-                        style: TextStyle(color: AppThemeColors.primaryText(context)),
+                        style: TextStyle(
+                            color: AppThemeColors.primaryText(context)),
                         decoration: InputDecoration(
                           hintText: t('search_by_name_or_email_hint'),
                           prefixIcon: const Icon(Icons.search, size: 20),
@@ -1274,8 +1280,7 @@ class _TransactionPageState extends State<TransactionPage> {
                           filled: true,
                           fillColor: AppThemeColors.surfaceBg(context),
                         ),
-                        onChanged: (v) =>
-                            setSheetState(() => searchQuery = v),
+                        onChanged: (v) => setSheetState(() => searchQuery = v),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1283,7 +1288,9 @@ class _TransactionPageState extends State<TransactionPage> {
                       child: filtered.isEmpty
                           ? Center(
                               child: Text(t('no_friends_found_label'),
-                                  style: TextStyle(color: AppThemeColors.mutedText(context))))
+                                  style: TextStyle(
+                                      color:
+                                          AppThemeColors.mutedText(context))))
                           : ListView.builder(
                               controller: scrollController,
                               padding:
@@ -1292,12 +1299,11 @@ class _TransactionPageState extends State<TransactionPage> {
                               itemBuilder: (_, i) {
                                 final f = filtered[i];
                                 final email = (f['email'] ?? '').toString();
-                                final name = (f['name'] ??
-                                        f['username'] ??
-                                        email)
-                                    .toString();
-                                final isBlocked = _blockedEmails.contains(
-                                    email.toLowerCase().trim());
+                                final name =
+                                    (f['name'] ?? f['username'] ?? email)
+                                        .toString();
+                                final isBlocked = _blockedEmails
+                                    .contains(email.toLowerCase().trim());
                                 final initials = name.isNotEmpty
                                     ? name
                                         .trim()
@@ -1311,12 +1317,10 @@ class _TransactionPageState extends State<TransactionPage> {
                                     name.hashCode.abs() %
                                         Colors.primaries.length];
                                 return Card(
-                                  margin:
-                                      const EdgeInsets.only(bottom: 8),
+                                  margin: const EdgeInsets.only(bottom: 8),
                                   elevation: 1,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12)),
+                                      borderRadius: BorderRadius.circular(12)),
                                   child: ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor:
@@ -1330,10 +1334,12 @@ class _TransactionPageState extends State<TransactionPage> {
                                     title: Text(name,
                                         style: TextStyle(
                                             fontWeight: FontWeight.w600,
-                                            color: AppThemeColors.primaryText(context))),
+                                            color: AppThemeColors.primaryText(
+                                                context))),
                                     subtitle: Text(email,
                                         style: TextStyle(
-                                            color: AppThemeColors.secondaryText(context),
+                                            color: AppThemeColors.secondaryText(
+                                                context),
                                             fontSize: 12)),
                                     trailing: isBlocked
                                         ? Text(t('blocked_label'),
@@ -1342,7 +1348,8 @@ class _TransactionPageState extends State<TransactionPage> {
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 12))
                                         : Icon(Icons.chevron_right,
-                                            color: AppThemeColors.mutedText(context)),
+                                            color: AppThemeColors.mutedText(
+                                                context)),
                                     onTap: () {
                                       if (isBlocked) {
                                         Navigator.pop(ctx);
@@ -1503,9 +1510,12 @@ class _TransactionPageState extends State<TransactionPage> {
       final ocrResult = await ReceiptOcrService.extractFromImage(path);
       if (!mounted) return;
 
-      if (ocrResult.amount == null && ocrResult.date == null && ocrResult.place == null) {
+      if (ocrResult.amount == null &&
+          ocrResult.date == null &&
+          ocrResult.place == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('could_not_detect_receipt_details_message'))),
+          SnackBar(
+              content: Text(t('could_not_detect_receipt_details_message'))),
         );
         return;
       }
@@ -1514,7 +1524,9 @@ class _TransactionPageState extends State<TransactionPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('receipt_scan_failed_message').replaceFirst('{error}', '$e'))),
+          SnackBar(
+              content: Text(t('receipt_scan_failed_message')
+                  .replaceFirst('{error}', '$e'))),
         );
       }
     } finally {
@@ -1534,9 +1546,11 @@ class _TransactionPageState extends State<TransactionPage> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           backgroundColor: AppThemeColors.cardBg(dialogContext),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text(t('detected_from_receipt_title'),
-              style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+              style:
+                  TextStyle(color: AppThemeColors.primaryText(dialogContext))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1545,17 +1559,21 @@ class _TransactionPageState extends State<TransactionPage> {
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: useAmount,
-                  onChanged: (v) => setDialogState(() => useAmount = v ?? false),
+                  onChanged: (v) =>
+                      setDialogState(() => useAmount = v ?? false),
                   title: Text('${t('amount_colon_label')} ${result.amount}',
-                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(dialogContext))),
                 ),
               if (result.date != null)
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: useDate,
                   onChanged: (v) => setDialogState(() => useDate = v ?? false),
-                  title: Text('${t('date_colon_label')} ${DateFormat('MMM d, yyyy').format(result.date!)}',
-                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+                  title: Text(
+                      '${t('date_colon_label')} ${DateFormat('MMM d, yyyy').format(result.date!)}',
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(dialogContext))),
                 ),
               if (hasPlace)
                 CheckboxListTile(
@@ -1563,7 +1581,8 @@ class _TransactionPageState extends State<TransactionPage> {
                   value: usePlace,
                   onChanged: (v) => setDialogState(() => usePlace = v ?? false),
                   title: Text('${t('place_colon_label')} ${result.place}',
-                      style: TextStyle(color: AppThemeColors.primaryText(dialogContext))),
+                      style: TextStyle(
+                          color: AppThemeColors.primaryText(dialogContext))),
                 ),
             ],
           ),
@@ -1571,12 +1590,14 @@ class _TransactionPageState extends State<TransactionPage> {
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(t('cancel'),
-                  style: TextStyle(color: AppThemeColors.secondaryText(dialogContext))),
+                  style: TextStyle(
+                      color: AppThemeColors.secondaryText(dialogContext))),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(t('apply_label'), style: const TextStyle(color: Colors.white)),
+              child: Text(t('apply_label'),
+                  style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1696,12 +1717,17 @@ class _TransactionPageState extends State<TransactionPage> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
             ),
             OutlinedButton.icon(
-              onPressed: _bothUsersVerified || _scanningReceipt ? null : _scanReceipt,
+              onPressed:
+                  _bothUsersVerified || _scanningReceipt ? null : _scanReceipt,
               icon: _scanningReceipt
                   ? const SizedBox(
-                      width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.document_scanner_outlined),
-              label: Text(_scanningReceipt ? t('scanning_ellipsis_label') : t('scan_receipt_label')),
+              label: Text(_scanningReceipt
+                  ? t('scanning_ellipsis_label')
+                  : t('scan_receipt_label')),
               style: OutlinedButton.styleFrom(foregroundColor: AppColors.cyan),
             ),
           ],
@@ -1713,11 +1739,13 @@ class _TransactionPageState extends State<TransactionPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppThemeColors.tinted(context,
-                  light: const Color(0xFFF7FBFD), dark: const Color(0xFF173238)),
+                  light: const Color(0xFFF7FBFD),
+                  dark: const Color(0xFF173238)),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                   color: AppThemeColors.tinted(context,
-                      light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
+                      light: const Color(0xFFBFE8F2),
+                      dark: const Color(0xFF2A6E80))),
             ),
             child: Row(
               children: [
@@ -1726,7 +1754,8 @@ class _TransactionPageState extends State<TransactionPage> {
                 Expanded(
                   child: Text(
                     t('add_screenshots_or_photos_message'),
-                    style: TextStyle(color: AppThemeColors.secondaryText(context)),
+                    style:
+                        TextStyle(color: AppThemeColors.secondaryText(context)),
                   ),
                 ),
               ],
@@ -1963,8 +1992,9 @@ class _TransactionPageState extends State<TransactionPage> {
     final t = AppLocalizations.of(context).t;
     final amount = _parsedPrincipalAmount();
     final repayment = _estimatedRepaymentAmount();
-    final roleLabel =
-        _role == 'lender' ? t('you_are_lending_label') : t('you_are_borrowing_label');
+    final roleLabel = _role == 'lender'
+        ? t('you_are_lending_label')
+        : t('you_are_borrowing_label');
     final counterparty = _counterpartyEmailController.text.trim().isEmpty
         ? t('not_selected_label')
         : _counterpartyEmailController.text.trim();
@@ -2043,11 +2073,13 @@ class _TransactionPageState extends State<TransactionPage> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppThemeColors.tinted(context,
-                            light: const Color(0xFFF8FCFE), dark: const Color(0xFF173238)),
+                            light: const Color(0xFFF8FCFE),
+                            dark: const Color(0xFF173238)),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                             color: AppThemeColors.tinted(context,
-                                light: const Color(0xFFBFE8F2), dark: const Color(0xFF2A6E80))),
+                                light: const Color(0xFFBFE8F2),
+                                dark: const Color(0xFF2A6E80))),
                       ),
                       child: Wrap(
                         spacing: 10,
@@ -2063,7 +2095,8 @@ class _TransactionPageState extends State<TransactionPage> {
                           _buildPreviewStat(t('interest_label'), interestLabel),
                           _buildPreviewStat(
                             t('proof_files_label'),
-                            t('count_attached_label').replaceFirst('{count}', '${_pickedFiles.length}'),
+                            t('count_attached_label').replaceFirst(
+                                '{count}', '${_pickedFiles.length}'),
                           ),
                         ],
                       ),
@@ -2195,7 +2228,8 @@ class _TransactionPageState extends State<TransactionPage> {
                         _counterpartyEmailController.text.trim().isEmpty
                             ? t('counterparty_not_selected_label')
                             : _counterpartyEmailController.text.trim(),
-                        style: TextStyle(color: AppThemeColors.secondaryText(context)),
+                        style: TextStyle(
+                            color: AppThemeColors.secondaryText(context)),
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
@@ -2229,7 +2263,9 @@ class _TransactionPageState extends State<TransactionPage> {
                             ),
                           )
                         : Text(
-                            canSubmit ? t('review_and_submit_short_label') : t('verify_to_submit_label'),
+                            canSubmit
+                                ? t('review_and_submit_short_label')
+                                : t('verify_to_submit_label'),
                             style: const TextStyle(color: Colors.white),
                           ),
                   ),
@@ -2436,7 +2472,8 @@ class _TransactionPageState extends State<TransactionPage> {
         showDailyLimitDialog(context, message: errorMsg);
       } else {
         final t = AppLocalizations.of(context).t;
-        final errBody = (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
+        final errBody =
+            (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
         String errorMsg = t('failed_to_create_transaction_message');
         try {
           final data = jsonDecode(errBody);
@@ -2448,7 +2485,9 @@ class _TransactionPageState extends State<TransactionPage> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showStylishErrorDialog(AppLocalizations.of(context).t('transaction_failed_title'), e.toString());
+      _showStylishErrorDialog(
+          AppLocalizations.of(context).t('transaction_failed_title'),
+          e.toString());
     }
   }
 
@@ -2513,7 +2552,8 @@ class _TransactionPageState extends State<TransactionPage> {
 
         _showTransactionSuccessDialog(giftCardAwarded: giftCardAwarded);
       } else {
-        final errBody = (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
+        final errBody =
+            (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
         String errorMsg = t('failed_to_create_transaction_message');
         try {
           final data = jsonDecode(errBody);
@@ -2556,7 +2596,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 alignment: Alignment.center,
                 children: [
                   ClipPath(
-                    clipper: TopWaveClipper(),
+                    clipper: const DeeperTopWaveClipper(),
                     child: Container(
                       height: 80,
                       decoration: const BoxDecoration(
@@ -2588,7 +2628,9 @@ class _TransactionPageState extends State<TransactionPage> {
               const SizedBox(height: 12),
               Text(
                 message,
-                style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(dialogContext)),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: AppThemeColors.primaryText(dialogContext)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -2603,7 +2645,8 @@ class _TransactionPageState extends State<TransactionPage> {
                   ),
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: Text(t('ok'),
-                      style: const TextStyle(fontSize: 16, color: Colors.white)),
+                      style:
+                          const TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ],
@@ -2774,7 +2817,8 @@ class _TransactionPageState extends State<TransactionPage> {
                       : null,
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) return t('email_required_label');
+                  if (val == null || val.isEmpty)
+                    return t('email_required_label');
                   if (!val.contains('@')) return t('invalid_email_label');
                   return null;
                 },
@@ -2793,14 +2837,15 @@ class _TransactionPageState extends State<TransactionPage> {
                     )
                   else ...[
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.teal.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                          t('resend_otp_seconds_label').replaceFirst('{seconds}', '$otpSeconds'),
+                          t('resend_otp_seconds_label')
+                              .replaceFirst('{seconds}', '$otpSeconds'),
                           style: const TextStyle(
                               color: Colors.teal, fontWeight: FontWeight.bold)),
                     ),
@@ -2828,7 +2873,8 @@ class _TransactionPageState extends State<TransactionPage> {
                 children: [
                   const Icon(Icons.verified, color: Colors.green),
                   const SizedBox(width: 8),
-                  Text(t('verified_label'), style: const TextStyle(color: Colors.green)),
+                  Text(t('verified_label'),
+                      style: const TextStyle(color: Colors.green)),
                 ],
               ),
             ],
@@ -2898,134 +2944,137 @@ class _TransactionPageState extends State<TransactionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      extendBodyBehindAppBar: true,
       bottomNavigationBar: _buildStickySummaryBar(),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: Stack(
-        children: [
-          // Wavy blue background at the top
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: TopWaveClipper(),
-              child: Container(
-                height: context.sh(78),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(context.sh(156)),
+        child: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    Navigator.pushReplacementNamed(context, '/user/dashboard');
+                  }
+                },
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Text(
+                    AppLocalizations.of(context)
+                        .t('create_secure_transaction_title'),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ),
+              ),
+            ],
+          ),
+          iconTheme: const IconThemeData(color: Colors.black),
+          flexibleSpace: ClipPath(
+            clipper: const TopWaveClipper(),
+            child: Container(
+              height: context.sh(156),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.cyan, Color(0xFF48CAE4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () {
-                          if (Navigator.of(context).canPop()) {
-                            Navigator.of(context).pop();
-                          } else {
-                            Navigator.pushReplacementNamed(
-                                context, '/user/dashboard');
-                          }
-                        },
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Text(
-                              AppLocalizations.of(context).t('create_secure_transaction_title'),
-                              maxLines: 1,
-                              softWrap: false,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                                shadows: [
-                                  Shadow(color: Colors.black26, blurRadius: 4)
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                  Consumer<SessionProvider>(
-                    builder: (context, session, child) {
-                      final t = AppLocalizations.of(context).t;
-                      if (session.isSubscribed) {
-                        return Text(t('unlimited_transactions_message'),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+        child: Builder(builder: (context) {
+          final t = AppLocalizations.of(context).t;
+          return Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Consumer<SessionProvider>(
+                  builder: (context, session, child) {
+                    if (session.isSubscribed) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(t('unlimited_transactions_message'),
                             style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white));
-                      }
-                      final remaining = session.freeUserTransactionsRemaining;
-                      if (remaining == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return Text(
-                          t('free_transactions_remaining_message').replaceFirst('{count}', '$remaining'),
-                          style: const TextStyle(
+                                color: AppColors.cyan)),
+                      );
+                    }
+                    final remaining = session.freeUserTransactionsRemaining;
+                    if (remaining == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                          t('free_transactions_remaining_message')
+                              .replaceFirst('{count}', '$remaining'),
+                          style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white));
-                    },
-                  ),
-                  if (!Provider.of<SessionProvider>(context, listen: false)
-                          .isSubscribed &&
-                      _dailyUserTxRemaining != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        AppLocalizations.of(context).t('daily_limit_colon_label').replaceFirst('{count}', '$_dailyUserTxRemaining'),
-                        style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white70),
-                      ),
+                              color: AppThemeColors.secondaryText(context))),
+                    );
+                  },
+                ),
+                if (!Provider.of<SessionProvider>(context, listen: false)
+                        .isSubscribed &&
+                    _dailyUserTxRemaining != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      AppLocalizations.of(context)
+                          .t('daily_limit_colon_label')
+                          .replaceFirst('{count}', '$_dailyUserTxRemaining'),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.secondaryText(context)),
                     ),
-                  if (_bothUsersVerified) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                if (_bothUsersVerified)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: AppThemeColors.tinted(context,
+                            light: const Color(0xFFE0F7FA),
+                            dark: const Color(0xFF173238)),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: AppColors.cyan.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.lock, color: Colors.white, size: 16),
+                          const Icon(Icons.lock,
+                              color: AppColors.cyan, size: 16),
                           const SizedBox(width: 8),
                           Text(
-                            AppLocalizations.of(context).t('details_locked_label'),
+                            AppLocalizations.of(context)
+                                .t('details_locked_label'),
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.cyan,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -3033,486 +3082,469 @@ class _TransactionPageState extends State<TransactionPage> {
                         ],
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 80),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-              child: Builder(builder: (context) {
-                final t = AppLocalizations.of(context).t;
-                return Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                _buildProgressStepper(),
+                const SizedBox(height: 10),
+                Row(
                   children: [
-                    _buildProgressStepper(),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _buildDraftActionCard(
-                          title: t('save_draft'),
-                          subtitle: t('pause_now_continue_later_label'),
-                          icon: Icons.save_outlined,
-                          accentColor: AppColors.cyan,
-                          onTap: () {
-                            _saveDraftWithFeedback();
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        _buildDraftActionCard(
-                          title: t('discard_draft_title'),
-                          subtitle: t('remove_saved_version_label'),
-                          icon: Icons.delete_outline,
-                          accentColor: const Color(0xFFFF6B6B),
-                          onTap: () {
-                            _discardDraftWithConfirmation();
-                          },
-                        ),
-                      ],
+                    _buildDraftActionCard(
+                      title: t('save_draft'),
+                      subtitle: t('pause_now_continue_later_label'),
+                      icon: Icons.save_outlined,
+                      accentColor: AppColors.cyan,
+                      onTap: () {
+                        _saveDraftWithFeedback();
+                      },
                     ),
-                    const SizedBox(height: 12),
-                    _buildDraftStatusCard(),
-                    const SizedBox(height: 18),
-                    _buildSectionHeader(
-                      title: t('basic_details_title'),
-                      subtitle: t('basic_details_subtitle_message'),
-                      icon: Icons.edit_note_rounded,
+                    const SizedBox(width: 12),
+                    _buildDraftActionCard(
+                      title: t('discard_draft_title'),
+                      subtitle: t('remove_saved_version_label'),
+                      icon: Icons.delete_outline,
+                      accentColor: const Color(0xFFFF6B6B),
+                      onTap: () {
+                        _discardDraftWithConfirmation();
+                      },
                     ),
-                    _buildStylishField(
-                      child: DropdownButtonFormField<String>(
-                        value: _role,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'lender',
-                            child: Text(t('lender_giving_money_label')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildDraftStatusCard(),
+                const SizedBox(height: 18),
+                _buildSectionHeader(
+                  title: t('basic_details_title'),
+                  subtitle: t('basic_details_subtitle_message'),
+                  icon: Icons.edit_note_rounded,
+                ),
+                _buildStylishField(
+                  child: DropdownButtonFormField<String>(
+                    value: _role,
+                    items: [
+                      DropdownMenuItem(
+                        value: 'lender',
+                        child: Text(t('lender_giving_money_label')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'borrower',
+                        child: Text(t('borrower_taking_money_label')),
+                      ),
+                    ],
+                    onChanged: _bothUsersVerified
+                        ? null
+                        : (val) => setState(() {
+                              _role = val ?? 'lender';
+                              _saveDraft();
+                            }),
+                    decoration: InputDecoration(
+                      labelText: t('your_role_label'),
+                      prefixIcon: Icon(Icons.people, color: AppColors.cyan),
+                      border: InputBorder.none,
+                      helperText:
+                          _bothUsersVerified ? t('details_locked_label') : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildStylishField(
+                  child: DropdownButtonFormField<String>(
+                    value: _currency,
+                    items: _currencies
+                        .map((c) => DropdownMenuItem(
+                              value: c['code'],
+                              child: Text('${c['symbol']} ${c['code']}'),
+                            ))
+                        .toList(),
+                    onChanged: _bothUsersVerified
+                        ? null
+                        : (val) => setState(() {
+                              _currency = val ?? 'INR';
+                              _saveDraft();
+                            }),
+                    decoration: InputDecoration(
+                      labelText: t('currency_label'),
+                      prefixIcon:
+                          Icon(Icons.currency_exchange, color: AppColors.cyan),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildStylishField(
+                  child: TextFormField(
+                    controller: _amountController,
+                    enabled: !_bothUsersVerified,
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: t('amount_label'),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Text(
+                          _currencySymbol(),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.cyan,
                           ),
-                          DropdownMenuItem(
-                            value: 'borrower',
-                            child: Text(t('borrower_taking_money_label')),
-                          ),
-                        ],
-                        onChanged: _bothUsersVerified
-                            ? null
-                            : (val) => setState(() {
-                                  _role = val ?? 'lender';
-                                  _saveDraft();
-                                }),
-                        decoration: InputDecoration(
-                          labelText: t('your_role_label'),
-                          prefixIcon:
-                              Icon(Icons.people, color: AppColors.cyan),
-                          border: InputBorder.none,
-                          helperText:
-                              _bothUsersVerified ? t('details_locked_label') : null,
                         ),
                       ),
+                      border: InputBorder.none,
                     ),
-                    const SizedBox(height: 16),
-                    _buildStylishField(
-                      child: DropdownButtonFormField<String>(
-                        value: _currency,
-                        items: _currencies
-                            .map((c) => DropdownMenuItem(
-                                  value: c['code'],
-                                  child: Text('${c['symbol']} ${c['code']}'),
-                                ))
-                            .toList(),
-                        onChanged: _bothUsersVerified
-                            ? null
-                            : (val) => setState(() {
-                                  _currency = val ?? 'INR';
-                                  _saveDraft();
-                                }),
-                        decoration: InputDecoration(
-                          labelText: t('currency_label'),
-                          prefixIcon: Icon(Icons.currency_exchange,
-                              color: AppColors.cyan),
-                          border: InputBorder.none,
-                        ),
-                      ),
+                    validator: (val) => val == null || val.isEmpty
+                        ? t('amount_required_label')
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildStylishField(
+                  child: _buildDatePickerField(),
+                ),
+                const SizedBox(height: 16),
+                _buildStylishField(
+                  child: _buildTimePickerField(),
+                ),
+                const SizedBox(height: 16),
+                _buildStylishField(
+                  child: TextFormField(
+                    controller: _placeController,
+                    enabled: !_bothUsersVerified,
+                    decoration: InputDecoration(
+                      labelText: t('place_label'),
+                      prefixIcon:
+                          Icon(Icons.location_on, color: AppColors.cyan),
+                      border: InputBorder.none,
+                      helperText: _bothUsersVerified
+                          ? t('transaction_details_locked_after_verification_label')
+                          : null,
                     ),
-                    const SizedBox(height: 16),
-                    _buildStylishField(
-                      child: TextFormField(
-                        controller: _amountController,
-                        enabled: !_bothUsersVerified,
-                        keyboardType:
-                            TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() {}),
-                        decoration: InputDecoration(
-                          labelText: t('amount_label'),
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Text(
-                              _currencySymbol(),
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.cyan,
-                              ),
-                            ),
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        validator: (val) => val == null || val.isEmpty
-                            ? t('amount_required_label')
+                    validator: (val) => val == null || val.isEmpty
+                        ? t('place_required_label')
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildSectionHeader(
+                  title: t('proof_files_label'),
+                  subtitle: t('proof_files_subtitle_message'),
+                  icon: Icons.attach_file_rounded,
+                ),
+                const SizedBox(height: 12),
+                _buildFilePicker(),
+                const SizedBox(height: 12),
+                _buildSectionHeader(
+                  title: t('interest_label'),
+                  subtitle: t('interest_subtitle_message'),
+                  icon: Icons.percent_rounded,
+                ),
+                _buildStylishField(
+                  child: DropdownButtonFormField<String>(
+                    value: _interestType,
+                    items: [
+                      DropdownMenuItem(
+                          value: 'none',
+                          child: Text(t('no_interest_default_label'))),
+                      DropdownMenuItem(
+                          value: 'simple',
+                          child: Text(t('simple_interest_label'))),
+                      DropdownMenuItem(
+                          value: 'compound',
+                          child: Text(t('compound_interest_label'))),
+                    ],
+                    onChanged: _bothUsersVerified
+                        ? null
+                        : (val) {
+                            setState(() {
+                              _interestType = val ?? 'none';
+                              if (_interestType == 'none') {
+                                _interestRateController.clear();
+                              }
+                              _saveDraft();
+                            });
+                          },
+                    decoration: InputDecoration(
+                        labelText: t('interest_type_optional_label'),
+                        border: InputBorder.none,
+                        helperText: _bothUsersVerified
+                            ? t('transaction_details_locked_after_verification_label')
+                            : t('leave_as_no_interest_message')),
+                  ),
+                ),
+                if (_interestType != 'none') ...[
+                  const SizedBox(height: 12),
+                  _buildInterestGuidanceCard(),
+                  const SizedBox(height: 12),
+                  _buildStylishField(
+                    child: TextFormField(
+                      controller: _interestRateController,
+                      enabled: !_bothUsersVerified,
+                      keyboardType:
+                          TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        labelText: t('interest_rate_percent_label'),
+                        border: InputBorder.none,
+                        helperText: _bothUsersVerified
+                            ? t('transaction_details_locked_after_verification_label')
                             : null,
                       ),
+                      validator: (val) {
+                        // Only validate if interest type is selected
+                        if (_interestType == 'none') return null;
+
+                        if (val == null || val.isEmpty)
+                          return t('interest_rate_required_message');
+                        if (double.tryParse(val) == null)
+                          return t('enter_valid_number_message');
+                        if (double.tryParse(val)! <= 0)
+                          return t(
+                              'interest_rate_must_be_greater_than_zero_message');
+                        if (double.tryParse(val)! > 100)
+                          return t('interest_rate_cannot_exceed_100_message');
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 16),
-                    _buildStylishField(
-                      child: _buildDatePickerField(),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStylishField(
-                      child: _buildTimePickerField(),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStylishField(
-                      child: TextFormField(
-                        controller: _placeController,
-                        enabled: !_bothUsersVerified,
-                        decoration: InputDecoration(
-                          labelText: t('place_label'),
-                          prefixIcon:
-                              Icon(Icons.location_on, color: AppColors.cyan),
+                  ),
+                ],
+                if (_interestType == 'compound') ...[
+                  const SizedBox(height: 12),
+                  _buildStylishField(
+                    child: DropdownButtonFormField<int>(
+                      value: _compoundingFrequency,
+                      items: [
+                        DropdownMenuItem(
+                            value: 1, child: Text(t('annually_label'))),
+                        DropdownMenuItem(
+                            value: 2, child: Text(t('semi_annually_label'))),
+                        DropdownMenuItem(
+                            value: 4, child: Text(t('quarterly_label'))),
+                        DropdownMenuItem(
+                            value: 12, child: Text(t('monthly_label'))),
+                      ],
+                      onChanged: _bothUsersVerified
+                          ? null
+                          : (val) => setState(() {
+                                _compoundingFrequency = val ?? 1;
+                                _saveDraft();
+                              }),
+                      decoration: InputDecoration(
+                          labelText: t('compounding_frequency_label'),
                           border: InputBorder.none,
                           helperText: _bothUsersVerified
                               ? t('transaction_details_locked_after_verification_label')
-                              : null,
-                        ),
-                        validator: (val) => val == null || val.isEmpty
-                            ? t('place_required_label')
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSectionHeader(
-                      title: t('proof_files_label'),
-                      subtitle: t('proof_files_subtitle_message'),
-                      icon: Icons.attach_file_rounded,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFilePicker(),
-                    const SizedBox(height: 12),
-                    _buildSectionHeader(
-                      title: t('interest_label'),
-                      subtitle: t('interest_subtitle_message'),
-                      icon: Icons.percent_rounded,
-                    ),
-                    _buildStylishField(
-                      child: DropdownButtonFormField<String>(
-                        value: _interestType,
-                        items: [
-                          DropdownMenuItem(
-                              value: 'none',
-                              child: Text(t('no_interest_default_label'))),
-                          DropdownMenuItem(
-                              value: 'simple', child: Text(t('simple_interest_label'))),
-                          DropdownMenuItem(
-                              value: 'compound',
-                              child: Text(t('compound_interest_label'))),
-                        ],
-                        onChanged: _bothUsersVerified
-                            ? null
-                            : (val) {
-                                setState(() {
-                                  _interestType = val ?? 'none';
-                                  if (_interestType == 'none') {
-                                    _interestRateController.clear();
-                                  }
-                                  _saveDraft();
-                                });
-                              },
-                        decoration: InputDecoration(
-                            labelText: t('interest_type_optional_label'),
-                            border: InputBorder.none,
-                            helperText: _bothUsersVerified
-                                ? t('transaction_details_locked_after_verification_label')
-                                : t('leave_as_no_interest_message')),
-                      ),
-                    ),
-                    if (_interestType != 'none') ...[
-                      const SizedBox(height: 12),
-                      _buildInterestGuidanceCard(),
-                      const SizedBox(height: 12),
-                      _buildStylishField(
-                        child: TextFormField(
-                          controller: _interestRateController,
-                          enabled: !_bothUsersVerified,
-                          keyboardType:
-                              TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            labelText: t('interest_rate_percent_label'),
-                            border: InputBorder.none,
-                            helperText: _bothUsersVerified
-                                ? t('transaction_details_locked_after_verification_label')
-                                : null,
-                          ),
-                          validator: (val) {
-                            // Only validate if interest type is selected
-                            if (_interestType == 'none') return null;
+                              : t('how_often_interest_compounded_label')),
+                      validator: (val) {
+                        // Only validate if compound interest is selected
+                        if (_interestType != 'compound') return null;
 
-                            if (val == null || val.isEmpty)
-                              return t('interest_rate_required_message');
-                            if (double.tryParse(val) == null)
-                              return t('enter_valid_number_message');
-                            if (double.tryParse(val)! <= 0)
-                              return t('interest_rate_must_be_greater_than_zero_message');
-                            if (double.tryParse(val)! > 100)
-                              return t('interest_rate_cannot_exceed_100_message');
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                    if (_interestType == 'compound') ...[
-                      const SizedBox(height: 12),
-                      _buildStylishField(
-                        child: DropdownButtonFormField<int>(
-                          value: _compoundingFrequency,
-                          items: [
-                            DropdownMenuItem(
-                                value: 1, child: Text(t('annually_label'))),
-                            DropdownMenuItem(
-                                value: 2,
-                                child: Text(t('semi_annually_label'))),
-                            DropdownMenuItem(
-                                value: 4, child: Text(t('quarterly_label'))),
-                            DropdownMenuItem(
-                                value: 12, child: Text(t('monthly_label'))),
-                          ],
-                          onChanged: _bothUsersVerified
-                              ? null
-                              : (val) => setState(() {
-                                  _compoundingFrequency = val ?? 1;
-                                  _saveDraft();
-                                }),
-                          decoration: InputDecoration(
-                              labelText: t('compounding_frequency_label'),
-                              border: InputBorder.none,
-                              helperText: _bothUsersVerified
-                                  ? t('transaction_details_locked_after_verification_label')
-                                  : t('how_often_interest_compounded_label')),
-                          validator: (val) {
-                            // Only validate if compound interest is selected
-                            if (_interestType != 'compound') return null;
-
-                            if (val == null || val <= 0)
-                              return t('select_frequency_label');
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    _buildStylishField(
-                      child: InkWell(
-                        onTap: _bothUsersVerified
-                            ? null
-                            : () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate:
-                                      _expectedReturnDate ?? DateTime.now(),
-                                  firstDate: DateTime(2000),
-                                  lastDate: DateTime(2100),
-                                  builder: (context, child) {
-                                    return Theme(
-                                      data: Theme.of(context).copyWith(
-                                        colorScheme: Theme.of(context).colorScheme.copyWith(
+                        if (val == null || val <= 0)
+                          return t('select_frequency_label');
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _buildStylishField(
+                  child: InkWell(
+                    onTap: _bothUsersVerified
+                        ? null
+                        : () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  _expectedReturnDate ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme:
+                                        Theme.of(context).colorScheme.copyWith(
                                               primary: AppColors.cyan,
                                               onPrimary: Colors.white,
                                             ),
-                                        textButtonTheme: TextButtonThemeData(
-                                          style: TextButton.styleFrom(
-                                            foregroundColor:
-                                                AppColors.cyan,
-                                          ),
-                                        ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.cyan,
                                       ),
-                                      child: child!,
-                                    );
-                                  },
+                                    ),
+                                  ),
+                                  child: child!,
                                 );
-                                if (picked != null) {
-                                  setState(() => _expectedReturnDate = picked);
-                                  _saveDraft();
-                                }
                               },
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: _interestType == 'none'
-                                ? t('expected_return_date_optional_label')
-                                : t('expected_return_date_required_star_label'),
-                            border: InputBorder.none,
-                            helperText: _bothUsersVerified
-                                ? t('transaction_details_locked_after_verification_label')
-                                : _interestType == 'none'
-                                    ? t('can_set_return_date_without_interest_message')
-                                    : t('required_when_interest_applied_label'),
-                            prefixIcon: Icon(
-                              Icons.calendar_today,
-                              color: _bothUsersVerified
-                                  ? AppThemeColors.mutedText(context)
-                                  : (_interestType == 'none'
-                                      ? AppColors.cyan
-                                      : Colors.red.shade300),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(_expectedReturnDate == null
-                                  ? t('select_date_label')
-                                  : DateFormat('yyyy-MM-dd')
-                                      .format(_expectedReturnDate!)),
-                              const Icon(Icons.calendar_today, color: Colors.teal),
-                            ],
-                          ),
+                            );
+                            if (picked != null) {
+                              setState(() => _expectedReturnDate = picked);
+                              _saveDraft();
+                            }
+                          },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: _interestType == 'none'
+                            ? t('expected_return_date_optional_label')
+                            : t('expected_return_date_required_star_label'),
+                        border: InputBorder.none,
+                        helperText: _bothUsersVerified
+                            ? t('transaction_details_locked_after_verification_label')
+                            : _interestType == 'none'
+                                ? t('can_set_return_date_without_interest_message')
+                                : t('required_when_interest_applied_label'),
+                        prefixIcon: Icon(
+                          Icons.calendar_today,
+                          color: _bothUsersVerified
+                              ? AppThemeColors.mutedText(context)
+                              : (_interestType == 'none'
+                                  ? AppColors.cyan
+                                  : Colors.red.shade300),
                         ),
                       ),
-                    ),
-                    if (_amountController.text.trim().isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _buildTransactionPreviewCard(),
-                      const SizedBox(height: 12),
-                      _buildRepaymentPreviewCard(),
-                      const SizedBox(height: 12),
-                      _buildRepaymentTimelineCard(),
-                    ],
-                    const SizedBox(height: 12),
-                    _buildSectionHeader(
-                      title: t('verification_title'),
-                      subtitle: t('verification_subtitle_message'),
-                      icon: Icons.verified_user_rounded,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildStylishField(
-                      child: TextFormField(
-                        controller: _descriptionController,
-                        enabled: !_bothUsersVerified,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: t('description_optional_label'),
-                          border: InputBorder.none,
-                          hintText: _bothUsersVerified
-                              ? t('transaction_details_locked_after_verification_label')
-                              : t('add_note_or_description_hint'),
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(_expectedReturnDate == null
+                              ? t('select_date_label')
+                              : DateFormat('yyyy-MM-dd')
+                                  .format(_expectedReturnDate!)),
+                          const Icon(Icons.calendar_today, color: Colors.teal),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildOtpSection(
-                      label: t('counterparty_email_label'),
-                      emailController: _counterpartyEmailController,
-                      verified: _counterpartyVerified,
-                      otpError: _counterpartyOtpError,
-                      otpSeconds: _counterpartyOtpSeconds,
-                      onSendOtp: () async {
-                        final email = _counterpartyEmailController.text;
-                        if (_isBlockedEmail(email)) {
-                          showBlockedUserDialog(context);
-                          return;
-                        }
-                        if (email.trim() == _userEmailController.text.trim()) {
-                          setState(() => _counterpartyEmailError =
-                              t('emails_cannot_be_same_message'));
-                          return;
-                        }
-                        if (!await _checkEmailExists(email)) {
-                          setState(() =>
-                              _counterpartyEmailError = t('email_not_registered_label'));
-                          return;
-                        }
-                        setState(() => _counterpartyEmailError = null);
-                        await _sendOtp(email, true);
-                      },
-                      onOtpChanged: (val) => _counterpartyOtp = val,
-                      onVerifyOtp: () async {
-                        if ((_counterpartyOtp ?? '').length != 6) {
-                          setState(() =>
-                              _counterpartyOtpError = t('enter_6_digit_otp_label'));
-                          return;
-                        }
-                        await _verifyOtp(_counterpartyEmailController.text,
-                            _counterpartyOtp!, true);
-                      },
-                      enabled: !_counterpartyVerified,
-                      emailError: _counterpartyEmailError,
-                      onPickFriend: _counterpartyVerified
-                          ? null
-                          : _pickFriendForCounterparty,
-                      friendSuggestions: _friendSuggestions,
-                      onSelectFriend: (email) {
-                        setState(() {
-                          _counterpartyEmailController.text = email;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildOtpSection(
-                      label: t('your_email_label'),
-                      emailController: _userEmailController,
-                      verified: _userVerified,
-                      otpError: _userOtpError,
-                      otpSeconds: _userOtpSeconds,
-                      onSendOtp: () async {
-                        final email = _userEmailController.text;
-                        if (!await _checkEmailExists(email)) {
-                          setState(
-                              () => _userEmailError = t('email_not_registered_label'));
-                          return;
-                        }
-                        setState(() => _userEmailError = null);
-                        await _sendOtp(email, false);
-                      },
-                      onOtpChanged: (val) => _userOtp = val,
-                      onVerifyOtp: () async {
-                        if ((_userOtp ?? '').length != 6) {
-                          setState(() => _userOtpError = t('enter_6_digit_otp_label'));
-                          return;
-                        }
-                        await _verifyOtp(
-                            _userEmailController.text, _userOtp!, false);
-                      },
-                      enabled: !_userVerified,
-                      emailError: _userEmailError,
-                      readOnlyEmail: true,
-                    ),
-                    if (_sameEmailError != null) ...[
-                      const SizedBox(height: 8),
-                      Text(_sameEmailError!,
-                          style: const TextStyle(color: Colors.red)),
-                    ],
-                    const SizedBox(height: 20),
-                    Text(
-                      t('review_submit_from_sticky_bar_message'),
-                      style: TextStyle(
-                        color: AppThemeColors.secondaryText(context),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (_transactionId != null) ...[
-                      const SizedBox(height: 20),
-                      Center(
-                          child: Text('${t('transaction_id_label')}: $_transactionId',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.teal))),
-                    ],
-                  ],
+                  ),
                 ),
-              );
-              }),
+                if (_amountController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildTransactionPreviewCard(),
+                  const SizedBox(height: 12),
+                  _buildRepaymentPreviewCard(),
+                  const SizedBox(height: 12),
+                  _buildRepaymentTimelineCard(),
+                ],
+                const SizedBox(height: 12),
+                _buildSectionHeader(
+                  title: t('verification_title'),
+                  subtitle: t('verification_subtitle_message'),
+                  icon: Icons.verified_user_rounded,
+                ),
+                const SizedBox(height: 12),
+                _buildStylishField(
+                  child: TextFormField(
+                    controller: _descriptionController,
+                    enabled: !_bothUsersVerified,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: t('description_optional_label'),
+                      border: InputBorder.none,
+                      hintText: _bothUsersVerified
+                          ? t('transaction_details_locked_after_verification_label')
+                          : t('add_note_or_description_hint'),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildOtpSection(
+                  label: t('counterparty_email_label'),
+                  emailController: _counterpartyEmailController,
+                  verified: _counterpartyVerified,
+                  otpError: _counterpartyOtpError,
+                  otpSeconds: _counterpartyOtpSeconds,
+                  onSendOtp: () async {
+                    final email = _counterpartyEmailController.text;
+                    if (_isBlockedEmail(email)) {
+                      showBlockedUserDialog(context);
+                      return;
+                    }
+                    if (email.trim() == _userEmailController.text.trim()) {
+                      setState(() => _counterpartyEmailError =
+                          t('emails_cannot_be_same_message'));
+                      return;
+                    }
+                    if (!await _checkEmailExists(email)) {
+                      setState(() => _counterpartyEmailError =
+                          t('email_not_registered_label'));
+                      return;
+                    }
+                    setState(() => _counterpartyEmailError = null);
+                    await _sendOtp(email, true);
+                  },
+                  onOtpChanged: (val) => _counterpartyOtp = val,
+                  onVerifyOtp: () async {
+                    if ((_counterpartyOtp ?? '').length != 6) {
+                      setState(() =>
+                          _counterpartyOtpError = t('enter_6_digit_otp_label'));
+                      return;
+                    }
+                    await _verifyOtp(_counterpartyEmailController.text,
+                        _counterpartyOtp!, true);
+                  },
+                  enabled: !_counterpartyVerified,
+                  emailError: _counterpartyEmailError,
+                  onPickFriend:
+                      _counterpartyVerified ? null : _pickFriendForCounterparty,
+                  friendSuggestions: _friendSuggestions,
+                  onSelectFriend: (email) {
+                    setState(() {
+                      _counterpartyEmailController.text = email;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildOtpSection(
+                  label: t('your_email_label'),
+                  emailController: _userEmailController,
+                  verified: _userVerified,
+                  otpError: _userOtpError,
+                  otpSeconds: _userOtpSeconds,
+                  onSendOtp: () async {
+                    final email = _userEmailController.text;
+                    if (!await _checkEmailExists(email)) {
+                      setState(() =>
+                          _userEmailError = t('email_not_registered_label'));
+                      return;
+                    }
+                    setState(() => _userEmailError = null);
+                    await _sendOtp(email, false);
+                  },
+                  onOtpChanged: (val) => _userOtp = val,
+                  onVerifyOtp: () async {
+                    if ((_userOtp ?? '').length != 6) {
+                      setState(
+                          () => _userOtpError = t('enter_6_digit_otp_label'));
+                      return;
+                    }
+                    await _verifyOtp(
+                        _userEmailController.text, _userOtp!, false);
+                  },
+                  enabled: !_userVerified,
+                  emailError: _userEmailError,
+                  readOnlyEmail: true,
+                ),
+                if (_sameEmailError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_sameEmailError!,
+                      style: const TextStyle(color: Colors.red)),
+                ],
+                const SizedBox(height: 20),
+                Text(
+                  t('review_submit_from_sticky_bar_message'),
+                  style: TextStyle(
+                    color: AppThemeColors.secondaryText(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (_transactionId != null) ...[
+                  const SizedBox(height: 20),
+                  Center(
+                      child: Text(
+                          '${t('transaction_id_label')}: $_transactionId',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal))),
+                ],
+              ],
             ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }

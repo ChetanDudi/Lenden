@@ -1252,7 +1252,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -1260,14 +1260,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           t('user_management'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                             fontWeight: FontWeight.bold,
                             fontSize: 24,
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)),
                         onPressed: _loadUsers,
                       ),
                     ],
