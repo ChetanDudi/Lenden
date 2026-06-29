@@ -665,13 +665,13 @@ class _CreateEditQuickTransactionPageState
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 4),
                   Icon(
                     isEditing ? Icons.edit : Icons.add_circle_outline,
-                    color: Colors.white,
+                    color: AppThemeColors.primaryText(context),
                     size: 26,
                   ),
                   const SizedBox(width: 10),
@@ -680,10 +680,10 @@ class _CreateEditQuickTransactionPageState
                       isEditing
                           ? t('edit_quick_transaction_title')
                           : t('new_quick_transaction_title'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppThemeColors.primaryText(context),
                       ),
                     ),
                   ),

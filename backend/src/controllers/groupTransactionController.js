@@ -156,8 +156,15 @@ exports.createGroupWithCoins = async (req, res) => {
       }
     }
     
-    creator.lenDenCoins -= GROUP_COST;
-    await creator.save();
+    const updatedCreator = await User.findOneAndUpdate(
+      { _id: creator._id, lenDenCoins: { $gte: GROUP_COST } },
+      { $inc: { lenDenCoins: -GROUP_COST } },
+      { new: true }
+    );
+    if (!updatedCreator) {
+      return res.status(400).json({ error: 'Insufficient LenDen coins to create this group.' });
+    }
+    creator.lenDenCoins = updatedCreator.lenDenCoins;
     await recordCoinLedgerEntry({
       userId: creator._id,
       direction: 'spent',

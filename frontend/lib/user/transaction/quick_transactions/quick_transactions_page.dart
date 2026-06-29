@@ -1753,7 +1753,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           title: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                 onPressed: () {
                   Navigator.pushReplacementNamed(context, '/user/dashboard');
                 },
@@ -1765,8 +1765,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                     t('quick_transactions_title'),
                     maxLines: 1,
                     softWrap: false,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: AppThemeColors.primaryText(context),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1774,10 +1774,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
               ),
             ],
           ),
-          iconTheme: const IconThemeData(color: Colors.black),
+          iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
           actions: [
             IconButton(
-              icon: const Icon(Icons.repeat_rounded, color: Colors.black),
+              icon: Icon(Icons.repeat_rounded, color: AppThemeColors.primaryText(context)),
               tooltip: t('recurring_templates_title'),
               onPressed: () {
                 Navigator.push(

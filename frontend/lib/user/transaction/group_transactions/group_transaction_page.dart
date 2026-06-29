@@ -686,7 +686,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                     onPressed: () => Navigator.pushReplacementNamed(
                         context, '/user/dashboard'),
                   ),
@@ -697,12 +697,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                         group == null
                             ? t('group_transactions_title_label')
                             : t('group_colon_label').replaceFirst('{title}', group?['title'] ?? ''),
-                        style: const TextStyle(
-                          color: Colors.black,
+                        style: TextStyle(
+                          color: AppThemeColors.primaryText(context),
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
-                          shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+                          shadows: const [Shadow(color: Colors.black26, blurRadius: 4)],
                         ),
                       ),
                     ),

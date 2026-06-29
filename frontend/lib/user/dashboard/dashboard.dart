@@ -1381,7 +1381,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                             children: [
                               IconButton(
                                 icon: Icon(Icons.arrow_back,
-                                    color: AppThemeColors.iconOnWave(context)),
+                                    color: AppThemeColors.primaryText(context)),
                                 onPressed: () async {
                                   final popped =
                                       await Navigator.of(context).maybePop();
@@ -1394,7 +1394,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               Builder(
                                 builder: (context) => IconButton(
                                   icon: Icon(Icons.menu,
-                                      color: AppThemeColors.iconOnWave(context)),
+                                      color: AppThemeColors.primaryText(context)),
                                   onPressed: () =>
                                       Scaffold.of(context).openDrawer(),
                                 ),

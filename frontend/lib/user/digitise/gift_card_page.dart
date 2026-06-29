@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../utils/api_client.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -416,7 +416,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppThemeColors.iconOnWave(context)),
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -426,7 +426,7 @@ class _GiftCardPageState extends State<GiftCardPage>
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: AppThemeColors.iconOnWave(context),
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                         ),

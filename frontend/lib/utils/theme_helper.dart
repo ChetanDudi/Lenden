@@ -43,8 +43,6 @@ class AppThemeColors {
   static Color waveSolid(BuildContext context) =>
       isDark(context) ? const Color(0xFF023047) : AppColors.cyan;
 
-  static Color iconOnWave(BuildContext context) => Colors.white;
-
   /// Generic light/dark pair picker for the many hand-picked pastel "tinted
   /// surface" colors (status banners, alert dialogs, etc.) scattered across
   /// the app. Pass the existing light pastel as [light] and a dark-friendly

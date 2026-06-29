@@ -369,7 +369,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
@@ -379,12 +379,12 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: AppThemeColors.iconOnWave(context),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
+                        icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)),
                         onPressed: () =>
                             _fetchCounterparties(forceRefresh: true),
                       ),

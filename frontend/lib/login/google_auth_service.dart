@@ -12,6 +12,11 @@ class GoogleAuthService {
   /// Triggers the Google account picker and returns the Google ID token,
   /// or null if the user cancelled the sign-in flow.
   static Future<String?> signInAndGetIdToken() async {
+    // google_sign_in caches the last-picked account and silently reuses it
+    // on subsequent calls, skipping the account picker. Sign out first so
+    // the chooser is shown every time, letting the user pick a different
+    // Google account if they want to.
+    await _googleSignIn.signOut();
     final account = await _googleSignIn.signIn();
     if (account == null) return null;
     final auth = await account.authentication;

@@ -6,7 +6,7 @@ class ThemeProvider extends ChangeNotifier {
   static const _kThemeModeGuestKey = 'theme_mode_guest';
 
   String? _userId;
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
 
   String _keyFor(String? userId) =>
@@ -34,8 +34,10 @@ class ThemeProvider extends ChangeNotifier {
         return ThemeMode.light;
       case 'dark':
         return ThemeMode.dark;
-      default:
+      case 'system':
         return ThemeMode.system;
+      default:
+        return ThemeMode.light;
     }
   }
 

@@ -2955,7 +2955,7 @@ class _TransactionPageState extends State<TransactionPage> {
           title: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                 onPressed: () {
                   if (Navigator.of(context).canPop()) {
                     Navigator.of(context).pop();
@@ -2972,8 +2972,8 @@ class _TransactionPageState extends State<TransactionPage> {
                         .t('create_secure_transaction_title'),
                     maxLines: 1,
                     softWrap: false,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: AppThemeColors.primaryText(context),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -2981,7 +2981,7 @@ class _TransactionPageState extends State<TransactionPage> {
               ),
             ],
           ),
-          iconTheme: const IconThemeData(color: Colors.black),
+          iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
           flexibleSpace: ClipPath(
             clipper: const TopWaveClipper(),
             child: Container(

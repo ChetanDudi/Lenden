@@ -393,20 +393,20 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)),
+                      icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(t('lenden_wallet_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.iconOnWave(context))),
+                          Text(t('lenden_wallet_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
                           Text(t('store_send_real_money_subtitle'), style: const TextStyle(fontSize: 12, color: Colors.white70)),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)),
+                      icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)),
                       onPressed: _fetchWalletData,
                     ),
                   ]),

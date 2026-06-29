@@ -436,7 +436,7 @@ class _NotesPageState extends State<NotesPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                         onPressed: () {
                           Navigator.pushReplacementNamed(context, '/user/dashboard');
                         },
@@ -448,7 +448,7 @@ class _NotesPageState extends State<NotesPage> {
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: AppThemeColors.primaryText(context),
                               letterSpacing: 1.2,
                             ),
                           ),

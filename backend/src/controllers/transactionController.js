@@ -443,8 +443,15 @@ exports.createTransactionWithCoins = async (req, res) => {
       }
     }
 
-    user.lenDenCoins -= TRANSACTION_COST;
-    await user.save();
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id, lenDenCoins: { $gte: TRANSACTION_COST } },
+      { $inc: { lenDenCoins: -TRANSACTION_COST } },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return res.status(400).json({ error: 'Insufficient LenDen coins to create this transaction.' });
+    }
+    user.lenDenCoins = updatedUser.lenDenCoins;
     await recordCoinLedgerEntry({
       userId: user._id,
       direction: 'spent',

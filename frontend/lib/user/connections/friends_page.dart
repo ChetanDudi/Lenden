@@ -959,16 +959,16 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(t('friends'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                            Text(t('friends'), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
                             Text('${_friends.length} ${_friends.length == 1 ? t('friend_singular') : t('friends_plural')}',
-                              style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                              style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
                           ],
                         ),
                       ),

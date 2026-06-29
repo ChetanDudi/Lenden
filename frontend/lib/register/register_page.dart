@@ -12,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
 import '../login/google_auth_service.dart';
+import '../widgets/google_logo_icon.dart';
 import '../widgets/wave_widget.dart' show AltBottomWaveClipper, ScaledDeepTopWaveClipper;
 import '../widgets/login_illustration.dart';
 
@@ -852,8 +853,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const FaIcon(FontAwesomeIcons.google,
-                                      size: 18, color: Color(0xFFEA4335)),
+                                  const GoogleLogoIcon(size: 18),
                                   const SizedBox(width: 10),
                                   Text('Sign up with Google',
                                       style: TextStyle(

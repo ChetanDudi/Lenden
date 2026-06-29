@@ -7,6 +7,7 @@ import '../../utils/api_client.dart';
 import '../../session.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
+import '../../utils/theme_helper.dart';
 
 class UserOffersPage extends StatefulWidget {
   const UserOffersPage({super.key});
@@ -342,18 +343,18 @@ class _UserOffersPageState extends State<UserOffersPage>
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back,
-                            color: Colors.white),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.primaryText(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
                             '🎁  Special Offers',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: AppThemeColors.primaryText(context),
                             ),
                           ),
                         ),

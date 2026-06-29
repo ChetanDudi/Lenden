@@ -210,11 +210,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(t('edit_profile_title'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w700, fontSize: 18)),
         centerTitle: true,
       ),
       body: Stack(

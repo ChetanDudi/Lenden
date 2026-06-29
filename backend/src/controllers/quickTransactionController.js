@@ -189,8 +189,15 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
     }
     const accessWarning = accessError?.warning;
 
-    user.lenDenCoins -= QUICK_TRANSACTION_COST;
-    await user.save();
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id, lenDenCoins: { $gte: QUICK_TRANSACTION_COST } },
+      { $inc: { lenDenCoins: -QUICK_TRANSACTION_COST } },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return res.status(400).json({ error: 'Insufficient LenDen coins to create this quick transaction.' });
+    }
+    user.lenDenCoins = updatedUser.lenDenCoins;
     await recordCoinLedgerEntry({
       userId: user._id,
       direction: 'spent',

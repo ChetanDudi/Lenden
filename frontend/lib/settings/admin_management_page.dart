@@ -1019,14 +1019,14 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back,
-                            color: Colors.white, size: 24),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.primaryText(context), size: 24),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
                         t('manage_admins'),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AppThemeColors.primaryText(context),
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),

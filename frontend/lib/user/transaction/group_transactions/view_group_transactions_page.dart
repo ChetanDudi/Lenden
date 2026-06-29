@@ -1178,15 +1178,15 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
           title: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               Text(t('group_transactions_title_label'),
-                  style: const TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
             ],
           ),
-          iconTheme: const IconThemeData(color: Colors.black),
+          iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
           flexibleSpace: ClipPath(
             clipper: const TopWaveClipper(),
             child: Container(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../api_config.dart';
@@ -575,7 +575,7 @@ class _ActivityPageState extends State<ActivityPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppThemeColors.iconOnWave(context),
+        foregroundColor: AppThemeColors.primaryText(context),
         title: Text(t('activity_log_title')),
         actions: [
           IconButton(

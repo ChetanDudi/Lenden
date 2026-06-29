@@ -182,10 +182,10 @@ class _ReferralPageState extends State<ReferralPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(children: [
-                    IconButton(icon: Icon(Icons.arrow_back, color: AppThemeColors.iconOnWave(context)), onPressed: () => Navigator.pop(context)),
+                    IconButton(icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)), onPressed: () => Navigator.pop(context)),
                     Expanded(child: Text(t('refer_and_earn'), textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.iconOnWave(context)))),
-                    IconButton(icon: Icon(Icons.refresh, color: AppThemeColors.iconOnWave(context)), onPressed: _fetchReferralInfo),
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)))),
+                    IconButton(icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)), onPressed: _fetchReferralInfo),
                   ]),
                 ),
 
