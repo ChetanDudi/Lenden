@@ -35,3 +35,13 @@ exports.passwordResetLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many password reset attempts. Please try again later.' },
 });
+
+// Manual payment-ID verification: not a brute-forceable secret (Razorpay payment
+// IDs are long random strings), but still throttle scripted submission attempts.
+exports.manualPaymentVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many verification attempts. Please try again later.' },
+});

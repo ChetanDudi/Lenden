@@ -13,7 +13,7 @@ module.exports = (io) => {
   const editProfileController = require('../controllers/editProfileController');
   const auth = require('../middleware/auth');
   const sessionTimeout = require('../middleware/sessionTimeout');
-  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter } = require('../middleware/rateLimit');
+  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter } = require('../middleware/rateLimit');
   const fs = require('fs');
   const multer = require('multer');
   const os = require('os');
@@ -503,6 +503,7 @@ module.exports = (io) => {
   // Payment routes (Razorpay)
   router.post('/payment/create-order', auth, paymentController.createOrder);
   router.post('/payment/verify', auth, paymentController.verifyPayment);
+  router.post('/payment/verify-manual', auth, manualPaymentVerifyLimiter, paymentController.verifyManualPayment);
   router.post('/payment/create-p2p-order', auth, paymentController.createP2POrder);
   router.post('/payment/verify-p2p', auth, paymentController.verifyP2PPayment);
   router.post('/payment/webhook', paymentController.razorpayWebhook); // no auth — Razorpay calls this

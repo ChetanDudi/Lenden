@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
@@ -349,6 +350,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     });
   }
 
+  static const String _razorpayPaymentLink = 'https://razorpay.me/@chetanprakashdudi';
+
   Future<void> _startPayment() async {
     final t = AppLocalizations.of(context).t;
     if (_selectedPlan == null) {
@@ -362,59 +365,154 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       return;
     }
 
-    if (!_isMobilePlatform) {
-      showSnack(context, t('payment_only_supported_mobile_message'), isError: true);
-      return;
-    }
-
     final plan = _plans.firstWhere((p) => p.name == _selectedPlan);
+    _showManualPaymentSheet(plan);
+  }
 
-    setState(() => _isProcessingPayment = true);
+  double _actualPriceFor(SubscriptionPlan plan) =>
+      plan.price - (plan.price * (plan.discount / 100));
 
-    try {
-      // Step 1: Create order on backend
-      final orderRes = await ApiClient.post(
-        '/api/payment/create-order',
-        body: {'planId': plan.id},
-      );
+  Future<void> _openManualPaymentLink(double amount) async {
+    // razorpay.me Payment Handle pages don't support an amount query param —
+    // passing one breaks the page with a generic error, so the payer must
+    // type the amount in themselves on Razorpay's page.
+    final uri = Uri.parse(_razorpayPaymentLink);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
-      if (!mounted) return;
+  void _showManualPaymentSheet(SubscriptionPlan plan) {
+    final t = AppLocalizations.of(context).t;
+    final actualPrice = _actualPriceFor(plan);
+    final paymentIdController = TextEditingController();
+    bool verifying = false;
+    String? errorText;
 
-      if (orderRes.statusCode != 200) {
-        final err = jsonDecode(orderRes.body);
-        showSnack(context, err['error'] ?? t('failed_to_create_payment_order_message'), isError: true);
-        setState(() => _isProcessingPayment = false);
-        return;
-      }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppThemeColors.cardBg(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            Future<void> verify() async {
+              final paymentId = paymentIdController.text.trim();
+              if (paymentId.isEmpty) {
+                setSheetState(() => errorText = t('please_enter_payment_id_message'));
+                return;
+              }
+              setSheetState(() {
+                verifying = true;
+                errorText = null;
+              });
+              try {
+                final res = await ApiClient.post('/api/payment/verify-manual', body: {
+                  'paymentId': paymentId,
+                  'planId': plan.id,
+                });
+                if (res.statusCode == 200) {
+                  if (!mounted) return;
+                  Navigator.of(sheetContext).pop();
+                  final session = Provider.of<SessionProvider>(context, listen: false);
+                  await session.checkSubscriptionStatus();
+                  await session.fetchSubscriptionHistory();
+                  if (!mounted) return;
+                  _showSuccessDialog();
+                } else {
+                  final err = jsonDecode(res.body);
+                  setSheetState(() {
+                    verifying = false;
+                    errorText = err['error'] ?? t('payment_verification_failed_generic_message');
+                  });
+                }
+              } catch (e) {
+                setSheetState(() {
+                  verifying = false;
+                  errorText = '$e';
+                });
+              }
+            }
 
-      final orderData = jsonDecode(orderRes.body);
-      _pendingPlanId = orderData['plan']['id'];
-
-      // Step 2: Open Razorpay checkout
-      final user = session.user!;
-      final options = {
-        'key': orderData['keyId'],
-        'amount': orderData['amount'],
-        'currency': orderData['currency'] ?? 'INR',
-        'name': 'LenDen App',
-        'description': '${plan.name} Subscription',
-        'order_id': orderData['orderId'],
-        'prefill': {
-          'email': user['email'] ?? '',
-          'contact': user['phone'] ?? '',
-          'name': user['name'] ?? '',
-        },
-        'theme': {'color': '#00B4D8'},
-        'retry': {'enabled': true, 'max_count': 2},
-      };
-
-      _razorpay!.open(options);
-      // Payment result arrives in _handlePaymentSuccess / _handlePaymentError
-    } catch (e) {
-      if (!mounted) return;
-      showSnack(context, t('error_initiating_payment_message').replaceFirst('{error}', '$e'), isError: true);
-      setState(() => _isProcessingPayment = false);
-    }
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    t('pay_for_plan_label').replaceFirst('{plan}', plan.name),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    t('amount_to_pay_colon_label').replaceFirst('{amount}', '₹${actualPrice.toStringAsFixed(2)}'),
+                    style: TextStyle(fontSize: 15, color: AppThemeColors.secondaryText(context)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    t('enter_this_amount_manually_message'),
+                    style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => _openManualPaymentLink(actualPrice),
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(t('pay_now_open_link_label')),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cyan,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    t('after_paying_enter_payment_id_message'),
+                    style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: paymentIdController,
+                    enabled: !verifying,
+                    decoration: InputDecoration(
+                      hintText: 'pay_XXXXXXXXXXXXXX',
+                      errorText: errorText,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ElevatedButton(
+                    onPressed: verifying ? null : verify,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cyan,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: verifying
+                        ? const SizedBox(
+                            height: 20, width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(t('verify_and_activate_label')),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {

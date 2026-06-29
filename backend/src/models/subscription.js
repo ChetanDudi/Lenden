@@ -56,7 +56,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['razorpay', 'wallet', 'admin'],
+        enum: ['razorpay', 'razorpay_manual', 'wallet', 'admin'],
         default: 'razorpay'
     }
 }, { timestamps: true });
