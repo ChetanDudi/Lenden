@@ -11,6 +11,7 @@ import '../transactions/manage_secure_transactions_page.dart';
 import '../manage_users/user_management_page.dart';
 import '../transactions/manage_group_transactions_page.dart';
 import '../transactions/manage_quick_transactions_page.dart';
+import '../transactions/manage_withdrawals_page.dart';
 import '../track_users/track_user_activity_page.dart';
 import '../support/manage_contact_page.dart';
 import '../support/manage_support_queries_page.dart';
@@ -360,6 +361,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               context,
               MaterialPageRoute(
                   builder: (_) => const ManageQuickTransactionsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'manage_withdrawals',
+          permissionKey: 'canManageTransactions',
+          icon: Icons.account_balance_rounded,
+          label: t('manage_withdrawals_label'),
+          caption: t('review_and_process_wallet_withdrawals_desc'),
+          actionLabel: t('withdrawals_label'),
+          backgroundColor: const Color(0xFFE6F4EA),
+          iconColor: const Color(0xFF1B5E20),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ManageWithdrawalsPage()),
             );
           },
         ),

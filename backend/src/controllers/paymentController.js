@@ -41,147 +41,6 @@ exports.getPaymentConfig = async (req, res) => {
   res.json({ razorpayPaymentLink: process.env.RAZORPAY_PAYMENT_LINK });
 };
 
-// Create a Razorpay order for a subscription plan
-exports.createOrder = async (req, res) => {
-  const { planId } = req.body;
-
-  if (!planId) return res.status(400).json({ error: 'planId is required' });
-
-  try {
-    const plan = await SubscriptionPlan.findById(planId);
-    if (!plan || !plan.isAvailable) {
-      return res.status(404).json({ error: 'Plan not found or unavailable' });
-    }
-
-    const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
-    const amountInPaise = Math.round(actualPrice * 100);
-
-    if (amountInPaise < 100) {
-      return res.status(400).json({ error: 'Minimum payment amount is ₹1' });
-    }
-
-    const razorpay = getRazorpay();
-    const order = await razorpay.orders.create({
-      amount: amountInPaise,
-      currency: 'INR',
-      receipt: `lenden_${Date.now()}`,
-      notes: {
-        planId: plan._id.toString(),
-        userId: req.user._id.toString(),
-        planName: plan.name,
-      },
-    });
-
-    res.json({
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
-      plan: {
-        id: plan._id.toString(),
-        name: plan.name,
-        duration: plan.duration,
-        free: plan.free || 0,
-        price: plan.price,
-        discount: plan.discount || 0,
-        actualPrice,
-      },
-    });
-  } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    res.status(500).json({ error: 'Failed to create payment order' });
-  }
-};
-
-// Verify Razorpay payment signature and activate subscription
-exports.verifyPayment = async (req, res) => {
-  const { razorpayOrderId, razorpayPaymentId, razorpaySignature, planId } = req.body;
-  const userId = req.user._id;
-
-  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !planId) {
-    return res.status(400).json({ error: 'Missing required payment verification fields' });
-  }
-  if (!process.env.RAZORPAY_KEY_SECRET) {
-    return res.status(500).json({ error: 'Payment verification not configured' });
-  }
-
-  // Signature verification is pure crypto — safe outside the session
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-    .digest('hex');
-  if (expectedSignature !== razorpaySignature) {
-    return res.status(400).json({ error: 'Payment verification failed: signature mismatch' });
-  }
-
-  const plan = await SubscriptionPlan.findById(planId);
-  if (!plan) return res.status(404).json({ error: 'Plan not found' });
-
-  const session = await mongoose.startSession();
-  let created;
-  try {
-    await session.withTransaction(async () => {
-      // Fast-path replay check — catches the common case (same ID submitted
-      // twice, not concurrently) without waiting on a duplicate-key error.
-      // The actual race-proof guard is the partial unique index on
-      // razorpayPaymentId (see models/subscription.js): if two requests for
-      // the same payment ID run at the same instant, this check can pass for
-      // both, but the loser's Subscription.create below will fail with a
-      // duplicate-key error, caught below and mapped to the same 409.
-      const alreadyUsed = await Subscription.findOne({ razorpayPaymentId }).session(session);
-      if (alreadyUsed) throw Object.assign(new Error('Payment already applied'), { code: 'ALREADY_USED' });
-
-      const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
-      const subscribedDate = new Date();
-      // Preserve remaining days if the user renews before their current sub expires
-      const endDate = await calcEndDate(userId, plan, session);
-
-      // Create first — if this fails (e.g. concurrent duplicate), nothing is expired
-      [created] = await Subscription.create([{
-        user: userId,
-        subscribed: true,
-        subscriptionPlan: plan.name,
-        duration: plan.duration,
-        price: plan.price,
-        discount: plan.discount || 0,
-        actualPrice,
-        free: plan.free || 0,
-        subscribedDate,
-        endDate,
-        status: 'active',
-        razorpayOrderId,
-        razorpayPaymentId,
-        paymentMethod: 'razorpay',
-      }], { session });
-
-      // Expire old active subscriptions only after new one is safely inserted
-      await Subscription.updateMany(
-        { user: userId, status: 'active', _id: { $ne: created._id } },
-        { $set: { status: 'expired' } },
-        { session }
-      );
-    });
-
-    res.json({
-      message: 'Payment verified and subscription activated',
-      subscription: {
-        subscriptionPlan: created.subscriptionPlan,
-        subscribedDate: created.subscribedDate,
-        endDate: created.endDate,
-        duration: created.duration,
-        free: created.free,
-        paymentMethod: created.paymentMethod,
-      },
-    });
-  } catch (err) {
-    if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'Payment already applied' });
-    console.error('Error verifying payment:', err);
-    res.status(500).json({ error: 'Failed to activate subscription' });
-  } finally {
-    session.endSession();
-  }
-};
-
 // Verify a payment made directly via the standalone Razorpay Payment Handle
 // link (razorpay.me/@...) instead of the in-app Checkout flow. There is no
 // order/signature for this product and no Fetch API access without Live
@@ -260,6 +119,13 @@ exports.verifyManualPayment = async (req, res) => {
       await Subscription.updateMany(
         { user: userId, status: 'active', _id: { $ne: created._id } },
         { $set: { status: 'expired' } },
+        { session }
+      );
+
+      // Mark the capture as claimed so it can't also be redeemed for a wallet top-up.
+      await RazorpayCapturedPayment.updateOne(
+        { paymentId: payment.paymentId },
+        { $set: { claimed: true, claimedBy: userId, claimedFor: 'subscription', claimedAt: new Date() } },
         { session }
       );
     });
@@ -463,74 +329,36 @@ exports.razorpayWebhook = async (req, res) => {
     return res.status(400).json({ error: 'Invalid JSON body' });
   }
 
-  // Handle payment.captured — fallback if app-side verify call was lost
+  // Cache every captured payment so payments made via the no-notes Payment
+  // Handle link (razorpay.me/@...) can later be looked up by verifyManualPayment
+  // / the wallet top-up verify endpoint, without needing the Payments Fetch API
+  // (Live keys only).
   if (event.event === 'payment.captured') {
     const payment = event.payload?.payment?.entity;
     if (payment) {
-      const { order_id, id: paymentId } = payment;
-      const notes = payment.notes || {};
-      const { planId, userId } = notes;
-
-      // Cache every captured payment so payments made via the no-notes Payment
-      // Handle link (razorpay.me/@...) can later be looked up by verifyManualPayment
-      // without needing the Payments Fetch API (which requires Live API keys).
       try {
+        // setDefaultsOnInsert is required here: without it, a brand-new document
+        // is inserted with only the $set fields below, so schema defaults like
+        // claimed:false are never physically written. Mongoose still *displays*
+        // claimed:false on read (hydration applies the default in memory), which
+        // masks the gap — but a raw query filter like { claimed: false } used by
+        // the wallet top-up's atomic claim won't match a document where the field
+        // is genuinely absent, so it falsely looks "already used" on first verify.
         await RazorpayCapturedPayment.findOneAndUpdate(
-          { paymentId },
+          { paymentId: payment.id },
           {
-            paymentId,
-            amount: payment.amount,
-            currency: payment.currency,
-            capturedAt: new Date(payment.created_at * 1000),
+            $set: {
+              paymentId: payment.id,
+              amount: payment.amount,
+              currency: payment.currency,
+              capturedAt: new Date(payment.created_at * 1000),
+            },
+            $setOnInsert: { claimed: false },
           },
-          { upsert: true }
+          { upsert: true, setDefaultsOnInsert: true }
         );
       } catch (e) {
         console.error('[Webhook] Failed to cache captured payment:', e);
-      }
-
-      if (planId && userId) {
-        const session = await mongoose.startSession();
-        try {
-          await session.withTransaction(async () => {
-            const alreadyUsed = await Subscription.findOne({ razorpayPaymentId: paymentId }).session(session);
-            if (alreadyUsed) return; // already applied, nothing to do
-
-            const plan = await SubscriptionPlan.findById(planId).session(session);
-            if (!plan) return;
-
-            const actualPrice = plan.price - (plan.price * ((plan.discount || 0) / 100));
-            const subscribedDate = new Date();
-            const endDate = await calcEndDate(userId, plan, session);
-
-            const [created] = await Subscription.create([{
-              user: userId,
-              subscribed: true,
-              subscriptionPlan: plan.name,
-              duration: plan.duration,
-              price: plan.price,
-              discount: plan.discount || 0,
-              actualPrice,
-              free: plan.free || 0,
-              subscribedDate,
-              endDate,
-              status: 'active',
-              razorpayOrderId: order_id,
-              razorpayPaymentId: paymentId,
-              paymentMethod: 'razorpay',
-            }], { session });
-
-            await Subscription.updateMany(
-              { user: userId, status: 'active', _id: { $ne: created._id } },
-              { $set: { status: 'expired' } },
-              { session }
-            );
-          });
-        } catch (e) {
-          console.error('[Webhook] Failed to activate subscription via webhook:', e);
-        } finally {
-          session.endSession();
-        }
       }
     }
   }

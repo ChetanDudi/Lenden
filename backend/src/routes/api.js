@@ -502,8 +502,6 @@ module.exports = (io) => {
 
   // Payment routes (Razorpay)
   router.get('/payment/config', auth, paymentController.getPaymentConfig);
-  router.post('/payment/create-order', auth, paymentController.createOrder);
-  router.post('/payment/verify', auth, paymentController.verifyPayment);
   router.post('/payment/verify-manual', auth, manualPaymentVerifyLimiter, paymentController.verifyManualPayment);
   router.post('/payment/create-p2p-order', auth, paymentController.createP2POrder);
   router.post('/payment/verify-p2p', auth, paymentController.verifyP2PPayment);
@@ -513,8 +511,6 @@ module.exports = (io) => {
   const walletController = require('../controllers/walletController');
   router.get('/wallet/balance', auth, walletController.getBalance);
   router.get('/wallet/history', auth, walletController.getHistory);
-  router.post('/wallet/create-order', auth, walletController.createTopUpOrder);
-  router.post('/wallet/verify', auth, walletController.verifyTopUp);
   router.post('/wallet/pay', auth, walletController.pay);
   router.post('/wallet/qr-pay', auth, walletController.qrPay);
   router.post('/wallet/create-qr-order', auth, walletController.createQrOrder);
@@ -522,11 +518,23 @@ module.exports = (io) => {
   router.post('/wallet/pay-upi-qr', auth, walletController.payUpiQr);
   router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
 
+  // Real-money wallet top-up via the Razorpay Payment Handle link
+  router.post('/wallet/topup/manual/verify', auth, manualPaymentVerifyLimiter, walletController.verifyManualTopUp);
+
+  // Pay User — sender email OTP gate
+  router.post('/wallet/pay/send-otp', auth, otpSendLimiter, walletController.sendPayOtp);
+  router.post('/wallet/pay/verify-otp', auth, otpVerifyLimiter, walletController.payToUserWithOtp);
+
   // Wallet Withdrawal routes (Razorpay Payouts)
   const withdrawalController = require('../controllers/withdrawalController');
   router.post('/wallet/withdraw', auth, withdrawalController.initiateWithdrawal);
   router.get('/wallet/withdrawals', auth, withdrawalController.getWithdrawalHistory);
   router.post('/wallet/payout-webhook', withdrawalController.handlePayoutWebhook); // no auth — Razorpay calls this
+
+  // Admin: manual withdrawal review (used while no RazorpayX payout account is configured)
+  router.get('/admin/withdrawals', auth, isAdmin, withdrawalController.adminGetWithdrawals);
+  router.post('/admin/withdrawals/:id/process', auth, isAdmin, withdrawalController.adminMarkProcessed);
+  router.post('/admin/withdrawals/:id/reject', auth, isAdmin, withdrawalController.adminRejectWithdrawal);
 
   // Admin feature routes
   // Subscription Plans

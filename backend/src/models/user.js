@@ -41,6 +41,15 @@ const userSchema = new mongoose.Schema({
     attemptCount: { type: Number, default: 0 },
     windowStart: { type: Date },
   },
+  // OTP the sender must enter on the LenDen Wallet "Pay User" sheet to confirm
+  // they are the one authorizing the transfer before it is debited.
+  walletPayOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+    attemptCount: { type: Number, default: 0 },
+    windowStart: { type: Date },
+  },
   memberSince: { type: Date, default: Date.now },
   lendingBudget: {
     monthlyLimit: { type: Number, default: null },

@@ -22,6 +22,13 @@ const razorpayCapturedPaymentSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  // Subscriptions are claimed via Subscription's own unique index on razorpayPaymentId,
+  // but wallet top-ups have no such document to dedupe against, so this cache entry
+  // itself must track whether it has already been redeemed.
+  claimed: { type: Boolean, default: false },
+  claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  claimedFor: { type: String, enum: ['subscription', 'wallet_topup'] },
+  claimedAt: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('RazorpayCapturedPayment', razorpayCapturedPaymentSchema);

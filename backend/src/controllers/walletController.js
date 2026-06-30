@@ -4,6 +4,9 @@ const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
 const SubscriptionPlan = require('../models/subscriptionPlan');
 const Subscription = require('../models/subscription');
+const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
+const Admin = require('../models/admin');
+const { sendWalletPayOTP } = require('../utils/walletPayOtp');
 
 const getRazorpay = () => {
   const Razorpay = require('razorpay');
@@ -52,79 +55,83 @@ exports.getHistory = async (req, res) => {
   }
 };
 
-// Create Razorpay order for wallet top-up
-exports.createTopUpOrder = async (req, res) => {
-  try {
-    const { amount } = req.body; // amount in paise
-    if (!amount || amount < 100) {
-      return res.status(400).json({ error: 'Minimum top-up amount is ₹1' });
-    }
-    const razorpay = getRazorpay();
-    const order = await razorpay.orders.create({
-      amount,
-      currency: 'INR',
-      receipt: `wallet_${Date.now()}`,
-      notes: { userId: req.user._id.toString(), type: 'wallet_topup' },
-    });
-    res.json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: process.env.RAZORPAY_KEY_ID });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+// ── Real-money wallet top-up via the Razorpay Payment Handle link ──────────────
+// Exact mirror of paymentController.verifyManualPayment's pattern, for wallet
+// credits instead of subscriptions: there is no order/signature for this product
+// and no Fetch API access without Live keys, so we check the webhook-populated
+// capture cache instead. There is deliberately only ONE verification path here
+// (manual paste, same as the subscriptions flow) — an earlier version also had
+// a background auto-poll racing against this endpoint, which could silently win
+// the claim and leave the user staring at a stale "waiting" screen with no
+// feedback, then see a confusing "already used" error if they verified manually.
+// Single path = no race, exactly like the subscriptions manual-payment flow.
+const MANUAL_TOPUP_MAX_AGE_SECONDS = 30 * 60;
+
+exports.verifyManualTopUp = async (req, res) => {
+  const { paymentId, amount } = req.body;
+  if (!paymentId || !amount || Number(amount) <= 0) {
+    return res.status(400).json({ error: 'paymentId and a positive amount are required' });
   }
-};
+  const expectedAmountInPaise = Math.round(Number(amount) * 100);
 
-// Verify Razorpay top-up and credit wallet
-// ACID: replay prevention via unique index on razorpayPaymentId (DB enforces, no separate read needed)
-exports.verifyTopUp = async (req, res) => {
+  // The Payment Handle link (razorpay.me/@...) has no API/notes support, so we
+  // can't call payments.fetch (it also needs Live API keys). Instead we rely on
+  // the Razorpay webhook having already cached this payment as captured — see
+  // razorpayWebhook in paymentController.js, which upserts every payment.captured event.
+  const payment = await RazorpayCapturedPayment.findOne({ paymentId: paymentId.trim() });
+  if (!payment) {
+    return res.status(404).json({ error: 'We have not received confirmation of this payment from Razorpay yet. Please wait a few seconds after paying and try again.' });
+  }
+  if (payment.currency !== 'INR') {
+    return res.status(400).json({ error: 'Unexpected payment currency.' });
+  }
+  if (payment.amount !== expectedAmountInPaise) {
+    return res.status(400).json({ error: `Payment amount does not match ₹${amount}.` });
+  }
+  // The Payment Handle link has no notes tying a payment to a user, so a
+  // captured ID is redeemable by whoever submits it first. Cap how long it stays
+  // claimable after capture to shrink the window for someone else's ID being reused.
+  const paymentAgeSeconds = (Date.now() - payment.capturedAt.getTime()) / 1000;
+  if (paymentAgeSeconds > MANUAL_TOPUP_MAX_AGE_SECONDS) {
+    return res.status(400).json({ error: 'This payment is too old to verify. Please make a new payment and submit its ID right away.' });
+  }
+
   const session = await mongoose.startSession();
+  let addedAmount, newBalance;
   try {
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return res.status(400).json({ error: 'Missing payment fields' });
-    }
-
-    // Signature verification is pure crypto — no DB, safe outside transaction
-    const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest('hex');
-    if (expected !== razorpaySignature) {
-      return res.status(400).json({ error: 'Signature mismatch' });
-    }
-
-    const razorpay = getRazorpay();
-    const payment = await razorpay.payments.fetch(razorpayPaymentId);
-    const amountInRupees = payment.amount / 100;
-
-    let addedAmount;
     await session.withTransaction(async () => {
-      // Insert transaction record first — unique index on razorpayPaymentId prevents replay atomically.
-      // If the same paymentId is submitted twice concurrently, one will get a duplicate-key error here.
+      // Fast-path check for the common case; the atomic claimed:false filter
+      // below is what actually closes the race if two requests for the same
+      // ID land at the same instant — see the duplicate-claim case in the catch block.
+      const claimed = await RazorpayCapturedPayment.findOneAndUpdate(
+        { _id: payment._id, claimed: false },
+        { $set: { claimed: true, claimedBy: req.user._id, claimedFor: 'wallet_topup', claimedAt: new Date() } },
+        { session }
+      );
+      if (!claimed) throw Object.assign(new Error('Payment already applied'), { code: 'ALREADY_USED' });
+
+      addedAmount = claimed.amount / 100;
       await WalletTransaction.create([{
         user: req.user._id,
         type: 'topup',
-        amount: amountInRupees,
+        amount: addedAmount,
         note: 'Wallet top-up via Razorpay',
-        razorpayOrderId,
-        razorpayPaymentId,
+        razorpayPaymentId: claimed.paymentId,
       }], { session });
 
-      // Credit the wallet only after the record is safely inserted
-      await User.findByIdAndUpdate(
+      const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
-        { $inc: { walletBalance: amountInRupees } },
-        { session }
+        { $inc: { walletBalance: addedAmount } },
+        { new: true, session }
       );
-      addedAmount = amountInRupees;
+      newBalance = updatedUser.walletBalance;
     });
 
-    const updated = await User.findById(req.user._id).select('walletBalance');
-    res.json({ message: 'Wallet topped up', addedAmount, balance: updated?.walletBalance ?? 0 });
+    res.json({ message: 'Wallet topped up', addedAmount, balance: newBalance });
   } catch (err) {
-    // Duplicate key = already applied
-    if (err.code === 11000) {
-      return res.status(409).json({ error: 'Payment already applied to wallet' });
-    }
-    res.status(500).json({ error: 'Server error' });
+    if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'This payment has already been used.' });
+    console.error('Error verifying manual top-up:', err);
+    res.status(500).json({ error: 'Failed to top up wallet' });
   } finally {
     session.endSession();
   }
@@ -176,6 +183,129 @@ exports.pay = async (req, res) => {
       ], { session });
 
       newBalance = sender.walletBalance; // already decremented by findOneAndUpdate with {new:true}
+    });
+
+    res.json({ message: 'Payment successful', balance: newBalance });
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
+  } finally {
+    session.endSession();
+  }
+};
+
+// Shared recipient checks for "Pay User" — format, exists on LenDen, isn't the
+// sender themselves, and isn't an admin account (Admin is a separate login/
+// collection from User, but the same email could in theory be used for both,
+// so block by email rather than assuming the two are mutually exclusive).
+const validateRecipient = async (toRaw, sender) => {
+  const to = (toRaw || '').toLowerCase().trim();
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    throw Object.assign(new Error('Invalid recipient email'), { status: 400, userMessage: 'Invalid recipient email address' });
+  }
+  if (to === (sender.email || '').toLowerCase().trim()) {
+    throw Object.assign(new Error('Cannot pay yourself'), { status: 400, userMessage: 'You cannot pay yourself.' });
+  }
+  const [receiver, adminMatch] = await Promise.all([
+    User.findOne({ email: to }).select('_id email'),
+    Admin.findOne({ email: to }).select('_id'),
+  ]);
+  if (!receiver) {
+    throw Object.assign(new Error('Recipient not found'), { status: 404, userMessage: 'Recipient not found on LenDen' });
+  }
+  if (adminMatch) {
+    throw Object.assign(new Error('Cannot pay an admin'), { status: 400, userMessage: 'This email belongs to an admin account and cannot receive wallet payments.' });
+  }
+  return receiver;
+};
+
+// ── Pay User OTP gate ───────────────────────────────────────────────────────
+// The "Pay User" sheet sends an OTP to the logged-in sender's own registered
+// email before allowing the transfer, so the wallet can't be drained just from
+// a stolen/left-open session. Pattern mirrors settingsController's altEmailOTP.
+exports.sendPayOtp = async (req, res) => {
+  try {
+    const { to } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    try {
+      await validateRecipient(to, user);
+    } catch (err) {
+      return res.status(err.status ?? 400).json({ error: err.userMessage || 'Invalid recipient' });
+    }
+
+    const now = new Date();
+    const existing = user.walletPayOTP;
+
+    if (existing?.sentAt && (now - existing.sentAt) < 60 * 1000) {
+      const secondsLeft = Math.ceil((60 * 1000 - (now - existing.sentAt)) / 1000);
+      return res.status(429).json({ error: `Please wait ${secondsLeft} seconds before requesting another OTP` });
+    }
+    const hourAgo = new Date(now - 60 * 60 * 1000);
+    const windowStart = existing?.windowStart && existing.windowStart > hourAgo ? existing.windowStart : now;
+    const attemptCount = existing?.windowStart && existing.windowStart > hourAgo ? (existing.attemptCount || 0) : 0;
+    if (attemptCount >= 5) {
+      return res.status(429).json({ error: 'Too many OTP requests. Please try again in an hour.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+
+    user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now, attemptCount: attemptCount + 1, windowStart };
+    await user.save();
+
+    await sendWalletPayOTP(user.email, otp, user.name);
+
+    res.json({ message: 'OTP sent to your registered email', email: user.email });
+  } catch (err) {
+    console.error('Error sending wallet pay OTP:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Verifies the sender's OTP and performs the wallet-to-wallet transfer in one step.
+// Mirrors pay()'s ACID transfer logic exactly, with an OTP check gating entry.
+exports.payToUserWithOtp = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const { to, amount, note, otp } = req.body;
+    if (!to || !amount || amount <= 0) {
+      return res.status(400).json({ error: 'to (email) and a positive amount are required' });
+    }
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ error: 'A valid 6-digit OTP is required' });
+    }
+
+    const senderDoc = await User.findById(req.user._id);
+    if (!senderDoc) return res.status(404).json({ error: 'User not found' });
+    if (!senderDoc.walletPayOTP || senderDoc.walletPayOTP.code !== otp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+    if (new Date() > senderDoc.walletPayOTP.expiry) {
+      return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+    }
+
+    const receiver = await validateRecipient(to, senderDoc);
+
+    let newBalance;
+    await session.withTransaction(async () => {
+      const sender = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: amount } },
+        { $inc: { walletBalance: -amount }, $unset: { walletPayOTP: 1 } },
+        { new: true, session }
+      );
+      if (!sender) {
+        throw Object.assign(new Error('Insufficient wallet balance'), { status: 400, userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.' });
+      }
+
+      await User.findByIdAndUpdate(receiver._id, { $inc: { walletBalance: amount } }, { session });
+
+      await WalletTransaction.create([
+        { user: sender._id, type: 'debit',  amount, toEmail: receiver.email, note: note || 'Wallet transfer' },
+        { user: receiver._id, type: 'credit', amount, fromEmail: sender.email, note: note || 'Wallet transfer' },
+      ], { session });
+
+      newBalance = sender.walletBalance;
     });
 
     res.json({ message: 'Payment successful', balance: newBalance });

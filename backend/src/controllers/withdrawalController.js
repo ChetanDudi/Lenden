@@ -1,10 +1,12 @@
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/user');
+const Admin = require('../models/admin');
 const WalletTransaction = require('../models/walletTransaction');
 const WithdrawalRequest = require('../models/withdrawalRequest');
+const Notification = require('../models/notification');
 
-const MIN_WITHDRAWAL = 10; // ₹10
+const MIN_WITHDRAWAL = 100; // ₹100
 
 const getRazorpay = () => {
   const Razorpay = require('razorpay');
@@ -46,8 +48,11 @@ exports.initiateWithdrawal = async (req, res) => {
     }
   }
 
-  const isTestMode = !process.env.RAZORPAY_ACCOUNT_NUMBER ||
-    (process.env.RAZORPAY_KEY_ID || '').startsWith('rzp_test_');
+  // RazorpayX (a separate business current-account product) is required for automatic
+  // payouts. Without it, withdrawals are debited immediately and queued for an admin
+  // to transfer manually to the user's bank/UPI, then mark as processed.
+  const hasPayoutAccount = !!process.env.RAZORPAY_ACCOUNT_NUMBER &&
+    !(process.env.RAZORPAY_KEY_ID || '').startsWith('rzp_test_');
 
   const session = await mongoose.startSession();
   let withdrawal;
@@ -66,19 +71,11 @@ exports.initiateWithdrawal = async (req, res) => {
         ? `Withdrawal to UPI: ${upiId}`
         : `Withdrawal to bank ****${accountNumber.trim().slice(-4)}`;
 
-      await WalletTransaction.create([{
-        user: req.user._id,
-        type: 'withdrawal',
-        amount: parsedAmount,
-        note: noteText,
-      }], { session });
-
       [withdrawal] = await WithdrawalRequest.create([{
         user: req.user._id,
         amount: parsedAmount,
         mode,
-        status: isTestMode ? 'processed' : 'processing',
-        ...(isTestMode ? { processedAt: new Date(), razorpayPayoutId: `test_sim_${Date.now()}`, razorpayPayoutStatus: 'processed' } : {}),
+        status: 'processing',
         ...(mode === 'bank_account' ? {
           accountHolderName: accountHolderName.trim(),
           accountNumber: accountNumber.trim(),
@@ -87,17 +84,28 @@ exports.initiateWithdrawal = async (req, res) => {
         } : {}),
         ...(mode === 'upi' ? { upiId: upiId.trim() } : {}),
       }], { session });
+
+      // Linked to the withdrawal request so adminMarkProcessed/adminRejectWithdrawal
+      // can update this same entry's status for the user's transaction history.
+      await WalletTransaction.create([{
+        user: req.user._id,
+        type: 'withdrawal',
+        amount: parsedAmount,
+        note: noteText,
+        withdrawalRequestId: withdrawal._id,
+        status: 'processing',
+      }], { session });
     });
 
-    // ── Phase 2 (test mode): skip Razorpay, return simulated success ────────────
-    if (isTestMode) {
+    // ── Phase 2 (no RazorpayX payout account): queue for admin manual transfer ──
+    if (!hasPayoutAccount) {
       return res.json({
-        message: `[Test Mode] Withdrawal simulated — ₹${parsedAmount} deducted from your wallet. In production, funds would be sent to your ${mode === 'upi' ? 'UPI ID' : 'bank account'}.`,
+        message: `Withdrawal request submitted for ₹${parsedAmount}. Our team will transfer it to your ${mode === 'upi' ? 'UPI ID' : 'bank account'} within 24–48 hours.`,
         withdrawalId: withdrawal._id,
-        status: 'processed',
+        status: 'processing',
         amount: parsedAmount,
         mode,
-        testMode: true,
+        manualReview: true,
       });
     }
 
@@ -271,4 +279,118 @@ exports.handlePayoutWebhook = async (req, res) => {
   }
 
   res.json({ status: 'ok' });
+};
+
+// ── Admin: manual withdrawal review ─────────────────────────────────────────
+// Used while no RazorpayX payout account is configured — the admin transfers
+// money to the user's bank/UPI outside the app, then marks the request here.
+
+exports.adminGetWithdrawals = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status && status !== 'all' ? { status } : {};
+    const withdrawals = await WithdrawalRequest.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .populate('user', 'name email phone')
+      .lean();
+    res.json({ withdrawals });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.adminMarkProcessed = async (req, res) => {
+  try {
+    const withdrawal = await WithdrawalRequest.findById(req.params.id);
+    if (!withdrawal) return res.status(404).json({ error: 'Withdrawal request not found' });
+    if (withdrawal.status !== 'processing') {
+      return res.status(400).json({ error: `Cannot mark a ${withdrawal.status} withdrawal as processed` });
+    }
+    withdrawal.status = 'processed';
+    withdrawal.processedAt = new Date();
+    await withdrawal.save();
+
+    await WalletTransaction.updateOne(
+      { withdrawalRequestId: withdrawal._id },
+      { $set: { status: 'processed' } }
+    );
+
+    try {
+      const admin = await Admin.findById(req.user._id).select('_id');
+      await Notification.create({
+        sender: admin?._id || req.user._id,
+        senderModel: 'Admin',
+        recipientType: 'specific-users',
+        recipients: [withdrawal.user],
+        recipientModel: 'User',
+        message: `Your withdrawal of ₹${withdrawal.amount} has been processed and sent to your ${withdrawal.mode === 'upi' ? 'UPI ID' : 'bank account'}.`,
+        category: 'transaction',
+        deliveryStatus: 'sent',
+        sentAt: new Date(),
+        estimatedAudience: 1,
+      });
+    } catch (notifyErr) {
+      console.error('[Withdrawal] Failed to notify user of processed withdrawal:', notifyErr);
+    }
+
+    res.json({ message: 'Withdrawal marked as processed', withdrawal });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Rejects a withdrawal (e.g. invalid bank details) and auto-refunds the wallet.
+exports.adminRejectWithdrawal = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const { reason } = req.body;
+    const withdrawal = await WithdrawalRequest.findById(req.params.id);
+    if (!withdrawal) return res.status(404).json({ error: 'Withdrawal request not found' });
+    if (withdrawal.status !== 'processing') {
+      return res.status(400).json({ error: `Cannot reject a ${withdrawal.status} withdrawal` });
+    }
+
+    await session.withTransaction(async () => {
+      await User.findByIdAndUpdate(withdrawal.user, { $inc: { walletBalance: withdrawal.amount } }, { session });
+      await WalletTransaction.create([{
+        user: withdrawal.user,
+        type: 'credit',
+        amount: withdrawal.amount,
+        note: `Withdrawal rejected — refund${reason ? `: ${reason}` : ''}`,
+      }], { session });
+      await WalletTransaction.updateOne(
+        { withdrawalRequestId: withdrawal._id },
+        { $set: { status: 'failed' } },
+        { session }
+      );
+      withdrawal.status = 'failed';
+      withdrawal.failureReason = reason || 'Rejected by admin';
+      await withdrawal.save({ session });
+    });
+
+    try {
+      const admin = await Admin.findById(req.user._id).select('_id');
+      await Notification.create({
+        sender: admin?._id || req.user._id,
+        senderModel: 'Admin',
+        recipientType: 'specific-users',
+        recipients: [withdrawal.user],
+        recipientModel: 'User',
+        message: `Your withdrawal of ₹${withdrawal.amount} was rejected and the amount has been refunded to your wallet.${reason ? ` Reason: ${reason}` : ''}`,
+        category: 'transaction',
+        deliveryStatus: 'sent',
+        sentAt: new Date(),
+        estimatedAudience: 1,
+      });
+    } catch (notifyErr) {
+      console.error('[Withdrawal] Failed to notify user of rejected withdrawal:', notifyErr);
+    }
+
+    res.json({ message: 'Withdrawal rejected and wallet refunded', withdrawal });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    session.endSession();
+  }
 };
