@@ -3,8 +3,7 @@ import '../../widgets/app_colors.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/wave_widget.dart'
-    show MediumTopWaveClipper, AltBottomWaveClipper;
+import '../../widgets/wave_widget.dart' show MediumTopWaveClipper;
 import 'subscription_plans_tab.dart';
 import 'premium_benefits_tab.dart';
 import 'faqs_tab.dart';
@@ -70,18 +69,6 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
               clipper: const MediumTopWaveClipper(),
               child: Container(
                 height: context.sh(156),
-                color: AppThemeColors.waveSolid(context),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ClipPath(
-              clipper: const AltBottomWaveClipper(),
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.13,
                 color: AppThemeColors.waveSolid(context),
               ),
             ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
@@ -217,47 +216,39 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           {'code': 'INR', 'symbol': '₹', 'label': ''},
         ];
     return Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppThemeColors.divider(context)),
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedDisplayCurrency,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-            borderRadius: BorderRadius.circular(16),
-            dropdownColor: AppThemeColors.cardBg(context),
-            items: currencies
-                .map(
-                  (currency) => DropdownMenuItem<String>(
-                    value: currency['code'],
-                    child: Text(
-                      '${currency['symbol']} ${currency['code']}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppThemeColors.primaryText(context)),
-                    ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedDisplayCurrency,
+          icon: Icon(Icons.keyboard_arrow_down_rounded,
+              color: AppThemeColors.secondaryText(context)),
+          borderRadius: BorderRadius.circular(14),
+          dropdownColor: AppThemeColors.cardBg(context),
+          items: currencies
+              .map(
+                (currency) => DropdownMenuItem<String>(
+                  value: currency['code'],
+                  child: Text(
+                    '${currency['symbol']} ${currency['code']}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: AppThemeColors.primaryText(context)),
                   ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _selectedDisplayCurrency = value;
-              });
-            },
-          ),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() {
+              _selectedDisplayCurrency = value;
+            });
+          },
         ),
       ),
     );
@@ -409,6 +400,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
   void _showManualPaymentSheet(SubscriptionPlan plan) {
     final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     final actualPrice = _actualPriceFor(plan);
     final paymentIdController = TextEditingController();
     bool verifying = false;
@@ -536,26 +528,35 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8E1),
+                        color: isDark
+                            ? const Color(0xFF3A2F12)
+                            : const Color(0xFFFFF8E1),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: const Color(0xFFFFCC02), width: 1),
+                            color: const Color(0xFFFFCC02)
+                                .withValues(alpha: isDark ? 0.5 : 1),
+                            width: 1),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              size: 16, color: Color(0xFFF57F17)),
+                          Icon(Icons.warning_amber_rounded,
+                              size: 16,
+                              color: isDark
+                                  ? const Color(0xFFFFD54F)
+                                  : const Color(0xFFF57F17)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               t('pay_exact_amount_warning_message')
                                   .replaceFirst('{amount}',
                                       '₹${actualPrice.toStringAsFixed(2)}'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFFF57F17)),
+                                  color: isDark
+                                      ? const Color(0xFFFFD54F)
+                                      : const Color(0xFFF57F17)),
                             ),
                           ),
                         ],
@@ -565,33 +566,45 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
+                        color: isDark
+                            ? const Color(0xFF12283A)
+                            : const Color(0xFFE3F2FD),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: const Color(0xFF2196F3), width: 1),
+                            color: const Color(0xFF2196F3)
+                                .withValues(alpha: isDark ? 0.5 : 1),
+                            width: 1),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.info_outline_rounded,
-                                  size: 16, color: Color(0xFF1565C0)),
+                              Icon(Icons.info_outline_rounded,
+                                  size: 16,
+                                  color: isDark
+                                      ? const Color(0xFF64B5F6)
+                                      : const Color(0xFF1565C0)),
                               const SizedBox(width: 6),
                               Text(
                                 t('before_you_pay_label'),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1565C0)),
+                                    color: isDark
+                                        ? const Color(0xFF64B5F6)
+                                        : const Color(0xFF1565C0)),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
                             t('save_payment_id_and_receipt_message'),
-                            style: const TextStyle(
-                                fontSize: 12.5, color: Color(0xFF1565C0)),
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                color: isDark
+                                    ? const Color(0xFF64B5F6)
+                                    : const Color(0xFF1565C0)),
                           ),
                         ],
                       ),
@@ -773,17 +786,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     );
   }
 
-  Color _getBenefitColor(int index) {
-    final colors = [
-      Color(0xFFFFF4E6), // Cream
-      Color(0xFFE8F5E9), // Light green
-      Color(0xFFFCE4EC), // Light pink
-      Color(0xFFE3F2FD), // Light blue
-      Color(0xFFFFF9C4), // Light yellow
-      Color(0xFFF3E5F5), // Light purple
-    ];
-    return colors[index % colors.length];
-  }
+  static const List<Color> _accentHues = [
+    Color(0xFFFB8C00), // orange
+    Color(0xFF43A047), // green
+    Color(0xFFD81B60), // pink
+    Color(0xFF1E88E5), // blue
+    Color(0xFFF9A825), // amber
+    Color(0xFF8E24AA), // purple
+  ];
+
+  Color _accentColor(int index) => _accentHues[index % _accentHues.length];
 
   List<SubscriptionPlan> _getFilteredPlans() {
     final query = _planSearchQuery.trim().toLowerCase();
@@ -834,6 +846,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
@@ -845,23 +858,65 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          labelColor: AppThemeColors.primaryText(context),
-          unselectedLabelColor:
-              AppThemeColors.primaryText(context).withValues(alpha: 0.7),
-          indicatorColor: AppColors.cyan,
-          indicatorWeight: 3,
-          tabs: [
-            Tab(text: t('plans_tab'), icon: const Icon(Icons.card_membership)),
-            Tab(text: t('benefits_tab'), icon: const Icon(Icons.star)),
-            Tab(text: t('faqs_tab'), icon: const Icon(Icons.help_outline)),
-            Tab(
-                text: t('active_plan_tab'),
-                icon: const Icon(Icons.workspace_premium)),
-            Tab(text: t('history_tab'), icon: const Icon(Icons.history)),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(64),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.07),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+                indicator: BoxDecoration(
+                  color: AppColors.cyan,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorPadding: const EdgeInsets.symmetric(vertical: 6),
+                dividerColor: Colors.transparent,
+                splashBorderRadius: BorderRadius.circular(20),
+                labelColor: Colors.white,
+                unselectedLabelColor: AppThemeColors.secondaryText(context),
+                labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 12.5),
+                unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500, fontSize: 12.5),
+                tabs: [
+                  Tab(
+                      text: t('plans_tab'),
+                      icon: const Icon(Icons.card_membership_rounded,
+                          size: 18)),
+                  Tab(
+                      text: t('benefits_tab'),
+                      icon: const Icon(Icons.star_rounded, size: 18)),
+                  Tab(
+                      text: t('faqs_tab'),
+                      icon: const Icon(Icons.help_outline_rounded, size: 18)),
+                  Tab(
+                      text: t('active_plan_tab'),
+                      icon: const Icon(Icons.workspace_premium_rounded,
+                          size: 18)),
+                  Tab(
+                      text: t('history_tab'),
+                      icon: const Icon(Icons.history_rounded, size: 18)),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: Consumer<SessionProvider>(
@@ -903,6 +958,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
   Widget _buildSubscriptionHistory(List<Map<String, dynamic>> history) {
     final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     final filteredHistory = _getFilteredHistory(history);
     final itemsToShow =
         _showAllHistory ? filteredHistory : filteredHistory.take(3).toList();
@@ -918,99 +974,82 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
         Text(
           t('subscription_history_label'),
           style: TextStyle(
-              fontSize: 22,
+              fontSize: 19,
               fontWeight: FontWeight.bold,
               color: AppThemeColors.primaryText(context)),
         ),
-        const SizedBox(height: 15),
-
-        // Search Bar
+        const SizedBox(height: 14),
         Container(
-          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: AppThemeColors.cardBg(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppThemeColors.divider(context)),
           ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(context),
-              borderRadius: BorderRadius.circular(10),
+          child: TextField(
+            controller: _searchController,
+            style:
+                TextStyle(color: AppThemeColors.primaryText(context), fontSize: 14),
+            decoration: InputDecoration(
+              hintText: t('search_by_plan_name_hint'),
+              hintStyle:
+                  TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              prefixIcon: Icon(Icons.search_rounded, color: AppColors.cyan, size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.clear_rounded,
+                          size: 18, color: AppThemeColors.mutedText(context)),
+                      onPressed: () {
+                        setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        });
+                      },
+                    )
+                  : null,
             ),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(color: AppThemeColors.primaryText(context)),
-              decoration: InputDecoration(
-                hintText: t('search_by_plan_name_hint'),
-                border: InputBorder.none,
-                icon: Icon(Icons.search, color: AppColors.cyan),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
           ),
         ),
-
-        const SizedBox(height: 15),
-
-        // Filter Chips
+        const SizedBox(height: 14),
         Wrap(
           spacing: 8,
           children: ['All', 'Active', 'Expired'].map((filter) {
-            return FilterChip(
+            final selected = _filterOption == filter;
+            return ChoiceChip(
               label: Text(filterLabels[filter]!),
-              selected: _filterOption == filter,
-              onSelected: (selected) {
+              selected: selected,
+              onSelected: (_) {
                 setState(() {
                   _filterOption = filter;
                 });
               },
               selectedColor: AppColors.cyan,
-              backgroundColor: AppThemeColors.cardBg(context),
+              backgroundColor: AppThemeColors.surfaceBg(context),
+              side: BorderSide(
+                  color: selected ? AppColors.cyan : AppThemeColors.divider(context)),
               labelStyle: TextStyle(
-                color: _filterOption == filter
-                    ? Colors.white
-                    : AppThemeColors.primaryText(context),
+                color: selected ? Colors.white : AppThemeColors.secondaryText(context),
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
               ),
             );
           }).toList(),
         ),
-
-        const SizedBox(height: 15),
-
-        // History List
+        const SizedBox(height: 16),
         if (itemsToShow.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Text(
                 t('no_subscriptions_found_message'),
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: AppThemeColors.mutedText(context)),
               ),
             ),
           )
@@ -1042,161 +1081,199 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               pmColor = const Color(0xFF528FF5);
             }
 
+            final statusColor =
+                isActive ? const Color(0xFF2E7D32) : AppThemeColors.mutedText(context);
+
             return Container(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              padding: const EdgeInsets.all(2),
+              margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                gradient: LinearGradient(
-                  colors: isActive
-                      ? [Colors.green, Colors.white, Colors.green]
-                      : [Colors.grey, Colors.white, Colors.grey],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppThemeColors.divider(context)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFFE8F5E9) : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(children: [
-                  Icon(
-                    isActive ? Icons.check_circle : Icons.history,
-                    color: isActive ? Colors.green : Colors.grey,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            sub['subscriptionPlan'] ?? '',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            isActive
-                                ? t('active_until_message').replaceFirst(
-                                    '{date}',
-                                    endDate
-                                        .toLocal()
-                                        .toString()
-                                        .substring(0, 10))
-                                : t('expired_on_message').replaceFirst(
-                                    '{date}',
-                                    endDate
-                                        .toLocal()
-                                        .toString()
-                                        .substring(0, 10)),
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[700]),
-                          ),
-                          if (isActive) ...[
-                            const SizedBox(height: 3),
-                            Builder(builder: (_) {
-                              final daysLeft =
-                                  endDate.difference(DateTime.now()).inDays;
-                              final hoursLeft =
-                                  endDate.difference(DateTime.now()).inHours %
-                                      24;
-                              final label = daysLeft > 0
-                                  ? t('days_left_message')
-                                      .replaceFirst('{count}', '$daysLeft')
-                                  : hoursLeft > 0
-                                      ? t('hours_left_message')
-                                          .replaceFirst('{count}', '$hoursLeft')
-                                      : t('expiring_soon_label');
-                              final color = daysLeft <= 3
-                                  ? Colors.orange
-                                  : AppColors.cyan;
-                              return Row(
-                                children: [
-                                  Icon(Icons.timer_outlined,
-                                      size: 12, color: color),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: color,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }),
-                          ],
-                          const SizedBox(height: 5),
-                          Row(children: [
-                            // Payment method badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: pmColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: pmColor.withValues(alpha: 0.4),
-                                    width: 0.8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 5,
+                        color:
+                            isActive ? const Color(0xFF43A047) : AppThemeColors.divider(context),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                isActive
+                                    ? Icons.check_circle_rounded
+                                    : Icons.history_rounded,
+                                color: statusColor,
+                                size: 26,
                               ),
-                              child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(pmIcon, size: 10, color: pmColor),
-                                    const SizedBox(width: 3),
-                                    Text(pmLabel,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              sub['subscriptionPlan'] ?? '',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: AppThemeColors.primaryText(
+                                                      context)),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: statusColor.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              isActive
+                                                  ? t('active_caps_label')
+                                                  : t('expired_caps_label'),
+                                              style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: statusColor),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        isActive
+                                            ? t('active_until_message').replaceFirst(
+                                                '{date}',
+                                                endDate
+                                                    .toLocal()
+                                                    .toString()
+                                                    .substring(0, 10))
+                                            : t('expired_on_message').replaceFirst(
+                                                '{date}',
+                                                endDate
+                                                    .toLocal()
+                                                    .toString()
+                                                    .substring(0, 10)),
                                         style: TextStyle(
-                                            fontSize: 10,
-                                            color: pmColor,
-                                            fontWeight: FontWeight.w600)),
-                                  ]),
-                            ),
-                            if (actualPrice > 0) ...[
-                              const SizedBox(width: 6),
-                              Text(
-                                '₹${actualPrice.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFFF8000)),
+                                            fontSize: 11.5,
+                                            color: AppThemeColors.secondaryText(context)),
+                                      ),
+                                      if (isActive) ...[
+                                        const SizedBox(height: 4),
+                                        Builder(builder: (_) {
+                                          final daysLeft = endDate
+                                              .difference(DateTime.now())
+                                              .inDays;
+                                          final hoursLeft = endDate
+                                                  .difference(DateTime.now())
+                                                  .inHours %
+                                              24;
+                                          final label = daysLeft > 0
+                                              ? t('days_left_message')
+                                                  .replaceFirst('{count}', '$daysLeft')
+                                              : hoursLeft > 0
+                                                  ? t('hours_left_message').replaceFirst(
+                                                      '{count}', '$hoursLeft')
+                                                  : t('expiring_soon_label');
+                                          final color = daysLeft <= 3
+                                              ? Colors.orange
+                                              : AppColors.cyan;
+                                          return Row(
+                                            children: [
+                                              Icon(Icons.timer_outlined,
+                                                  size: 12, color: color),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                label,
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: color,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }),
+                                      ],
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 7, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: pmColor.withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                  color: pmColor.withValues(alpha: 0.4),
+                                                  width: 0.8),
+                                            ),
+                                            child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(pmIcon, size: 10, color: pmColor),
+                                                  const SizedBox(width: 3),
+                                                  Text(pmLabel,
+                                                      style: TextStyle(
+                                                          fontSize: 10,
+                                                          color: pmColor,
+                                                          fontWeight: FontWeight.w600)),
+                                                ]),
+                                          ),
+                                          if (actualPrice > 0)
+                                            Text(
+                                              '₹${actualPrice.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFFFF8000)),
+                                            ),
+                                          if (duration > 0)
+                                            Text(
+                                                t('duration_days_count_message')
+                                                    .replaceFirst(
+                                                        '{duration}', '$duration'),
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppThemeColors.mutedText(
+                                                        context))),
+                                        ],
+                                      ),
+                                    ]),
                               ),
                             ],
-                            if (duration > 0) ...[
-                              const SizedBox(width: 6),
-                              Text(
-                                  t('duration_days_count_message')
-                                      .replaceFirst('{duration}', '$duration'),
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.grey[600])),
-                            ],
-                          ]),
-                        ]),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Chip(
-                    label: Text(
-                      isActive
-                          ? t('active_caps_label')
-                          : t('expired_caps_label'),
-                      style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    ),
-                    backgroundColor: isActive ? Colors.green : Colors.grey,
-                    padding: EdgeInsets.zero,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ]),
+                ),
               ),
             );
           }),
-
         if (filteredHistory.length > 3)
           Center(
             child: TextButton(
@@ -1206,11 +1283,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                 });
               },
               child: Text(
-                  _showAllHistory ? t('show_less_label') : t('view_all_label')),
+                  _showAllHistory ? t('show_less_label') : t('view_all_label'),
+                  style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold)),
             ),
           ),
-
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
       ],
     );
   }
@@ -1221,7 +1298,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+          Icon(Icons.error_outline_rounded, size: 46, color: Colors.red[300]),
           const SizedBox(height: 12),
           Text(message,
               textAlign: TextAlign.center,
@@ -1231,6 +1308,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
             label: Text(t('retry')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.cyan,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ],
       ),
@@ -1242,11 +1324,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          Icon(Icons.inbox, size: 64, color: AppThemeColors.mutedText(context)),
+          Icon(Icons.inbox_rounded, size: 58, color: AppThemeColors.mutedText(context)),
           const SizedBox(height: 12),
           Text(title,
               style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: AppThemeColors.secondaryText(context))),
           const SizedBox(height: 6),
@@ -1264,93 +1346,41 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     final showWarning =
         _displayCurrencyError != null || _hasMissingPlanConversion();
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!session.isSubscribed) _buildPremiumIllustration(),
+          if (!session.isSubscribed) ...[
+            _buildPremiumHero(),
+            const SizedBox(height: 20),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 t('select_a_plan_label'),
                 style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppThemeColors.primaryText(context)),
               ),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showComparison = !_showComparison;
-                  });
-                },
-                icon: Icon(_showComparison ? Icons.grid_view : Icons.view_list),
-                label: Text(
-                    _showComparison ? t('list_view_label') : t('compare_label')),
-              ),
+              _buildViewToggle(),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: TextField(
-                controller: _planSearchController,
-                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                decoration: InputDecoration(
-                  hintText: t('search_plans_hint'),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: AppColors.cyan),
-                  suffixIcon: _planSearchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            setState(() {
-                              _planSearchController.clear();
-                              _planSearchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _planSearchQuery = value;
-                  });
-                },
-              ),
-            ),
-          ),
+          const SizedBox(height: 14),
+          _buildPlanSearchField(),
           const SizedBox(height: 12),
           Row(
             children: [
+              Icon(Icons.currency_exchange_rounded,
+                  size: 16, color: AppThemeColors.secondaryText(context)),
+              const SizedBox(width: 6),
               Text(
                 t('show_in_label'),
                 style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context)),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppThemeColors.secondaryText(context)),
               ),
               const SizedBox(width: 10),
               _buildCurrencySelector(),
@@ -1358,28 +1388,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           ),
           if (showWarning) ...[
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF1F1),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFFF6B6B)),
-              ),
-              child: Text(
-                _displayCurrencyError ??
-                    t('conversion_unavailable_subscription_message')
-                        .replaceFirst('{currency}', _selectedDisplayCurrency),
-                style: const TextStyle(
-                  color: Color(0xFFC62828),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            _buildWarningBanner(
+              _displayCurrencyError ??
+                  t('conversion_unavailable_subscription_message')
+                      .replaceFirst('{currency}', _selectedDisplayCurrency),
             ),
           ],
-          const SizedBox(height: 15),
+          const SizedBox(height: 18),
           _isLoadingPlans
-              ? const Center(child: CircularProgressIndicator())
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator()))
               : _plansError != null
                   ? _buildErrorState(_plansError!, _fetchPlans)
                   : _plans.isEmpty
@@ -1402,136 +1421,257 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                                   }).toList(),
                                 );
                         }),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
           if (!session.isSubscribed) ...[
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.orange, Colors.white, Colors.green],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.orange.withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: ElevatedButton.icon(
-                onPressed: _isPayingViaWallet ? null : _startPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  disabledBackgroundColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24)),
-                ),
-                icon: const Icon(Icons.payment, color: Colors.black),
-                label: Text(
-                  t('pay_via_razorpay_label'),
-                  style: const TextStyle(
-                      fontSize: 17,
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(children: [
-              const Expanded(child: Divider(thickness: 1.2)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(t('or_label'),
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[500])),
-              ),
-              const Expanded(child: Divider(thickness: 1.2)),
-            ]),
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.cyan, width: 2),
-              ),
-              child: ElevatedButton.icon(
-                onPressed: _isPayingViaWallet ? null : _payViaWallet,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF0F9FF),
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22)),
-                ),
-                icon: _isPayingViaWallet
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: AppColors.cyan))
-                    : const Icon(Icons.account_balance_wallet_rounded,
-                        color: AppColors.cyan),
-                label: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _isPayingViaWallet
-                          ? t('processing_ellipsis_label')
-                          : t('pay_via_lenden_wallet_label'),
-                      style: const TextStyle(
-                          fontSize: 17,
-                          color: AppColors.cyan,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    if (!_isPayingViaWallet)
-                      Text(
-                        t('balance_amount_message').replaceFirst(
-                            '{amount}', _walletBalance.toStringAsFixed(2)),
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                  ],
-                ),
-              ),
+            _buildPaymentActions(
+              razorpayLabel: t('pay_via_razorpay_label'),
+              walletLabel: t('pay_via_lenden_wallet_label'),
+              onRazorpay: _isPayingViaWallet ? null : _startPayment,
+              onWallet: _isPayingViaWallet ? null : _payViaWallet,
             ),
             const SizedBox(height: 20),
             _buildTrustBadges(),
           ] else
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.check_circle, color: AppColors.cyan, size: 30),
-                  const SizedBox(height: 10),
-                  Text(
-                    t('already_subscribed_browse_plans_message'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: AppThemeColors.secondaryText(context)),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => _tabController.animateTo(3),
-                    icon: const Icon(Icons.arrow_forward, size: 18),
-                    label: Text(t('go_to_other_details_label')),
-                  ),
-                ],
-              ),
+            _buildAlreadySubscribedCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewToggle() {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppThemeColors.surfaceBg(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppThemeColors.divider(context)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _toggleIconButton(Icons.view_agenda_rounded, !_showComparison,
+              () => setState(() => _showComparison = false)),
+          _toggleIconButton(Icons.view_column_rounded, _showComparison,
+              () => setState(() => _showComparison = true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleIconButton(IconData icon, bool selected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(9),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(icon,
+            size: 18,
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context)),
+      ),
+    );
+  }
+
+  Widget _buildPlanSearchField() {
+    final t = AppLocalizations.of(context).t;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppThemeColors.divider(context)),
+      ),
+      child: TextField(
+        controller: _planSearchController,
+        style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 14),
+        decoration: InputDecoration(
+          hintText: t('search_plans_hint'),
+          hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          prefixIcon: Icon(Icons.search_rounded, color: AppColors.cyan, size: 20),
+          suffixIcon: _planSearchQuery.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.clear_rounded,
+                      size: 18, color: AppThemeColors.mutedText(context)),
+                  onPressed: () {
+                    setState(() {
+                      _planSearchController.clear();
+                      _planSearchQuery = '';
+                    });
+                  },
+                )
+              : null,
+        ),
+        onChanged: (value) {
+          setState(() {
+            _planSearchQuery = value;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildWarningBanner(String message) {
+    final isDark = AppThemeColors.isDark(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF3A1F1F) : const Color(0xFFFFF1F1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFF6B6B).withValues(alpha: isDark ? 0.5 : 1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFE53935), size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message,
+                style: const TextStyle(
+                    color: Color(0xFFE57373), fontWeight: FontWeight.w600, fontSize: 12.5)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentActions({
+    required String razorpayLabel,
+    required String walletLabel,
+    required VoidCallback? onRazorpay,
+    required VoidCallback? onWallet,
+  }) {
+    final t = AppLocalizations.of(context).t;
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.cyan, AppColors.blue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.cyan.withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: onRazorpay,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            icon: const Icon(Icons.payment_rounded, color: Colors.white),
+            label: Text(
+              razorpayLabel,
+              style: const TextStyle(
+                  fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(children: [
+          Expanded(child: Divider(thickness: 1, color: AppThemeColors.divider(context))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(t('or_label'),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.mutedText(context))),
+          ),
+          Expanded(child: Divider(thickness: 1, color: AppThemeColors.divider(context))),
+        ]),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(context),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.cyan, width: 1.5),
+          ),
+          child: ElevatedButton.icon(
+            onPressed: onWallet,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            icon: _isPayingViaWallet
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
+                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
+            label: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isPayingViaWallet ? t('processing_ellipsis_label') : walletLabel,
+                  style: const TextStyle(
+                      fontSize: 15, color: AppColors.cyan, fontWeight: FontWeight.bold),
+                ),
+                if (!_isPayingViaWallet)
+                  Text(
+                    t('balance_amount_message')
+                        .replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)),
+                    style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlreadySubscribedCard() {
+    final t = AppLocalizations.of(context).t;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFF0F9FF), dark: const Color(0xFF11303D)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 32),
+          const SizedBox(height: 10),
+          Text(
+            t('already_subscribed_browse_plans_message'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13.5),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: () => _tabController.animateTo(3),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.cyan,
+              side: const BorderSide(color: AppColors.cyan),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            label: Text(t('go_to_other_details_label')),
+          ),
         ],
       ),
     );
@@ -1540,9 +1680,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   Widget _buildBenefitsTab() {
     final t = AppLocalizations.of(context).t;
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
       child: _isLoadingBenefits
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: CircularProgressIndicator()))
           : _benefitsError != null
               ? _buildErrorState(_benefitsError!, _fetchBenefits)
               : _benefits.isEmpty
@@ -1550,10 +1692,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                       t('nothing_here'), t('no_benefits_listed_message'))
                   : Column(
                       children: _benefits.asMap().entries.map((entry) {
-                        int idx = entry.key;
-                        PremiumBenefit benefit = entry.value;
-                        return _buildBenefitItem(
-                            idx, Icons.check, benefit.text, '');
+                        return _buildBenefitItem(entry.key, entry.value.text);
                       }).toList(),
                     ),
     );
@@ -1562,18 +1701,19 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   Widget _buildFaqsTab() {
     final t = AppLocalizations.of(context).t;
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
       child: _isLoadingFaqs
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: CircularProgressIndicator()))
           : _faqsError != null
               ? _buildErrorState(_faqsError!, _fetchFaqs)
               : _faqs.isEmpty
                   ? _buildEmptyState(t('nothing_here'), t('no_faqs_listed_message'))
                   : Column(
                       children: _faqs.asMap().entries.map((entry) {
-                        int idx = entry.key;
-                        Faq faq = entry.value;
-                        return _buildFAQItem(faq.question, faq.answer, idx);
+                        return _buildFAQItem(
+                            entry.value.question, entry.value.answer, entry.key);
                       }).toList(),
                     ),
     );
@@ -1581,6 +1721,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
   Widget _buildActivePlanTab(SessionProvider session) {
     final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     final daysRemaining = session.subscriptionEndDate != null
         ? session.subscriptionEndDate!.difference(DateTime.now()).inDays
         : 0;
@@ -1590,7 +1731,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                 (DateTime.now().difference(session.subscriptionEndDate!).inDays)
             : 0;
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
       child: Column(
         children: [
           if (!session.isSubscribed)
@@ -1604,20 +1745,20 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                   Text(t('not_subscribed_yet_message'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           color: AppThemeColors.secondaryText(context))),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () => _tabController.animateTo(0),
-                    icon: const Icon(Icons.card_membership),
+                    icon: const Icon(Icons.card_membership_rounded),
                     label: Text(t('view_plans_label')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.cyan,
                       foregroundColor: Colors.white,
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
                 ],
@@ -1625,116 +1766,115 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             ),
           if (session.isSubscribed) ...[
             Container(
-              padding: const EdgeInsets.all(2),
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
                 gradient: const LinearGradient(
-                  colors: [Colors.orange, Colors.white, Colors.green],
+                  colors: [AppColors.cyan, AppColors.blue],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.cyan, Color(0xFF0096C7)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.cyan.withValues(alpha: 0.3),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.cyan.withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '🎉 ${t('premium_member_label')}',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatCard(
-                              Icons.calendar_today,
-                              daysRemaining > 0
-                                  ? '$daysRemaining'
-                                  : (freeDaysRemaining > 0
-                                      ? '$freeDaysRemaining'
-                                      : t('expired_label')),
-                              daysRemaining > 0
-                                  ? t('days_left_label')
-                                  : (freeDaysRemaining > 0
-                                      ? t('free_days_left_label')
-                                      : t('status_label'))),
-                          SizedBox(width: 20),
-                          _buildStatCard(
-                              Icons.workspace_premium,
-                              session.subscriptionPlan?.split(' ')[0] ??
-                                  t('na_label'),
-                              t('plan_label')),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                gradient: const LinearGradient(
-                  colors: [Colors.orange, Colors.white, Colors.green],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFCE4EC),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t('subscription_details_label'),
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.celebration_rounded, color: Colors.white, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        t('premium_member_label'),
+                        style: const TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatCard(
+                            Icons.calendar_today_rounded,
+                            daysRemaining > 0
+                                ? '$daysRemaining'
+                                : (freeDaysRemaining > 0
+                                    ? '$freeDaysRemaining'
+                                    : t('expired_label')),
+                            daysRemaining > 0
+                                ? t('days_left_label')
+                                : (freeDaysRemaining > 0
+                                    ? t('free_days_left_label')
+                                    : t('status_label'))),
+                        const SizedBox(width: 16),
+                        _buildStatCard(
+                            Icons.workspace_premium_rounded,
+                            session.subscriptionPlan?.split(' ')[0] ?? t('na_label'),
+                            t('plan_label')),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    _buildInfoRow(t('plan_colon_label'),
-                        session.subscriptionPlan ?? t('na_label')),
-                    const SizedBox(height: 10),
-                    _buildInfoRow(
-                        t('expires_on_colon_label'),
-                        session.subscriptionEndDate
-                                ?.toLocal()
-                                .toString()
-                                .split(' ')[0] ??
-                            t('na_label')),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppThemeColors.divider(context)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.receipt_long_rounded, color: AppColors.cyan, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        t('subscription_details_label'),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(t('plan_colon_label'),
+                      session.subscriptionPlan ?? t('na_label')),
+                  const SizedBox(height: 10),
+                  Divider(color: AppThemeColors.divider(context), height: 1),
+                  const SizedBox(height: 10),
+                  _buildInfoRow(
+                      t('expires_on_colon_label'),
+                      session.subscriptionEndDate
+                              ?.toLocal()
+                              .toString()
+                              .split(' ')[0] ??
+                          t('na_label')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -1753,7 +1893,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                   style: const TextStyle(
                       color: AppColors.cyan,
                       fontWeight: FontWeight.bold,
-                      fontSize: 15),
+                      fontSize: 14.5),
                 ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.cyan, width: 1.5),
@@ -1766,7 +1906,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             if (_showRenewalSection) _buildRenewalSection(),
             const SizedBox(height: 20),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _buildTrustBadges(),
         ],
       ),
@@ -1777,7 +1917,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     final t = AppLocalizations.of(context).t;
     final history = session.subscriptionHistory;
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
       child: history != null && history.isNotEmpty
           ? _buildSubscriptionHistory(history)
           : Padding(
@@ -1790,7 +1930,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                   Text(t('no_subscription_history_yet_message'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           color: AppThemeColors.secondaryText(context))),
                 ],
               ),
@@ -1803,17 +1943,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
+            color: AppThemeColors.tinted(context,
+                light: const Color(0xFFE8F5E9), dark: const Color(0xFF1B3A26)),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
           ),
           child: Row(children: [
-            const Icon(Icons.info_outline, color: Colors.green, size: 18),
+            const Icon(Icons.info_outline_rounded, color: Colors.green, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -1823,10 +1964,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             ),
           ]),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         Text(t('select_a_plan_label'),
             style: TextStyle(
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: AppThemeColors.primaryText(context))),
         const SizedBox(height: 12),
@@ -1834,103 +1975,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           const Center(child: CircularProgressIndicator())
         else
           ..._plans.asMap().entries.map((e) => _buildPlanCard(e.value, e.key)),
-        const SizedBox(height: 20),
-        // Razorpay button
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5))
-            ],
-          ),
-          child: ElevatedButton.icon(
-            onPressed: _isPayingViaWallet ? null : _startPayment,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              disabledBackgroundColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24)),
-            ),
-            icon: const Icon(Icons.payment, color: Colors.black),
-            label: Text(
-              t('renew_via_razorpay_label'),
-              style: const TextStyle(
-                  fontSize: 17,
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Row(children: [
-          const Expanded(child: Divider(thickness: 1.2)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(t('or_label'),
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[500])),
-          ),
-          const Expanded(child: Divider(thickness: 1.2)),
-        ]),
-        const SizedBox(height: 14),
-        // Wallet button
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.cyan, width: 2),
-          ),
-          child: ElevatedButton.icon(
-            onPressed: _isPayingViaWallet ? null : _payViaWallet,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF0F9FF),
-              shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            icon: _isPayingViaWallet
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: AppColors.cyan))
-                : const Icon(Icons.account_balance_wallet_rounded,
-                    color: AppColors.cyan),
-            label: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isPayingViaWallet
-                      ? t('processing_ellipsis_label')
-                      : t('renew_via_lenden_wallet_label'),
-                  style: const TextStyle(
-                      fontSize: 17,
-                      color: AppColors.cyan,
-                      fontWeight: FontWeight.bold),
-                ),
-                if (!_isPayingViaWallet)
-                  Text(
-                      t('balance_amount_message').replaceFirst(
-                          '{amount}', _walletBalance.toStringAsFixed(2)),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-              ],
-            ),
-          ),
+        const SizedBox(height: 18),
+        _buildPaymentActions(
+          razorpayLabel: t('renew_via_razorpay_label'),
+          walletLabel: t('renew_via_lenden_wallet_label'),
+          onRazorpay: _isPayingViaWallet ? null : _startPayment,
+          onWallet: _isPayingViaWallet ? null : _payViaWallet,
         ),
       ],
     );
@@ -1938,27 +1988,29 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
   Widget _buildStatCard(IconData icon, String value, String label) {
     return Container(
-      padding: EdgeInsets.all(16),
+      width: 130,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Icon(icon, color: Colors.white, size: 30),
-          SizedBox(height: 8),
+          Icon(icon, color: Colors.white, size: 26),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 24,
+            style: const TextStyle(
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
+            style: const TextStyle(
+              fontSize: 11,
               color: Colors.white70,
             ),
           ),
@@ -1972,102 +2024,91 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.black87)),
-        Text(value, style: const TextStyle(color: Colors.black87)),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppThemeColors.secondaryText(context))),
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.5,
+                color: AppThemeColors.primaryText(context))),
       ],
     );
   }
 
-  Widget _buildPremiumIllustration() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(seconds: 2),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 20),
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            height: 280,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF87CEEB), // Sky blue
-                  Color(0xFFE0F6FF), // Light sky
-                  Color(0xFFFFF8DC), // Cream (horizon)
-                  Color(0xFFC8E6C9), // Light green (ground)
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: [0.0, 0.4, 0.7, 1.0],
-              ),
-              borderRadius: BorderRadius.circular(17),
-            ),
-            child: Stack(
-              children: [
-                // Animated clouds
-                Positioned(
-                  left: 20 + (value * 10),
-                  top: 20,
-                  child: _buildCloud(30, 20),
-                ),
-                Positioned(
-                  right: 30 - (value * 8),
-                  top: 40,
-                  child: _buildCloud(40, 25),
-                ),
-                Positioned(
-                  left: MediaQuery.of(context).size.width * 0.3,
-                  top: 15 + (value * 5),
-                  child: _buildCloud(25, 15),
-                ),
-
-                // Animated parachute
-                Transform.translate(
-                  offset: Offset(0, -10 + (value * 10)),
-                  child: Center(
-                    child: CustomPaint(
-                      size: Size(200, 280),
-                      painter: EnhancedParachutePainter(animationValue: value),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCloud(double width, double height) {
+  Widget _buildPremiumHero() {
+    final t = AppLocalizations.of(context).t;
     return Container(
-      width: width,
-      height: height,
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [AppColors.cyan, AppColors.blue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cyan.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 14),
+          Text(t('unlock_premium_title'),
+              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          Text(t('unlock_premium_subtitle'),
+              style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: kSubscriptionFeatures.take(4).map((f) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(f.icon, size: 13, color: Colors.white),
+                    const SizedBox(width: 5),
+                    Text(t(f.labelKey),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                  ]),
+                )).toList(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPlanCard(SubscriptionPlan plan, int index) {
     final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     final isSelected = _selectedPlan == plan.name;
     final discountedPrice = plan.price * (1 - plan.discount / 100);
     // Mark the most popular plan: index 1 when 3+ plans, otherwise index 0
     final isPopular = _plans.length >= 3
         ? index == 1
         : (_plans.length == 2 ? index == 1 : index == 0);
+    final accent = _accentColor(index);
+    final hasRibbon = isPopular || plan.discount > 0;
 
     return GestureDetector(
       onTap: () {
@@ -2075,158 +2116,177 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           _selectedPlan = plan.name;
         });
       },
-      child: Stack(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.cyan.withValues(alpha: isDark ? 0.16 : 0.07)
+              : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.cyan : AppThemeColors.divider(context),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _getBenefitColor(index),
-                borderRadius: BorderRadius.circular(18),
-                border: isSelected
-                    ? Border.all(color: AppColors.cyan, width: 2.5)
-                    : null,
-              ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, hasRibbon ? 26 : 18, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Radio<String>(
-                        value: plan.name,
-                        groupValue: _selectedPlan,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedPlan = value;
-                          });
-                        },
-                        activeColor: AppColors.cyan,
+                      Container(
+                        width: 26,
+                        height: 26,
+                        margin: const EdgeInsets.only(top: 2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? AppColors.cyan
+                              : accent.withValues(alpha: isDark ? 0.22 : 0.14),
+                        ),
+                        child: Icon(
+                          isSelected ? Icons.check_rounded : Icons.workspace_premium_rounded,
+                          size: 15,
+                          color: isSelected ? Colors.white : accent,
+                        ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               plan.name,
-                              style: const TextStyle(
-                                fontSize: 18,
+                              style: TextStyle(
+                                fontSize: 17,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
-                            SizedBox(height: 4),
-                            Row(
+                            const SizedBox(height: 6),
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
                               children: [
-                                if (plan.discount > 0)
-                                  Text(
-                                    _formatPlanAmount(plan.price),
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                SizedBox(width: 8),
                                 Text(
                                   _formatPlanAmount(discountedPrice),
-                                  style: TextStyle(
-                                    fontSize: 24,
+                                  style: const TextStyle(
+                                    fontSize: 23,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.cyan,
                                   ),
                                 ),
+                                if (plan.discount > 0)
+                                  Text(
+                                    _formatPlanAmount(plan.price),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppThemeColors.mutedText(context),
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                Text(
+                                  t('for_days_message')
+                                      .replaceFirst('{duration}', '${plan.duration}'),
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppThemeColors.secondaryText(context),
+                                  ),
+                                ),
                               ],
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              t('for_days_message').replaceFirst(
-                                  '{duration}', '${plan.duration}'),
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                            if (plan.free > 0)
+                            if (plan.free > 0) ...[
+                              const SizedBox(height: 6),
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star,
-                                      color: Colors.orange, size: 16),
-                                  SizedBox(width: 4),
+                                  const Icon(Icons.celebration_rounded,
+                                      color: Colors.orange, size: 14),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    t('free_days_message').replaceFirst(
-                                        '{count}', '${plan.free}'),
-                                    style: TextStyle(
+                                    t('free_days_message')
+                                        .replaceFirst('{count}', '${plan.free}'),
+                                    style: const TextStyle(
                                       color: Colors.orange,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ],
                               ),
+                            ],
                           ],
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 10),
-                  ...plan.features.map((feature) => Padding(
-                        padding: const EdgeInsets.only(left: 50.0, bottom: 4.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.check, color: Colors.green, size: 16),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                feature,
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                  if (plan.allowedFeatures.isNotEmpty) ...[
-                    SizedBox(height: 10),
+                  if (plan.features.isNotEmpty) ...[
+                    const SizedBox(height: 14),
                     Padding(
-                      padding: const EdgeInsets.only(left: 50.0),
-                      child: Text(t('plan_includes_label'),
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[600])),
+                      padding: const EdgeInsets.only(left: 38),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: plan.features
+                            .map((feature) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.check_rounded,
+                                          color: AppColors.cyan, size: 16),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          feature,
+                                          style: TextStyle(
+                                            color: AppThemeColors.secondaryText(context),
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ))
+                            .toList(),
+                      ),
                     ),
-                    SizedBox(height: 6),
+                  ],
+                  if (plan.allowedFeatures.isNotEmpty) ...[
+                    const SizedBox(height: 12),
                     Padding(
-                      padding: const EdgeInsets.only(left: 42.0),
+                      padding: const EdgeInsets.only(left: 38),
                       child: Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: kSubscriptionFeatures
                             .where((f) => plan.allowedFeatures.contains(f.key))
-                            .map((f) => Chip(
-                                  avatar:
-                                      Icon(f.icon, size: 13, color: AppColors.cyan),
-                                  label: Text(t(f.labelKey),
-                                      style: const TextStyle(fontSize: 10)),
-                                  visualDensity: VisualDensity.compact,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  padding: EdgeInsets.zero,
-                                  backgroundColor:
-                                      AppColors.cyan.withValues(alpha: 0.1),
+                            .map((f) => Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cyan.withValues(alpha: isDark ? 0.18 : 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Icon(f.icon, size: 11, color: AppColors.cyan),
+                                    const SizedBox(width: 4),
+                                    Text(t(f.labelKey),
+                                        style: const TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.cyan,
+                                            fontWeight: FontWeight.w600)),
+                                  ]),
                                 ))
                             .toList(),
                       ),
@@ -2235,68 +2295,65 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                 ],
               ),
             ),
-          ),
-          if (isPopular)
-            Positioned(
-              top: 0,
-              left: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: const BoxDecoration(
-                  color: AppColors.cyan,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(12),
+            if (isPopular)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: const BoxDecoration(
+                    color: AppColors.cyan,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(14),
+                    ),
                   ),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.star_rounded, color: Colors.white, size: 11),
-                  const SizedBox(width: 3),
-                  Text(t('most_popular_label'),
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11)),
-                ]),
-              ),
-            ),
-          if (plan.discount > 0)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  t('percent_off_message')
-                      .replaceFirst('{discount}', '${plan.discount}'),
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.star_rounded, color: Colors.white, size: 12),
+                    const SizedBox(width: 4),
+                    Text(t('most_popular_label'),
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                  ]),
                 ),
               ),
-            ),
-        ],
+            if (plan.discount > 0)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE53935),
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    t('percent_off_message').replaceFirst('{discount}', '${plan.discount}'),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildComparisonView(List<SubscriptionPlan> plans) {
     final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: plans.asMap().entries.map((entry) {
-          int idx = entry.key;
-          SubscriptionPlan plan = entry.value;
+          final idx = entry.key;
+          final plan = entry.value;
           final isSelected = _selectedPlan == plan.name;
+          final accent = _accentColor(idx);
 
           return GestureDetector(
             onTap: () {
@@ -2305,58 +2362,74 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               });
             },
             child: Container(
-              width: 160,
+              width: 168,
               margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.all(2),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  colors: [Colors.orange, Colors.white, Colors.green],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                color: isSelected
+                    ? AppColors.cyan.withValues(alpha: isDark ? 0.16 : 0.07)
+                    : AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isSelected ? AppColors.cyan : AppThemeColors.divider(context),
+                  width: isSelected ? 2 : 1,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _getBenefitColor(idx),
-                  borderRadius: BorderRadius.circular(18),
-                  border: isSelected
-                      ? Border.all(color: AppColors.cyan, width: 2.5)
-                      : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 12),
-                    Text(
-                      plan.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent.withValues(alpha: isDark ? 0.22 : 0.14)),
+                    child: Icon(Icons.workspace_premium_rounded, size: 16, color: accent),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    plan.name,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      _formatPlanAmount(plan.price),
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.cyan,
-                      ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _formatPlanAmount(plan.price * (1 - plan.discount / 100)),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.cyan,
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      t('for_days_message')
-                          .replaceFirst('{duration}', '${plan.duration}'),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t('for_days_message').replaceFirst('{duration}', '${plan.duration}'),
+                    style: TextStyle(
+                      color: AppThemeColors.secondaryText(context),
+                      fontSize: 11.5,
                     ),
+                  ),
+                  if (isSelected) ...[
+                    const SizedBox(height: 10),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 14),
+                      const SizedBox(width: 4),
+                      Text(t('selected_label'),
+                          style: const TextStyle(
+                              color: AppColors.cyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ]),
                   ],
-                ),
+                ],
               ),
             ),
           );
@@ -2368,17 +2441,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   Widget _buildTrustBadges() {
     final t = AppLocalizations.of(context).t;
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(15),
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.divider(context)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildBadge(Icons.security, t('secure_payment_label')),
-          _buildBadge(Icons.support_agent, t('support_24_7_label')),
-          _buildBadge(Icons.verified, t('money_back_guarantee_label')),
+          _buildBadge(Icons.security_rounded, t('secure_payment_label')),
+          _buildBadge(Icons.support_agent_rounded, t('support_24_7_label')),
+          _buildBadge(Icons.verified_rounded, t('money_back_guarantee_label')),
         ],
       ),
     );
@@ -2387,423 +2461,106 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   Widget _buildBadge(IconData icon, String text) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.cyan, size: 30),
-        SizedBox(height: 8),
+        Icon(icon, color: AppColors.cyan, size: 28),
+        const SizedBox(height: 8),
         Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
+          style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: AppThemeColors.secondaryText(context)),
         ),
       ],
     );
   }
 
-  Widget _buildBenefitItem(
-      int index, IconData icon, String title, String subtitle) {
+  Widget _buildBenefitItem(int index, String text) {
+    final accent = _accentColor(index);
+    final isDark = AppThemeColors.isDark(context);
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(2),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(17),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.divider(context)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _getBenefitColor(index),
-          borderRadius: BorderRadius.circular(15),
+      child: Row(children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle, color: accent.withValues(alpha: isDark ? 0.22 : 0.14)),
+          child: Icon(Icons.check_rounded, color: accent, size: 19),
         ),
-        child: ListTile(
-          leading: Icon(icon, color: AppColors.cyan, size: 40),
-          title: Text(title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.black87)),
-          subtitle: subtitle.isNotEmpty
-              ? Text(subtitle, style: const TextStyle(color: Colors.black87))
-              : null,
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppThemeColors.primaryText(context))),
         ),
-      ),
+      ]),
     );
   }
 
   Widget _buildFAQItem(String question, String answer, int index) {
+    final isDark = AppThemeColors.isDark(context);
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(2),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(17),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.divider(context)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _getBenefitColor(index),
-          borderRadius: BorderRadius.circular(15),
-        ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          leading: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: isDark ? 0.2 : 0.12)),
+            child: const Icon(Icons.question_mark_rounded, color: AppColors.cyan, size: 16),
+          ),
           title: Text(
             question,
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: Colors.black87),
+                fontSize: 13.5,
+                color: AppThemeColors.primaryText(context)),
           ),
+          iconColor: AppColors.cyan,
+          collapsedIconColor: AppThemeColors.secondaryText(context),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          childrenPadding: EdgeInsets.zero,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
               child: Text(
                 answer,
-                style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13, height: 1.4),
               ),
             ),
           ],
-          tilePadding: EdgeInsets.symmetric(horizontal: 16),
-          childrenPadding: EdgeInsets.zero,
         ),
       ),
     );
-  }
-}
-
-class EnhancedParachutePainter extends CustomPainter {
-  final double animationValue;
-
-  EnhancedParachutePainter({required this.animationValue});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()..style = PaintingStyle.fill;
-
-    final double centerX = size.width / 2;
-    final double canopyTop = size.height * 0.1;
-    final double canopyRadius = size.width * 0.35;
-
-    // Draw umbrella-style parachute canopy with curve
-    final int segments = 8;
-    final double segmentAngle = 3.14159 / segments;
-
-    // Draw curved parachute segments
-    for (int i = 0; i < segments; i++) {
-      Path segmentPath = Path();
-
-      // Colors alternate between orange and dark blue
-      if (i % 2 == 0) {
-        paint.color = Colors.orange;
-      } else {
-        paint.color = Color(0xFF1E3A5F);
-      }
-
-      // Create curved segment
-      double startAngle = 3.14159 + (i * segmentAngle);
-      double endAngle = startAngle + segmentAngle;
-
-      // Top arc
-      segmentPath.moveTo(centerX, canopyTop);
-      segmentPath.arcTo(
-        Rect.fromCircle(
-            center: Offset(centerX, canopyTop), radius: canopyRadius),
-        startAngle,
-        segmentAngle,
-        false,
-      );
-
-      // Curved bottom (umbrella effect)
-      double bottomCurveDepth = 15;
-      double midX = centerX +
-          canopyRadius * math.cos((startAngle + endAngle) / 2 - 3.14159);
-      double midY = canopyTop +
-          canopyRadius * math.sin((startAngle + endAngle) / 2 - 3.14159) +
-          bottomCurveDepth;
-
-      segmentPath.quadraticBezierTo(midX, midY + 10, centerX, canopyTop);
-
-      canvas.drawPath(segmentPath, paint);
-    }
-
-    // Draw parachute outline with curve
-    Paint outlinePaint = Paint()
-      ..color = Color(0xFF1E3A5F)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-
-    Path outlinePath = Path();
-    outlinePath.moveTo(centerX - canopyRadius, canopyTop);
-
-    // Curved umbrella outline
-    for (int i = 0; i <= 20; i++) {
-      double t = i / 20;
-      double angle = 3.14159 + (t * 3.14159);
-      double x = centerX + canopyRadius * math.cos(angle);
-      double y = canopyTop + canopyRadius * math.sin(angle);
-
-      // Add curve depth
-      y += 15 * (0.5 - (t - 0.5).abs() * 2).abs();
-
-      outlinePath.lineTo(x, y);
-    }
-
-    canvas.drawPath(outlinePath, outlinePaint);
-
-    // Draw parachute strings
-    Paint stringPaint = Paint()
-      ..color = Colors.grey.shade600
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    double stringStartY = canopyTop + canopyRadius + 15;
-    double boxTopY = size.height * 0.52;
-
-    // Multiple strings with slight sway
-    double sway = animationValue * 3;
-
-    canvas.drawLine(
-      Offset(centerX - canopyRadius * 0.85, stringStartY),
-      Offset(centerX - size.width * 0.15 + sway, boxTopY),
-      stringPaint,
-    );
-
-    canvas.drawLine(
-      Offset(centerX - canopyRadius * 0.5, stringStartY - 10),
-      Offset(centerX - size.width * 0.08 + sway, boxTopY),
-      stringPaint,
-    );
-
-    canvas.drawLine(
-      Offset(centerX + canopyRadius * 0.5, stringStartY - 10),
-      Offset(centerX + size.width * 0.08 - sway, boxTopY),
-      stringPaint,
-    );
-
-    canvas.drawLine(
-      Offset(centerX + canopyRadius * 0.85, stringStartY),
-      Offset(centerX + size.width * 0.15 - sway, boxTopY),
-      stringPaint,
-    );
-
-    // Draw realistic gift box
-    double boxWidth = size.width * 0.32;
-    double boxHeight = size.height * 0.18;
-
-    // Box shadow
-    paint.color = Colors.black.withValues(alpha: 0.2);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-            centerX - boxWidth / 2 + 3, boxTopY + 3, boxWidth, boxHeight),
-        Radius.circular(8),
-      ),
-      paint,
-    );
-
-    // Main gift box (gradient effect)
-    Path boxPath = Path();
-    boxPath.addRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(centerX - boxWidth / 2, boxTopY, boxWidth, boxHeight),
-        Radius.circular(8),
-      ),
-    );
-
-    paint.shader = LinearGradient(
-      colors: [Color(0xFFE53935), Color(0xFFC62828)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ).createShader(
-        Rect.fromLTWH(centerX - boxWidth / 2, boxTopY, boxWidth, boxHeight));
-
-    canvas.drawPath(boxPath, paint);
-    paint.shader = null;
-
-    // Gold ribbon - vertical
-    paint.color = Color(0xFFFFD700);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(centerX - boxWidth * 0.08, boxTopY - 8, boxWidth * 0.16,
-            boxHeight + 16),
-        Radius.circular(4),
-      ),
-      paint,
-    );
-
-    // Gold ribbon - horizontal
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(centerX - boxWidth / 2 - 8, boxTopY + boxHeight * 0.4,
-            boxWidth + 16, boxHeight * 0.2),
-        Radius.circular(4),
-      ),
-      paint,
-    );
-
-    // Ribbon shine effect
-    paint.color = const Color(0xFFFFF59D).withValues(alpha: 0.5);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(centerX - boxWidth * 0.04, boxTopY - 8, boxWidth * 0.08,
-            boxHeight + 16),
-        Radius.circular(2),
-      ),
-      paint,
-    );
-
-    // Draw decorative bow on top
-    paint.color = Color(0xFFFFD700);
-
-    // Left bow loop
-    Path leftBow = Path();
-    leftBow.moveTo(centerX - 8, boxTopY - 8);
-    leftBow.quadraticBezierTo(
-      centerX - 25,
-      boxTopY - 25,
-      centerX - 18,
-      boxTopY - 12,
-    );
-    leftBow.quadraticBezierTo(
-      centerX - 12,
-      boxTopY - 8,
-      centerX - 8,
-      boxTopY - 8,
-    );
-    canvas.drawPath(leftBow, paint);
-
-    // Right bow loop
-    Path rightBow = Path();
-    rightBow.moveTo(centerX + 8, boxTopY - 8);
-    rightBow.quadraticBezierTo(
-      centerX + 25,
-      boxTopY - 25,
-      centerX + 18,
-      boxTopY - 12,
-    );
-    rightBow.quadraticBezierTo(
-      centerX + 12,
-      boxTopY - 8,
-      centerX + 8,
-      boxTopY - 8,
-    );
-    canvas.drawPath(rightBow, paint);
-
-    // Bow center
-    canvas.drawCircle(Offset(centerX, boxTopY - 8), 5, paint);
-
-    // Add sparkles on box
-    paint.color = Colors.white;
-    canvas.drawCircle(Offset(centerX - 15, boxTopY + 15), 2, paint);
-    canvas.drawCircle(Offset(centerX + 18, boxTopY + 25), 1.5, paint);
-    canvas.drawCircle(
-        Offset(centerX - 10, boxTopY + boxHeight - 10), 1.8, paint);
-
-    // Draw people on ground
-    double groundY = size.height * 0.85;
-
-    // Person 1 (Male - left)
-    _drawPerson(canvas, centerX - 60, groundY, Color(0xFF2196F3), true);
-
-    // Person 2 (Female - right)
-    _drawPerson(canvas, centerX + 50, groundY, Color(0xFFE91E63), false);
-
-    // Draw ground line
-    paint.color = Color(0xFF8BC34A);
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 2;
-    canvas.drawLine(
-      Offset(0, groundY + 35),
-      Offset(size.width, groundY + 35),
-      paint,
-    );
-
-    // Add small grass elements
-    for (int i = 0; i < 5; i++) {
-      double x = (size.width / 6) * (i + 1);
-      _drawGrass(canvas, x, groundY + 35);
-    }
-  }
-
-  void _drawPerson(
-      Canvas canvas, double x, double y, Color shirtColor, bool isMale) {
-    Paint paint = Paint()..style = PaintingStyle.fill;
-
-    // Head
-    paint.color = Color(0xFFFFDBAC);
-    canvas.drawCircle(Offset(x, y), 8, paint);
-
-    // Hair
-    paint.color = isMale ? Color(0xFF4A4A4A) : Color(0xFF8B4513);
-    if (isMale) {
-      canvas.drawArc(
-        Rect.fromCircle(center: Offset(x, y), radius: 8),
-        3.14159,
-        3.14159,
-        true,
-        paint,
-      );
-    } else {
-      // Female with ponytail
-      canvas.drawCircle(Offset(x, y - 8), 5, paint);
-      canvas.drawCircle(Offset(x + 8, y - 6), 4, paint);
-    }
-
-    // Body (shirt)
-    paint.color = shirtColor;
-    Path body = Path();
-    body.moveTo(x, y + 8);
-    body.lineTo(x - 10, y + 25);
-    body.lineTo(x + 10, y + 25);
-    body.close();
-    canvas.drawPath(body, paint);
-
-    // Arms (waving)
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 3;
-    paint.strokeCap = StrokeCap.round;
-
-    // Left arm
-    canvas.drawLine(Offset(x - 8, y + 12), Offset(x - 15, y + 5), paint);
-
-    // Right arm
-    canvas.drawLine(Offset(x + 8, y + 12), Offset(x + 15, y + 5), paint);
-
-    // Legs
-    paint.color = Color(0xFF424242);
-    canvas.drawLine(Offset(x - 5, y + 25), Offset(x - 5, y + 35), paint);
-    canvas.drawLine(Offset(x + 5, y + 25), Offset(x + 5, y + 35), paint);
-
-    // Add excited expression
-    paint.style = PaintingStyle.fill;
-    paint.color = Colors.black;
-    canvas.drawCircle(Offset(x - 3, y - 2), 1.5, paint);
-    canvas.drawCircle(Offset(x + 3, y - 2), 1.5, paint);
-
-    // Smile
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 1;
-    Path smile = Path();
-    smile.moveTo(x - 3, y + 3);
-    smile.quadraticBezierTo(x, y + 5, x + 3, y + 3);
-    canvas.drawPath(smile, paint);
-  }
-
-  void _drawGrass(Canvas canvas, double x, double y) {
-    Paint paint = Paint()
-      ..color = Color(0xFF7CB342)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawLine(Offset(x, y), Offset(x - 2, y - 5), paint);
-    canvas.drawLine(Offset(x, y), Offset(x, y - 6), paint);
-    canvas.drawLine(Offset(x, y), Offset(x + 2, y - 5), paint);
-  }
-
-  @override
-  bool shouldRepaint(EnhancedParachutePainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue;
   }
 }
