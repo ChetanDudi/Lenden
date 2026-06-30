@@ -205,8 +205,11 @@ class _QrScannerPageState extends State<QrScannerPage> {
       if (!mounted) return;
       if (paid == true) {
         final amt = amountStr != null ? double.tryParse(amountStr) : null;
-        Navigator.pushReplacement(
-          context,
+        // Capture the NavigatorState before pushReplacement — once this page
+        // is replaced, its own `context` becomes defunct, so onDone (invoked
+        // later when the user taps "Done") must not look it up again.
+        final navigator = Navigator.of(context);
+        navigator.pushReplacement(
           MaterialPageRoute(
             builder: (_) => PaymentSuccessPage(
               title: 'Payment Successful!',
@@ -216,7 +219,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
               extraDetails: {
                 if (note.isNotEmpty) 'Note': note,
               },
-              onDone: () => Navigator.of(context).pop(true),
+              onDone: () => navigator.pop(true),
             ),
           ),
         );
@@ -269,8 +272,11 @@ class _QrScannerPageState extends State<QrScannerPage> {
       // withdrawals — this was debited immediately and queued for an admin to
       // manually send to the shop's UPI ID, instead of an instant final payment.
       final amt = (result['amount'] as num?)?.toDouble();
-      Navigator.pushReplacement(
-        context,
+      // Capture the NavigatorState before pushReplacement — once this page is
+      // replaced, its own `context` becomes defunct, so onDone (invoked later
+      // when the user taps "Done") must not look it up again.
+      final navigator = Navigator.of(context);
+      navigator.pushReplacement(
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
             title: 'Payment Submitted!',
@@ -282,7 +288,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
               if ((note).isNotEmpty) 'Note': note,
               'Status': 'Sent to admin for processing (24–48 hrs)',
             },
-            onDone: () => Navigator.of(context).pop(true),
+            onDone: () => navigator.pop(true),
           ),
         ),
       );

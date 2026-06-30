@@ -332,8 +332,12 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
         final recipient = paidBy == 'lender' ? borrowerEmail : lenderEmail;
         final note = _descriptionController.text.trim();
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
+          // Capture the NavigatorState before pushReplacement — once this
+          // page is replaced, its own `context` becomes defunct, so onDone
+          // (invoked later when the user taps "Done") must not look it up
+          // again via Navigator.of(context).
+          final navigator = Navigator.of(context);
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (_) => PaymentSuccessPage(
                 title: widget.isFullPayment ? 'Payment Successful!' : 'Partial Payment Successful!',
@@ -343,7 +347,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                     ? 'Secure Transaction — Full Payment'
                     : 'Secure Transaction — Partial Payment',
                 extraDetails: note.isNotEmpty ? {'Note': note} : const {},
-                onDone: () => Navigator.of(context).pop(true),
+                onDone: () => navigator.pop(true),
               ),
             ),
           );
