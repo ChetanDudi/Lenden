@@ -2638,6 +2638,21 @@ class AppLocalizations {
       'reject_withdrawal_title': 'Reject Withdrawal',
       'review_and_process_wallet_withdrawals_desc':
           'Review and process pending wallet withdrawals',
+      'scan_and_pay_title': 'Scan & Pay',
+      'scan_qr_code_label': 'Scan QR Code',
+      'scan_qr_code_desc': 'Pay a shop via UPI QR using your LenDen wallet',
+      'pay_user_desc': 'Send money directly to a LenDen user',
+      'manage_scan_payments_label': 'Manage Scan Payments',
+      'manage_scan_payments_title': 'Manage Scan Payments',
+      'review_and_process_scan_payments_desc':
+          'Review and process pending QR scan payments',
+      'no_scan_payment_requests_message': 'No scan payment requests',
+      'failed_to_load_scan_payments': 'Failed to load scan payments',
+      'reject_scan_payment_title': 'Reject Scan Payment',
+      'scan_payment_marked_processed_message': 'Scan payment marked as processed',
+      'scan_payment_rejected_refunded_message': 'Scan payment rejected and wallet refunded',
+      'scan_payment_pending_admin_review_suffix':
+          'payment submitted — it will be sent to the shop within 24–48 hrs',
       'status_all_label': 'All',
       'status_failed_label': 'Failed',
       'status_pending_label': 'Pending',
@@ -6142,6 +6157,21 @@ class AppLocalizations {
       'reject_withdrawal_title': 'निकासी अस्वीकार करें',
       'review_and_process_wallet_withdrawals_desc':
           'लंबित वॉलेट निकासी की समीक्षा और प्रक्रिया करें',
+      'scan_and_pay_title': 'स्कैन करें और भुगतान करें',
+      'scan_qr_code_label': 'QR कोड स्कैन करें',
+      'scan_qr_code_desc': 'अपने LenDen वॉलेट से UPI QR के ज़रिए दुकान को भुगतान करें',
+      'pay_user_desc': 'किसी LenDen यूज़र को सीधे पैसे भेजें',
+      'manage_scan_payments_label': 'स्कैन भुगतान प्रबंधित करें',
+      'manage_scan_payments_title': 'स्कैन भुगतान प्रबंधित करें',
+      'review_and_process_scan_payments_desc':
+          'लंबित QR स्कैन भुगतानों की समीक्षा और प्रक्रिया करें',
+      'no_scan_payment_requests_message': 'कोई स्कैन भुगतान अनुरोध नहीं',
+      'failed_to_load_scan_payments': 'स्कैन भुगतान लोड करने में विफल',
+      'reject_scan_payment_title': 'स्कैन भुगतान अस्वीकार करें',
+      'scan_payment_marked_processed_message': 'स्कैन भुगतान संसाधित के रूप में चिह्नित किया गया',
+      'scan_payment_rejected_refunded_message': 'स्कैन भुगतान अस्वीकृत और वॉलेट वापस जोड़ा गया',
+      'scan_payment_pending_admin_review_suffix':
+          'भुगतान सबमिट किया गया — यह 24–48 घंटों में दुकान को भेज दिया जाएगा',
       'status_all_label': 'सभी',
       'status_failed_label': 'विफल',
       'status_pending_label': 'लंबित',

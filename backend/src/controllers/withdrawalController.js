@@ -99,6 +99,23 @@ exports.initiateWithdrawal = async (req, res) => {
 
     // ── Phase 2 (no RazorpayX payout account): queue for admin manual transfer ──
     if (!hasPayoutAccount) {
+      // Notify admins a new withdrawal needs manual processing — best-effort,
+      // doesn't affect the already-committed wallet debit if it fails.
+      try {
+        await Notification.create({
+          sender: req.user._id,
+          senderModel: 'User',
+          recipientType: 'all-admins',
+          recipientModel: 'Admin',
+          message: `New withdrawal request: ₹${parsedAmount} via ${mode === 'upi' ? 'UPI' : 'bank transfer'}. Review in Manage Withdrawals.`,
+          category: 'transaction',
+          deliveryStatus: 'sent',
+          sentAt: new Date(),
+        });
+      } catch (notifyErr) {
+        console.error('[Withdrawal] Failed to notify admins:', notifyErr);
+      }
+
       return res.json({
         message: `Withdrawal request submitted for ₹${parsedAmount}. Our team will transfer it to your ${mode === 'upi' ? 'UPI ID' : 'bank account'} within 24–48 hours.`,
         withdrawalId: withdrawal._id,

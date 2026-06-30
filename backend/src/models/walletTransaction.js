@@ -11,10 +11,12 @@ const walletTransactionSchema = new mongoose.Schema({
   // No default — field must be absent (not null) on wallet-payment records so the
   // sparse unique index below ignores them. null != absent for sparse indexes.
   razorpayPaymentId: { type: String },
-  // Only set on type:'withdrawal' records — lets the admin's process/reject
-  // actions update this same entry's status so the user's transaction history
-  // reflects it, instead of only being visible via a separate refund entry.
+  // Only set on type:'withdrawal'/'debit' (QR scan payment) records — lets the
+  // admin's process/reject actions update this same entry's status so the
+  // user's transaction history reflects it, instead of only being visible via
+  // a separate refund entry.
   withdrawalRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'WithdrawalRequest', default: null },
+  scanPaymentRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'ScanPaymentRequest', default: null },
   status: { type: String, enum: ['processing', 'processed', 'failed', 'reversed'] },
   createdAt: { type: Date, default: Date.now },
 });

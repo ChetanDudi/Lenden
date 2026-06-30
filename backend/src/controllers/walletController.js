@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
@@ -7,14 +6,6 @@ const Subscription = require('../models/subscription');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const Admin = require('../models/admin');
 const { sendWalletPayOTP } = require('../utils/walletPayOtp');
-
-const getRazorpay = () => {
-  const Razorpay = require('razorpay');
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw new Error('Razorpay keys not configured');
-  }
-  return new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
-};
 
 exports.getBalance = async (req, res) => {
   try {
@@ -348,110 +339,6 @@ exports.qrPay = async (req, res) => {
     });
 
     res.json({ message: 'QR payment successful', balance: newBalance });
-  } catch (err) {
-    res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
-  } finally {
-    session.endSession();
-  }
-};
-
-// ── UPI QR scan payments ──────────────────────────────────────────────────────
-
-// Create Razorpay order when user wants to pay a shop's UPI QR via Razorpay
-exports.createQrOrder = async (req, res) => {
-  try {
-    const { amount, upiId, payeeName } = req.body;
-    if (!amount || Number(amount) < 1)
-      return res.status(400).json({ error: 'Minimum payment amount is ₹1.' });
-
-    const razorpay = getRazorpay();
-    const order = await razorpay.orders.create({
-      amount: Math.round(Number(amount) * 100), // paise
-      currency: 'INR',
-      receipt: `qr_${Date.now()}`,
-      notes: {
-        userId: req.user._id.toString(),
-        upiId: upiId || '',
-        payeeName: payeeName || '',
-        type: 'qr_scan_payment',
-      },
-    });
-    res.json({
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-};
-
-// Verify Razorpay QR payment signature and record the debit transaction
-exports.verifyQrPayment = async (req, res) => {
-  try {
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount, payeeName, upiId, note } = req.body;
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature)
-      return res.status(400).json({ error: 'Missing payment fields.' });
-
-    const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest('hex');
-    if (expected !== razorpaySignature)
-      return res.status(400).json({ error: 'Signature mismatch.' });
-
-    await WalletTransaction.create({
-      user: req.user._id,
-      type: 'debit',
-      amount: Number(amount),
-      toEmail: upiId || 'external-upi',
-      note: note || `QR Payment to ${payeeName || 'Shop'}`,
-      razorpayOrderId,
-      razorpayPaymentId,
-    });
-
-    res.json({ message: 'Payment verified and recorded.' });
-  } catch (err) {
-    if (err.code === 11000)
-      return res.status(409).json({ error: 'Payment already recorded.' });
-    res.status(500).json({ error: 'Server error' });
-  }
-};
-
-// Pay a shop's UPI QR directly from LenDen wallet (balance deducted; no real UPI transfer)
-exports.payUpiQr = async (req, res) => {
-  const session = await mongoose.startSession();
-  try {
-    const { amount, upiId, payeeName, note } = req.body;
-    if (!amount || Number(amount) <= 0)
-      return res.status(400).json({ error: 'A positive amount is required.' });
-
-    const parsedAmount = Number(amount);
-    let newBalance;
-    await session.withTransaction(async () => {
-      const user = await User.findOneAndUpdate(
-        { _id: req.user._id, walletBalance: { $gte: parsedAmount } },
-        { $inc: { walletBalance: -parsedAmount } },
-        { new: true, session }
-      );
-      if (!user)
-        throw Object.assign(new Error('Insufficient balance'), {
-          status: 400, userMessage: 'Insufficient wallet balance.',
-        });
-
-      await WalletTransaction.create([{
-        user: req.user._id,
-        type: 'debit',
-        amount: parsedAmount,
-        toEmail: upiId || 'external-upi',
-        note: note || `QR Payment to ${payeeName || 'Shop'}`,
-      }], { session });
-
-      newBalance = user.walletBalance;
-    });
-
-    res.json({ message: 'Payment successful', balance: newBalance });
   } catch (err) {
     res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {

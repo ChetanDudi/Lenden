@@ -513,9 +513,6 @@ module.exports = (io) => {
   router.get('/wallet/history', auth, walletController.getHistory);
   router.post('/wallet/pay', auth, walletController.pay);
   router.post('/wallet/qr-pay', auth, walletController.qrPay);
-  router.post('/wallet/create-qr-order', auth, walletController.createQrOrder);
-  router.post('/wallet/verify-qr-payment', auth, walletController.verifyQrPayment);
-  router.post('/wallet/pay-upi-qr', auth, walletController.payUpiQr);
   router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
 
   // Real-money wallet top-up via the Razorpay Payment Handle link
@@ -535,6 +532,16 @@ module.exports = (io) => {
   router.get('/admin/withdrawals', auth, isAdmin, withdrawalController.adminGetWithdrawals);
   router.post('/admin/withdrawals/:id/process', auth, isAdmin, withdrawalController.adminMarkProcessed);
   router.post('/admin/withdrawals/:id/reject', auth, isAdmin, withdrawalController.adminRejectWithdrawal);
+
+  // QR/Scanner UPI payments — manual admin review (mirrors withdrawals; no
+  // RazorpayX payout account is configured, so this replaces the old
+  // Razorpay-order test-key checkout flow entirely)
+  const scanPaymentController = require('../controllers/scanPaymentController');
+  router.post('/wallet/scan-payment', auth, scanPaymentController.initiateScanPayment);
+  router.get('/wallet/scan-payments', auth, scanPaymentController.getScanPaymentHistory);
+  router.get('/admin/scan-payments', auth, isAdmin, scanPaymentController.adminGetScanPayments);
+  router.post('/admin/scan-payments/:id/process', auth, isAdmin, scanPaymentController.adminMarkProcessed);
+  router.post('/admin/scan-payments/:id/reject', auth, isAdmin, scanPaymentController.adminRejectScanPayment);
 
   // Admin feature routes
   // Subscription Plans

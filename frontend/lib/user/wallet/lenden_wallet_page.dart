@@ -63,7 +63,9 @@ Widget _testRow(IconData icon, String label, String value) => Row(
 );
 
 class LendenWalletPage extends StatefulWidget {
-  const LendenWalletPage({super.key});
+  final bool autoOpenPayUser;
+
+  const LendenWalletPage({super.key, this.autoOpenPayUser = false});
 
   @override
   State<LendenWalletPage> createState() => _LendenWalletPageState();
@@ -98,8 +100,13 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   @override
   void initState() {
     super.initState();
-    _fetchWalletData();
     _fetchPaymentConfig();
+    // Wait for the balance fetch to resolve before auto-opening Pay User —
+    // _PayToUserSheet receives walletBalance as a one-time constructor value,
+    // so opening it before the fetch completes would lock it to the initial 0.
+    _fetchWalletData().then((_) {
+      if (mounted && widget.autoOpenPayUser) _showPayToUserSheet();
+    });
   }
 
   Future<void> _fetchPaymentConfig() async {

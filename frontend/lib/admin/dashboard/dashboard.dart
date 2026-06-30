@@ -12,6 +12,7 @@ import '../manage_users/user_management_page.dart';
 import '../transactions/manage_group_transactions_page.dart';
 import '../transactions/manage_quick_transactions_page.dart';
 import '../transactions/manage_withdrawals_page.dart';
+import '../transactions/manage_scan_payments_page.dart';
 import '../track_users/track_user_activity_page.dart';
 import '../support/manage_contact_page.dart';
 import '../support/manage_support_queries_page.dart';
@@ -377,6 +378,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ManageWithdrawalsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'manage_scan_payments',
+          permissionKey: 'canManageTransactions',
+          icon: Icons.qr_code_scanner_rounded,
+          label: t('manage_scan_payments_label'),
+          caption: t('review_and_process_scan_payments_desc'),
+          actionLabel: t('scan_qr_code_label'),
+          backgroundColor: const Color(0xFFE8F0FE),
+          iconColor: const Color(0xFF0D47A1),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ManageScanPaymentsPage()),
             );
           },
         ),

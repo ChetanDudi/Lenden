@@ -2377,8 +2377,69 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   }
 
   void _openQrScanner() {
-    Navigator.push(
-        context, MaterialPageRoute(builder: (_) => const QrScannerPage()));
+    final t = AppLocalizations.of(context).t;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 48,
+                height: 5,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Colors.orange, Colors.white, Colors.green]),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(t('scan_and_pay_title'),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+            const SizedBox(height: 16),
+            ListTile(
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerPage()));
+              },
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.cyan),
+              ),
+              title: Text(t('scan_qr_code_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+              subtitle: Text(t('scan_qr_code_desc'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            const SizedBox(height: 6),
+            ListTile(
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LendenWalletPage(autoOpenPayUser: true)),
+                );
+              },
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: const Color(0xFF2E7D32).withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: const Icon(Icons.person_rounded, color: Color(0xFF2E7D32)),
+              ),
+              title: Text(t('pay_user_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+              subtitle: Text(t('pay_user_desc'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _navBarItem(IconData icon, String label, VoidCallback onTap,

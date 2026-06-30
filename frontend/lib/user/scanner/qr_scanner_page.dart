@@ -6,13 +6,10 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
-import '../../session.dart';
 import '../../widgets/payment_success_page.dart';
-import 'package:provider/provider.dart';
 
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
@@ -36,8 +33,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
               Platform.isMacOS));
 
   MobileScannerController? _controller;
-  Razorpay? _razorpay;
-  Map<String, dynamic>? _pendingRazorpayMeta;
 
   bool _processing = false;
   bool _torchOn = false;
@@ -51,17 +46,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
         facing: CameraFacing.back,
       );
     }
-    if (_isMobile) {
-      _razorpay = Razorpay();
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onRazorpaySuccess);
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _onRazorpayError);
-      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, (_) => _resetProcessing());
-    }
   }
 
   @override
   void dispose() {
-    _razorpay?.clear();
     _controller?.dispose();
     super.dispose();
   }
@@ -77,63 +65,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
     if (!mounted) return;
     _resetProcessing();
     showSnack(context, msg, isError: true);
-  }
-
-  // ── Razorpay callbacks ─────────────────────────────────────────────────────
-  void _onRazorpaySuccess(PaymentSuccessResponse response) async {
-    if (!mounted) return;
-    final meta = _pendingRazorpayMeta;
-    _pendingRazorpayMeta = null;
-    if (meta == null) { _resetProcessing(); return; }
-
-    try {
-      final verifyRes = await ApiClient.post(
-        '/api/wallet/verify-qr-payment',
-        body: {
-          'razorpayOrderId': response.orderId ?? '',
-          'razorpayPaymentId': response.paymentId ?? '',
-          'razorpaySignature': response.signature ?? '',
-          'amount': meta['amount'],
-          'upiId': meta['upiId'],
-          'payeeName': meta['payeeName'],
-          'note': meta['note'],
-        },
-      ).timeout(const Duration(seconds: 15));
-
-      if (!mounted) return;
-      if (verifyRes.statusCode == 200) {
-        final amt = (meta['amount'] as num?)?.toDouble();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentSuccessPage(
-              title: 'Payment Successful!',
-              amount: amt,
-              recipientName: meta['payeeName']?.toString(),
-              transactionType: 'QR Payment',
-              extraDetails: {
-                if ((meta['upiId'] ?? '').toString().isNotEmpty)
-                  'UPI ID': meta['upiId'].toString(),
-                if ((meta['note'] ?? '').toString().isNotEmpty)
-                  'Note': meta['note'].toString(),
-              },
-              onDone: () => Navigator.of(context).pop(true),
-            ),
-          ),
-        );
-      } else {
-        _showError('Payment done but recording failed. Contact support.');
-      }
-    } on TimeoutException {
-      _showError('Verification timed out. Contact support if amount was deducted.');
-    } catch (_) {
-      _showError('Verification failed. Contact support.');
-    }
-  }
-
-  void _onRazorpayError(PaymentFailureResponse response) {
-    _pendingRazorpayMeta = null;
-    _showError('Payment failed: ${response.message ?? 'Cancelled or declined'}');
   }
 
   // ── scanner callbacks ──────────────────────────────────────────────────────
@@ -313,10 +244,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
       return;
     }
 
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    final userEmail = session.user?['email'] ?? '';
-    final userName = session.user?['name'] ?? '';
-
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       barrierDismissible: false,
@@ -326,9 +253,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
         presetAmount:
             amountStr != null ? double.tryParse(amountStr) : null,
         note: note,
-        isMobile: _isMobile,
-        userEmail: userEmail,
-        userName: userName,
       ),
     );
 
@@ -340,33 +264,28 @@ class _QrScannerPageState extends State<QrScannerPage> {
       return;
     }
 
-    if (result['type'] == 'wallet_success') {
+    if (result['type'] == 'submitted') {
+      // No RazorpayX payout account is configured, so — exactly like wallet
+      // withdrawals — this was debited immediately and queued for an admin to
+      // manually send to the shop's UPI ID, instead of an instant final payment.
       final amt = (result['amount'] as num?)?.toDouble();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
-            title: 'Payment Successful!',
+            title: 'Payment Submitted!',
             amount: amt,
             recipientName: payeeName,
             transactionType: 'UPI via LenDen Wallet',
             extraDetails: {
               'UPI ID': upiId,
               if ((note).isNotEmpty) 'Note': note,
+              'Status': 'Sent to admin for processing (24–48 hrs)',
             },
             onDone: () => Navigator.of(context).pop(true),
           ),
         ),
       );
-    } else if (result['type'] == 'razorpay') {
-      // Store meta for the success callback, then open Razorpay
-      _pendingRazorpayMeta = {
-        'amount': result['amount'],
-        'upiId': upiId,
-        'payeeName': payeeName,
-        'note': note,
-      };
-      _razorpay!.open(result['options'] as Map<String, dynamic>);
     }
   }
 
@@ -976,26 +895,23 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
 // ── UPI shop payment dialog ───────────────────────────────────────────────────
 // Returns:
 //   null                          → cancelled
-//   {'type':'wallet_success', 'amount':x, 'balance':y}
-//   {'type':'razorpay', 'options':{...}, 'amount':x}
+//   {'type':'submitted', 'amount':x, 'balance':y}
+//
+// No RazorpayX payout account is configured, so paying debits the wallet
+// immediately and queues the payment for an admin to manually send to the
+// shop's UPI ID outside the app — exactly like wallet withdrawals.
 
 class _UpiPaymentDialog extends StatefulWidget {
   final String upiId;
   final String payeeName;
   final double? presetAmount;
   final String note;
-  final bool isMobile;
-  final String userEmail;
-  final String userName;
 
   const _UpiPaymentDialog({
     required this.upiId,
     required this.payeeName,
     this.presetAmount,
     this.note = '',
-    required this.isMobile,
-    required this.userEmail,
-    required this.userName,
   });
 
   @override
@@ -1006,7 +922,6 @@ class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
   static const _sky = AppColors.cyan;
   final _amountCtrl = TextEditingController();
   bool _loadingWallet = false;
-  bool _loadingRazorpay = false;
   String? _error;
 
   @override
@@ -1032,7 +947,7 @@ class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
     }
     setState(() { _loadingWallet = true; _error = null; });
     try {
-      final res = await ApiClient.post('/api/wallet/pay-upi-qr', body: {
+      final res = await ApiClient.post('/api/wallet/scan-payment', body: {
         'amount': amount,
         'upiId': widget.upiId,
         'payeeName': widget.payeeName,
@@ -1043,7 +958,7 @@ class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         Navigator.of(context).pop({
-          'type': 'wallet_success',
+          'type': 'submitted',
           'amount': amount.toStringAsFixed(2),
           'balance': (body['balance'] ?? 0).toStringAsFixed(2),
         });
@@ -1063,70 +978,9 @@ class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
     }
   }
 
-  Future<void> _payRazorpay() async {
-    if (!widget.isMobile) {
-      setState(() => _error =
-          'Razorpay is only available on Android & iOS.');
-      return;
-    }
-    final amount = _amount;
-    if (amount == null || amount <= 0) {
-      setState(() => _error = 'Enter a valid amount greater than ₹0.');
-      return;
-    }
-    setState(() { _loadingRazorpay = true; _error = null; });
-    try {
-      final orderRes = await ApiClient.post('/api/wallet/create-qr-order', body: {
-        'amount': amount,
-        'upiId': widget.upiId,
-        'payeeName': widget.payeeName,
-      }).timeout(const Duration(seconds: 12));
-
-      if (!mounted) return;
-      if (orderRes.statusCode != 200) {
-        final body = jsonDecode(orderRes.body);
-        setState(() {
-          _error = body['error'] ?? 'Could not create order.';
-          _loadingRazorpay = false;
-        });
-        return;
-      }
-      final data = jsonDecode(orderRes.body);
-      final options = {
-        'key': data['keyId'],
-        'amount': data['amount'],
-        'currency': 'INR',
-        'name': widget.payeeName,
-        'description': widget.note.isEmpty
-            ? 'UPI QR Payment'
-            : widget.note,
-        'order_id': data['orderId'],
-        'prefill': {
-          'email': widget.userEmail,
-          'name': widget.userName,
-        },
-        'theme': {'color': '#00B4D8'},
-      };
-      // Close dialog first; scanner page opens Razorpay from full-page context
-      if (mounted) {
-        Navigator.of(context).pop({
-          'type': 'razorpay',
-          'options': options,
-          'amount': amount.toStringAsFixed(2),
-        });
-      }
-    } on TimeoutException {
-      if (!mounted) return;
-      setState(() { _error = 'Request timed out.'; _loadingRazorpay = false; });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() { _error = 'Network error.'; _loadingRazorpay = false; });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final busy = _loadingWallet || _loadingRazorpay;
+    final busy = _loadingWallet;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
@@ -1263,35 +1117,6 @@ class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
               ),
               const SizedBox(height: 10),
 
-              // Razorpay button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: busy ? null : _payRazorpay,
-                  icon: _loadingRazorpay
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.payment_rounded, size: 18),
-                  label: Text(_loadingRazorpay
-                      ? 'Opening Razorpay…'
-                      : 'Pay via Razorpay / UPI'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF072654),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        const Color(0xFF072654).withValues(alpha: 0.5),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
               // Cancel
               SizedBox(
                 width: double.infinity,
@@ -1309,16 +1134,14 @@ class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
                 ),
               ),
 
-              if (!widget.isMobile) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Razorpay requires Android or iOS. '
-                  'LenDen Wallet works on all platforms.',
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.blueGrey.shade400),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              const SizedBox(height: 8),
+              Text(
+                'Money will be deducted from your LenDen wallet now and '
+                'sent to the shop by our team within 24–48 hours.',
+                style: TextStyle(
+                    fontSize: 11, color: Colors.blueGrey.shade400),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
