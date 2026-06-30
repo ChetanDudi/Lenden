@@ -31,6 +31,7 @@ class SessionProvider extends ChangeNotifier {
   DateTime? _subscriptionEndDate;
   List<Map<String, dynamic>>? _subscriptionHistory;
   int? _free;
+  bool _autoRenew = false;
 
   int? _freeQuickTransactionsRemaining;
   int? _freeUserTransactionsRemaining;
@@ -42,6 +43,7 @@ class SessionProvider extends ChangeNotifier {
   DateTime? get subscriptionEndDate => _subscriptionEndDate;
   List<Map<String, dynamic>>? get subscriptionHistory => _subscriptionHistory;
   int? get free => _free;
+  bool get autoRenew => _autoRenew;
   int? get freeQuickTransactionsRemaining => _freeQuickTransactionsRemaining;
   int? get freeUserTransactionsRemaining => _freeUserTransactionsRemaining;
   int? get freeGroupsRemaining => _freeGroupsRemaining;
@@ -262,16 +264,34 @@ class SessionProvider extends ChangeNotifier {
           _subscriptionPlan = data['subscriptionPlan'];
           _subscriptionEndDate = DateTime.parse(data['endDate']);
           _free = data['free'];
+          _autoRenew = data['autoRenew'] ?? false;
         } else {
           _subscriptionPlan = null;
           _subscriptionEndDate = null;
           _free = null;
+          _autoRenew = false;
         }
         notifyListeners();
       }
     } catch (e) {
       // ignore — subscription status is non-critical
     }
+  }
+
+  Future<bool> setAutoRenew(bool enabled) async {
+    if (_accessToken == null) return false;
+    try {
+      final response = await HttpInterceptor.put('/api/subscription/auto-renew',
+          body: {'enabled': enabled});
+      if (response.statusCode == 200) {
+        _autoRenew = enabled;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      // ignore — caller surfaces a generic error to the user
+    }
+    return false;
   }
 
   Future<void> fetchSubscriptionHistory() async {
@@ -450,6 +470,7 @@ class SessionProvider extends ChangeNotifier {
     _subscriptionEndDate = null;
     _subscriptionHistory = null;
     _free = null;
+    _autoRenew = false;
     _freeQuickTransactionsRemaining = null;
     _freeUserTransactionsRemaining = null;
     _freeGroupsRemaining = null;

@@ -115,6 +115,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   String? _benefitsError;
   String? _faqsError;
   bool _isPayingViaWallet = false;
+  bool _isTogglingAutoRenew = false;
   bool _showRenewalSection = false;
   double _walletBalance = 0;
 
@@ -1826,6 +1827,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                 ],
               ),
             ),
+            if (daysRemaining >= 0 && daysRemaining <= 3) ...[
+              const SizedBox(height: 16),
+              _buildExpiringSoonBanner(session, daysRemaining),
+            ],
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -1875,6 +1880,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               ),
             ),
             const SizedBox(height: 14),
+            _buildAutoRenewCard(session),
+            const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -1908,6 +1915,117 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           ],
           const SizedBox(height: 16),
           _buildTrustBadges(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpiringSoonBanner(SessionProvider session, int daysRemaining) {
+    final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
+    final message = session.autoRenew
+        ? (daysRemaining == 0
+            ? t('expiring_today_auto_renew_message')
+            : t('expiring_soon_auto_renew_message').replaceFirst('{days}', '$daysRemaining'))
+        : (daysRemaining == 0
+            ? t('expiring_today_message')
+            : t('expiring_soon_message').replaceFirst('{days}', '$daysRemaining'));
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFFFF8E1), dark: const Color(0xFF3A2F12)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.orange.withValues(alpha: isDark ? 0.5 : 1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.hourglass_bottom_rounded,
+              color: isDark ? const Color(0xFFFFD54F) : Colors.orange[800], size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? const Color(0xFFFFD54F) : Colors.orange[900]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoRenewCard(SessionProvider session) {
+    final t = AppLocalizations.of(context).t;
+    final isDark = AppThemeColors.isDark(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.divider(context)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: isDark ? 0.22 : 0.12)),
+            child: const Icon(Icons.autorenew_rounded, color: AppColors.cyan, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t('auto_renew_label'),
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 2),
+                Text(t('auto_renew_description'),
+                    style: TextStyle(fontSize: 11.5, color: AppThemeColors.secondaryText(context))),
+              ],
+            ),
+          ),
+          _isTogglingAutoRenew
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
+              : Switch(
+                  value: session.autoRenew,
+                  activeColor: AppColors.cyan,
+                  onChanged: (value) async {
+                    setState(() => _isTogglingAutoRenew = true);
+                    final ok = await session.setAutoRenew(value);
+                    if (!mounted) return;
+                    setState(() => _isTogglingAutoRenew = false);
+                    if (ok) {
+                      showSnack(
+                          context,
+                          value
+                              ? t('auto_renew_enabled_message')
+                              : t('auto_renew_disabled_message'));
+                    } else {
+                      showSnack(context, t('failed_to_update_auto_renew_message'), isError: true);
+                    }
+                  },
+                ),
         ],
       ),
     );

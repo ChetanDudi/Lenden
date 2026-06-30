@@ -57,6 +57,10 @@ const subscriptionSchema = new mongoose.Schema({
         type: String,
         enum: ['razorpay', 'razorpay_manual', 'wallet', 'admin'],
         default: 'razorpay'
+    },
+    autoRenew: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

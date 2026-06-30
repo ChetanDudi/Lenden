@@ -38,7 +38,7 @@ const notificationSchema = new mongoose.Schema({
   category: {
     type: String,
     default: 'general',
-    enum: ['general', 'friend', 'offer', 'transaction', 'group', 'system'],
+    enum: ['general', 'friend', 'offer', 'transaction', 'group', 'system', 'subscription'],
   },
   deliveryStatus: {
     type: String,

@@ -18,6 +18,7 @@ exports.getSubscriptionStatus = async (req, res) => {
                 free: subscription.free,
                 actualPrice: subscription.actualPrice,
                 paymentMethod: subscription.paymentMethod || 'razorpay',
+                autoRenew: subscription.autoRenew || false,
             });
         } else {
             // Auto-expire stale active records so the DB reflects reality
@@ -69,5 +70,22 @@ exports.getFaqs = async (req, res) => {
         res.status(200).json(faqs);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching FAQs' });
+    }
+};
+
+// Toggle auto-renew on the logged-in user's current active subscription
+exports.setAutoRenew = async (req, res) => {
+    try {
+        const { enabled } = req.body;
+        const subscription = await Subscription.findOne({ user: req.user._id, status: 'active' }).sort({ subscribedDate: -1 });
+        const now = new Date();
+        if (!subscription || !subscription.subscribed || subscription.endDate < now) {
+            return res.status(404).json({ message: 'No active subscription found' });
+        }
+        subscription.autoRenew = !!enabled;
+        await subscription.save();
+        res.status(200).json({ message: 'Auto-renew preference updated', autoRenew: subscription.autoRenew });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating auto-renew preference' });
     }
 };

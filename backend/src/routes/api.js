@@ -493,6 +493,7 @@ module.exports = (io) => {
   // Subscription routes
   router.get('/subscription/status', auth, subscriptionController.getSubscriptionStatus);
   router.get('/subscription/history', auth, subscriptionController.getSubscriptionHistory);
+  router.put('/subscription/auto-renew', auth, subscriptionController.setAutoRenew);
 
   // Public subscription routes
   router.get('/subscription/plans', subscriptionController.getSubscriptionPlans);
@@ -536,6 +537,8 @@ module.exports = (io) => {
 
   // Manage Subscriptions
   router.get('/admin/subscriptions', auth, isAdmin, adminFeatureController.getAllSubscriptions);
+  router.get('/admin/subscriptions/analytics', auth, isAdmin, adminFeatureController.getSubscriptionAnalytics);
+  router.post('/admin/subscriptions/grant', auth, isAdmin, adminFeatureController.grantSubscription);
   router.put('/admin/subscriptions/:id', auth, isAdmin, adminFeatureController.updateUserSubscription);
   router.put('/admin/subscriptions/:id/deactivate', auth, isAdmin, adminFeatureController.deactivateUserSubscription);
 

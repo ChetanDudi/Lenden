@@ -8,6 +8,7 @@ import 'subscription_plans_tab.dart';
 import 'premium_benefits_tab.dart';
 import 'faqs_tab.dart';
 import 'manage_subscriptions_tab.dart';
+import 'subscription_analytics_tab.dart';
 
 class AdminFeaturesPage extends StatefulWidget {
   @override
@@ -21,7 +22,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -46,6 +47,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           labelColor: AppThemeColors.primaryText(context),
           unselectedLabelColor:
               AppThemeColors.primaryText(context).withValues(alpha: 0.7),
@@ -56,6 +58,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
             Tab(text: t('benefits_tab'), icon: Icon(Icons.star)),
             Tab(text: t('faqs_tab'), icon: Icon(Icons.help_outline)),
             Tab(text: t('subscriptions_tab'), icon: Icon(Icons.subscriptions)),
+            Tab(text: t('analytics_tab'), icon: Icon(Icons.analytics_outlined)),
           ],
         ),
       ),
@@ -81,6 +84,7 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
                 PremiumBenefitsTab(),
                 FaqsTab(),
                 ManageSubscriptionsTab(),
+                SubscriptionAnalyticsTab(),
               ],
             ),
           ),
