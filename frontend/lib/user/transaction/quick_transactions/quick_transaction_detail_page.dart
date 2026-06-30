@@ -6,6 +6,7 @@ import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../widgets/payment_success_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import './create_edit_quick_transaction_page.dart';
 import '../../../utils/theme_helper.dart';
@@ -328,7 +329,8 @@ class _QuickTransactionDetailPageState
     Share.share(msg);
   }
 
-  // Direct "Pay Now" — no prior settlement request; just clears the transaction
+  // Direct "Pay Now" — /pay atomically transfers the wallet money and marks
+  // the transaction settled server-side in one call.
   void _payNow() {
     final t = AppLocalizations.of(context).t;
     LendenPaymentHelper.showPaymentSheet(
@@ -336,26 +338,32 @@ class _QuickTransactionDetailPageState
       counterpartyEmail: _counterpartyEmail,
       amount: _amount,
       description: _description,
-      counterpartyPhone: (_counterparty['phone'] ?? '').toString(),
-      quickTransactionId: _id,
-      onSuccess: () async {
-        final res = await ApiClient.put(
-            '/api/quick-transactions/$_id/clear', body: {});
-        if (!mounted) return;
+      payEndpoint: '/api/quick-transactions/$_id/pay',
+      onSuccess: () {
         setState(() {
           _tx['cleared'] = true;
           _tx['settledViaPayment'] = true;
         });
         _didMutate = true;
-        showSnack(context,
-            res.statusCode == 200 ? t('payment_successful_exclaim') : t('paid_locally_message'));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessPage(
+              title: t('payment_successful_exclaim'),
+              amount: _amount,
+              recipientName: _counterpartyEmail,
+              transactionType: t('quick_transaction_settlement_label'),
+              extraDetails: _description.isNotEmpty ? {t('description'): _description} : const {},
+            ),
+          ),
+        );
       },
     );
   }
 
-  // Called after the other party ACCEPTS a settlement request.
-  // Payment screen opens first; backend is only marked settled after payment succeeds.
-  // If payment is cancelled/fails nothing changes (stays 'pending').
+  // Called after the other party ACCEPTS a settlement request. /pay
+  // atomically transfers the wallet money and flips settlementStatus
+  // pending → accepted together — no separate unverified confirm call after.
   void _payNowForSettlement() {
     final t = AppLocalizations.of(context).t;
     LendenPaymentHelper.showPaymentSheet(
@@ -363,44 +371,26 @@ class _QuickTransactionDetailPageState
       counterpartyEmail: _counterpartyEmail,
       amount: _amount,
       description: _description,
-      counterpartyPhone: (_counterparty['phone'] ?? '').toString(),
-      quickTransactionId: _id,
-      onSuccess: () async {
-        // Payment succeeded → confirm settlement on backend
-        try {
-          final res = await ApiClient.post(
-              '/api/quick-transactions/$_id/respond-settlement',
-              body: {'action': 'accept'});
-          if (!mounted) return;
-          if (res.statusCode == 200) {
-            final data = jsonDecode(res.body) as Map<String, dynamic>;
-            final serverTx =
-                (data['quickTransaction'] ?? data['transaction']) as Map?;
-            if (serverTx != null) {
-              _mergeSettlementFields(Map<String, dynamic>.from(serverTx));
-            } else {
-              setState(() {
-                _tx['settlementStatus'] = 'accepted';
-                _tx['cleared'] = true;
-                _tx['settledViaPayment'] = true;
-              });
-            }
-          } else {
-            // Payment went through but status update failed — mark cleared locally
-            setState(() {
-              _tx['cleared'] = true;
-              _tx['settledViaPayment'] = true;
-            });
-          }
-        } catch (_) {
-          if (!mounted) return;
-          setState(() {
-            _tx['cleared'] = true;
-            _tx['settledViaPayment'] = true;
-          });
-        }
+      payEndpoint: '/api/quick-transactions/$_id/pay',
+      onSuccess: () {
+        setState(() {
+          _tx['settlementStatus'] = 'accepted';
+          _tx['cleared'] = true;
+          _tx['settledViaPayment'] = true;
+        });
         _didMutate = true;
-        if (mounted) showSnack(context, t('payment_successful_settlement_complete_message'));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessPage(
+              title: t('payment_successful_exclaim'),
+              amount: _amount,
+              recipientName: _counterpartyEmail,
+              transactionType: t('quick_transaction_settlement_label'),
+              extraDetails: _description.isNotEmpty ? {t('description'): _description} : const {},
+            ),
+          ),
+        );
       },
     );
   }

@@ -24,7 +24,9 @@
       "PowerShell(\\(Get-Content \"c:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\\\\frontend\\\\lib\\\\User\\\\Transaction\\\\Secure Transactions\\\\view_secure_transactions_page.dart\" | Measure-Object -Line\\).Lines)",
       "Bash(powershell -Command \"\\(Get-Content 'lib/User/Transaction/analytics_page.dart' -Raw\\) -replace '\\\\.withOpacity\\\\\\(', '.withValues\\(alpha: ' | Set-Content 'lib/User/Transaction/analytics_page.dart' -Encoding utf8\")",
       "Bash(powershell -Command \"Get-ChildItem -Path 'c:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\\\\frontend\\\\lib' -Recurse -Filter '*.dart' | Select-String -Pattern \\\\\"^import '\\(?!package:|dart:\\)\\\\\" | Select-Object -ExpandProperty Line | Sort-Object -Unique\")",
-      "Bash(powershell -Command 'Get-ChildItem -Path '\\\\''c:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\\\\frontend\\\\lib'\\\\'' -Recurse -Filter '\\\\''*.dart'\\\\'' | ForEach-Object { $path = $_.FullName; Get-Content $path | Select-String -Pattern \"^import '\\\\''\\(?!package:|dart:\\)\" | ForEach-Object { \"$path : $\\($_.Line\\)\" } } | Where-Object { $_ -match '\\\\''[A-Z]'\\\\'' -and $_ -match \"import '\\\\''\" } | Sort-Object')"
+      "Bash(powershell -Command 'Get-ChildItem -Path '\\\\''c:\\\\Users\\\\CHETAN DUDI\\\\OneDrive\\\\Desktop\\\\LenDen\\\\Lenden\\\\frontend\\\\lib'\\\\'' -Recurse -Filter '\\\\''*.dart'\\\\'' | ForEach-Object { $path = $_.FullName; Get-Content $path | Select-String -Pattern \"^import '\\\\''\\(?!package:|dart:\\)\" | ForEach-Object { \"$path : $\\($_.Line\\)\" } } | Where-Object { $_ -match '\\\\''[A-Z]'\\\\'' -and $_ -match \"import '\\\\''\" } | Sort-Object')",
+      "Bash(node --check src/controllers/paymentController.js)",
+      "Bash(node --check src/routes/api.js)"
     ]
   }
 }

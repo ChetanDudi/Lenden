@@ -9,11 +9,17 @@ import '../../../session.dart';
 import '../../../otp_input.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
+import '../../../widgets/payment_success_page.dart';
+import '../../wallet/lenden_wallet_page.dart';
 
 class PartialPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
+  // When true, the amount is preset to the full remaining balance and locked
+  // — this is the "Pay Now" entry point reusing the same two-sided-OTP,
+  // real-wallet-transfer flow instead of a separate no-OTP payment path.
+  final bool isFullPayment;
 
-  const PartialPaymentPage({Key? key, required this.transaction})
+  const PartialPaymentPage({Key? key, required this.transaction, this.isFullPayment = false})
       : super(key: key);
 
   @override
@@ -43,6 +49,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
   String? message;
   bool isMessageError = false;
   String? _amountWarning;
+  bool _insufficientBalance = false;
 
   int lenderOtpSecondsLeft = 0;
   int borrowerOtpSecondsLeft = 0;
@@ -58,6 +65,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       if (mounted) _checkOtpExpiration();
     });
     _amountController.addListener(_validateAmount);
+    if (widget.isFullPayment) {
+      _amountController.text = _calculateRemainingAmount(widget.transaction);
+    }
   }
 
   void _validateAmount() {
@@ -245,7 +255,11 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     try {
       final response = await ApiClient.post(
           '/api/transactions/verify-partial-payment-otp',
-          body: {'email': email, 'otp': otp});
+          body: {
+            'email': email,
+            'otp': otp,
+            'transactionId': widget.transaction['transactionId'],
+          });
       if (response.statusCode == 200) {
         setState(() {
           if (isLender) {
@@ -302,29 +316,44 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
           isError: true);
       return;
     }
-    setState(() => isProcessing = true);
+    setState(() { isProcessing = true; _insufficientBalance = false; });
     try {
+      // transactionId + paidBy is enough — the backend derives lender/borrower
+      // emails from the transaction record itself and checks OTP verification
+      // server-side, rather than trusting client-sent emails/booleans.
       final response =
           await ApiClient.post('/api/transactions/partial-payment', body: {
         'transactionId': widget.transaction['transactionId'],
         'amount': amount,
         'description': _descriptionController.text,
         'paidBy': paidBy,
-        'lenderEmail': lenderEmail,
-        'borrowerEmail': borrowerEmail,
-        'lenderOtpVerified': lenderOtpVerified,
-        'borrowerOtpVerified': borrowerOtpVerified,
       });
       if (response.statusCode == 200) {
-        _showMessage('Partial payment processed successfully');
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) Navigator.pop(context, true);
-        });
+        final recipient = paidBy == 'lender' ? borrowerEmail : lenderEmail;
+        final note = _descriptionController.text.trim();
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentSuccessPage(
+                title: widget.isFullPayment ? 'Payment Successful!' : 'Partial Payment Successful!',
+                amount: amount,
+                recipientName: recipient,
+                transactionType: widget.isFullPayment
+                    ? 'Secure Transaction — Full Payment'
+                    : 'Secure Transaction — Partial Payment',
+                extraDetails: note.isNotEmpty ? {'Note': note} : const {},
+                onDone: () => Navigator.of(context).pop(true),
+              ),
+            ),
+          );
+        }
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to process partial payment',
-            isError: true);
+        final errMsg = (data?['error'] ?? 'Failed to process partial payment').toString();
+        setState(() => _insufficientBalance = errMsg.toLowerCase().contains('insufficient'));
+        _showMessage(errMsg, isError: true);
       }
     } catch (e) {
       _showMessage('Network error: ${e.toString()}', isError: true);
@@ -508,8 +537,8 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Partial Payment',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(widget.isFullPayment ? 'Pay Now' : 'Partial Payment',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context, false),
@@ -545,8 +574,8 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             Row(children: [
               const Icon(Icons.payment, color: AppColors.cyan, size: 28),
               const SizedBox(width: 12),
-              const Text('Partial Payment',
-                  style: TextStyle(
+              Text(widget.isFullPayment ? 'Pay Now' : 'Partial Payment',
+                  style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.bold)),
             ]),
             const SizedBox(height: 20),
@@ -572,14 +601,16 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                   ),
                 ),
                 prefixIcon: const Icon(Icons.attach_money),
-                helperText: (lenderOtpVerified && borrowerOtpVerified)
-                    ? 'Amount locked after OTP verification'
-                    : 'Maximum: ${_calculateRemainingAmount(widget.transaction)} ${widget.transaction['currency']}',
+                helperText: widget.isFullPayment
+                    ? 'Paying the full remaining amount'
+                    : (lenderOtpVerified && borrowerOtpVerified)
+                        ? 'Amount locked after OTP verification'
+                        : 'Maximum: ${_calculateRemainingAmount(widget.transaction)} ${widget.transaction['currency']}',
                 helperMaxLines: 2,
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              enabled: !(lenderOtpVerified && borrowerOtpVerified),
+              enabled: !widget.isFullPayment && !(lenderOtpVerified && borrowerOtpVerified),
             ),
             if (_amountWarning != null) ...[
               const SizedBox(height: 6),
@@ -601,6 +632,29 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                 ],
               ),
             ],
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '₹${_amountController.text.trim().isNotEmpty ? _amountController.text.trim() : _calculateRemainingAmount(widget.transaction)} will be deducted from your LenDen Wallet and credited to the other party once both OTPs are verified.',
+                      style: TextStyle(fontSize: 12.5, color: Colors.blueGrey[700], fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _descriptionController,
@@ -680,6 +734,28 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
               ),
               const SizedBox(height: 16),
             ],
+            if (_insufficientBalance) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.cyan, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: const Icon(Icons.add_card_rounded, color: AppColors.cyan),
+                  label: const Text('Add Money',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.cyan)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LendenWalletPage(autoOpenAddMoney: true)),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -707,8 +783,8 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white))
-                          : const Text('Process Payment',
-                              style: TextStyle(color: Colors.white))),
+                          : Text(widget.isFullPayment ? 'Pay Now' : 'Process Payment',
+                              style: const TextStyle(color: Colors.white))),
                 ]),
           ],
         ),

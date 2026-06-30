@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const Transaction = require('../models/transaction');
 const User = require('../models/user');
+const WalletTransaction = require('../models/walletTransaction');
 const lendingborrowingotp = require('../utils/lendingborrowingotp');
 const { sendTransactionReceipt, sendTransactionClearedNotification } = require('../utils/lendingborrowingotp');
 const { logTransactionActivity } = require('./activityController');
@@ -1034,45 +1036,58 @@ exports.sendPartialPaymentOTP = async (req, res) => {
   }
 };
 
-// Verify OTP for partial payment
+// Verify OTP for partial payment. Requires transactionId so we can record
+// server-side which role ('lender'/'borrower') just verified — processPartialPayment
+// checks this record rather than trusting client-sent booleans.
 exports.verifyPartialPaymentOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP are required' });
+    const { email, otp, transactionId } = req.body;
+    if (!email || !otp || !transactionId) {
+      return res.status(400).json({ error: 'Email, OTP and transactionId are required' });
+    }
+
+    const transaction = await Transaction.findOne({ transactionId });
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let role;
+    if (transaction.userEmail.toLowerCase() === cleanEmail) {
+      role = transaction.role;
+    } else if (transaction.counterpartyEmail.toLowerCase() === cleanEmail) {
+      role = transaction.role === 'lender' ? 'borrower' : 'lender';
+    } else {
+      return res.status(403).json({ error: 'Email does not match this transaction' });
     }
 
     const valid = lendingborrowingotp.verifyLendingBorrowingOtp(email, otp);
-    if (valid) {
-      res.json({ verified: true });
-    } else {
-      res.status(400).json({ verified: false, error: 'Invalid or expired OTP' });
+    if (!valid) {
+      return res.status(400).json({ verified: false, error: 'Invalid or expired OTP' });
     }
+
+    lendingborrowingotp.markPartialPaymentVerified(transactionId, role);
+    res.json({ verified: true, role });
   } catch (err) {
     res.status(500).json({ error: 'Failed to verify OTP' });
   }
 };
 
-// Process partial payment
+// Process partial payment (and full "Pay Now" payments, which call this same
+// endpoint with amount = remainingAmount). Both parties' OTP verification is
+// checked server-side via lendingborrowingotp's short-lived verified-record
+// store (set by verifyPartialPaymentOTP) rather than trusting client-sent
+// booleans. The actual money movement is a real, atomic LenDen Wallet
+// transfer between the lender and borrower — resolved from the transaction
+// record itself, not from client-supplied emails — instead of just writing a
+// ledger entry with no balance change.
 exports.processPartialPayment = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
-    const { 
-      transactionId, 
-      amount, 
-      description, 
-      paidBy, 
-      lenderEmail, 
-      borrowerEmail,
-      lenderOtpVerified,
-      borrowerOtpVerified 
-    } = req.body;
+    const { transactionId, amount, description, paidBy } = req.body;
 
-    if (!transactionId || !amount || !paidBy || !lenderEmail || !borrowerEmail) {
-      return res.status(400).json({ error: 'All required fields are missing' });
-    }
-
-    if (!lenderOtpVerified || !borrowerOtpVerified) {
-      return res.status(400).json({ error: 'Both parties must verify their OTP' });
+    if (!transactionId || !amount || !paidBy) {
+      return res.status(400).json({ error: 'transactionId, amount and paidBy are required' });
     }
 
     if (!['lender', 'borrower'].includes(paidBy)) {
@@ -1084,12 +1099,16 @@ exports.processPartialPayment = async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    // Verify that the emails match the transaction parties
-    if (transaction.userEmail !== lenderEmail && transaction.counterpartyEmail !== lenderEmail) {
-      return res.status(400).json({ error: 'Lender email does not match transaction parties' });
-    }
-    if (transaction.userEmail !== borrowerEmail && transaction.counterpartyEmail !== borrowerEmail) {
-      return res.status(400).json({ error: 'Borrower email does not match transaction parties' });
+    // Resolve both parties from the transaction record itself — never from
+    // client-supplied emails — so the payment can't be redirected.
+    const lenderEmail = transaction.role === 'lender' ? transaction.userEmail : transaction.counterpartyEmail;
+    const borrowerEmail = transaction.role === 'lender' ? transaction.counterpartyEmail : transaction.userEmail;
+
+    if (
+      !lendingborrowingotp.isPartialPaymentVerified(transactionId, 'lender') ||
+      !lendingborrowingotp.isPartialPaymentVerified(transactionId, 'borrower')
+    ) {
+      return res.status(400).json({ error: 'Both parties must verify their OTP before payment can be processed' });
     }
 
     // Calculate interest on the current remaining amount (not the original amount)
@@ -1158,26 +1177,70 @@ exports.processPartialPayment = async (req, res) => {
       });
     }
 
-    // Process the partial payment
-    transaction.remainingAmount = totalAmountWithInterest - amount;
-    transaction.isPartiallyPaid = true;
-
-    // Add to partial payments history
-    transaction.partialPayments.push({
-      amount: amount,
-      paidBy: paidBy,
-      paidAt: new Date(),
-      description: description || ''
-    });
-
-    // If remaining amount is 0 or less, mark transaction as cleared
-    if (transaction.remainingAmount <= 0) {
-      transaction.userCleared = true;
-      transaction.counterpartyCleared = true;
-      transaction.remainingAmount = 0;
+    // Resolve payer/payee for the real wallet transfer. The wallet debit always
+    // happens on the authenticated caller, so paidBy must match who's actually
+    // calling — otherwise the ledger would record the wrong direction (and the
+    // wrong party's wallet would be silently debited for what's labeled as the
+    // other party's repayment).
+    const payerEmail = (paidBy === 'lender' ? lenderEmail : borrowerEmail).toLowerCase().trim();
+    const payeeEmail = (paidBy === 'lender' ? borrowerEmail : lenderEmail).toLowerCase().trim();
+    if ((req.user.email || '').toLowerCase().trim() !== payerEmail) {
+      return res.status(403).json({ error: 'You can only make a payment as yourself' });
+    }
+    const payee = await User.findOne({ email: payeeEmail }).select('_id email');
+    if (!payee) {
+      return res.status(404).json({ error: 'The other party is no longer on LenDen' });
     }
 
-    await transaction.save();
+    let newBalance;
+    await session.withTransaction(async () => {
+      // Atomic check-and-debit — fails (returns null) if balance is insufficient,
+      // so no partial state is possible under concurrent requests.
+      const payer = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: amount } },
+        { $inc: { walletBalance: -amount } },
+        { new: true, session }
+      );
+      if (!payer) {
+        throw Object.assign(new Error('Insufficient wallet balance'), {
+          status: 400,
+          userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.',
+        });
+      }
+
+      await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: amount } }, { session });
+
+      await WalletTransaction.create([
+        { user: payer._id, type: 'debit', amount, toEmail: payee.email, note: description || 'Secure transaction repayment' },
+        { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: description || 'Secure transaction repayment' },
+      ], { session });
+
+      // Process the partial payment
+      transaction.remainingAmount = totalAmountWithInterest - amount;
+      transaction.isPartiallyPaid = true;
+
+      // Add to partial payments history
+      transaction.partialPayments.push({
+        amount: amount,
+        paidBy: paidBy,
+        paidAt: new Date(),
+        description: description || ''
+      });
+
+      // If remaining amount is 0 or less, mark transaction as cleared
+      if (transaction.remainingAmount <= 0) {
+        transaction.userCleared = true;
+        transaction.counterpartyCleared = true;
+        transaction.remainingAmount = 0;
+      }
+
+      await transaction.save({ session });
+
+      newBalance = payer.walletBalance;
+    });
+
+    // One-time-use — both parties must re-verify OTP for any further payment.
+    lendingborrowingotp.consumePartialPaymentVerified(transactionId);
 
     // Log activity for partial payment - both parties get notified
     try {
@@ -1185,14 +1248,14 @@ exports.processPartialPayment = async (req, res) => {
         creatorId: req.user._id,
         creatorEmail: paidBy === 'lender' ? lenderEmail : borrowerEmail
       };
-      
+
       // Log for the payer
       await logTransactionActivity(paidBy === 'lender' ? lenderEmail : borrowerEmail, 'partial_payment_made', transaction, {
         amount: amount,
         description: description || '',
         remainingAmount: transaction.remainingAmount
       }, creatorInfo);
-      
+
       // Log for the other party
       await logTransactionActivity(paidBy === 'lender' ? borrowerEmail : lenderEmail, 'partial_payment_received', transaction, {
         amount: amount,
@@ -1208,11 +1271,14 @@ exports.processPartialPayment = async (req, res) => {
       message: 'Partial payment processed successfully',
       remainingAmount: transaction.remainingAmount,
       isFullyPaid: transaction.remainingAmount <= 0,
-      displayTotalAmountWithInterest: displayTotalAmountWithInterest
+      displayTotalAmountWithInterest: displayTotalAmountWithInterest,
+      balance: newBalance,
     });
 
   } catch (err) {
-    res.status(500).json({ error: 'Failed to process partial payment' });
+    res.status(err.status ?? 500).json({ error: err.userMessage || err.message || 'Failed to process partial payment' });
+  } finally {
+    session.endSession();
   }
 };
 

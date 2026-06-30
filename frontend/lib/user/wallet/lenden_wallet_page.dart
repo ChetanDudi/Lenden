@@ -1,15 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
-import 'package:provider/provider.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../otp_input.dart';
-import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../transaction/group_transactions/group_transaction_page.dart';
@@ -21,51 +16,11 @@ import '../../widgets/payment_success_page.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 
-// Razorpay only works on Android/iOS — not on Windows, Web, or macOS.
-bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-
-// Test mode hint shown in all Razorpay payment sheets.
-Widget _testModeHint(BuildContext context) {
-  final t = AppLocalizations.of(context).t;
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-    decoration: BoxDecoration(
-      color: AppThemeColors.tinted(context, light: const Color(0xFFFFF8E1), dark: const Color(0xFF4A3F1F)),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFFFCC02), width: 1),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(children: [
-          const Icon(Icons.science_rounded, size: 14, color: Color(0xFFF57F17)),
-          const SizedBox(width: 6),
-          Text(t('test_mode_credentials_hint'),
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
-        ]),
-        const SizedBox(height: 4),
-        _testRow(Icons.credit_card_rounded, t('test_card_label'), '4111 1111 1111 1111  |  Exp: 12/28  |  CVV: 123  |  OTP: 1234'),
-        const SizedBox(height: 2),
-        _testRow(Icons.phone_android_rounded, t('test_upi_label'), 'success@razorpay'),
-      ],
-    ),
-  );
-}
-
-Widget _testRow(IconData icon, String label, String value) => Row(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Icon(icon, size: 12, color: const Color(0xFF795548)),
-    const SizedBox(width: 5),
-    Text('$label: ', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF795548))),
-    Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: Color(0xFF795548)))),
-  ],
-);
-
 class LendenWalletPage extends StatefulWidget {
   final bool autoOpenPayUser;
+  final bool autoOpenAddMoney;
 
-  const LendenWalletPage({super.key, this.autoOpenPayUser = false});
+  const LendenWalletPage({super.key, this.autoOpenPayUser = false, this.autoOpenAddMoney = false});
 
   @override
   State<LendenWalletPage> createState() => _LendenWalletPageState();
@@ -100,12 +55,14 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   @override
   void initState() {
     super.initState();
-    _fetchPaymentConfig();
-    // Wait for the balance fetch to resolve before auto-opening Pay User —
-    // _PayToUserSheet receives walletBalance as a one-time constructor value,
-    // so opening it before the fetch completes would lock it to the initial 0.
-    _fetchWalletData().then((_) {
-      if (mounted && widget.autoOpenPayUser) _showPayToUserSheet();
+    // Wait for both fetches to resolve before auto-opening anything — _PayToUserSheet
+    // receives walletBalance as a one-time constructor value (opening before the
+    // fetch completes would lock it to the initial 0), and _showAddMoneySheet
+    // needs _razorpayPaymentLink to already be populated.
+    Future.wait([_fetchPaymentConfig(), _fetchWalletData()]).then((_) {
+      if (!mounted) return;
+      if (widget.autoOpenPayUser) _showPayToUserSheet();
+      if (widget.autoOpenAddMoney) _showAddMoneySheet();
     });
   }
 
@@ -174,7 +131,19 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
       builder: (ctx) => _AddMoneyConfirmSheet(
         amount: amount,
         paymentLink: _razorpayPaymentLink!,
-        onCredited: () => _fetchWalletData(),
+        onCredited: (addedAmount, balance) {
+          _fetchWalletData();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentSuccessPage(
+                title: t('money_added_title'),
+                amount: addedAmount,
+                transactionType: t('wallet_topup_label'),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -963,7 +932,7 @@ class _AddMoneyAmountSheetState extends State<_AddMoneyAmountSheet> {
 class _AddMoneyConfirmSheet extends StatefulWidget {
   final double amount;
   final String paymentLink;
-  final VoidCallback onCredited;
+  final void Function(double addedAmount, double balance) onCredited;
 
   const _AddMoneyConfirmSheet({required this.amount, required this.paymentLink, required this.onCredited});
 
@@ -1021,9 +990,10 @@ class _AddMoneyConfirmSheetState extends State<_AddMoneyConfirmSheet> {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         Navigator.of(context).pop();
-        widget.onCredited();
-        if (!mounted) return;
-        showSnack(context, '₹${data['addedAmount']} ${t('added_to_wallet_suffix')}');
+        widget.onCredited(
+          (data['addedAmount'] as num).toDouble(),
+          (data['balance'] as num).toDouble(),
+        );
       } else {
         final err = jsonDecode(res.body);
         setState(() {
@@ -2016,47 +1986,33 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
 // ──────────────────────────────────────────────────────────────
 
 class LendenPaymentHelper {
+  // Shows a wallet-only "confirm & pay" sheet. The actual POST is made by the
+  // caller-supplied payEndpoint + payBody — each module (quick transactions,
+  // group expenses) owns its own atomic pay endpoint that performs the wallet
+  // transfer and its own bookkeeping together server-side, so this sheet is
+  // just a thin confirm-and-call UI, not a payment method chooser. Secure
+  // Transactions don't use this sheet at all — they go through the two-sided
+  // OTP partial-payment flow instead.
   static Future<void> showPaymentSheet(
     BuildContext context, {
     required String counterpartyEmail,
     required double amount,
     required String description,
-    String? counterpartyPhone,
-    String? quickTransactionId,
-    String? secureTransactionId,
+    required String payEndpoint,
+    Map<String, dynamic> payBody = const {},
     VoidCallback? onSuccess,
   }) async {
-    final hasPhone = counterpartyPhone != null && counterpartyPhone.trim().isNotEmpty;
-
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _PaymentSheet(
         counterpartyEmail: counterpartyEmail,
-        counterpartyPhone: counterpartyPhone,
         amount: amount,
         description: description,
-        hasPhone: hasPhone,
-        quickTransactionId: quickTransactionId,
-        secureTransactionId: secureTransactionId,
+        payEndpoint: payEndpoint,
+        payBody: payBody,
         onSuccess: onSuccess,
-      ),
-    );
-
-    // Sheet popped with Razorpay order data — open Razorpay from page context
-    // (not from within the bottom sheet) so the SDK can present its UI properly.
-    if (result == null || result['type'] != 'razorpay') return;
-    if (!context.mounted) return;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _RazorpayPayPage(
-          options: Map<String, dynamic>.from(result['options'] as Map),
-          quickTransactionId: quickTransactionId,
-          secureTransactionId: secureTransactionId,
-          onSuccess: onSuccess,
-        ),
       ),
     );
   }
@@ -2064,22 +2020,18 @@ class LendenPaymentHelper {
 
 class _PaymentSheet extends StatefulWidget {
   final String counterpartyEmail;
-  final String? counterpartyPhone;
   final double amount;
   final String description;
-  final bool hasPhone;
-  final String? quickTransactionId;
-  final String? secureTransactionId;
+  final String payEndpoint;
+  final Map<String, dynamic> payBody;
   final VoidCallback? onSuccess;
 
   const _PaymentSheet({
     required this.counterpartyEmail,
-    required this.counterpartyPhone,
     required this.amount,
     required this.description,
-    required this.hasPhone,
-    this.quickTransactionId,
-    this.secureTransactionId,
+    required this.payEndpoint,
+    required this.payBody,
     this.onSuccess,
   });
 
@@ -2088,102 +2040,30 @@ class _PaymentSheet extends StatefulWidget {
 }
 
 class _PaymentSheetState extends State<_PaymentSheet> {
-  bool _payingRazorpay = false;
-  bool _payingWallet = false;
+  bool _paying = false;
   String? _error;
-  final _phoneController = TextEditingController();
+  bool _insufficientBalance = false;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  String get _effectivePhone =>
-      (widget.counterpartyPhone?.trim().isNotEmpty == true)
-          ? widget.counterpartyPhone!
-          : _phoneController.text.trim();
-
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _payViaRazorpay() async {
+  Future<void> _pay() async {
     final t = AppLocalizations.of(context).t;
-    if (!_isMobile) {
-      setState(() => _error = t('razorpay_android_ios_only'));
-      return;
-    }
-    if (!widget.hasPhone && _phoneController.text.trim().isEmpty) {
-      setState(() => _error = t('enter_phone_for_razorpay_upi_message'));
-      return;
-    }
-    setState(() { _payingRazorpay = true; _error = null; });
+    setState(() { _paying = true; _error = null; _insufficientBalance = false; });
     try {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      final body = {
-        'toEmail': widget.counterpartyEmail,
-        'amount': (widget.amount * 100).toInt(),
-        'description': widget.description,
-      };
-      if (widget.quickTransactionId != null) body['quickTransactionId'] = widget.quickTransactionId!;
-      if (widget.secureTransactionId != null) body['secureTransactionId'] = widget.secureTransactionId!;
-      final orderRes = await ApiClient.post('/api/payment/create-p2p-order', body: body);
+      final res = await ApiClient.post(widget.payEndpoint, body: widget.payBody);
       if (!mounted) return;
-      if (orderRes.statusCode != 200) {
-        final err = jsonDecode(orderRes.body);
-        setState(() { _payingRazorpay = false; _error = err['error'] ?? t('failed_to_create_order'); });
-        return;
-      }
-      final data = jsonDecode(orderRes.body);
-      final user = session.user ?? {};
-      final phone = _effectivePhone;
-      final options = {
-        'key': data['keyId'],
-        'amount': data['amount'],
-        'currency': 'INR',
-        'name': 'LenDen Pay',
-        'description': widget.description,
-        'order_id': data['orderId'],
-        'prefill': {
-          'email': user['email'] ?? '',
-          if (phone.isNotEmpty) 'contact': phone,
-          'name': user['name'] ?? '',
-        },
-        'theme': {'color': '#00B4D8'},
-      };
-      // Close the sheet and pass order data up — Razorpay SDK must open from a full-page
-      // context (not a bottom sheet) so it can properly present its UI on Android/iOS.
-      if (mounted) {
-        setState(() => _payingRazorpay = false);
-        Navigator.pop(context, {'type': 'razorpay', 'options': options});
-      }
-    } catch (e) {
-      if (mounted) setState(() { _payingRazorpay = false; _error = t('error_colon_label').replaceFirst('{error}', '$e'); });
-    }
-  }
-
-  Future<void> _payViaWallet() async {
-    final t = AppLocalizations.of(context).t;
-    setState(() { _payingWallet = true; _error = null; });
-    try {
-      final res = await ApiClient.post('/api/wallet/pay', body: {
-        'to': widget.counterpartyEmail,
-        'amount': widget.amount,
-        'note': widget.description,
-      });
-      if (!mounted) return;
-      setState(() => _payingWallet = false);
+      setState(() => _paying = false);
       if (res.statusCode == 200) {
         Navigator.pop(context);
         widget.onSuccess?.call();
       } else {
         final err = jsonDecode(res.body);
-        setState(() => _error = err['error'] ?? t('payment_failed_label'));
+        final errMsg = (err['error'] ?? t('payment_failed_label')).toString();
+        setState(() {
+          _error = errMsg;
+          _insufficientBalance = errMsg.toLowerCase().contains('insufficient');
+        });
       }
     } catch (e) {
-      if (mounted) setState(() { _payingWallet = false; _error = t('error_colon_label').replaceFirst('{error}', '$e'); });
+      if (mounted) setState(() { _paying = false; _error = t('error_colon_label').replaceFirst('{error}', '$e'); });
     }
   }
 
@@ -2262,54 +2142,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
           ),
           const SizedBox(height: 20),
 
-          // Phone section
-          if (!widget.hasPhone) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-              ),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.phone_disabled_rounded, color: Colors.orange, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(t('phone_number_not_found_label'), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 2),
-                  Text(
-                    t('phone_not_on_lenden_message'),
-                    style: TextStyle(color: Colors.orange[800], fontSize: 12),
-                  ),
-                ])),
-              ]),
-            ),
-            const SizedBox(height: 10),
-            StatefulBuilder(builder: (ctx, setLocal) {
-              return TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                decoration: InputDecoration(
-                  hintText: t('enter_phone_number_optional_upi_hint'),
-                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.cyan, size: 20),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.divider(context))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cyan)),
-                  filled: true,
-                  fillColor: AppThemeColors.surfaceBg(context),
-                ),
-                onChanged: (_) => setLocal(() {}),
-              );
-            }),
-            const SizedBox(height: 14),
-          ],
-
-          // Test mode hint
-          _testModeHint(context),
-          const SizedBox(height: 14),
-
-          // Razorpay button
+          // Wallet pay button — the only payment method now (Razorpay/test mode removed)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -2319,36 +2152,16 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
               ),
-              icon: _payingRazorpay
+              icon: _paying
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.payment_rounded, color: Colors.white),
-              label: Text(_payingRazorpay ? t('processing_ellipsis_label') : t('pay_via_razorpay_upi_more_label'),
+                : const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
+              label: Text(_paying ? t('processing_ellipsis_label') : t('pay_via_lenden_wallet_label'),
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
-              onPressed: (_payingRazorpay || _payingWallet) ? null : _payViaRazorpay,
+              onPressed: _paying ? null : _pay,
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // Wallet button
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.cyan, width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              icon: _payingWallet
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
-                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
-              label: Text(_payingWallet ? t('processing_ellipsis_label') : t('pay_via_lenden_wallet_label'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.cyan)),
-              onPressed: (_payingWallet || _payingRazorpay) ? null : _payViaWallet,
-            ),
-          ),
-
-          if (_error != null)
+          if (_error != null) ...[
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Container(
@@ -2365,238 +2178,30 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                 ]),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-// Full-page Razorpay host — opens the SDK from a proper Navigator page context so
-// the SDK can present its Activity/ViewController without interference from sheets.
-class _RazorpayPayPage extends StatefulWidget {
-  final Map<String, dynamic> options;
-  final String? quickTransactionId;
-  final String? secureTransactionId;
-  final VoidCallback? onSuccess;
-
-  const _RazorpayPayPage({
-    required this.options,
-    this.quickTransactionId,
-    this.secureTransactionId,
-    this.onSuccess,
-  });
-
-  @override
-  State<_RazorpayPayPage> createState() => _RazorpayPayPageState();
-}
-
-class _RazorpayPayPageState extends State<_RazorpayPayPage> {
-  Razorpay? _razorpay;
-  bool _opening = false;   // waiting for Razorpay overlay to appear
-  bool _verifying = false; // waiting for backend verification
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_isMobile) {
-      _razorpay = Razorpay();
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess);
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _onError);
-      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, (_) {
-        if (mounted) setState(() => _opening = false);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _razorpay?.clear();
-    super.dispose();
-  }
-
-  // Called by the "Open Razorpay" button — always user-triggered so the
-  // Android Activity is guaranteed to be RESUMED before the SDK presents.
-  void _openRazorpay() {
-    if (!_isMobile) {
-      setState(() => _error = AppLocalizations.of(context).t('razorpay_android_ios_only'));
-      return;
-    }
-    setState(() { _opening = true; _error = null; });
-    _razorpay!.open(widget.options);
-  }
-
-  void _onSuccess(PaymentSuccessResponse response) async {
-    if (!mounted) return;
-    setState(() { _opening = false; _verifying = true; _error = null; });
-    try {
-      final verifyBody = {
-        'razorpayOrderId': response.orderId,
-        'razorpayPaymentId': response.paymentId,
-        'razorpaySignature': response.signature,
-      };
-      if (widget.quickTransactionId != null) {
-        verifyBody['quickTransactionId'] = widget.quickTransactionId!;
-      }
-      if (widget.secureTransactionId != null) {
-        verifyBody['secureTransactionId'] = widget.secureTransactionId!;
-      }
-      final verifyRes = await ApiClient.post('/api/payment/verify-p2p', body: verifyBody);
-      if (!mounted) return;
-      if (verifyRes.statusCode == 200) {
-        Navigator.pop(context);
-        widget.onSuccess?.call();
-      } else {
-        final t = AppLocalizations.of(context).t;
-        setState(() { _verifying = false; _error = t('payment_verification_failed_contact_support_message'); });
-      }
-    } catch (e) {
-      if (mounted) {
-        final t = AppLocalizations.of(context).t;
-        setState(() { _verifying = false; _error = '${t('verification_error_prefix')} $e'; });
-      }
-    }
-  }
-
-  void _onError(PaymentFailureResponse response) {
-    if (!mounted) return;
-    final t = AppLocalizations.of(context).t;
-    setState(() {
-      _opening = false;
-      _error = response.message?.isNotEmpty == true ? response.message! : t('payment_cancelled_or_failed_message');
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context).t;
-    final amountRupees = ((widget.options['amount'] as num?) ?? 0) / 100;
-    final description = widget.options['description']?.toString() ?? '';
-
-    // Full-screen verifying overlay
-    if (_verifying) {
-      return Scaffold(
-        backgroundColor: AppThemeColors.tinted(context, light: const Color(0xFFF0F7FF), dark: const Color(0xFF121212)),
-        body: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const SizedBox(width: 52, height: 52,
-              child: CircularProgressIndicator(color: AppColors.cyan, strokeWidth: 3)),
-            const SizedBox(height: 20),
-            Text(t('verifying_payment_message'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.cyan)),
-            const SizedBox(height: 6),
-            Text(t('please_wait_do_not_go_back_message'), style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
-          ]),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: AppThemeColors.tinted(context, light: const Color(0xFFF0F7FF), dark: const Color(0xFF121212)),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Back
-              IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.cyan),
-                onPressed: () => Navigator.pop(context),
-                padding: EdgeInsets.zero,
-              ),
-              const Spacer(),
-
-              // Tricolor payment card
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    colors: [Colors.orange, Colors.white, Colors.green],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 8))],
-                ),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Column(children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.cyan.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.payment_rounded, color: AppColors.cyan, size: 38),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(t('complete_your_payment_label'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.cyan)),
-                    const SizedBox(height: 14),
-                    Text('₹${amountRupees.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Color(0xFFFF8000))),
-                    if (description.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(description, style: TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context)), textAlign: TextAlign.center),
-                    ],
-                    const SizedBox(height: 18),
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.lock_outline, size: 13, color: AppThemeColors.mutedText(context)),
-                      const SizedBox(width: 4),
-                      Text(t('secured_by_razorpay_label'), style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
-                    ]),
-                  ]),
-                ),
-              ),
-
-              const Spacer(),
-
-              // Error
-              if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                  ]),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // CTA button
+            if (_insufficientBalance) ...[
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cyan,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.cyan, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  icon: _opening
-                    ? const SizedBox(width: 20, height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                    : const Icon(Icons.open_in_new_rounded, color: Colors.white),
-                  label: Text(
-                    _opening ? t('opening_ellipsis_label') : (_error != null ? t('retry_payment_label') : t('open_razorpay_upi_more_label')),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                  ),
-                  onPressed: _opening ? null : _openRazorpay,
+                  icon: const Icon(Icons.add_card_rounded, color: AppColors.cyan),
+                  label: Text(t('add_money_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.cyan)),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LendenWalletPage(autoOpenAddMoney: true)),
+                    );
+                  },
                 ),
               ),
             ],
-          ),
-        ),
+          ],
+        ],
       ),
     );
   }

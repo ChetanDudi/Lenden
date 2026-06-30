@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../../utils/display_currency_helper.dart';
 import 'secure_transaction_detail_page.dart';
-import '../../wallet/lenden_wallet_page.dart';
+import 'partial_payment_page.dart';
 import 'create_secure_transaction_page.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/wave_widget.dart';
@@ -809,28 +809,19 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                 onPressed: () async {
                                   final double remaining = _calculateRemainingWithInterest(t);
                                   if (remaining <= 0) return;
-                            // counterpartyEmail is already perspective-adjusted above (line 415):
-                            // if current user is the DB creator → their counterparty;
-                            // if current user is the DB counterparty → the creator (lender).
-                            final String lenderEmail = counterpartyEmail?.toString() ?? '';
-                            final String txId = t['transactionId']?.toString() ?? '';
-                            final String userEmail = Provider.of<SessionProvider>(context, listen: false).user?['email'] ?? '';
-                            await LendenPaymentHelper.showPaymentSheet(
+                            // "Pay Now" is the same two-sided-OTP, real-wallet-transfer
+                            // flow as Partial Payment — pre-filled with the full
+                            // remaining amount — so there's exactly one payment path.
+                            final result = await Navigator.push<bool>(
                               context,
-                              counterpartyEmail: lenderEmail,
-                              amount: remaining,
-                              description: tr('secure_transaction_repayment_label'),
-                              secureTransactionId: txId,
-                              onSuccess: () {
-                                if (txId.isNotEmpty && userEmail.isNotEmpty) {
-                                  ApiClient.post('/api/transactions/clear',
-                                    body: {'transactionId': txId, 'email': userEmail, 'bothSides': true},
-                                  ).then((_) => fetchTransactions());
-                                } else {
-                                  fetchTransactions();
-                                }
-                              },
+                              MaterialPageRoute(
+                                builder: (_) => PartialPaymentPage(
+                                  transaction: Map<String, dynamic>.from(t),
+                                  isFullPayment: true,
+                                ),
+                              ),
                             );
+                            if (result == true) fetchTransactions();
                           },
                         ),
                       ),

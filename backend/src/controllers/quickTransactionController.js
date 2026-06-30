@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const QuickTransaction = require('../models/quickTransaction');
 const User = require('../models/user');
+const WalletTransaction = require('../models/walletTransaction');
 const { logQuickTransactionActivity } = require('./activityController');
 const { awardGiftCard, shouldAwardGiftCard } = require('./userGiftCardController');
 const { processReferralRewardOnFirstCreation } = require('../utils/referralService');
@@ -467,6 +469,82 @@ exports.clearQuickTransaction = async (req, res) => {
     res.status(200).json({ quickTransaction });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+// Pays the counterparty the full quick-transaction amount via an atomic LenDen
+// Wallet transfer — both parties are resolved from the transaction record
+// itself (quickTransaction.users), never trusted from the client — then marks
+// it settled. Replaces the old flow where the client independently chose
+// Razorpay/wallet and called /clear afterward; the backend never verified
+// money actually moved, so a buggy/malicious client could mark something
+// "cleared" with nothing paid.
+exports.payQuickTransaction = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const { id } = req.params;
+    const payerEmail = (req.user.email || '').toLowerCase().trim();
+
+    const quickTransaction = await QuickTransaction.findById(id);
+    if (!quickTransaction) return res.status(404).json({ error: 'Quick transaction not found' });
+    if (!quickTransaction.users.some((u) => u.toLowerCase() === payerEmail)) {
+      return res.status(403).json({ error: 'User not authorized to pay this transaction' });
+    }
+    if (quickTransaction.cleared) {
+      return res.status(400).json({ error: 'This quick transaction is already settled' });
+    }
+
+    const payeeEmail = quickTransaction.users.find((u) => u.toLowerCase() !== payerEmail);
+    if (!payeeEmail) {
+      return res.status(400).json({ error: 'Could not determine the other party on this transaction' });
+    }
+    const payee = await User.findOne({ email: payeeEmail.toLowerCase().trim() }).select('_id email');
+    if (!payee) return res.status(404).json({ error: 'The other party is no longer on LenDen' });
+
+    const amount = quickTransaction.amount;
+    let newBalance;
+    await session.withTransaction(async () => {
+      // Atomic check-and-debit — fails (returns null) if balance is insufficient,
+      // so no partial/overdraft state is possible under concurrent requests.
+      const payer = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: amount } },
+        { $inc: { walletBalance: -amount } },
+        { new: true, session }
+      );
+      if (!payer) {
+        throw Object.assign(new Error('Insufficient wallet balance'), {
+          status: 400,
+          userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.',
+        });
+      }
+
+      await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: amount } }, { session });
+
+      await WalletTransaction.create([
+        { user: payer._id, type: 'debit', amount, toEmail: payee.email, note: quickTransaction.description || 'Quick transaction settlement' },
+        { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: quickTransaction.description || 'Quick transaction settlement' },
+      ], { session });
+
+      quickTransaction.cleared = true;
+      quickTransaction.settledViaPayment = true;
+      quickTransaction.paymentMethod = 'wallet';
+      if (quickTransaction.settlementStatus === 'pending') {
+        quickTransaction.settlementStatus = 'accepted';
+      }
+      quickTransaction.settlementRespondedBy = payerEmail;
+      quickTransaction.settlementRespondedAt = new Date();
+      await quickTransaction.save({ session });
+
+      newBalance = payer.walletBalance;
+    });
+
+    await logQuickTransactionActivity(req.user._id, 'quick_transaction_paid', quickTransaction);
+
+    res.status(200).json({ message: 'Payment successful', quickTransaction, balance: newBalance });
+  } catch (err) {
+    res.status(err.status ?? 500).json({ error: err.userMessage || err.message || 'Server error' });
+  } finally {
+    session.endSession();
   }
 };
 

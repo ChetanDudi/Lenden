@@ -8,6 +8,7 @@ import '../../../utils/api_client.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
+import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -121,35 +122,19 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     }
   }
 
-  // Called after a successful payment — marks the current user's splits settled,
-  // then updates local group state so balances and expense badges reflect the change.
-  Future<void> _selfSettle(BuildContext snackCtx, {required String toEmail, required double amount}) async {
-    final t = AppLocalizations.of(context).t;
-    try {
-      final res = await ApiClient.post(
-        '/api/group-transactions/${widget.groupId}/record-payment',
-        body: {'toEmail': toEmail, 'amount': amount},
-      );
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        setState(() => _group = Map<String, dynamic>.from(data['group'] as Map));
-        ScaffoldMessenger.of(snackCtx).showSnackBar(SnackBar(
-          content: Text(t('payment_sent_and_recorded_message')),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
-      } else {
-        ScaffoldMessenger.of(snackCtx).showSnackBar(SnackBar(
-          content: Text(t('payment_sent_refresh_status_message')),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
-        _refresh();
-      }
-    } catch (_) {
-      if (mounted) _refresh();
-    }
+  void _showGroupPaymentSuccess(BuildContext ctx, String toEmail, double amount) {
+    final t = AppLocalizations.of(ctx).t;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(
+        builder: (_) => PaymentSuccessPage(
+          title: t('payment_successful_exclaim'),
+          amount: amount,
+          recipientName: toEmail,
+          transactionType: t('group_expense_repayment_label'),
+        ),
+      ),
+    );
   }
 
   String _resolveEmail(dynamic userField) {
@@ -1113,8 +1098,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                     counterpartyEmail: toAddr,
                                                     amount: toAmt,
                                                     description: t('group_expense_repayment_label'),
-                                                    counterpartyPhone: null,
-                                                    onSuccess: () => _selfSettle(ctx, toEmail: toAddr, amount: toAmt),
+                                                    payEndpoint: '/api/group-transactions/${widget.groupId}/record-payment',
+                                                    payBody: {'toEmail': toAddr, 'amount': toAmt},
+                                                    onSuccess: () {
+                                                      _refresh();
+                                                      _showGroupPaymentSuccess(ctx, toAddr, toAmt);
+                                                    },
                                                   );
                                                 },
                                                 child: Text(t('pay_now_label'), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -1218,8 +1207,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                   counterpartyEmail: to,
                                                   amount: amt,
                                                   description: t('group_expense_repayment_label'),
-                                                  counterpartyPhone: null,
-                                                  onSuccess: () => _selfSettle(ctx, toEmail: to, amount: amt),
+                                                  payEndpoint: '/api/group-transactions/${widget.groupId}/record-payment',
+                                                  payBody: {'toEmail': to, 'amount': amt},
+                                                  onSuccess: () {
+                                                    _refresh();
+                                                    _showGroupPaymentSuccess(ctx, to, amt);
+                                                  },
                                                 ),
                                                 child: Text(t('pay_label'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                                               ),

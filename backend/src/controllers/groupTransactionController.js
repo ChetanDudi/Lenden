@@ -1,5 +1,6 @@
 const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
+const WalletTransaction = require('../models/walletTransaction');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const { sendGroupSettleOtp } = require('../utils/groupSettleOtp');
 const { sendGroupLeaveRequestEmail } = require('../utils/groupLeaveRequestEmail');
@@ -1623,7 +1624,15 @@ exports.settleMemberExpenses = async (req, res) => {
 
 // Record a peer-to-peer payment between two group members.
 // Tracks only this specific payer→receiver pair so other debts are unaffected.
+// Pays a fellow group member via an atomic LenDen Wallet transfer, then
+// records it in memberPayments[] so the balance-netting calculation picks it
+// up. The recipient is resolved from the group's own membership list (not an
+// arbitrary client-supplied email) so money can only go to a real active
+// member/creator of this group — and the wallet movement now happens here
+// rather than being a bookkeeping-only log of a payment that may or may not
+// have actually occurred.
 exports.recordMemberPayment = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
     const { groupId } = req.params;
     const { toEmail, amount } = req.body;
@@ -1632,25 +1641,67 @@ exports.recordMemberPayment = async (req, res) => {
       return res.status(400).json({ error: 'toEmail and a positive amount are required' });
     }
 
-    const group = await GroupTransaction.findById(groupId);
+    const group = await GroupTransaction.findById(groupId)
+      .populate('members.user', 'email')
+      .populate('creator', 'email');
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
     const isMember = group.members.some(
-      m => m.user.toString() === req.user._id.toString() && !m.leftAt
+      m => m.user._id.toString() === req.user._id.toString() && !m.leftAt
     );
-    const isCreator = group.creator.toString() === req.user._id.toString();
+    const isCreator = group.creator._id.toString() === req.user._id.toString();
     if (!isMember && !isCreator) {
       return res.status(403).json({ error: 'You are not an active member of this group' });
     }
 
-    group.memberPayments.push({
-      from: req.user.email.toLowerCase().trim(),
-      to: toEmail.toLowerCase().trim(),
-      amount: parseFloat(amount),
-      paidAt: new Date(),
-    });
+    const cleanToEmail = toEmail.toLowerCase().trim();
+    const activeMemberEmails = group.members
+      .filter(m => !m.leftAt)
+      .map(m => (m.user.email || '').toLowerCase());
+    activeMemberEmails.push((group.creator.email || '').toLowerCase());
+    if (!activeMemberEmails.includes(cleanToEmail)) {
+      return res.status(400).json({ error: 'Recipient is not an active member of this group' });
+    }
+    if (cleanToEmail === (req.user.email || '').toLowerCase().trim()) {
+      return res.status(400).json({ error: 'Cannot pay yourself' });
+    }
 
-    await group.save();
+    const payee = await User.findOne({ email: cleanToEmail }).select('_id email');
+    if (!payee) return res.status(404).json({ error: 'Recipient not found on LenDen' });
+
+    const parsedAmount = parseFloat(amount);
+    let newBalance;
+    await session.withTransaction(async () => {
+      // Atomic check-and-debit — fails (returns null) if balance is insufficient.
+      const payer = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: parsedAmount } },
+        { $inc: { walletBalance: -parsedAmount } },
+        { new: true, session }
+      );
+      if (!payer) {
+        throw Object.assign(new Error('Insufficient wallet balance'), {
+          status: 400,
+          userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.',
+        });
+      }
+
+      await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: parsedAmount } }, { session });
+
+      await WalletTransaction.create([
+        { user: payer._id, type: 'debit', amount: parsedAmount, toEmail: payee.email, note: `Group expense settlement — ${group.title}` },
+        { user: payee._id, type: 'credit', amount: parsedAmount, fromEmail: payer.email, note: `Group expense settlement — ${group.title}` },
+      ], { session });
+
+      group.memberPayments.push({
+        from: req.user.email.toLowerCase().trim(),
+        to: cleanToEmail,
+        amount: parsedAmount,
+        paidAt: new Date(),
+      });
+      await group.save({ session });
+
+      newBalance = payer.walletBalance;
+    });
 
     const populatedGroup = await GroupTransaction.findById(group._id)
       .populate('members.user', 'email')
@@ -1666,14 +1717,16 @@ exports.recordMemberPayment = async (req, res) => {
     groupObj.creator = { _id: groupObj.creator._id, email: groupObj.creator.email };
     groupObj.expenses = processedExpenses;
 
-    res.json({ group: groupObj });
+    res.json({ group: groupObj, balance: newBalance });
   } catch (err) {
     if (err.name === 'VersionError') {
       return res.status(409).json({
         error: 'This group was updated by someone else at the same time. Please try again.',
       });
     }
-    res.status(500).json({ error: 'Server error' });
+    res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
+  } finally {
+    session.endSession();
   }
 };
 

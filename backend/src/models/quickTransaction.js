@@ -63,7 +63,7 @@ const quickTransactionSchema = new mongoose.Schema({
     default: null,
   },
   settledViaPayment: { type: Boolean, default: false },
-  paymentMethod: { type: String, enum: ['razorpay', 'wallet', null], default: null },
+  paymentMethod: { type: String, enum: ['wallet', null], default: null },
   createdAt: {
     type: Date,
     default: Date.now,

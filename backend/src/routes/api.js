@@ -174,6 +174,7 @@ module.exports = (io) => {
   router.put('/quick-transactions/:id', auth, quickTransactionController.updateQuickTransaction);
   router.delete('/quick-transactions/:id', auth, quickTransactionController.deleteQuickTransaction);
   router.put('/quick-transactions/:id/clear', auth, quickTransactionController.clearQuickTransaction);
+  router.post('/quick-transactions/:id/pay', auth, quickTransactionController.payQuickTransaction);
   router.post('/quick-transactions/:id/request-settlement', auth, quickTransactionController.requestQuickTransactionSettlement);
   router.post('/quick-transactions/:id/respond-settlement', auth, quickTransactionController.respondQuickTransactionSettlement);
   router.delete('/quick-transactions', auth, quickTransactionController.clearAllQuickTransactions);
@@ -503,8 +504,6 @@ module.exports = (io) => {
   // Payment routes (Razorpay)
   router.get('/payment/config', auth, paymentController.getPaymentConfig);
   router.post('/payment/verify-manual', auth, manualPaymentVerifyLimiter, paymentController.verifyManualPayment);
-  router.post('/payment/create-p2p-order', auth, paymentController.createP2POrder);
-  router.post('/payment/verify-p2p', auth, paymentController.verifyP2PPayment);
   router.post('/payment/webhook', paymentController.razorpayWebhook); // no auth — Razorpay calls this
 
   // LenDen Wallet routes

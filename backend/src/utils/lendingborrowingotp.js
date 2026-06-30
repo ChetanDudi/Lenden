@@ -80,6 +80,35 @@ exports.verifyLendingBorrowingOtp = (email, otp) => {
   return false;
 };
 
+// Server-side record that a given role ('lender'/'borrower') on a given
+// secure transaction has completed OTP verification — so processPartialPayment
+// can check this instead of trusting client-sent lenderOtpVerified/
+// borrowerOtpVerified booleans, which could otherwise be set to true without
+// ever calling verifyPartialPaymentOTP. Short TTL gives both parties time to
+// verify before the deduction call, but expires unused verifications.
+const partialPaymentVerifiedStore = {};
+const PARTIAL_PAYMENT_VERIFIED_TTL_MS = 10 * 60 * 1000;
+
+exports.markPartialPaymentVerified = (transactionId, role) => {
+  partialPaymentVerifiedStore[`${transactionId}:${role}`] = { verifiedAt: Date.now() };
+};
+
+exports.isPartialPaymentVerified = (transactionId, role) => {
+  const key = `${transactionId}:${role}`;
+  const record = partialPaymentVerifiedStore[key];
+  if (!record) return false;
+  if (Date.now() - record.verifiedAt > PARTIAL_PAYMENT_VERIFIED_TTL_MS) {
+    delete partialPaymentVerifiedStore[key];
+    return false;
+  }
+  return true;
+};
+
+exports.consumePartialPaymentVerified = (transactionId) => {
+  delete partialPaymentVerifiedStore[`${transactionId}:lender`];
+  delete partialPaymentVerifiedStore[`${transactionId}:borrower`];
+};
+
 exports.sendTransactionReceipt = async (email, transaction, counterpartyNameOrEmail) => {
   const user = await User.findOne({ email });
   if (!user || !user.notificationSettings.emailNotifications || !user.notificationSettings.transactionNotifications || !shouldSendNotification(user)) {

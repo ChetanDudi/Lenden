@@ -15,7 +15,6 @@ import '../../../utils/display_currency_helper.dart';
 import '../../chats/chat_page.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../wallet/lenden_wallet_page.dart';
 import 'partial_payment_page.dart';
 import 'partial_payment_history_page.dart';
 import 'payment_timeline_page.dart';
@@ -191,18 +190,13 @@ class _SecureTransactionDetailPageState
     return null;
   }
 
+  // "Pay Now" is now the same two-sided-OTP, real-wallet-transfer flow as
+  // Partial Payment — just pre-filled with the full remaining amount — so
+  // there is exactly one payment path for secure transactions and it always
+  // requires both lender and borrower to verify OTP before any deduction.
   Future<void> _showPayNow() async {
     final tr = AppLocalizations.of(context).t;
-    final t = _t;
-    // role='lender' means the DB creator is the lender → pay them (t['userEmail']).
-    // role='borrower' means the DB creator is the borrower → lender is the counterparty.
-    // Using t['counterpartyEmail'] blindly is wrong when the lender created the transaction,
-    // because then counterpartyEmail IS the current user (borrower).
-    final String payToEmail = (t['role']?.toString() == 'lender')
-        ? t['userEmail']?.toString() ?? ''
-        : t['counterpartyEmail']?.toString() ?? '';
-    final transactionId = t['transactionId']?.toString() ?? '';
-    final remaining = double.tryParse(_calculateRemainingAmount(t)) ?? 0;
+    final remaining = double.tryParse(_calculateRemainingAmount(_t)) ?? 0;
     if (remaining <= 0) {
       if (mounted) {
         showSnack(context, tr('no_outstanding_balance_to_pay_message'), isError: true);
@@ -210,44 +204,18 @@ class _SecureTransactionDetailPageState
       return;
     }
     if (!mounted) return;
-    await LendenPaymentHelper.showPaymentSheet(
+    final result = await Navigator.push<bool>(
       context,
-      counterpartyEmail: payToEmail,
-      amount: remaining,
-      description: tr('secure_transaction_repayment_label'),
-      secureTransactionId: transactionId,
-      onSuccess: () => _clearAfterPayment(remaining),
+      MaterialPageRoute(
+        builder: (_) => PartialPaymentPage(
+          transaction: Map<String, dynamic>.from(_t),
+          isFullPayment: true,
+        ),
+      ),
     );
-  }
-
-  // Marks payer's side cleared after payment. Razorpay path records the partial payment
-  // automatically in verifyP2PPayment; wallet path records it here via the clear endpoint.
-  Future<void> _clearAfterPayment(double amountPaid) async {
-    final tr = AppLocalizations.of(context).t;
-    final email = Provider.of<SessionProvider>(context, listen: false).user?['email'];
-    if (email == null || !mounted) return;
-    // Payment made — clear both sides and record the payment in history
-    try {
-      final res = await ApiClient.post('/api/transactions/clear', body: {
-        'transactionId': _t['transactionId'],
-        'email': email,
-        'bothSides': true,
-        'amount': amountPaid,
-        'paymentMethod': 'wallet',
-      });
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        setState(() {
-          _t['userCleared'] = true;
-          _t['counterpartyCleared'] = true;
-          _needsRefresh = true;
-        });
-        showSnack(context, tr('payment_sent_and_marked_cleared_message'));
-      }
-    } catch (_) {
-      if (mounted) {
-        showSnack(context, tr('payment_sent_refresh_status_message'));
-      }
+    if (result == true && mounted) {
+      _needsRefresh = true;
+      Navigator.of(context).pop(true);
     }
   }
 

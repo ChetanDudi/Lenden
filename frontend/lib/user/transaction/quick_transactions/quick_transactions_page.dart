@@ -10,7 +10,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
-import '../../../widgets/app_widgets.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
@@ -1288,17 +1287,18 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     final id = (transaction['_id'] ?? '').toString();
     final counterparty = _counterpartyForViewer(transaction);
     final email = (counterparty?['email'] ?? '').toString();
-    final phone = counterparty?['phone']?.toString();
     final amount = ((transaction['amount'] ?? 0) as num).toDouble();
+    // /pay is one atomic call: debits the payer's wallet, credits the
+    // counterparty's, and marks the transaction settled server-side — no
+    // separate /clear call trusting the client afterward.
     LendenPaymentHelper.showPaymentSheet(
       context,
       counterpartyEmail: email,
       amount: amount,
       description: transaction['description']?.toString() ??
           t('quick_transaction_settlement_label'),
-      counterpartyPhone: phone,
-      quickTransactionId: id,
-      onSuccess: () async {
+      payEndpoint: '/api/quick-transactions/$id/pay',
+      onSuccess: () {
         final index = transactions.indexWhere((txn) => txn['_id'] == id);
         if (index != -1) {
           setState(() {
@@ -1307,13 +1307,17 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
             _applyPinSort();
           });
         }
-        final res =
-            await ApiClient.put('/api/quick-transactions/$id/clear', body: {});
-        if (!mounted) return;
-        if (res.statusCode == 200) {
-          showSnack(
-              context, t('payment_successful_transaction_settled_message'));
-        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessPage(
+              title: t('payment_successful_exclaim'),
+              amount: amount,
+              recipientName: email.isNotEmpty ? email : null,
+              transactionType: t('quick_transaction_settlement_label'),
+            ),
+          ),
+        );
       },
     );
   }
@@ -1347,11 +1351,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       Map<String, dynamic> transaction, String action) async {
     final t = AppLocalizations.of(context).t;
     if (action == 'accept') {
-      // Accept = go to payment first; backend is marked settled only after payment succeeds
+      // Accepting pays the requester directly — /pay atomically transfers the
+      // wallet money and flips settlementStatus pending → accepted together,
+      // so there's no separate unverified "confirm settlement" call after.
       final id = (transaction['_id'] ?? '').toString();
       final counterparty = _counterpartyForViewer(transaction);
       final email = (counterparty?['email'] ?? '').toString();
-      final phone = counterparty?['phone']?.toString();
       final amount = ((transaction['amount'] ?? 0) as num).toDouble();
       LendenPaymentHelper.showPaymentSheet(
         context,
@@ -1359,26 +1364,20 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         amount: amount,
         description: transaction['description']?.toString() ??
             t('quick_transaction_settlement_label'),
-        counterpartyPhone: phone,
-        quickTransactionId: id,
-        onSuccess: () async {
-          // Payment succeeded → now confirm settlement on backend
-          final res = await ApiClient.post(
-            '/api/quick-transactions/$id/respond-settlement',
-            body: {'action': 'accept'},
+        payEndpoint: '/api/quick-transactions/$id/pay',
+        onSuccess: () {
+          fetchQuickTransactions();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentSuccessPage(
+                title: t('payment_successful_exclaim'),
+                amount: amount,
+                recipientName: email.isNotEmpty ? email : null,
+                transactionType: t('quick_transaction_settlement_label'),
+              ),
+            ),
           );
-          if (!mounted) return;
-          if (res.statusCode == 200) {
-            // Refresh list with enriched users
-            fetchQuickTransactions();
-            showSnack(
-                context, t('payment_successful_settlement_complete_message'));
-          } else {
-            // Payment went through but backend update failed – still refresh
-            fetchQuickTransactions();
-            showSnack(context, t('payment_done_status_update_failed_message'),
-                isError: true);
-          }
         },
       );
       return;
