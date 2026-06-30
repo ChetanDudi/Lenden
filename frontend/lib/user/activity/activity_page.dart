@@ -494,12 +494,18 @@ class _ActivityPageState extends State<ActivityPage> {
   String _formatDate(String dateString, {String? activityType}) {
     final t = AppLocalizations.of(context).t;
     try {
-      final date = DateTime.parse(dateString);
+      // The backend stores UTC timestamps (ISO 8601 with a 'Z' suffix) — without
+      // toLocal(), DateFormat reads the raw UTC hour/day fields as-is, so the
+      // displayed time (and sometimes date, near the UTC day boundary) is off
+      // by the device's UTC offset. This was the cause of login/logout times
+      // looking wrong; other activity types mostly show a relative "X ago"
+      // string instead, which is timezone-independent and so masked the bug.
+      final date = DateTime.parse(dateString).toLocal();
       final now = DateTime.now();
       final difference = now.difference(date);
 
-      // For login activities, always show full date and time
-      if (activityType == 'login') {
+      // For login/logout activities, always show the full local date and time
+      if (activityType == 'login' || activityType == 'logout') {
         return DateFormat('MMM dd, yyyy • h:mm a').format(date);
       }
 

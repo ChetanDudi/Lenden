@@ -2170,8 +2170,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: Text(loc('your_transactions_count_title').replaceFirst('{count}', '$totalTransactions'),
-            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.black),
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
       ),
       body: Stack(
         children: [

@@ -1,28 +1,18 @@
 const QuickTransaction = require('../models/quickTransaction');
 const User = require('../models/user');
-const Subscription = require('../models/subscription');
 const { logQuickTransactionActivity } = require('./activityController');
 const { awardGiftCard, shouldAwardGiftCard } = require('./userGiftCardController');
 const { processReferralRewardOnFirstCreation } = require('../utils/referralService');
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
     (id) => id.toString() === other._id.toString()
   );
 
-const isSubscribed = async (userId) => {
-  const subscription = await Subscription.findOne({
-    user: userId,
-    status: 'active',
-  });
-  return (
-    subscription &&
-    subscription.subscribed &&
-    subscription.endDate >= new Date()
-  );
-};
+const isSubscribed = (userId) => hasFeature(userId, FEATURES.QUICK_TRANSACTIONS);
 
 const getTodayRange = () => {
   const start = new Date();

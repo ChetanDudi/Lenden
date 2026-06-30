@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
 const { computeTrustScore } = require('../utils/trustScore');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
 exports.getUserProfile = async (req, res) => {
   try {
@@ -114,7 +115,20 @@ exports.getUserProfileByEmail = async (req, res) => {
     if (userObj.profileImage) {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;
     }
-    userObj.trustScore = await computeTrustScore(user.email);
+
+    // The trust score / ranking is a premium feature: always visible on your
+    // own profile or to admins, otherwise only if the requester's plan
+    // includes view_rankings. The rest of the profile (used for everyday
+    // counterparty lookups in transactions) stays open regardless.
+    const isOwnProfile = requesterEmail && email.toLowerCase() === requesterEmail.toLowerCase();
+    const isAdminRequester = req.user?.role === 'admin';
+    if (
+      isOwnProfile ||
+      isAdminRequester ||
+      (req.user?._id && (await hasFeature(req.user._id, FEATURES.VIEW_RANKINGS)))
+    ) {
+      userObj.trustScore = await computeTrustScore(user.email);
+    }
     res.json(userObj);
   } catch (err) {
     console.error('Error in getUserProfileByEmail:', err);

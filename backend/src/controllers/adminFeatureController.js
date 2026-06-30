@@ -4,6 +4,12 @@ const Faq = require('../models/faq');
 const Subscription = require('../models/subscription');
 const User = require('../models/user');
 const Admin = require('../models/admin');
+const { ALL_FEATURE_KEYS } = require('../utils/subscriptionFeatures');
+
+const sanitizeAllowedFeatures = (allowedFeatures) =>
+    Array.isArray(allowedFeatures)
+        ? allowedFeatures.filter((key) => ALL_FEATURE_KEYS.includes(key))
+        : undefined;
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -49,10 +55,13 @@ exports.createSubscriptionPlan = async (req, res) => {
     try {
         const permitted = await ensureDigitisePermission(req, res);
         if (!permitted) return;
-        const { name, price, duration, features, discount, free } = req.body;
+        const { name, price, duration, features, discount, free, allowedFeatures } = req.body;
         if (!(price > 0)) return res.status(400).json({ message: 'Price must be greater than 0' });
         if (!(duration > 0)) return res.status(400).json({ message: 'Duration must be greater than 0' });
-        const newPlan = new SubscriptionPlan({ name, price, duration, features, discount, free });
+        const newPlan = new SubscriptionPlan({
+            name, price, duration, features, discount, free,
+            allowedFeatures: sanitizeAllowedFeatures(allowedFeatures) || [],
+        });
         await newPlan.save();
         res.status(201).json({ message: 'Subscription plan created successfully', plan: newPlan });
     } catch (error) {
@@ -76,10 +85,13 @@ exports.updateSubscriptionPlan = async (req, res) => {
         const permitted = await ensureDigitisePermission(req, res);
         if (!permitted) return;
         const { id } = req.params;
-        const { name, price, duration, features, isAvailable, discount, free } = req.body;
+        const { name, price, duration, features, isAvailable, discount, free, allowedFeatures } = req.body;
         if (price !== undefined && !(price > 0)) return res.status(400).json({ message: 'Price must be greater than 0' });
         if (duration !== undefined && !(duration > 0)) return res.status(400).json({ message: 'Duration must be greater than 0' });
-        const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(id, { name, price, duration, features, isAvailable, discount, free }, { new: true });
+        const updateData = { name, price, duration, features, isAvailable, discount, free };
+        const sanitizedAllowedFeatures = sanitizeAllowedFeatures(allowedFeatures);
+        if (sanitizedAllowedFeatures !== undefined) updateData.allowedFeatures = sanitizedAllowedFeatures;
+        const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(id, updateData, { new: true });
         if (!updatedPlan) {
             return res.status(404).json({ message: 'Subscription plan not found' });
         }

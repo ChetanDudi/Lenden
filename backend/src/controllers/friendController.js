@@ -6,6 +6,7 @@ const Transaction = require('../models/transaction');
 const QuickTransaction = require('../models/quickTransaction');
 const GroupTransaction = require('../models/groupTransaction');
 const { logFriendActivity } = require('./userActivityController');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
 const sanitizeQuery = (q) => (q || '').toString().trim();
 
@@ -459,6 +460,9 @@ exports.unblockUser = async (req, res) => {
 
 exports.getFriendSuggestions = async (req, res) => {
   try {
+    if (!(await hasFeature(req.user._id, FEATURES.DISCOVER))) {
+      return res.status(403).json({ error: 'Subscribe to discover people you may know.', suggestions: [] });
+    }
     const limit = Math.min(parseInt(req.query.limit) || 10, 30);
 
     // ── Load my data ──────────────────────────────────────────────────────────

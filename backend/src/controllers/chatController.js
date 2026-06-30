@@ -1,6 +1,6 @@
 const Transaction = require('../models/transaction');
 const User = require('../models/user');
-const Subscription = require('../models/subscription');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const Chat = require('../models/chat');
 const {
     decodeChatMessage,
@@ -77,8 +77,7 @@ module.exports = (io) => {
                     }
                 }
 
-                const subscription = await Subscription.findOne({ user: senderId, status: 'active' });
-                const isSubscribed = subscription && subscription.subscribed && subscription.endDate >= new Date();
+                const isSubscribed = await hasFeature(senderId, FEATURES.PRIVATE_CHAT);
 
                 let start;
                 let end;

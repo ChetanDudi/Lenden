@@ -32,6 +32,7 @@ import '../support/contact_messages_page.dart';
 import '../disputes/manage_disputes_page.dart';
 import '../disputes/fraud_alerts_page.dart';
 import '../../utils/responsive.dart';
+import '../../widgets/avatar_action_sheet.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -1004,19 +1005,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         children: [
                           NotificationIcon(),
                           GestureDetector(
-                            onTap: () async {
-                              await Navigator.push(
+                            onTap: () {
+                              showAvatarActionSheet(
                                 context,
-                                MaterialPageRoute(
-                                    builder: (context) => const ProfilePage()),
+                                avatarImage: _getAdminAvatar(),
+                                onViewDetails: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ProfilePage()),
+                                  );
+                                  final session =
+                                      Provider.of<SessionProvider>(context,
+                                          listen: false);
+                                  await session.forceRefreshProfile();
+                                  if (mounted) {
+                                    setState(() {
+                                      _imageRefreshKey++;
+                                    });
+                                  }
+                                },
                               );
-                              final session = Provider.of<SessionProvider>(
-                                  context,
-                                  listen: false);
-                              await session.forceRefreshProfile();
-                              setState(() {
-                                _imageRefreshKey++;
-                              });
                             },
                             child: CircleAvatar(
                               key: ValueKey(_imageRefreshKey),

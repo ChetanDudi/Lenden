@@ -1,5 +1,6 @@
 const Rating = require('../models/rating');
 const User = require('../models/user');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
 // GET /api/ratings/user-avg?usernameOrEmail=... - Get avg rating for any user by username or email
 exports.getUserAvgRating = async (req, res) => {
@@ -16,6 +17,12 @@ exports.getUserAvgRating = async (req, res) => {
     });
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
+    }
+    if (
+      user._id.toString() !== req.user._id.toString() &&
+      !(await hasFeature(req.user._id, FEATURES.VIEW_RANKINGS))
+    ) {
+      return res.status(403).json({ error: 'Subscribe to search and view other users\' ratings.' });
     }
     const ratings = await Rating.find({ ratee: user._id });
     const totalRatings = ratings.length;

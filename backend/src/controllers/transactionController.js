@@ -1,6 +1,5 @@
 const Transaction = require('../models/transaction');
 const User = require('../models/user');
-const Subscription = require('../models/subscription');
 const lendingborrowingotp = require('../utils/lendingborrowingotp');
 const { sendTransactionReceipt, sendTransactionClearedNotification } = require('../utils/lendingborrowingotp');
 const { logTransactionActivity } = require('./activityController');
@@ -13,23 +12,14 @@ const { sendReceiptEmail } = require('../utils/receiptEmail');
 const { processReferralRewardOnFirstCreation } = require('../utils/referralService');
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
     (id) => id.toString() === other._id.toString()
   );
 
-const isSubscribed = async (userId) => {
-  const subscription = await Subscription.findOne({
-    user: userId,
-    status: 'active',
-  });
-  return (
-    subscription &&
-    subscription.subscribed &&
-    subscription.endDate >= new Date()
-  );
-};
+const isSubscribed = (userId) => hasFeature(userId, FEATURES.SECURE_TRANSACTIONS);
 
 const getTodayRange = () => {
   const start = new Date();

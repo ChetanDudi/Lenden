@@ -12,10 +12,10 @@ import '../../widgets/payment_success_page.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/wave_widget.dart'
-    show MediumTopWaveClipper, AltBottomWaveClipper;
+import '../../widgets/wave_widget.dart' show MediumTopWaveClipper;
 import '../support/help_support_page.dart';
 import '../support/contact_page.dart';
+import '../../utils/subscription_feature_catalog.dart';
 
 // Models
 class SubscriptionPlan {
@@ -27,6 +27,7 @@ class SubscriptionPlan {
   final bool isAvailable;
   final int discount;
   final int free;
+  final List<String> allowedFeatures;
 
   SubscriptionPlan(
       {required this.id,
@@ -36,7 +37,8 @@ class SubscriptionPlan {
       required this.features,
       required this.isAvailable,
       required this.discount,
-      required this.free});
+      required this.free,
+      this.allowedFeatures = const []});
 
   factory SubscriptionPlan.fromJson(Map<String, dynamic> json) {
     return SubscriptionPlan(
@@ -48,6 +50,7 @@ class SubscriptionPlan {
       isAvailable: json['isAvailable'],
       discount: json['discount'] ?? 0,
       free: json['free'] ?? 0,
+      allowedFeatures: List<String>.from(json['allowedFeatures'] ?? []),
     );
   }
 }
@@ -89,9 +92,13 @@ class SubscriptionsPage extends StatefulWidget {
   _SubscriptionsPageState createState() => _SubscriptionsPageState();
 }
 
-class _SubscriptionsPageState extends State<SubscriptionsPage> {
+class _SubscriptionsPageState extends State<SubscriptionsPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   String? _selectedPlan;
   String _searchQuery = '';
+  String _planSearchQuery = '';
   String _filterOption = 'All'; // All, Active, Expired
   bool _showComparison = false;
   DisplayCurrencyData? _displayCurrencyData;
@@ -105,15 +112,20 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   bool _isLoadingPlans = false;
   bool _isLoadingBenefits = false;
   bool _isLoadingFaqs = false;
+  String? _plansError;
+  String? _benefitsError;
+  String? _faqsError;
   bool _isPayingViaWallet = false;
   bool _showRenewalSection = false;
   double _walletBalance = 0;
 
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _planSearchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 5, vsync: this);
     Provider.of<SessionProvider>(context, listen: false)
         .checkSubscriptionStatus();
     _loadDisplayCurrencies();
@@ -122,7 +134,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
+    _planSearchController.dispose();
     super.dispose();
   }
 
@@ -252,59 +266,96 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Future<void> _fetchPlans() async {
     setState(() {
       _isLoadingPlans = true;
+      _plansError = null;
     });
-    final response = await ApiClient.get('/api/subscription/plans');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        _plans = data.map((item) => SubscriptionPlan.fromJson(item)).toList();
-        // Auto-select first available plan so user can pay immediately
-        if (_selectedPlan == null && _plans.isNotEmpty) {
-          _selectedPlan = _plans.first.name;
-        }
-      });
-    } else {
-      // Handle error
+    try {
+      final response = await ApiClient.get('/api/subscription/plans');
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _plans = data.map((item) => SubscriptionPlan.fromJson(item)).toList();
+          // Auto-select first available plan so user can pay immediately
+          if (_selectedPlan == null && _plans.isNotEmpty) {
+            _selectedPlan = _plans.first.name;
+          }
+        });
+      } else {
+        final t = AppLocalizations.of(context).t;
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        setState(() => _plansError =
+            (body?['message'] ?? t('failed_to_load_plans_message'))
+                .toString());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
+      setState(() => _plansError = '${t('error_prefix')} $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingPlans = false);
     }
-    setState(() {
-      _isLoadingPlans = false;
-    });
   }
 
   Future<void> _fetchBenefits() async {
     setState(() {
       _isLoadingBenefits = true;
+      _benefitsError = null;
     });
-    final response = await ApiClient.get('/api/subscription/benefits');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        _benefits = data.map((item) => PremiumBenefit.fromJson(item)).toList();
-      });
-    } else {
-      // Handle error
+    try {
+      final response = await ApiClient.get('/api/subscription/benefits');
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _benefits =
+              data.map((item) => PremiumBenefit.fromJson(item)).toList();
+        });
+      } else {
+        final t = AppLocalizations.of(context).t;
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        setState(() => _benefitsError =
+            (body?['message'] ?? t('failed_to_load_benefits_message'))
+                .toString());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
+      setState(() => _benefitsError = '${t('error_prefix')} $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingBenefits = false);
     }
-    setState(() {
-      _isLoadingBenefits = false;
-    });
   }
 
   Future<void> _fetchFaqs() async {
     setState(() {
       _isLoadingFaqs = true;
+      _faqsError = null;
     });
-    final response = await ApiClient.get('/api/subscription/faqs');
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      setState(() {
-        _faqs = data.map((item) => Faq.fromJson(item)).toList();
-      });
-    } else {
-      // Handle error
+    try {
+      final response = await ApiClient.get('/api/subscription/faqs');
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _faqs = data.map((item) => Faq.fromJson(item)).toList();
+        });
+      } else {
+        final t = AppLocalizations.of(context).t;
+        final body =
+            response.body.isNotEmpty ? json.decode(response.body) : null;
+        setState(() => _faqsError =
+            (body?['message'] ?? t('failed_to_load_faqs_message'))
+                .toString());
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context).t;
+      setState(() => _faqsError = '${t('error_prefix')} $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingFaqs = false);
     }
-    setState(() {
-      _isLoadingFaqs = false;
-    });
   }
 
   String? _razorpayPaymentLink;
@@ -734,6 +785,26 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     return colors[index % colors.length];
   }
 
+  List<SubscriptionPlan> _getFilteredPlans() {
+    final query = _planSearchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _plans;
+    final t = AppLocalizations.of(context).t;
+    return _plans.where((plan) {
+      final haystack = <String>[
+        plan.name,
+        plan.price.toStringAsFixed(2),
+        '${plan.duration}',
+        '${plan.discount}',
+        '${plan.free}',
+        ...plan.features,
+        ...kSubscriptionFeatures
+            .where((f) => plan.allowedFeatures.contains(f.key))
+            .map((f) => t(f.labelKey)),
+      ].join(' ').toLowerCase();
+      return haystack.contains(query);
+    }).toList();
+  }
+
   List<Map<String, dynamic>> _getFilteredHistory(
       List<Map<String, dynamic>> history) {
     return history.where((sub) {
@@ -764,14 +835,34 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
     return Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(t('go_premium_label'),
-            style: const TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                color: AppThemeColors.primaryText(context),
+                fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          labelColor: AppThemeColors.primaryText(context),
+          unselectedLabelColor:
+              AppThemeColors.primaryText(context).withValues(alpha: 0.7),
+          indicatorColor: AppColors.cyan,
+          indicatorWeight: 3,
+          tabs: [
+            Tab(text: t('plans_tab'), icon: const Icon(Icons.card_membership)),
+            Tab(text: t('benefits_tab'), icon: const Icon(Icons.star)),
+            Tab(text: t('faqs_tab'), icon: const Icon(Icons.help_outline)),
+            Tab(
+                text: t('active_plan_tab'),
+                icon: const Icon(Icons.workspace_premium)),
+            Tab(text: t('history_tab'), icon: const Icon(Icons.history)),
+          ],
+        ),
       ),
       body: Consumer<SessionProvider>(
         builder: (context, session, child) {
@@ -785,37 +876,20 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   clipper: const MediumTopWaveClipper(),
                   child: Container(
                     height: context.sh(156),
-                    color: AppColors.cyan,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ClipPath(
-                  clipper: const AltBottomWaveClipper(),
-                  child: Container(
-                    height: MediaQuery.of(context).size.height * 0.13,
-                    color: AppColors.cyan,
+                    color: AppThemeColors.waveSolid(context),
                   ),
                 ),
               ),
               SafeArea(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20, context.sh(45), 20, 20),
-                  child: Column(
-                    children: [
-                      if (session.subscriptionHistory != null &&
-                          session.subscriptionHistory!.isNotEmpty)
-                        _buildSubscriptionHistory(session.subscriptionHistory!),
-                      session.isSubscribed
-                          ? _buildSubscribedView(session)
-                          : _buildSubscribeView(),
-                      const SizedBox(height: 20),
-                      _buildFAQSection(),
-                    ],
-                  ),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildPlansTab(session),
+                    _buildBenefitsTab(),
+                    _buildFaqsTab(),
+                    _buildActivePlanTab(session),
+                    _buildHistoryTab(session),
+                  ],
                 ),
               ),
             ],
@@ -1141,7 +1215,371 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
-  Widget _buildSubscribedView(SessionProvider session) {
+  Widget _buildErrorState(String message, VoidCallback onRetry) {
+    final t = AppLocalizations.of(context).t;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+          const SizedBox(height: 12),
+          Text(message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(t('retry')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          Icon(Icons.inbox, size: 64, color: AppThemeColors.mutedText(context)),
+          const SizedBox(height: 12),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.secondaryText(context))),
+          const SizedBox(height: 6),
+          Text(subtitle,
+              textAlign: TextAlign.center,
+              style:
+                  TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlansTab(SessionProvider session) {
+    final t = AppLocalizations.of(context).t;
+    final showWarning =
+        _displayCurrencyError != null || _hasMissingPlanConversion();
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!session.isSubscribed) _buildPremiumIllustration(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                t('select_a_plan_label'),
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context)),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _showComparison = !_showComparison;
+                  });
+                },
+                icon: Icon(_showComparison ? Icons.grid_view : Icons.view_list),
+                label: Text(
+                    _showComparison ? t('list_view_label') : t('compare_label')),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                colors: [Colors.orange, Colors.white, Colors.green],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TextField(
+                controller: _planSearchController,
+                style: TextStyle(color: AppThemeColors.primaryText(context)),
+                decoration: InputDecoration(
+                  hintText: t('search_plans_hint'),
+                  border: InputBorder.none,
+                  icon: Icon(Icons.search, color: AppColors.cyan),
+                  suffixIcon: _planSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              _planSearchController.clear();
+                              _planSearchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _planSearchQuery = value;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                t('show_in_label'),
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context)),
+              ),
+              const SizedBox(width: 10),
+              _buildCurrencySelector(),
+            ],
+          ),
+          if (showWarning) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF1F1),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFFF6B6B)),
+              ),
+              child: Text(
+                _displayCurrencyError ??
+                    t('conversion_unavailable_subscription_message')
+                        .replaceFirst('{currency}', _selectedDisplayCurrency),
+                style: const TextStyle(
+                  color: Color(0xFFC62828),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 15),
+          _isLoadingPlans
+              ? const Center(child: CircularProgressIndicator())
+              : _plansError != null
+                  ? _buildErrorState(_plansError!, _fetchPlans)
+                  : _plans.isEmpty
+                      ? _buildEmptyState(
+                          t('nothing_here'), t('add_first_subscription_plan'))
+                      : Builder(builder: (context) {
+                          final filteredPlans = _getFilteredPlans();
+                          if (filteredPlans.isEmpty) {
+                            return _buildEmptyState(
+                                t('nothing_here'), t('no_plans_match_search_message'));
+                          }
+                          return _showComparison
+                              ? _buildComparisonView(filteredPlans)
+                              : Column(
+                                  children:
+                                      filteredPlans.asMap().entries.map((entry) {
+                                    int idx = entry.key;
+                                    SubscriptionPlan plan = entry.value;
+                                    return _buildPlanCard(plan, idx);
+                                  }).toList(),
+                                );
+                        }),
+          const SizedBox(height: 30),
+          if (!session.isSubscribed) ...[
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.orange, Colors.white, Colors.green],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isPayingViaWallet ? null : _startPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  disabledBackgroundColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                ),
+                icon: const Icon(Icons.payment, color: Colors.black),
+                label: Text(
+                  t('pay_via_razorpay_label'),
+                  style: const TextStyle(
+                      fontSize: 17,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(children: [
+              const Expanded(child: Divider(thickness: 1.2)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(t('or_label'),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[500])),
+              ),
+              const Expanded(child: Divider(thickness: 1.2)),
+            ]),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.cyan, width: 2),
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isPayingViaWallet ? null : _payViaWallet,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF0F9FF),
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22)),
+                ),
+                icon: _isPayingViaWallet
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: AppColors.cyan))
+                    : const Icon(Icons.account_balance_wallet_rounded,
+                        color: AppColors.cyan),
+                label: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isPayingViaWallet
+                          ? t('processing_ellipsis_label')
+                          : t('pay_via_lenden_wallet_label'),
+                      style: const TextStyle(
+                          fontSize: 17,
+                          color: AppColors.cyan,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    if (!_isPayingViaWallet)
+                      Text(
+                        t('balance_amount_message').replaceFirst(
+                            '{amount}', _walletBalance.toStringAsFixed(2)),
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildTrustBadges(),
+          ] else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.check_circle, color: AppColors.cyan, size: 30),
+                  const SizedBox(height: 10),
+                  Text(
+                    t('already_subscribed_browse_plans_message'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppThemeColors.secondaryText(context)),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _tabController.animateTo(3),
+                    icon: const Icon(Icons.arrow_forward, size: 18),
+                    label: Text(t('go_to_other_details_label')),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitsTab() {
+    final t = AppLocalizations.of(context).t;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      child: _isLoadingBenefits
+          ? const Center(child: CircularProgressIndicator())
+          : _benefitsError != null
+              ? _buildErrorState(_benefitsError!, _fetchBenefits)
+              : _benefits.isEmpty
+                  ? _buildEmptyState(
+                      t('nothing_here'), t('no_benefits_listed_message'))
+                  : Column(
+                      children: _benefits.asMap().entries.map((entry) {
+                        int idx = entry.key;
+                        PremiumBenefit benefit = entry.value;
+                        return _buildBenefitItem(
+                            idx, Icons.check, benefit.text, '');
+                      }).toList(),
+                    ),
+    );
+  }
+
+  Widget _buildFaqsTab() {
+    final t = AppLocalizations.of(context).t;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      child: _isLoadingFaqs
+          ? const Center(child: CircularProgressIndicator())
+          : _faqsError != null
+              ? _buildErrorState(_faqsError!, _fetchFaqs)
+              : _faqs.isEmpty
+                  ? _buildEmptyState(t('nothing_here'), t('no_faqs_listed_message'))
+                  : Column(
+                      children: _faqs.asMap().entries.map((entry) {
+                        int idx = entry.key;
+                        Faq faq = entry.value;
+                        return _buildFAQItem(faq.question, faq.answer, idx);
+                      }).toList(),
+                    ),
+    );
+  }
+
+  Widget _buildActivePlanTab(SessionProvider session) {
     final t = AppLocalizations.of(context).t;
     final daysRemaining = session.subscriptionEndDate != null
         ? session.subscriptionEndDate!.difference(DateTime.now()).inDays
@@ -1151,103 +1589,128 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             ? session.free! -
                 (DateTime.now().difference(session.subscriptionEndDate!).inDays)
             : 0;
-
-    return Column(
-      children: [
-        // Stats Dashboard
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.cyan, Color(0xFF0096C7)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      child: Column(
+        children: [
+          if (!session.isSubscribed)
+            Padding(
+              padding: const EdgeInsets.only(top: 48),
+              child: Column(
+                children: [
+                  Icon(Icons.workspace_premium_outlined,
+                      size: 72, color: AppThemeColors.divider(context)),
+                  const SizedBox(height: 16),
+                  Text(t('not_subscribed_yet_message'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: AppThemeColors.secondaryText(context))),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => _tabController.animateTo(0),
+                    icon: const Icon(Icons.card_membership),
+                    label: Text(t('view_plans_label')),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cyan,
+                      foregroundColor: Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.cyan.withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  offset: Offset(0, 5),
-                ),
-              ],
             ),
-            child: Column(
-              children: [
-                Text(
-                  '🎉 ${t('premium_member_label')}',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          if (session.isSubscribed) ...[
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: const LinearGradient(
+                  colors: [Colors.orange, Colors.white, Colors.green],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.cyan, Color(0xFF0096C7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.cyan.withValues(alpha: 0.3),
+                      blurRadius: 15,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 20),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatCard(
-                          Icons.calendar_today,
-                          daysRemaining > 0
-                              ? '$daysRemaining'
-                              : (freeDaysRemaining > 0
-                                  ? '$freeDaysRemaining'
-                                  : t('expired_label')),
-                          daysRemaining > 0
-                              ? t('days_left_label')
-                              : (freeDaysRemaining > 0
-                                  ? t('free_days_left_label')
-                                  : t('status_label'))),
-                      SizedBox(width: 20),
-                      _buildStatCard(
-                          Icons.workspace_premium,
-                          session.subscriptionPlan?.split(' ')[0] ??
-                              t('na_label'),
-                          t('plan_label')),
-                    ],
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      '🎉 ${t('premium_member_label')}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatCard(
+                              Icons.calendar_today,
+                              daysRemaining > 0
+                                  ? '$daysRemaining'
+                                  : (freeDaysRemaining > 0
+                                      ? '$freeDaysRemaining'
+                                      : t('expired_label')),
+                              daysRemaining > 0
+                                  ? t('days_left_label')
+                                  : (freeDaysRemaining > 0
+                                      ? t('free_days_left_label')
+                                      : t('status_label'))),
+                          SizedBox(width: 20),
+                          _buildStatCard(
+                              Icons.workspace_premium,
+                              session.subscriptionPlan?.split(' ')[0] ??
+                                  t('na_label'),
+                              t('plan_label')),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Active Subscription Details
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFCE4EC),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: const LinearGradient(
+                  colors: [Colors.orange, Colors.white, Colors.green],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCE4EC),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       t('subscription_details_label'),
@@ -1256,69 +1719,82 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           fontWeight: FontWeight.bold,
                           color: Colors.black87),
                     ),
-                    Icon(Icons.edit, color: AppColors.cyan),
+                    const SizedBox(height: 20),
+                    _buildInfoRow(t('plan_colon_label'),
+                        session.subscriptionPlan ?? t('na_label')),
+                    const SizedBox(height: 10),
+                    _buildInfoRow(
+                        t('expires_on_colon_label'),
+                        session.subscriptionEndDate
+                                ?.toLocal()
+                                .toString()
+                                .split(' ')[0] ??
+                            t('na_label')),
                   ],
                 ),
-                const SizedBox(height: 20),
-                _buildInfoRow(t('plan_colon_label'),
-                    session.subscriptionPlan ?? t('na_label')),
-                const SizedBox(height: 10),
-                _buildInfoRow(
-                    t('expires_on_colon_label'),
-                    session.subscriptionEndDate
-                            ?.toLocal()
-                            .toString()
-                            .split(' ')[0] ??
-                        t('na_label')),
-                const SizedBox(height: 20),
-                Text(
-                  t('premium_features_colon_label'),
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
-                ),
-                const SizedBox(height: 10),
-                ..._benefits.asMap().entries.map((entry) {
-                  int idx = entry.key;
-                  PremiumBenefit benefit = entry.value;
-                  return _buildBenefitItem(idx, Icons.check, benefit.text, '');
-                }).toList(),
-              ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () =>
-                setState(() => _showRenewalSection = !_showRenewalSection),
-            icon: Icon(
-              _showRenewalSection
-                  ? Icons.keyboard_arrow_up_rounded
-                  : Icons.refresh_rounded,
-              color: AppColors.cyan,
-            ),
-            label: Text(
-              _showRenewalSection
-                  ? t('hide_renewal_options_label')
-                  : t('renew_extend_subscription_label'),
-              style: const TextStyle(
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    setState(() => _showRenewalSection = !_showRenewalSection),
+                icon: Icon(
+                  _showRenewalSection
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.refresh_rounded,
                   color: AppColors.cyan,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
+                ),
+                label: Text(
+                  _showRenewalSection
+                      ? t('hide_renewal_options_label')
+                      : t('renew_extend_subscription_label'),
+                  style: const TextStyle(
+                      color: AppColors.cyan,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.cyan, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
             ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.cyan, width: 1.5),
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+            if (_showRenewalSection) _buildRenewalSection(),
+            const SizedBox(height: 20),
+          ],
+          const SizedBox(height: 20),
+          _buildTrustBadges(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab(SessionProvider session) {
+    final t = AppLocalizations.of(context).t;
+    final history = session.subscriptionHistory;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, context.sh(20), 20, 20),
+      child: history != null && history.isNotEmpty
+          ? _buildSubscriptionHistory(history)
+          : Padding(
+              padding: const EdgeInsets.only(top: 48),
+              child: Column(
+                children: [
+                  Icon(Icons.history_rounded,
+                      size: 72, color: AppThemeColors.divider(context)),
+                  const SizedBox(height: 16),
+                  Text(t('no_subscription_history_yet_message'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: AppThemeColors.secondaryText(context))),
+                ],
+              ),
             ),
-          ),
-        ),
-        if (_showRenewalSection) _buildRenewalSection(),
-      ],
     );
   }
 
@@ -1503,231 +1979,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
-  Widget _buildSubscribeView() {
-    final t = AppLocalizations.of(context).t;
-    final showWarning =
-        _displayCurrencyError != null || _hasMissingPlanConversion();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 60),
-
-// Premium Illustration
-        _buildPremiumIllustration(),
-
-        // Benefits Section
-        Text(
-          t('premium_benefits_label'),
-          style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppThemeColors.primaryText(context)),
-        ),
-        const SizedBox(height: 15),
-        if (_isLoadingBenefits)
-          const Center(child: CircularProgressIndicator())
-        else if (_benefits.isEmpty)
-          Center(child: Text(t('loading_benefits_message')))
-        else
-          ..._benefits.asMap().entries.map((entry) {
-            int idx = entry.key;
-            PremiumBenefit benefit = entry.value;
-            return _buildBenefitItem(idx, Icons.check, benefit.text, '');
-          }).toList(),
-
-        const SizedBox(height: 30),
-
-        // Plan Comparison Toggle
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              t('select_a_plan_label'),
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppThemeColors.primaryText(context)),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _showComparison = !_showComparison;
-                });
-              },
-              icon: Icon(_showComparison ? Icons.grid_view : Icons.view_list),
-              label: Text(
-                  _showComparison ? t('list_view_label') : t('compare_label')),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Text(
-              t('show_in_label'),
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppThemeColors.primaryText(context)),
-            ),
-            const SizedBox(width: 10),
-            _buildCurrencySelector(),
-          ],
-        ),
-        if (showWarning) ...[
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF1F1),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFFF6B6B)),
-            ),
-            child: Text(
-              _displayCurrencyError ??
-                  t('conversion_unavailable_subscription_message')
-                      .replaceFirst('{currency}', _selectedDisplayCurrency),
-              style: const TextStyle(
-                color: Color(0xFFC62828),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 15),
-
-        // Plans Display
-        _isLoadingPlans
-            ? const Center(child: CircularProgressIndicator())
-            : _plans.isEmpty
-                ? Center(child: Text(t('loading_plans_message')))
-                : _showComparison
-                    ? _buildComparisonView()
-                    : Column(
-                        children: _plans.asMap().entries.map((entry) {
-                          int idx = entry.key;
-                          SubscriptionPlan plan = entry.value;
-                          return _buildPlanCard(plan, idx);
-                        }).toList(),
-                      ),
-
-        const SizedBox(height: 30),
-
-        // Subscribe Button — Razorpay
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.orange.withValues(alpha: 0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: ElevatedButton.icon(
-            onPressed: _isPayingViaWallet ? null : _startPayment,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              disabledBackgroundColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24)),
-            ),
-            icon: const Icon(Icons.payment, color: Colors.black),
-            label: Text(
-              t('pay_via_razorpay_label'),
-              style: const TextStyle(
-                  fontSize: 17,
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        // Divider OR
-        Row(children: [
-          const Expanded(child: Divider(thickness: 1.2)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(t('or_label'),
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[500])),
-          ),
-          const Expanded(child: Divider(thickness: 1.2)),
-        ]),
-
-        const SizedBox(height: 14),
-
-        // Subscribe Button — LenDen Wallet
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.cyan, width: 2),
-          ),
-          child: ElevatedButton.icon(
-            onPressed: _isPayingViaWallet ? null : _payViaWallet,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF0F9FF),
-              shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22)),
-            ),
-            icon: _isPayingViaWallet
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: AppColors.cyan))
-                : const Icon(Icons.account_balance_wallet_rounded,
-                    color: AppColors.cyan),
-            label: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isPayingViaWallet
-                      ? t('processing_ellipsis_label')
-                      : t('pay_via_lenden_wallet_label'),
-                  style: const TextStyle(
-                      fontSize: 17,
-                      color: AppColors.cyan,
-                      fontWeight: FontWeight.bold),
-                ),
-                if (!_isPayingViaWallet)
-                  Text(
-                    t('balance_amount_message').replaceFirst(
-                        '{amount}', _walletBalance.toStringAsFixed(2)),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Trust Badges
-        _buildTrustBadges(),
-      ],
-    );
-  }
-
   Widget _buildPremiumIllustration() {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -1840,10 +2091,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _getBenefitColor(index).withValues(alpha: 0.5)
-                    : _getBenefitColor(index),
+                color: _getBenefitColor(index),
                 borderRadius: BorderRadius.circular(18),
+                border: isSelected
+                    ? Border.all(color: AppColors.cyan, width: 2.5)
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1946,6 +2198,40 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           ],
                         ),
                       )),
+                  if (plan.allowedFeatures.isNotEmpty) ...[
+                    SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 50.0),
+                      child: Text(t('plan_includes_label'),
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[600])),
+                    ),
+                    SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 42.0),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: kSubscriptionFeatures
+                            .where((f) => plan.allowedFeatures.contains(f.key))
+                            .map((f) => Chip(
+                                  avatar:
+                                      Icon(f.icon, size: 13, color: AppColors.cyan),
+                                  label: Text(t(f.labelKey),
+                                      style: const TextStyle(fontSize: 10)),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  backgroundColor:
+                                      AppColors.cyan.withValues(alpha: 0.1),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2002,12 +2288,12 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     );
   }
 
-  Widget _buildComparisonView() {
+  Widget _buildComparisonView(List<SubscriptionPlan> plans) {
     final t = AppLocalizations.of(context).t;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _plans.asMap().entries.map((entry) {
+        children: plans.asMap().entries.map((entry) {
           int idx = entry.key;
           SubscriptionPlan plan = entry.value;
           final isSelected = _selectedPlan == plan.name;
@@ -2033,10 +2319,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? _getBenefitColor(idx).withValues(alpha: 0.5)
-                      : _getBenefitColor(idx),
+                  color: _getBenefitColor(idx),
                   borderRadius: BorderRadius.circular(18),
+                  border: isSelected
+                      ? Border.all(color: AppColors.cyan, width: 2.5)
+                      : null,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2139,53 +2426,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               ? Text(subtitle, style: const TextStyle(color: Colors.black87))
               : null,
         ),
-      ),
-    );
-  }
-
-  Widget _buildFAQSection() {
-    final t = AppLocalizations.of(context).t;
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.help_outline, color: AppColors.cyan, size: 28),
-              SizedBox(width: 10),
-              Text(
-                t('faqs_label'),
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context)),
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-          if (_isLoadingFaqs)
-            const Center(child: CircularProgressIndicator())
-          else if (_faqs.isEmpty)
-            Center(child: Text(t('loading_faqs_message')))
-          else
-            ..._faqs.asMap().entries.map((entry) {
-              int idx = entry.key;
-              Faq faq = entry.value;
-              return _buildFAQItem(faq.question, faq.answer, idx);
-            }).toList(),
-        ],
       ),
     );
   }

@@ -1,7 +1,7 @@
 const GroupChat = require('../models/groupChat');
 const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
-const Subscription = require('../models/subscription');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const {
     decodeChatMessage,
     normalizeStoredChatMessage,
@@ -87,8 +87,7 @@ module.exports = (io) => {
                     ? mentions.filter(id => activeMemberIds.includes(String(id)))
                     : [];
 
-                const subscription = await Subscription.findOne({ user: senderId, status: 'active' });
-                const isSubscribed = subscription && subscription.subscribed && subscription.endDate >= new Date();
+                const isSubscribed = await hasFeature(senderId, FEATURES.GROUP_CHAT);
 
                 let start;
                 let end;

@@ -244,11 +244,14 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
   String _formatDate(String dateString, {String? activityType}) {
     final t = AppLocalizations.of(context).t;
     try {
-      final date = DateTime.parse(dateString);
+      // Backend timestamps are UTC — toLocal() is required before formatting,
+      // otherwise the displayed time (and sometimes date) is off by the
+      // device's UTC offset.
+      final date = DateTime.parse(dateString).toLocal();
       final now = DateTime.now();
       final difference = now.difference(date);
 
-      if (activityType == 'login') {
+      if (activityType == 'login' || activityType == 'logout') {
         return DateFormat('MMM dd, yyyy • h:mm a').format(date);
       }
 

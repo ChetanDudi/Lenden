@@ -253,29 +253,17 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: tricolorBorder(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context).withValues(alpha: 0.96),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        indicator: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: AppColors.cyan,
-                        ),
-                        labelColor: Colors.white,
-                        unselectedLabelColor: AppColors.cyan,
-                        dividerColor: Colors.transparent,
-                        overlayColor:
-                            WidgetStateProperty.all(Colors.transparent),
-                        tabs: _tabCategories
-                            .map((cat) => Tab(text: _tabLabel(cat)))
-                            .toList(growable: false),
-                      ),
-                    ),
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    indicatorColor: AppColors.cyan,
+                    labelColor: AppThemeColors.primaryText(context),
+                    unselectedLabelColor: AppThemeColors.secondaryText(context),
+                    dividerColor: Colors.transparent,
+                    overlayColor: WidgetStateProperty.all(Colors.transparent),
+                    tabs: _tabCategories
+                        .map((cat) => Tab(text: _tabLabel(cat)))
+                        .toList(growable: false),
                   ),
                 ),
                 const SizedBox(height: 12),

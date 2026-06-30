@@ -36,6 +36,7 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
+import '../../widgets/avatar_action_sheet.dart';
 
 enum _QuickActionsViewStyle {
   grid,
@@ -1434,22 +1435,31 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                   ),
                                 ),
                                 child: GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const ProfilePage()),
-                                      );
-                                      final session =
-                                          Provider.of<SessionProvider>(context,
-                                              listen: false);
-                                      await session.forceRefreshProfile();
-                                      setState(() {
-                                        _imageRefreshKey++;
-                                      });
-                                    } catch (_) {}
+                                  onTap: () {
+                                    showAvatarActionSheet(
+                                      context,
+                                      avatarImage: _getUserAvatar(),
+                                      onViewDetails: () async {
+                                        try {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const ProfilePage()),
+                                          );
+                                          final session =
+                                              Provider.of<SessionProvider>(
+                                                  context,
+                                                  listen: false);
+                                          await session.forceRefreshProfile();
+                                          if (mounted) {
+                                            setState(() {
+                                              _imageRefreshKey++;
+                                            });
+                                          }
+                                        } catch (_) {}
+                                      },
+                                    );
                                   },
                                   child: CircleAvatar(
                                     key: ValueKey(_imageRefreshKey),

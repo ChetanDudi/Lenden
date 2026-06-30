@@ -9,6 +9,7 @@ import '../widgets/app_colors.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/wave_widget.dart' show DeepTopWaveClipper;
+import '../widgets/avatar_action_sheet.dart';
 
 
 class ProfilePage extends StatefulWidget {
@@ -174,12 +175,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   SizedBox(height: context.sh(28)),
                   Center(
-                    child: CircleAvatar(
-                      key: ValueKey(_imageRefreshKey),
-                      radius: context.sw(50),
-                      backgroundColor: AppColors.cyan,
-                      backgroundImage: avatarProvider,
-                      child: null,
+                    child: GestureDetector(
+                      onTap: () =>
+                          showProfilePicturePreview(context, avatarProvider),
+                      child: CircleAvatar(
+                        key: ValueKey(_imageRefreshKey),
+                        radius: context.sw(50),
+                        backgroundColor: AppColors.cyan,
+                        backgroundImage: avatarProvider,
+                        child: null,
+                      ),
                     ),
                   ),
                   SizedBox(height: context.sh(16)),

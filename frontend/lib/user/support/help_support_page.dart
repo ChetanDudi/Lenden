@@ -346,10 +346,10 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
       backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
         title: Text(t('help_and_support_label'),
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppThemeColors.primaryText(context),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),

@@ -11,6 +11,7 @@ import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/avatar_action_sheet.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -162,12 +163,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final imageUrl = user?['profileImage'];
 
     Widget avatar;
+    ImageProvider avatarProvider;
     if (_newImageBytes != null) {
       // Show newly selected image
+      avatarProvider = MemoryImage(_newImageBytes!);
       avatar = CircleAvatar(
         key: ValueKey(_imageRefreshKey),
         radius: 54,
-        backgroundImage: MemoryImage(_newImageBytes!),
+        backgroundImage: avatarProvider,
         backgroundColor: AppColors.cyan,
       );
     } else if (_removeImage ||
@@ -175,16 +178,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
         imageUrl.toString().isEmpty ||
         imageUrl == 'null') {
       // Show default avatar based on gender
+      avatarProvider = AssetImage(
+        gender == 'Male'
+            ? 'assets/Male.png'
+            : gender == 'Female'
+                ? 'assets/Female.png'
+                : 'assets/Other.png',
+      );
       avatar = CircleAvatar(
         key: ValueKey(_imageRefreshKey),
         radius: 54,
-        backgroundImage: AssetImage(
-          gender == 'Male'
-              ? 'assets/Male.png'
-              : gender == 'Female'
-                  ? 'assets/Female.png'
-                  : 'assets/Other.png',
-        ),
+        backgroundImage: avatarProvider,
         backgroundColor: AppColors.cyan,
       );
     }
@@ -192,10 +196,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       // Show network image with cache busting for real-time updates
       final cacheBustingUrl =
           '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      avatarProvider = NetworkImage(cacheBustingUrl);
       avatar = CircleAvatar(
         key: ValueKey(_imageRefreshKey),
         radius: 54,
-        backgroundImage: NetworkImage(cacheBustingUrl),
+        backgroundImage: avatarProvider,
         backgroundColor: AppColors.cyan,
         onBackgroundImageError: (exception, stackTrace) {
           // Fallback to default avatar if network image fails
@@ -250,7 +255,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Center(
-                        child: Stack(
+                        child: GestureDetector(
+                          onTap: () =>
+                              showProfilePicturePreview(context, avatarProvider),
+                          child: Stack(
                           children: [
                             avatar,
                             if (_isUpdating)
@@ -269,6 +277,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 ),
                               ),
                           ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),

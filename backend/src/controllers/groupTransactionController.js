@@ -1,6 +1,6 @@
 const GroupTransaction = require('../models/groupTransaction');
 const User = require('../models/user');
-const Subscription = require('../models/subscription');
+const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const { sendGroupSettleOtp } = require('../utils/groupSettleOtp');
 const { sendGroupLeaveRequestEmail } = require('../utils/groupLeaveRequestEmail');
 const groupTransactionEmail = require('../utils/groupTransactionEmail');
@@ -24,17 +24,8 @@ const isBlockedBy = (user, other) =>
     (id) => id.toString() === other._id.toString()
   );
 
-const isSubscribed = async (userId) => {
-  const subscription = await Subscription.findOne({
-    user: userId,
-    status: 'active',
-  });
-  return (
-    subscription &&
-    subscription.subscribed &&
-    subscription.endDate >= new Date()
-  );
-};
+const isSubscribed = (userId) => hasFeature(userId, FEATURES.GROUP_CREATION);
+const hasGroupExpenseAccess = (userId) => hasFeature(userId, FEATURES.GROUP_EXPENSES);
 
 const getTodayRange = () => {
   const start = new Date();
@@ -547,7 +538,7 @@ exports.addExpense = async (req, res) => {
       });
     }
 
-    if (!(await isSubscribed(userId))) {
+    if (!(await hasGroupExpenseAccess(userId))) {
       const { start, end } = getTodayRange();
       const todayExpenseCount = (group.expenses || []).filter((e) => {
         if (!e || !e.addedBy || !e.date) return false;
