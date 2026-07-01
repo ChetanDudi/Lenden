@@ -17,6 +17,7 @@ import '../user/budget/lending_budget_page.dart';
 import '../user/calendar/due_date_calendar_page.dart';
 import '../user/statements/export_statement_page.dart';
 import 'app_lock_setup_page.dart';
+import 'set_wallet_pin_page.dart';
 import '../utils/theme_provider.dart';
 import '../utils/locale_provider.dart';
 import '../l10n/app_localizations.dart';
@@ -207,6 +208,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.lock_outline,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const AppLockSetupPage()))
+                        .then((_) => setState(() {})),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTile(
+                    context,
+                    title: t('wallet_transaction_pin_label'),
+                    icon: Icons.dialpad_rounded,
+                    onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const SetWalletPinPage()))
                         .then((_) => setState(() {})),
                   ),
 

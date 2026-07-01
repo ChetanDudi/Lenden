@@ -211,7 +211,8 @@ class AppLocalizations {
       'system_settings_desc': 'Configure system-wide settings and preferences',
       'user_management_desc': 'Manage and track user accounts',
       'analytics_and_reports': 'Analytics & Reports',
-      'analytics_and_reports_desc': 'Configure analytics and reporting settings',
+      'analytics_and_reports_desc':
+          'Configure analytics and reporting settings',
       'admin_management': 'Admin Management',
       'manage_admins': 'Manage Admins',
       'manage_admins_desc': 'Add or remove admin accounts',
@@ -261,7 +262,8 @@ class AppLocalizations {
           'You have reached your limit. Subscribe to enjoy unlimited access to all features.',
       'use_coins': 'Use Coins',
       'login_required': 'Login Required',
-      'please_login_to_view_notifications': 'Please login to view notifications.',
+      'please_login_to_view_notifications':
+          'Please login to view notifications.',
       'type': 'Type',
       'to': 'To',
       'secured_by_lenden': 'Secured by LenDen',
@@ -309,8 +311,10 @@ class AppLocalizations {
       'no_description': 'No description',
       'search_user_to_view_activities': 'Search for a user to view activities',
       'no_activities_found_for': 'No activities found for',
-      'enter_email_or_username_above': 'Enter an email or username in the search bar above',
-      'try_different_search_term': 'Try a different search term or check the spelling',
+      'enter_email_or_username_above':
+          'Enter an email or username in the search bar above',
+      'try_different_search_term':
+          'Try a different search term or check the spelling',
       'show_all_activities': 'Show all activities',
       'minutes_ago': 'minutes ago',
       'hours_ago': 'hours ago',
@@ -473,8 +477,7 @@ class AppLocalizations {
       'share_your_experience_placeholder': 'Share your experience...',
       'submit_rating_label': 'Submit Rating',
       'subscribe_now_label': 'Subscribe Now',
-      'subscribe_to_search_ratings':
-          'Subscribe to search and rate other users',
+      'subscribe_to_search_ratings': 'Subscribe to search and rate other users',
       'subscribe_to_discover_people':
           'Subscribe to discover people you may know',
       'thats_you_ratings_first_tab': 'You cannot rate yourself.',
@@ -494,7 +497,8 @@ class AppLocalizations {
       // Admin: currency conversions / feedbacks / contact / support queries
       'no_manual_updates_yet': 'No manual updates yet',
       'currency_conversions': 'Currency Conversions',
-      'manage_latest_manual_conversion_rates': 'Manage latest manual conversion rates',
+      'manage_latest_manual_conversion_rates':
+          'Manage latest manual conversion rates',
       'supported_currencies_hint':
           'Enter one direct rate and the system will derive the reverse pair automatically. Supported currencies:',
       'available_pairs': 'available pairs',
@@ -531,7 +535,8 @@ class AppLocalizations {
       'reply_already_sent_notice':
           'A reply has already been sent. Only one reply is allowed per message.',
       'reply_to_user': 'Reply to User',
-      'write_reply_hint': 'Write your reply here — it will be emailed to the user...',
+      'write_reply_hint':
+          'Write your reply here — it will be emailed to the user...',
       'write_reply_before_sending': 'Write a reply before sending.',
       'reply_sent_to': 'Reply sent to',
       'sending': 'Sending...',
@@ -554,7 +559,8 @@ class AppLocalizations {
       'action_url': 'Action URL',
       'support_export_csv': 'Support Export CSV',
       'failed_export_support_queries': 'Failed to export support queries.',
-      'network_error_exporting_queries': 'Network error while exporting queries.',
+      'network_error_exporting_queries':
+          'Network error while exporting queries.',
       'new_query_created': 'New query created!',
       'query_updated': 'Query updated!',
       'query_deleted': 'Query deleted!',
@@ -608,7 +614,8 @@ class AppLocalizations {
 
       // Change password page
       'change_your_password_title': 'Change Your Password',
-      'enter_current_choose_new': 'Enter your current password and choose a new one',
+      'enter_current_choose_new':
+          'Enter your current password and choose a new one',
       'current_password': 'Current Password',
       'enter_current_password': 'Enter your current password',
       'please_enter_current_password': 'Please enter your current password',
@@ -628,7 +635,8 @@ class AppLocalizations {
       'requirement_number': 'Contains a number',
       'requirement_special_char_optional':
           'Contains a special character (optional — boosts strength)',
-      'requirement_uppercase_optional': 'Contains an uppercase letter (optional)',
+      'requirement_uppercase_optional':
+          'Contains an uppercase letter (optional)',
       'weak': 'Weak',
       'fair': 'Fair',
       'good': 'Good',
@@ -641,7 +649,8 @@ class AppLocalizations {
       'failed_load_referral_settings': 'Failed to load referral settings.',
       'network_error_loading_referral_settings':
           'Network error while loading referral settings.',
-      'reward_coins_non_negative': 'Reward coins must be a non-negative number.',
+      'reward_coins_non_negative':
+          'Reward coins must be a non-negative number.',
       'referral_settings_saved': 'Referral settings saved.',
       'failed_to_save_referral_settings': 'Failed to save referral settings.',
       'network_error_saving_referral_settings':
@@ -673,16 +682,22 @@ class AppLocalizations {
       'otp_verification_failed': 'OTP verification failed.',
       'failed_to_reset_password': 'Failed to reset password.',
       'password_reset_successful': 'Password Reset Successful',
-      'password_reset_successful_message': 'Your password has been reset successfully!',
+      'password_reset_successful_message':
+          'Your password has been reset successfully!',
       'reset_your_password_securely': 'Reset your password securely',
       'confirm_password': 'Confirm Password',
       'send_otp': 'Send OTP',
       'verify_otp': 'Verify OTP',
       'resend_otp': 'Resend OTP',
+      'invalid_otp': 'Invalid OTP. Please request a new OTP.',
+      'otp_required': 'Please enter the 6-digit OTP sent to your email.',
+      'otp_cooldown_message':
+          'Please wait {seconds}s before requesting another OTP.',
       'otp_expires_in': 'OTP expires in',
 
       // Email OTP login
-      'server_starting_up': 'Server is starting up. Please wait a moment and try again.',
+      'server_starting_up':
+          'Server is starting up. Please wait a moment and try again.',
       'could_not_send_otp_email':
           'Could not send OTP email. Please check your email address and try again.',
       'user_not_found': 'User not found',
@@ -691,14 +706,16 @@ class AppLocalizations {
       'user_name_fallback': 'User',
       'user_email_fallback': 'user@example.com',
       'failed_to_send_otp_retry': 'Failed to send OTP. Please try again.',
-      'otp_verification_failed_retry': 'OTP verification failed. Please try again.',
+      'otp_verification_failed_retry':
+          'OTP verification failed. Please try again.',
       'enter_otp_title': 'Enter OTP',
       'enter_6_digit_otp': 'Enter the 6-digit OTP sent to your email:',
       'verify': 'Verify',
 
       // Alternative email page
       'alternative_email': 'Alternative Email',
-      'alt_email_backup_desc': 'Add a backup email for account recovery and notifications',
+      'alt_email_backup_desc':
+          'Add a backup email for account recovery and notifications',
       'current_alternative_email': 'Current Alternative Email:',
       'please_enter_email_address': 'Please enter an email address',
       'please_enter_valid_email_address': 'Please enter a valid email address',
@@ -717,9 +734,11 @@ class AppLocalizations {
       'error_loading_current_email': 'Error loading current email:',
       'otp_sent_check_email': 'OTP sent successfully! Check your email.',
       'please_enter_valid_6_digit_otp': 'Please enter a valid 6-digit OTP',
-      'alt_email_verified_added': 'Alternative email verified and added successfully!',
+      'alt_email_verified_added':
+          'Alternative email verified and added successfully!',
       'failed_to_verify_otp': 'Failed to verify OTP',
-      'alt_email_removed_successfully': 'Alternative email removed successfully!',
+      'alt_email_removed_successfully':
+          'Alternative email removed successfully!',
       'failed_to_remove_alt_email': 'Failed to remove alternative email',
       'error_prefix': 'Error:',
 
@@ -731,29 +750,38 @@ class AppLocalizations {
           'LenDen is a comprehensive peer-to-peer money management platform designed to simplify how you track, settle, and manage financial transactions with friends, family, and colleagues.\n\nWhether you\'re splitting a restaurant bill, tracking a loan to a friend, or managing group expenses for a trip — LenDen has you covered.',
       'core_features': 'Core Features',
       'feature_quick_tx_title': 'Quick Transactions',
-      'feature_quick_tx_desc': 'Instantly record who owes who with just an email and amount.',
+      'feature_quick_tx_desc':
+          'Instantly record who owes who with just an email and amount.',
       'feature_secure_tx_title': 'Secure Transactions',
-      'feature_secure_tx_desc': 'Formal lend/borrow records with digital acceptance and proof.',
+      'feature_secure_tx_desc':
+          'Formal lend/borrow records with digital acceptance and proof.',
       'feature_group_expenses_title': 'Group Expenses',
-      'feature_group_expenses_desc': 'Add expenses to groups and split costs automatically.',
+      'feature_group_expenses_desc':
+          'Add expenses to groups and split costs automatically.',
       'feature_wallet_title': 'LenDen Wallet',
       'feature_wallet_desc': 'Top-up your wallet and pay directly via the app.',
       'feature_razorpay_title': 'Razorpay Payments',
-      'feature_razorpay_desc': 'Pay via card, UPI, or net banking through Razorpay.',
+      'feature_razorpay_desc':
+          'Pay via card, UPI, or net banking through Razorpay.',
       'feature_analytics_title': 'Analytics',
-      'feature_analytics_desc': 'Visual breakdown of your spending and lending habits.',
+      'feature_analytics_desc':
+          'Visual breakdown of your spending and lending habits.',
       'feature_leaderboard_title': 'Leaderboard',
-      'feature_leaderboard_desc': 'See how you rank among friends in timely settlements.',
+      'feature_leaderboard_desc':
+          'See how you rank among friends in timely settlements.',
       'feature_gift_cards_title': 'Gift Cards',
-      'feature_gift_cards_desc': 'Send gift cards and rewards to your contacts.',
+      'feature_gift_cards_desc':
+          'Send gift cards and rewards to your contacts.',
       'security_and_privacy': 'Security & Privacy',
       'security_privacy_intro':
           'Your security is our top priority. LenDen uses industry-standard practices to protect your data:',
       'security_bullet_jwt': 'JWT-based authentication with auto token refresh',
       'security_bullet_bcrypt': 'bcrypt password hashing (10 rounds)',
       'security_bullet_https': 'HTTPS-only communication',
-      'security_bullet_mongo': 'MongoDB transactions for atomic wallet operations',
-      'security_bullet_razorpay': 'Razorpay signature verification on all payments',
+      'security_bullet_mongo':
+          'MongoDB transactions for atomic wallet operations',
+      'security_bullet_razorpay':
+          'Razorpay signature verification on all payments',
       'security_bullet_otp': 'OTP-verified alternative email changes',
       'security_bullet_device': 'Device management and session control',
       'built_with': 'Built With',
@@ -807,7 +835,8 @@ class AppLocalizations {
           '• Keep your information up to date for better service\n• Your username and email cannot be changed\n• Accurate information helps with account security\n• We use this information to personalize your experience',
       'valid_phone_error': 'Enter a valid 10-digit Indian mobile number',
       'error_loading_account_info': 'Error loading account information:',
-      'account_info_updated_successfully': 'Account information updated successfully!',
+      'account_info_updated_successfully':
+          'Account information updated successfully!',
       'failed_update_account_info': 'Failed to update account information',
       'set_a_pin_title': 'Set a 4-6 digit PIN',
       'confirm_your_pin_title': 'Confirm your PIN',
@@ -815,7 +844,8 @@ class AppLocalizations {
       'app_lock_enabled_msg': 'App lock enabled.',
       'app_lock_disabled_msg': 'App lock disabled.',
       'disable_app_lock_title': 'Disable App Lock',
-      'disable_app_lock_confirm': 'Are you sure you want to disable PIN and biometric app lock?',
+      'disable_app_lock_confirm':
+          'Are you sure you want to disable PIN and biometric app lock?',
       'disable': 'Disable',
       'pin_app_lock': 'PIN App Lock',
       'app_lock_enabled_subtitle': 'Enabled — PIN required to open the app',
@@ -825,10 +855,12 @@ class AppLocalizations {
       'biometric_unlock_subtitle': 'Use fingerprint/face unlock as a shortcut',
       'pin_hint_4_6_digit': '4-6 digit PIN',
       'notification_preferences_title': 'Notification Preferences',
-      'customize_notifications_subtitle': 'Customize how and when you receive notifications',
+      'customize_notifications_subtitle':
+          'Customize how and when you receive notifications',
       'notification_types': 'Notification Types',
       'transaction_notifications_title': 'Transaction Notifications',
-      'transaction_notifications_desc': 'Get notified about new transactions and updates',
+      'transaction_notifications_desc':
+          'Get notified about new transactions and updates',
       'payment_reminders_title': 'Payment Reminders',
       'payment_reminders_desc': 'Receive reminders for upcoming payments',
       'group_notifications_title': 'Group Notifications',
@@ -843,7 +875,8 @@ class AppLocalizations {
       'sms_notifications_title': 'SMS Notifications',
       'sms_notifications_desc': 'Receive notifications via text message',
       'display_notification_count_title': 'Display Notification Count',
-      'display_notification_count_desc': 'Show the number of unread notifications',
+      'display_notification_count_desc':
+          'Show the number of unread notifications',
       'reminder_settings': 'Reminder Settings',
       'reminder_frequency_title': 'Reminder Frequency',
       'reminder_frequency_desc': 'How often to send payment reminders',
@@ -861,10 +894,12 @@ class AppLocalizations {
       'notification_tips_body':
           '• Enable push notifications for instant updates\n• Use quiet hours to avoid disturbances\n• Email notifications provide a backup record\n• SMS notifications work even without internet',
       'error_loading_settings': 'Error loading settings:',
-      'notification_settings_saved': 'Notification settings saved successfully!',
+      'notification_settings_saved':
+          'Notification settings saved successfully!',
       'failed_save_settings': 'Failed to save settings',
       'privacy_security_title': 'Privacy & Security',
-      'control_privacy_subtitle': 'Control your privacy and security preferences',
+      'control_privacy_subtitle':
+          'Control your privacy and security preferences',
       'profile_visibility_title': 'Profile Visibility',
       'profile_visibility_desc': 'Allow others to see your profile information',
       'contact_sharing_title': 'Contact Sharing',
@@ -873,7 +908,8 @@ class AppLocalizations {
       'analytics_sharing_desc': 'Hide Analytics data on Analytics Page',
       'security_settings_section': 'Security Settings',
       'login_notifications_title': 'Login Notifications',
-      'login_notifications_desc': 'Get notified by email when someone logs into your account',
+      'login_notifications_desc':
+          'Get notified by email when someone logs into your account',
       'device_management_title': 'Device Management',
       'device_management_desc': 'Allow multiple devices to access your account',
       'session_timeout_title': 'Session Timeout',
@@ -891,12 +927,14 @@ class AppLocalizations {
       'logout_from_this_device': 'Logout from this device',
       'logout_from_this_device_remotely': 'Logout from this device remotely',
       'logout_all_other_devices_title': 'Logout All Other Devices',
-      'logout_all_other_devices_desc': 'Sign out from every device except this one',
+      'logout_all_other_devices_desc':
+          'Sign out from every device except this one',
       'account_management_section': 'Account Management',
       'export_my_data_title': 'Export My Data',
       'export_my_data_desc': 'Get a summary of your data stored on LenDen',
       'deactivate_account_title': 'Deactivate Account',
-      'deactivate_account_desc': 'Temporarily deactivate your account. You can recover it later.',
+      'deactivate_account_desc':
+          'Temporarily deactivate your account. You can recover it later.',
       'privacy_security_tips_title': 'Privacy & Security Tips:',
       'privacy_security_tips_body':
           '• Enable two-factor authentication for enhanced security\n• Regularly review your privacy settings\n• Be cautious about sharing personal information\n• Keep your app updated for the latest security features',
@@ -905,7 +943,8 @@ class AppLocalizations {
       'deactivating_account_progress': 'Deactivating account...',
       'account_deactivated_success': 'Account deactivated successfully',
       'failed_deactivate_account': 'Failed to delete account',
-      'network_error_deactivate_account': 'Network error: Unable to delete account. Please try again.',
+      'network_error_deactivate_account':
+          'Network error: Unable to delete account. Please try again.',
       'logout_all_devices_title': 'Logout All Devices',
       'logout_all_devices_confirm_message':
           'This will log you out from all other devices. You will remain logged in on this device.',
@@ -920,11 +959,13 @@ class AppLocalizations {
       'transactions_label': 'Transactions',
       'wallet_entries_label': 'Wallet Entries',
       'subscriptions_label': 'Subscriptions',
-      'server_waking_up_retry': 'Server is waking up, please try again in a moment.',
+      'server_waking_up_retry':
+          'Server is waking up, please try again in a moment.',
       'session_expired_login_again': 'Session expired. Please log in again.',
       'failed_export_data': 'Failed to export data',
       'pp_last_updated_prefix': 'Last updated:',
-      'pp_header_intro': 'We are committed to protecting your personal information and your right to privacy.',
+      'pp_header_intro':
+          'We are committed to protecting your personal information and your right to privacy.',
       'pp_s1_title': '1. Information We Collect',
       'pp_s1_p1': 'We collect information you provide directly to us when you:',
       'pp_s1_b1': 'Create an account (name, email, phone, address)',
@@ -935,7 +976,8 @@ class AppLocalizations {
       'pp_s1_p2': 'We also automatically collect:',
       'pp_s1_b6': 'Device information (device type, OS version)',
       'pp_s1_b7': 'IP address and location data',
-      'pp_s1_b8': 'Usage data (features used, screens visited, session duration)',
+      'pp_s1_b8':
+          'Usage data (features used, screens visited, session duration)',
       'pp_s1_b9': 'Transaction history and wallet activity',
       'pp_s2_title': '2. How We Use Your Information',
       'pp_s2_p1': 'We use the information we collect to:',
@@ -948,50 +990,78 @@ class AppLocalizations {
       'pp_s2_b7': 'Comply with legal obligations',
       'pp_s2_b8': 'Send promotional communications (with your consent)',
       'pp_s3_title': '3. Information Sharing',
-      'pp_s3_p1': 'We do not sell your personal information. We may share information in the following circumstances:',
-      'pp_s3_b1': 'With other users: Your name and email are visible to users you transact with.',
-      'pp_s3_b2': 'Service providers: Razorpay (payment processing), email delivery services.',
-      'pp_s3_b3': 'Legal requirements: When required by law or to protect our rights.',
-      'pp_s3_b4': 'Business transfers: In the event of a merger or acquisition.',
-      'pp_s3_p2': 'Your contact information is only shared based on your "Contact Sharing" privacy setting.',
+      'pp_s3_p1':
+          'We do not sell your personal information. We may share information in the following circumstances:',
+      'pp_s3_b1':
+          'With other users: Your name and email are visible to users you transact with.',
+      'pp_s3_b2':
+          'Service providers: Razorpay (payment processing), email delivery services.',
+      'pp_s3_b3':
+          'Legal requirements: When required by law or to protect our rights.',
+      'pp_s3_b4':
+          'Business transfers: In the event of a merger or acquisition.',
+      'pp_s3_p2':
+          'Your contact information is only shared based on your "Contact Sharing" privacy setting.',
       'pp_s4_title': '4. Data Security',
-      'pp_s4_p1': 'We implement industry-standard security measures to protect your information:',
+      'pp_s4_p1':
+          'We implement industry-standard security measures to protect your information:',
       'pp_s4_b1': 'AES-256 encryption for data in transit (HTTPS)',
       'pp_s4_b2': 'bcrypt hashing for passwords',
       'pp_s4_b3': 'JWT tokens with short expiry periods',
       'pp_s4_b4': 'Regular security audits',
       'pp_s4_b5': 'Database access controls and monitoring',
-      'pp_s4_p2': 'While we strive to protect your information, no method of transmission over the internet is 100% secure.',
+      'pp_s4_p2':
+          'While we strive to protect your information, no method of transmission over the internet is 100% secure.',
       'pp_s5_title': '5. Your Privacy Rights',
       'pp_s5_p1': 'You have the following rights over your data:',
-      'pp_s5_b1': 'Access: Request a copy of the personal data we hold about you.',
-      'pp_s5_b2': 'Correction: Update inaccurate or incomplete information via your profile.',
-      'pp_s5_b3': 'Deletion: Request deletion of your account and associated data.',
-      'pp_s5_b4': 'Portability: Export your data via the Privacy Settings page.',
+      'pp_s5_b1':
+          'Access: Request a copy of the personal data we hold about you.',
+      'pp_s5_b2':
+          'Correction: Update inaccurate or incomplete information via your profile.',
+      'pp_s5_b3':
+          'Deletion: Request deletion of your account and associated data.',
+      'pp_s5_b4':
+          'Portability: Export your data via the Privacy Settings page.',
       'pp_s5_b5': 'Opt-out: Unsubscribe from marketing emails at any time.',
-      'pp_s5_b6': 'Visibility: Control who can see your profile and contact information.',
+      'pp_s5_b6':
+          'Visibility: Control who can see your profile and contact information.',
       'pp_s6_title': '6. Data Retention',
-      'pp_s6_p1': 'We retain your personal data for as long as your account is active or as needed to provide services.',
-      'pp_s6_p2': 'Transaction records may be retained for up to 7 years for legal and accounting purposes, even after account deletion.',
-      'pp_s6_p3': 'When you deactivate your account, your personal profile data is preserved but your account is suspended. Permanent deletion may be requested by contacting support.',
+      'pp_s6_p1':
+          'We retain your personal data for as long as your account is active or as needed to provide services.',
+      'pp_s6_p2':
+          'Transaction records may be retained for up to 7 years for legal and accounting purposes, even after account deletion.',
+      'pp_s6_p3':
+          'When you deactivate your account, your personal profile data is preserved but your account is suspended. Permanent deletion may be requested by contacting support.',
       'pp_s7_title': '7. Cookies & Tracking',
-      'pp_s7_p1': 'LenDen is a mobile application and does not use browser cookies. We use:',
-      'pp_s7_b1': 'Secure device storage for authentication tokens and preferences.',
-      'pp_s7_b2': 'Device identifiers to manage your active sessions and enable device management features.',
-      'pp_s7_b3': 'Analytics data to understand App usage patterns (anonymized).',
+      'pp_s7_p1':
+          'LenDen is a mobile application and does not use browser cookies. We use:',
+      'pp_s7_b1':
+          'Secure device storage for authentication tokens and preferences.',
+      'pp_s7_b2':
+          'Device identifiers to manage your active sessions and enable device management features.',
+      'pp_s7_b3':
+          'Analytics data to understand App usage patterns (anonymized).',
       'pp_s8_title': '8. Children\'s Privacy',
-      'pp_s8_p1': 'LenDen is not intended for children under 18 years of age. We do not knowingly collect personal information from children under 18.',
-      'pp_s8_p2': 'If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.',
+      'pp_s8_p1':
+          'LenDen is not intended for children under 18 years of age. We do not knowingly collect personal information from children under 18.',
+      'pp_s8_p2':
+          'If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.',
       'pp_s9_title': '9. Third-Party Services',
       'pp_s9_p1': 'Our App integrates with the following third-party services:',
-      'pp_s9_b1': 'Razorpay: Payment processing. Subject to Razorpay\'s Privacy Policy.',
-      'pp_s9_b2': 'Email providers: For sending OTPs, notifications, and account emails.',
-      'pp_s9_p2': 'These third parties have their own privacy policies and data practices which we do not control.',
+      'pp_s9_b1':
+          'Razorpay: Payment processing. Subject to Razorpay\'s Privacy Policy.',
+      'pp_s9_b2':
+          'Email providers: For sending OTPs, notifications, and account emails.',
+      'pp_s9_p2':
+          'These third parties have their own privacy policies and data practices which we do not control.',
       'pp_s10_title': '10. Changes to This Policy',
-      'pp_s10_p1': 'We may update this Privacy Policy from time to time. We will notify you of significant changes via the App.',
-      'pp_s10_p2': 'Your continued use of LenDen after changes are posted constitutes your acceptance of the updated policy.',
+      'pp_s10_p1':
+          'We may update this Privacy Policy from time to time. We will notify you of significant changes via the App.',
+      'pp_s10_p2':
+          'Your continued use of LenDen after changes are posted constitutes your acceptance of the updated policy.',
       'pp_s11_title': '11. Contact Us',
-      'pp_s11_p1': 'If you have questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact us through:',
+      'pp_s11_p1':
+          'If you have questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact us through:',
       'pp_s11_b1': 'The Help & Support section in the App',
       'pp_s11_b2': 'Your registered email address',
       'manage_updates': 'Manage Updates',
@@ -1057,7 +1127,8 @@ class AppLocalizations {
       'top_updates_subtitle': 'Most-read updates across users.',
       'no_update_analytics_yet': 'No update analytics available yet.',
       'moderation_queue': 'Moderation Queue',
-      'moderation_queue_subtitle': 'Reported or frequently hidden ads that may need review.',
+      'moderation_queue_subtitle':
+          'Reported or frequently hidden ads that may need review.',
       'no_moderation_items_right_now': 'No moderation items right now.',
       'ads': 'Ads',
       'active_ads': 'Active Ads',
@@ -1110,7 +1181,8 @@ class AppLocalizations {
       'total_value_label': 'Total Value',
       'no_gift_cards_found': 'No Gift Cards Found',
       'try_a_different_search': 'Try a different search.',
-      'create_first_gift_card_hint': 'Create the first gift card from the "Add" tab.',
+      'create_first_gift_card_hint':
+          'Create the first gift card from the "Add" tab.',
       'value_label': 'Value',
       'lenden_coins_label': 'LenDen Coins',
       'card_scratched_celebration': 'Card Scratched!',
@@ -1134,80 +1206,117 @@ class AppLocalizations {
       'view_gift_cards_tab': 'View Gift Cards',
       'tos_last_updated_prefix': 'Last updated:',
       'tos_s1_title': '1. Acceptance of Terms',
-      'tos_s1_p1': 'By accessing or using LenDen ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.',
-      'tos_s1_p2': 'These terms apply to all users of the App, including users who are also contributors of content, information, and other materials or services.',
+      'tos_s1_p1':
+          'By accessing or using LenDen ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.',
+      'tos_s1_p2':
+          'These terms apply to all users of the App, including users who are also contributors of content, information, and other materials or services.',
       'tos_s2_title': '2. Description of Service',
-      'tos_s2_p1': 'LenDen is a peer-to-peer money management application that allows users to:',
+      'tos_s2_p1':
+          'LenDen is a peer-to-peer money management application that allows users to:',
       'tos_s2_p2': '• Record and track financial transactions with other users',
       'tos_s2_p3': '• Split group expenses among multiple participants',
       'tos_s2_p4': '• Manage a digital wallet for in-app payments',
       'tos_s2_p5': '• Make payments via integrated payment gateways',
       'tos_s2_p6': '• View analytics and history of financial activity',
       'tos_s3_title': '3. User Accounts',
-      'tos_s3_p1': 'You must create an account to use LenDen. You are responsible for maintaining the confidentiality of your account credentials.',
-      'tos_s3_p2': 'You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate.',
-      'tos_s3_p3': 'You are responsible for all activity that occurs under your account. Notify us immediately of any unauthorized use.',
+      'tos_s3_p1':
+          'You must create an account to use LenDen. You are responsible for maintaining the confidentiality of your account credentials.',
+      'tos_s3_p2':
+          'You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate.',
+      'tos_s3_p3':
+          'You are responsible for all activity that occurs under your account. Notify us immediately of any unauthorized use.',
       'tos_s3_p4': 'Users must be at least 18 years of age to use LenDen.',
       'tos_s4_title': '4. Financial Transactions',
-      'tos_s4_p1': 'LenDen acts as a record-keeping and facilitation platform. We are not a bank or licensed financial institution.',
-      'tos_s4_p2': 'All transactions between users are the sole responsibility of the parties involved. LenDen does not guarantee that counterparties will fulfill their payment obligations.',
-      'tos_s4_p3': 'Wallet top-ups and payments are processed through Razorpay. By making payments, you agree to Razorpay\'s Terms of Service.',
-      'tos_s4_p4': 'You agree not to use LenDen for illegal transactions, money laundering, or any fraudulent activity.',
+      'tos_s4_p1':
+          'LenDen acts as a record-keeping and facilitation platform. We are not a bank or licensed financial institution.',
+      'tos_s4_p2':
+          'All transactions between users are the sole responsibility of the parties involved. LenDen does not guarantee that counterparties will fulfill their payment obligations.',
+      'tos_s4_p3':
+          'Wallet top-ups and payments are processed through Razorpay. By making payments, you agree to Razorpay\'s Terms of Service.',
+      'tos_s4_p4':
+          'You agree not to use LenDen for illegal transactions, money laundering, or any fraudulent activity.',
       'tos_s5_title': '5. Wallet & Payments',
-      'tos_s5_p1': 'The LenDen Wallet is an in-app balance that can be used for peer-to-peer payments and subscription purchases.',
-      'tos_s5_p2': 'Wallet balances are not insured or guaranteed by any government scheme.',
-      'tos_s5_p3': 'Withdrawals to bank accounts or UPI are subject to processing times and may require identity verification.',
-      'tos_s5_p4': 'In test mode, withdrawals are simulated and no actual funds are transferred.',
+      'tos_s5_p1':
+          'The LenDen Wallet is an in-app balance that can be used for peer-to-peer payments and subscription purchases.',
+      'tos_s5_p2':
+          'Wallet balances are not insured or guaranteed by any government scheme.',
+      'tos_s5_p3':
+          'Withdrawals to bank accounts or UPI are subject to processing times and may require identity verification.',
+      'tos_s5_p4':
+          'In test mode, withdrawals are simulated and no actual funds are transferred.',
       'tos_s6_title': '6. Prohibited Conduct',
       'tos_s6_p1': 'You agree not to:',
       'tos_s6_p2': '• Use the App for any unlawful purpose',
-      'tos_s6_p3': '• Attempt to gain unauthorized access to any part of the App',
+      'tos_s6_p3':
+          '• Attempt to gain unauthorized access to any part of the App',
       'tos_s6_p4': '• Harass, abuse, or harm other users',
       'tos_s6_p5': '• Submit false or misleading transaction information',
       'tos_s6_p6': '• Reverse engineer, decompile, or disassemble the App',
       'tos_s6_p7': '• Use automated tools (bots, scrapers) against the App',
       'tos_s6_p8': '• Share your account credentials with third parties',
       'tos_s7_title': '7. Privacy',
-      'tos_s7_p1': 'Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the App, to understand our practices.',
-      'tos_s7_p2': 'By using LenDen, you consent to the collection and use of your data as described in our Privacy Policy.',
+      'tos_s7_p1':
+          'Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the App, to understand our practices.',
+      'tos_s7_p2':
+          'By using LenDen, you consent to the collection and use of your data as described in our Privacy Policy.',
       'tos_s8_title': '8. Intellectual Property',
-      'tos_s8_p1': 'The App and its original content, features, and functionality are owned by LenDen and are protected by applicable intellectual property laws.',
-      'tos_s8_p2': 'You may not reproduce, distribute, modify, or create derivative works from any part of the App without our explicit written permission.',
+      'tos_s8_p1':
+          'The App and its original content, features, and functionality are owned by LenDen and are protected by applicable intellectual property laws.',
+      'tos_s8_p2':
+          'You may not reproduce, distribute, modify, or create derivative works from any part of the App without our explicit written permission.',
       'tos_s9_title': '9. Subscription Plans',
-      'tos_s9_p1': 'LenDen offers paid subscription plans that unlock additional features. Subscriptions are billed according to the plan selected.',
-      'tos_s9_p2': 'Subscriptions are non-refundable unless required by applicable law.',
-      'tos_s9_p3': 'We reserve the right to modify subscription pricing with reasonable advance notice.',
+      'tos_s9_p1':
+          'LenDen offers paid subscription plans that unlock additional features. Subscriptions are billed according to the plan selected.',
+      'tos_s9_p2':
+          'Subscriptions are non-refundable unless required by applicable law.',
+      'tos_s9_p3':
+          'We reserve the right to modify subscription pricing with reasonable advance notice.',
       'tos_s10_title': '10. Termination',
-      'tos_s10_p1': 'We may terminate or suspend your account at any time for violation of these Terms or for any other reason at our discretion.',
-      'tos_s10_p2': 'Upon termination, your right to use the App will immediately cease. Any outstanding transaction records will be retained as required by law.',
-      'tos_s10_p3': 'You may deactivate your account at any time through the Privacy Settings page, subject to clearing any outstanding financial obligations.',
+      'tos_s10_p1':
+          'We may terminate or suspend your account at any time for violation of these Terms or for any other reason at our discretion.',
+      'tos_s10_p2':
+          'Upon termination, your right to use the App will immediately cease. Any outstanding transaction records will be retained as required by law.',
+      'tos_s10_p3':
+          'You may deactivate your account at any time through the Privacy Settings page, subject to clearing any outstanding financial obligations.',
       'tos_s11_title': '11. Disclaimers',
-      'tos_s11_p1': 'The App is provided "as is" and "as available" without warranties of any kind, either express or implied.',
-      'tos_s11_p2': 'We do not warrant that the App will be uninterrupted, error-free, or free of viruses or other harmful components.',
-      'tos_s11_p3': 'We are not responsible for any financial losses resulting from transactions between users.',
+      'tos_s11_p1':
+          'The App is provided "as is" and "as available" without warranties of any kind, either express or implied.',
+      'tos_s11_p2':
+          'We do not warrant that the App will be uninterrupted, error-free, or free of viruses or other harmful components.',
+      'tos_s11_p3':
+          'We are not responsible for any financial losses resulting from transactions between users.',
       'tos_s12_title': '12. Limitation of Liability',
-      'tos_s12_p1': 'To the maximum extent permitted by law, LenDen shall not be liable for any indirect, incidental, special, consequential, or punitive damages.',
-      'tos_s12_p2': 'Our total liability to you for any claims arising from your use of the App shall not exceed the amount you paid to us in the twelve months preceding the claim.',
+      'tos_s12_p1':
+          'To the maximum extent permitted by law, LenDen shall not be liable for any indirect, incidental, special, consequential, or punitive damages.',
+      'tos_s12_p2':
+          'Our total liability to you for any claims arising from your use of the App shall not exceed the amount you paid to us in the twelve months preceding the claim.',
       'tos_s13_title': '13. Changes to Terms',
-      'tos_s13_p1': 'We reserve the right to modify these Terms at any time. We will notify users of significant changes through the App.',
-      'tos_s13_p2': 'Your continued use of the App after changes are posted constitutes your acceptance of the modified Terms.',
+      'tos_s13_p1':
+          'We reserve the right to modify these Terms at any time. We will notify users of significant changes through the App.',
+      'tos_s13_p2':
+          'Your continued use of the App after changes are posted constitutes your acceptance of the modified Terms.',
       'tos_s14_title': '14. Governing Law',
-      'tos_s14_p1': 'These Terms shall be governed by and construed in accordance with the laws of India.',
-      'tos_s14_p2': 'Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the courts located in India.',
+      'tos_s14_p1':
+          'These Terms shall be governed by and construed in accordance with the laws of India.',
+      'tos_s14_p2':
+          'Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the courts located in India.',
       'tos_s15_title': '15. Contact Us',
-      'tos_s15_p1': 'If you have questions about these Terms of Service, please contact us through the Help & Support section of the App.',
+      'tos_s15_p1':
+          'If you have questions about these Terms of Service, please contact us through the Help & Support section of the App.',
       'manage_offers': 'Manage Offers',
       'manage_quick_transactions': 'Manage Quick Transactions',
       'edit_quick_transaction_title': 'Edit Quick Transaction',
       'delete_quick_transaction_title': 'Delete Transaction',
-      'confirm_delete_quick_transaction': 'This will permanently delete this quick transaction.',
+      'confirm_delete_quick_transaction':
+          'This will permanently delete this quick transaction.',
       'person_label': 'Person',
       'oldest_label': 'Oldest',
       'old_updated_label': 'Old Updated',
       'amt_low_label': 'Amt Low',
       'amt_high_label': 'Amt High',
       'deleted_label': 'Deleted',
-      'quick_transaction_deleted_message': 'Quick transaction has been deleted.',
+      'quick_transaction_deleted_message':
+          'Quick transaction has been deleted.',
       'all_people_label': 'All People',
       'clear_quick_transaction_title': 'Clear Quick Transaction',
       'confirm_clear_transaction_message':
@@ -1260,8 +1369,7 @@ class AppLocalizations {
       'payment_done_status_update_failed_message':
           'Payment done but status update failed. Please refresh.',
       'settlement_rejected_title': 'Settlement Rejected',
-      'settlement_rejected_success_message':
-          'Settlement rejected successfully',
+      'settlement_rejected_success_message': 'Settlement rejected successfully',
       'unable_to_reject_settlement_message': 'Unable to reject settlement',
       'amount_high_to_low_label': 'Amount (High to Low)',
       'amount_low_to_high_label': 'Amount (Low to High)',
@@ -1289,7 +1397,8 @@ class AppLocalizations {
       'they_owe_label': 'They Owe',
       'mark_transaction_favourite_to_see_here_message':
           'Mark a transaction as favourite to see it here.',
-      'no_favourite_transactions_found_message': 'No favourite transactions found',
+      'no_favourite_transactions_found_message':
+          'No favourite transactions found',
       'no_quick_transactions_yet_message': 'No quick transactions yet.',
       'no_transactions_found_message': 'No transactions found',
       'reset_filters_label': 'Reset Filters',
@@ -1332,11 +1441,13 @@ class AppLocalizations {
       'enable_disable_control_shown_in_front_message':
           'The enable or disable control is shown in front.',
       'favourite_filter_label': 'Favourite Filter',
-      'focus_on_lent_or_borrowed_message': 'Focus on what you lent or borrowed.',
+      'focus_on_lent_or_borrowed_message':
+          'Focus on what you lent or borrowed.',
       'not_cleared_label': 'Not Cleared',
       'pick_person_cleaner_list_view_message':
           'Pick a person with a cleaner full list view.',
-      'pick_quick_date_window_message': 'Pick a quick date window for the list.',
+      'pick_quick_date_window_message':
+          'Pick a quick date window for the list.',
       'quick_transaction_filters_title': 'Quick Transaction Filters',
       'role_label': 'Role',
       'selected_person_label': 'Selected Person',
@@ -1395,7 +1506,8 @@ class AppLocalizations {
       'you_borrowed_money_label': 'You borrowed money',
       'you_label': 'You',
       'you_lent_money_label': 'You lent money',
-      'you_role_to_from_counterparty_label': 'You {role} to/from {counterparty}',
+      'you_role_to_from_counterparty_label':
+          'You {role} to/from {counterparty}',
       'your_role_label': 'Your Role',
       'compound_interest_guidance_message':
           'Compound interest grows on principal plus accumulated interest based on the compounding frequency.',
@@ -1467,7 +1579,8 @@ class AppLocalizations {
           'Check the details once before creating the secure transaction.',
       'could_not_detect_receipt_details_message':
           'Could not detect any details from this receipt.',
-      'could_not_read_selected_image_message': 'Could not read the selected image.',
+      'could_not_read_selected_image_message':
+          'Could not read the selected image.',
       'detected_from_receipt_title': 'Detected from Receipt',
       'no_proof_files_added_yet_label': 'No proof files added yet',
       'optional_and_not_selected_label': 'Optional and not selected',
@@ -1515,7 +1628,8 @@ class AppLocalizations {
       'send_otp_label': 'Send OTP',
       'verified_label': 'Verified',
       'verify_otp_label': 'Verify OTP',
-      'add_note_or_description_hint': 'Add a note or description for this transaction',
+      'add_note_or_description_hint':
+          'Add a note or description for this transaction',
       'amount_required_label': 'Amount required',
       'annually_label': 'Annually (1x/year)',
       'basic_details_subtitle_message':
@@ -1536,9 +1650,12 @@ class AppLocalizations {
       'enter_valid_number_message': 'Enter a valid number',
       'expected_return_date_optional_label': 'Expected Return Date (Optional)',
       'expected_return_date_required_star_label': 'Expected Return Date *',
-      'free_transactions_remaining_message': '{count} free transactions remaining',
-      'how_often_interest_compounded_label': 'How often is interest compounded?',
-      'interest_rate_cannot_exceed_100_message': 'Interest rate cannot exceed 100%',
+      'free_transactions_remaining_message':
+          '{count} free transactions remaining',
+      'how_often_interest_compounded_label':
+          'How often is interest compounded?',
+      'interest_rate_cannot_exceed_100_message':
+          'Interest rate cannot exceed 100%',
       'interest_rate_must_be_greater_than_zero_message':
           'Interest rate must be greater than 0',
       'interest_rate_percent_label': 'Interest Rate (%)',
@@ -1559,7 +1676,8 @@ class AppLocalizations {
           'Attach any supporting screenshots or photos that help confirm this transaction later.',
       'quarterly_label': 'Quarterly (4x/year)',
       'remove_saved_version_label': 'Remove the saved version',
-      'required_when_interest_applied_label': 'Required when interest is applied',
+      'required_when_interest_applied_label':
+          'Required when interest is applied',
       'review_submit_from_sticky_bar_message':
           'Review and submit from the sticky summary bar below.',
       'select_frequency_label': 'Select frequency',
@@ -1573,13 +1691,17 @@ class AppLocalizations {
       'your_email_label': 'Your Email',
       'no_outstanding_balance_to_pay_message': 'No outstanding balance to pay.',
       'secure_transaction_repayment_label': 'Secure transaction repayment',
-      'payment_sent_and_marked_cleared_message': 'Payment sent and marked as cleared!',
-      'payment_sent_refresh_status_message': 'Payment sent! Refresh to see updated status.',
+      'payment_sent_and_marked_cleared_message':
+          'Payment sent and marked as cleared!',
+      'payment_sent_refresh_status_message':
+          'Payment sent! Refresh to see updated status.',
       'failed_to_update_favourite_message': 'Failed to update favourite',
       'failed_to_clear_transaction_message': 'Failed to clear transaction',
-      'could_not_open_chat_user_not_found_message': 'Could not open chat. User not found.',
+      'could_not_open_chat_user_not_found_message':
+          'Could not open chat. User not found.',
       'generate_receipt_label': 'Generate Receipt',
-      'choose_option_generate_receipt_message': 'Choose an option to generate the receipt.',
+      'choose_option_generate_receipt_message':
+          'Choose an option to generate the receipt.',
       'send_to_email_label': 'Send to Email',
       'download_locally_label': 'Download Locally',
       'sending_to_email_message': 'Sending to email...',
@@ -1597,7 +1719,8 @@ class AppLocalizations {
           'This will be reviewed by an admin. {email} will be notified once it\'s resolved.',
       'describe_what_happened_label': 'Describe what happened',
       'please_describe_what_happened_message': 'Please describe what happened.',
-      'dispute_submitted_message': 'Dispute submitted. An admin will review it shortly.',
+      'dispute_submitted_message':
+          'Dispute submitted. An admin will review it shortly.',
       'failed_to_submit_dispute_message': 'Failed to submit dispute',
       'transaction_id_copied_message': 'Transaction ID copied!',
       'none_label': 'None',
@@ -1605,22 +1728,28 @@ class AppLocalizations {
       'shared_via_lenden_message': 'Shared via LenDen',
       'lenden_transaction_label': 'LenDen Transaction',
       'no_interest_on_transaction_message': 'No interest on this transaction',
-      'daily_limit_remaining_message': '{count} of today\'s daily limit remaining.',
+      'daily_limit_remaining_message':
+          '{count} of today\'s daily limit remaining.',
       'free_attempts_left_message': '{count} free attempts left',
-      'free_attempts_paused_resets_tomorrow_message': 'Free attempts also paused. Resets tomorrow.',
-      'no_free_feature_attempts_left_message': 'No free {feature} attempts left',
-      'use_coins_continue_daily_limit_message': 'You can use LenDen coins to continue (daily limit: {count} left today).',
+      'free_attempts_paused_resets_tomorrow_message':
+          'Free attempts also paused. Resets tomorrow.',
+      'no_free_feature_attempts_left_message':
+          'No free {feature} attempts left',
+      'use_coins_continue_daily_limit_message':
+          'You can use LenDen coins to continue (daily limit: {count} left today).',
       'use_coins_label': 'Use {coins} Coins',
       'used_all_free_attempts_message':
           'You\'ve used all your free {feature} attempts. You can spend {coins} LenDen coins to continue.',
       'add_expense_label': 'Add Expense',
       'add_member_label': 'Add Member',
-      'balance_auto_settled_message': 'Your balance across all expenses will be auto-settled.',
+      'balance_auto_settled_message':
+          'Your balance across all expenses will be auto-settled.',
       'by_creator_label': 'by {creator}',
       'change_group_color_label': 'Change Group Color',
       'creator_can_readd_later_message':
           'The creator can re-add you later — your history is preserved.',
-      'delete_group_confirm_message': 'Delete "{title}"? This cannot be undone.',
+      'delete_group_confirm_message':
+          'Delete "{title}"? This cannot be undone.',
       'delete_group_title': 'Delete Group',
       'failed_to_delete_group_message': 'Failed to delete',
       'failed_to_leave_group_message': 'Failed to leave group',
@@ -1629,8 +1758,10 @@ class AppLocalizations {
       'is_owed_label': 'is owed',
       'leave_group_title_message': 'Leave "{title}"?',
       'leave_label': 'Leave',
-      'leave_request_sent_to_members_message': 'Leave request sent to group members.',
-      'marked_as_left_in_group_message': 'You will be marked as "Left" in the group.',
+      'leave_request_sent_to_members_message':
+          'Leave request sent to group members.',
+      'marked_as_left_in_group_message':
+          'You will be marked as "Left" in the group.',
       'no_expenses_yet_label': 'No expenses yet',
       'owes_label': 'owes',
       'pay_label': 'Pay',
@@ -1647,12 +1778,14 @@ class AppLocalizations {
       'active_filters_label': 'Active filters',
       'amount_due_label': 'Amount due',
       'amount_range_label': 'Amount range',
-      'amount_range_subtitle_message': 'See only transactions within a value band.',
+      'amount_range_subtitle_message':
+          'See only transactions within a value band.',
       'any_label': 'Any',
       'borrowing_amount_label': 'Borrowing Amount',
       'borrowing_label': 'Borrowing',
       'clearance_status_label': 'Clearance status',
-      'clearance_status_subtitle_message': 'Choose how far the transaction has progressed.',
+      'clearance_status_subtitle_message':
+          'Choose how far the transaction has progressed.',
       'conversion_not_available_secure_message':
           'Conversion to {currency} is not available for one or more secure transactions. Showing original currencies instead.',
       'date_range_subtitle_message': 'Limit results to a transaction period.',
@@ -1661,7 +1794,8 @@ class AppLocalizations {
       'filters_count_label': 'Filters ({count})',
       'filters_label': 'Filters',
       'interest_type_label': 'Interest type',
-      'interest_type_subtitle_message': 'Focus on the interest setup you want to review.',
+      'interest_type_subtitle_message':
+          'Focus on the interest setup you want to review.',
       'lending_amount_label': 'Lending Amount',
       'lending_label': 'Lending',
       'mark_transaction_favourite_hint_message':
@@ -1684,7 +1818,8 @@ class AppLocalizations {
           'Order secure transactions by creation time, transaction date, amount, or status.',
       'totally_cleared_label': 'Totally Cleared',
       'totally_uncleared_label': 'Totally Uncleared',
-      'try_adjusting_search_filters_message': 'Try adjusting your search or filters',
+      'try_adjusting_search_filters_message':
+          'Try adjusting your search or filters',
       'view_all_transactions_label': 'View All Transactions',
       'your_transactions_count_title': 'Your Transactions ({count})',
       'clear_sheet_label': 'Clear Sheet',
@@ -1764,7 +1899,8 @@ class AppLocalizations {
       'date_colon': 'Date:',
       'time_colon': 'Time:',
       'id_colon': 'ID:',
-      'cannot_add_expense_no_members': 'Cannot add expense: Group has no members.',
+      'cannot_add_expense_no_members':
+          'Cannot add expense: Group has no members.',
       'add_expense_title': 'Add Expense',
       'edit_expense_title': 'Edit Expense',
       'split_type_label': 'Split Type',
@@ -1799,9 +1935,11 @@ class AppLocalizations {
       'failed_to_delete_group': 'Failed to delete group.',
       'pick_group_color': 'Pick a Group Color',
       'delete_group': 'Delete Group',
-      'confirm_delete_group_message': 'Are you sure you want to delete this group? This action cannot be undone.',
+      'confirm_delete_group_message':
+          'Are you sure you want to delete this group? This action cannot be undone.',
       'manage_group_transactions_title': 'Manage Group Transactions',
-      'search_group_member_creator_id_placeholder': 'Search group, member, creator, id...',
+      'search_group_member_creator_id_placeholder':
+          'Search group, member, creator, id...',
       'all_groups': 'All Groups',
       'latest': 'Latest',
       'most_members': 'Most Members',
@@ -1829,8 +1967,10 @@ class AppLocalizations {
       'settle_expense_title': 'Settle Expense',
       'settle_label': 'Settle',
       'delete_expense_title': 'Delete Expense',
-      'confirm_delete_expense_message': 'Are you sure you want to delete this expense?',
-      'mark_pending_splits_settled_message': 'Mark the pending selected splits as settled?',
+      'confirm_delete_expense_message':
+          'Are you sure you want to delete this expense?',
+      'mark_pending_splits_settled_message':
+          'Mark the pending selected splits as settled?',
       'page_label': 'Page',
       'search_counterparties': 'Search counterparties',
       'shown_suffix': 'shown',
@@ -1839,7 +1979,8 @@ class AppLocalizations {
       'most_label': 'Most',
       'a_z_label': 'A-Z',
       'least_label': 'Least',
-      'tap_counterparty_card_hint': 'Tap any counterparty card to open profile details.',
+      'tap_counterparty_card_hint':
+          'Tap any counterparty card to open profile details.',
       'no_counterparties_yet': 'No counterparties yet',
       'no_counterparties_match_search': 'No counterparties match your search',
       'account_inactive': 'Account inactive',
@@ -1895,7 +2036,8 @@ class AppLocalizations {
       'draft_label': 'Draft',
       'ended_label': 'Ended',
       'failed_to_fetch_offers': 'Failed to fetch offers',
-      'delete_offer_confirm': 'This will permanently delete the offer and claims. Continue?',
+      'delete_offer_confirm':
+          'This will permanently delete the offer and claims. Continue?',
       'offer_deleted_successfully': 'Offer deleted successfully',
       'failed_to_delete_offer': 'Failed to delete offer',
       'failed_to_load_analytics': 'Failed to load analytics',
@@ -1927,7 +2069,8 @@ class AppLocalizations {
       'specific_users_label': 'Specific Users',
       'search_by_name_username_email': 'Search by name/username/email',
       'no_searched_users_yet': 'No searched users yet.',
-      'extra_recipient_emails_label': 'Extra recipient emails (comma-separated)',
+      'extra_recipient_emails_label':
+          'Extra recipient emails (comma-separated)',
       'update_metadata_label': 'Update Metadata',
       'update_reason_label': 'Update Reason',
       'offer_name_required': 'Offer name is required.',
@@ -1936,10 +2079,14 @@ class AppLocalizations {
       'coins_cannot_exceed_10000': 'Coins cannot be more than 10000.',
       'start_date_time_required': 'Start date and time are required.',
       'end_date_time_required': 'End date and time are required.',
-      'end_date_after_start_date': 'End date must be same as or after start date.',
-      'end_time_after_start_time_same_date': 'For the same date, end time must be later than start time.',
-      'end_datetime_after_start_datetime': 'End date/time must be later than start date/time.',
-      'select_user_or_email_required': 'For specific users, select at least one user or add recipient email.',
+      'end_date_after_start_date':
+          'End date must be same as or after start date.',
+      'end_time_after_start_time_same_date':
+          'For the same date, end time must be later than start time.',
+      'end_datetime_after_start_datetime':
+          'End date/time must be later than start date/time.',
+      'select_user_or_email_required':
+          'For specific users, select at least one user or add recipient email.',
       'offer_updated_reverted_prefix': 'Offer updated. Reverted',
       'offer_updated_reverted_suffix': 'claims and',
       'offer_updated_reverted_coins_suffix': 'coins for re-accept.',
@@ -1976,19 +2123,25 @@ class AppLocalizations {
       'creating_ellipsis': 'Creating...',
       'create_admin': 'Create Admin',
       'role_management_title': 'Role Management',
-      'role_management_subtitle_super': 'You can promote, demote, edit permissions, and remove admins from here.',
-      'role_management_subtitle_restricted': 'You can view admins here. Superadmin role actions are restricted.',
+      'role_management_subtitle_super':
+          'You can promote, demote, edit permissions, and remove admins from here.',
+      'role_management_subtitle_restricted':
+          'You can view admins here. Superadmin role actions are restricted.',
       'show_latest_5': 'Show Latest 5',
       'admin_audit_trail_title': 'Admin Audit Trail',
-      'admin_audit_trail_subtitle': 'Recent high-signal admin actions are tracked here for accountability and review.',
+      'admin_audit_trail_subtitle':
+          'Recent high-signal admin actions are tracked here for accountability and review.',
       'superadmin_label': 'Superadmin',
       'admin_label': 'Admin',
       'superadmin_access_title': 'Superadmin access',
-      'toggle_elevated_admin_desc': 'Toggle elevated admin control for this account.',
-      'only_eligible_superadmins_access_desc': 'Only eligible superadmins can change this access.',
+      'toggle_elevated_admin_desc':
+          'Toggle elevated admin control for this account.',
+      'only_eligible_superadmins_access_desc':
+          'Only eligible superadmins can change this access.',
       'permissions_label': 'Permissions',
       'allow_admin_manage_prefix': 'Allow this admin to manage',
-      'only_eligible_superadmins_permissions_desc': 'Only eligible superadmins can change permissions.',
+      'only_eligible_superadmins_permissions_desc':
+          'Only eligible superadmins can change permissions.',
       'remove_admin_button': 'Remove Admin',
       'show_less': 'Show Less',
       'show_all_count': 'Show All',
@@ -1998,21 +2151,25 @@ class AppLocalizations {
       'digitise_perm_label': 'Digitise',
       'failed_to_fetch_admins': 'Failed to fetch admins',
       'add_new_admin': 'Add New Admin',
-      'password_requirements_short': 'Must be 8-30 characters with uppercase, lowercase, and special character',
+      'password_requirements_short':
+          'Must be 8-30 characters with uppercase, lowercase, and special character',
       'adding_admin_ellipsis': 'Adding admin...',
       'add_admin': 'Add Admin',
       'admin_added_successfully': 'Admin added successfully',
       'failed_to_add_admin': 'Failed to add admin',
       'revoke_super_admin_question': 'Revoke Super Admin?',
       'grant_super_admin_question': 'Grant Super Admin?',
-      'admin_lose_super_privileges': 'This admin will lose all super admin privileges.',
-      'admin_gain_super_access': 'This admin will gain full super admin access to all features.',
+      'admin_lose_super_privileges':
+          'This admin will lose all super admin privileges.',
+      'admin_gain_super_access':
+          'This admin will gain full super admin access to all features.',
       'revoke': 'Revoke',
       'grant': 'Grant',
       'super_admin_privileges_granted': 'Super admin privileges granted',
       'super_admin_privileges_revoked': 'Super admin privileges revoked',
       'failed_to_update': 'Failed to update',
-      'failed_to_update_super_admin_status': 'Failed to update super admin status',
+      'failed_to_update_super_admin_status':
+          'Failed to update super admin status',
       'permissions_updated_successfully': 'Permissions updated successfully',
       'failed_to_update_permissions': 'Failed to update permissions',
       'manage_transactions': 'Manage Transactions',
@@ -2023,7 +2180,8 @@ class AppLocalizations {
       'view_audit_logs': 'View Audit Logs',
       'super_admin': 'Super Admin',
       'full_access_all_features': 'Full access to all features',
-      'super_admins_have_all_permissions': 'Super admins have all permissions automatically.',
+      'super_admins_have_all_permissions':
+          'Super admins have all permissions automatically.',
       'save_permissions': 'Save Permissions',
       'restricted_suffix': 'restricted',
       'admin_removed_successfully': 'Admin removed successfully',
@@ -2041,7 +2199,8 @@ class AppLocalizations {
       'remove_access': 'Remove Access',
       'failed_to_load_disputes': 'Failed to load disputes',
       'update_dispute': 'Update Dispute',
-      'resolution_notes_both_parties': 'Resolution notes (sent to both parties)',
+      'resolution_notes_both_parties':
+          'Resolution notes (sent to both parties)',
       'dispute_updated': 'Dispute updated.',
       'failed_to_update_dispute': 'Failed to update dispute.',
       'no_disputes_found': 'No disputes found.',
@@ -2075,7 +2234,8 @@ class AppLocalizations {
       'users_label': 'Users',
       'support_label': 'Support',
       'create_backup': 'Create Backup',
-      'create_backup_desc': 'Exports users, transactions, and support queries as CSV files saved on this device. History persists across app restarts.',
+      'create_backup_desc':
+          'Exports users, transactions, and support queries as CSV files saved on this device. History persists across app restarts.',
       'create_backup_now': 'Create Backup Now',
       'backup_history': 'Backup History',
       'backup_singular': 'backup',
@@ -2083,18 +2243,26 @@ class AppLocalizations {
       'no_backups_yet': 'No backups yet.\nCreate your first backup above.',
       'export_failed_try_again': 'Export failed. Please try again.',
       'network_error': 'Network error',
-      'exported_data_from_admin_panel': 'Exported data from LenDen Admin Panel.',
-      'data_export_info_banner': 'Tap Export to preview the data as a table. Use Share / Email to send the CSV file.',
+      'exported_data_from_admin_panel':
+          'Exported data from LenDen Admin Panel.',
+      'data_export_info_banner':
+          'Tap Export to preview the data as a table. Use Share / Email to send the CSV file.',
       'available_exports': 'Available Exports',
       'users_and_support': 'Users & Support',
-      'export_users_subtitle': 'All user accounts — name, username, email, gender, joined date',
+      'export_users_subtitle':
+          'All user accounts — name, username, email, gender, joined date',
       'support_queries_label': 'Support Queries',
-      'export_support_subtitle': 'All support tickets — user, topic, status, priority, date',
-      'export_quick_transactions_subtitle': 'Creator, participants, role, amount, settlement status',
-      'export_secure_transactions_subtitle': 'User email, counterparty, role, amount, currency, place',
-      'export_group_transactions_subtitle': 'Group title, creator, each expense with amount & date',
+      'export_support_subtitle':
+          'All support tickets — user, topic, status, priority, date',
+      'export_quick_transactions_subtitle':
+          'Creator, participants, role, amount, settlement status',
+      'export_secure_transactions_subtitle':
+          'User email, counterparty, role, amount, currency, place',
+      'export_group_transactions_subtitle':
+          'Group title, creator, each expense with amount & date',
       'last_exported_label': 'Last exported',
-      'admin_notifications_alerts_subtitle': 'Configure admin-specific notifications and alerts',
+      'admin_notifications_alerts_subtitle':
+          'Configure admin-specific notifications and alerts',
       'system_alerts': 'System Alerts',
       'general_system_notifications': 'General system notifications',
       'maintenance_alerts': 'Maintenance Alerts',
@@ -2109,30 +2277,39 @@ class AppLocalizations {
       'backup_status_notifications': 'Backup status notifications',
       'user_management_alerts': 'User Management Alerts',
       'new_user_alerts': 'New User Alerts',
-      'new_user_registrations_notifications': 'Notifications for new user registrations',
+      'new_user_registrations_notifications':
+          'Notifications for new user registrations',
       'suspicious_activity': 'Suspicious Activity',
       'suspicious_user_activity_alerts': 'Suspicious user activity alerts',
       'account_lockout_alerts': 'Account Lockout Alerts',
-      'user_account_lockout_notifications': 'User account lockout notifications',
+      'user_account_lockout_notifications':
+          'User account lockout notifications',
       'failed_login_alerts': 'Failed Login Alerts',
-      'failed_login_attempt_notifications': 'Failed login attempt notifications',
+      'failed_login_attempt_notifications':
+          'Failed login attempt notifications',
       'user_deletion_alerts': 'User Deletion Alerts',
-      'user_account_deletion_notifications': 'User account deletion notifications',
+      'user_account_deletion_notifications':
+          'User account deletion notifications',
       'bulk_action_alerts': 'Bulk Action Alerts',
-      'bulk_user_management_notifications': 'Bulk user management notifications',
+      'bulk_user_management_notifications':
+          'Bulk user management notifications',
       'transaction_alerts': 'Transaction Alerts',
       'large_transaction_alerts': 'Large Transaction Alerts',
-      'high_value_transaction_notifications': 'High-value transaction notifications',
+      'high_value_transaction_notifications':
+          'High-value transaction notifications',
       'failed_transaction_alerts': 'Failed Transaction Alerts',
       'failed_transaction_notifications': 'Failed transaction notifications',
       'suspicious_transaction_alerts': 'Suspicious Transaction Alerts',
-      'suspicious_transaction_pattern_alerts': 'Suspicious transaction pattern alerts',
+      'suspicious_transaction_pattern_alerts':
+          'Suspicious transaction pattern alerts',
       'daily_transaction_summary': 'Daily Transaction Summary',
       'daily_transaction_summary_reports': 'Daily transaction summary reports',
       'weekly_transaction_summary': 'Weekly Transaction Summary',
-      'weekly_transaction_summary_reports': 'Weekly transaction summary reports',
+      'weekly_transaction_summary_reports':
+          'Weekly transaction summary reports',
       'monthly_transaction_summary': 'Monthly Transaction Summary',
-      'monthly_transaction_summary_reports': 'Monthly transaction summary reports',
+      'monthly_transaction_summary_reports':
+          'Monthly transaction summary reports',
       'email_notifications': 'Email Notifications',
       'receive_notifications_via_email': 'Receive notifications via email',
       'push_app_notifications': 'Push App Notifications',
@@ -2140,7 +2317,8 @@ class AppLocalizations {
       'sms_notifications': 'SMS Notifications',
       'receive_sms_notifications': 'Receive SMS notifications',
       'display_notification_count': 'Display Notification Count',
-      'show_unread_notifications_count': 'Show the number of unread notifications',
+      'show_unread_notifications_count':
+          'Show the number of unread notifications',
       'notification_preferences': 'Notification Preferences',
       'notification_frequency': 'Notification Frequency',
       'how_often_receive_notifications': 'How often to receive notifications',
@@ -2153,7 +2331,8 @@ class AppLocalizations {
       'pacific_standard_time': 'Pacific Standard Time',
       'indian_standard_time': 'Indian Standard Time',
       'greenwich_mean_time': 'Greenwich Mean Time',
-      'enable_quiet_hours_notifications': 'Enable quiet hours for notifications',
+      'enable_quiet_hours_notifications':
+          'Enable quiet hours for notifications',
       'quiet_hours_start': 'Quiet Hours Start',
       'start_time_for_quiet_hours': 'Start time for quiet hours',
       'quiet_hours_end': 'Quiet Hours End',
@@ -2165,7 +2344,8 @@ class AppLocalizations {
       'in_app': 'In-App',
       'notifications_active_via': 'Notifications are active via:',
       'edit_user_information_title': 'Edit User Information',
-      'update_user_details_settings': 'Update user details and account settings',
+      'update_user_details_settings':
+          'Update user details and account settings',
       'email_address_label': 'Email Address',
       'please_enter_full_name': 'Please enter full name',
       'date_of_birth_label': 'Date of Birth',
@@ -2196,7 +2376,8 @@ class AppLocalizations {
       'friends': 'Friends',
       'system': 'System',
       'compose_notification': 'Compose Notification',
-      'compose_notification_desc': 'Create cleaner alerts for users or admins from here.',
+      'compose_notification_desc':
+          'Create cleaner alerts for users or admins from here.',
       'delivery': 'Delivery',
       'send_now': 'Send Now',
       'save_draft': 'Save Draft',
@@ -2215,8 +2396,10 @@ class AppLocalizations {
       'hr_ago': 'hr ago',
       'day_ago': 'day ago',
       'recently': 'Recently',
-      'notification_scheduled_successfully': 'Notification scheduled successfully.',
-      'notification_draft_saved_successfully': 'Notification draft saved successfully.',
+      'notification_scheduled_successfully':
+          'Notification scheduled successfully.',
+      'notification_draft_saved_successfully':
+          'Notification draft saved successfully.',
       'notification_sent_successfully': 'Notification sent successfully.',
       'failed_to_send_notification': 'Failed to send notification.',
       'unexpected_error_occurred': 'An unexpected error occurred',
@@ -2242,9 +2425,11 @@ class AppLocalizations {
       'select_plan_features_label': 'What does this subscription allow?',
       'active_plan_tab': 'Active Plan',
       'history_tab': 'History',
-      'not_subscribed_yet_message': 'You don\'t have an active subscription yet.',
+      'not_subscribed_yet_message':
+          'You don\'t have an active subscription yet.',
       'view_plans_label': 'View Plans',
-      'no_subscription_history_yet_message': 'You have no subscription history yet.',
+      'no_subscription_history_yet_message':
+          'You have no subscription history yet.',
       'already_subscribed_browse_plans_message':
           'You\'re already subscribed. Visit the Active Plan tab to renew or extend your subscription.',
       'go_to_other_details_label': 'Go to Active Plan',
@@ -2255,22 +2440,31 @@ class AppLocalizations {
       'available_label': 'Available',
       'unavailable_label': 'Unavailable',
       'unlock_premium_title': 'Unlock Premium',
-      'unlock_premium_subtitle': 'Get unlimited quick & secure transactions, groups, chats, rankings and more — ad-free.',
+      'unlock_premium_subtitle':
+          'Get unlimited quick & secure transactions, groups, chats, rankings and more — ad-free.',
       'selected_label': 'Selected',
-      'expiring_today_message': 'Your subscription expires today. Renew now to keep your premium features.',
-      'expiring_soon_message': 'Your subscription expires in {days} days. Renew now to avoid losing premium features.',
-      'expiring_today_auto_renew_message': 'Your subscription expires today and will auto-renew shortly if your wallet balance allows.',
-      'expiring_soon_auto_renew_message': 'Your subscription expires in {days} days and will auto-renew from your LenDen wallet.',
+      'expiring_today_message':
+          'Your subscription expires today. Renew now to keep your premium features.',
+      'expiring_soon_message':
+          'Your subscription expires in {days} days. Renew now to avoid losing premium features.',
+      'expiring_today_auto_renew_message':
+          'Your subscription expires today and will auto-renew shortly if your wallet balance allows.',
+      'expiring_soon_auto_renew_message':
+          'Your subscription expires in {days} days and will auto-renew from your LenDen wallet.',
       'auto_renew_label': 'Auto-Renew',
-      'auto_renew_description': 'Automatically renew from your LenDen wallet before expiry.',
+      'auto_renew_description':
+          'Automatically renew from your LenDen wallet before expiry.',
       'auto_renew_enabled_message': 'Auto-renew enabled.',
       'auto_renew_disabled_message': 'Auto-renew disabled.',
-      'failed_to_update_auto_renew_message': 'Failed to update auto-renew preference.',
+      'failed_to_update_auto_renew_message':
+          'Failed to update auto-renew preference.',
       'grant_subscription_label': 'Grant Subscription',
-      'grant_subscription_subtitle': 'Manually grant or extend a subscription for a user, e.g. for support or compensation cases.',
+      'grant_subscription_subtitle':
+          'Manually grant or extend a subscription for a user, e.g. for support or compensation cases.',
       'user_email_label': 'User Email',
       'please_enter_an_email': 'Please enter an email',
-      'select_existing_plan_optional_label': 'Select an existing plan (optional)',
+      'select_existing_plan_optional_label':
+          'Select an existing plan (optional)',
       'grant_label': 'Grant',
       'subscription_granted_successfully': 'Subscription granted successfully',
       'failed_to_grant_subscription': 'Failed to grant subscription',
@@ -2295,11 +2489,14 @@ class AppLocalizations {
       'please_enter_a_price': 'Please enter a price',
       'please_enter_a_valid_price': 'Please enter a valid price greater than 0',
       'please_enter_a_duration': 'Please enter a duration',
-      'please_enter_a_valid_duration': 'Please enter a valid duration greater than 0',
+      'please_enter_a_valid_duration':
+          'Please enter a valid duration greater than 0',
       'please_enter_a_discount': 'Please enter a discount',
-      'please_enter_a_valid_discount': 'Please enter a valid discount between 0 and 100',
+      'please_enter_a_valid_discount':
+          'Please enter a valid discount between 0 and 100',
       'please_enter_free_days': 'Please enter free days',
-      'please_enter_a_valid_free_days': 'Please enter a valid number of free days',
+      'please_enter_a_valid_free_days':
+          'Please enter a valid number of free days',
       'add_plan_title': 'Add Plan',
       'edit_plan_title': 'Edit Plan',
       'delete_plan_title': 'Delete Plan',
@@ -2309,8 +2506,10 @@ class AppLocalizations {
       'failed_to_delete_plan': 'Failed to delete plan',
       'failed_to_save_plan': 'Failed to save plan',
       'failed_to_load_plans_message': 'Failed to load subscription plans',
-      'plan_availability_updated_successfully': 'Plan availability updated successfully',
-      'failed_to_update_plan_availability_message': 'Failed to update plan availability',
+      'plan_availability_updated_successfully':
+          'Plan availability updated successfully',
+      'failed_to_update_plan_availability_message':
+          'Failed to update plan availability',
       'add_benefit_title': 'Add Benefit',
       'edit_benefit_title': 'Edit Benefit',
       'delete_benefit_title': 'Delete Benefit',
@@ -2335,13 +2534,16 @@ class AppLocalizations {
       'faq_deleted_successfully': 'FAQ deleted successfully',
       'failed_to_delete_faq': 'Failed to delete FAQ',
       'failed_to_load_faqs_message': 'Failed to load FAQs',
-      'search_by_name_email_plan_placeholder': 'Search by name, email, or plan...',
+      'search_by_name_email_plan_placeholder':
+          'Search by name, email, or plan...',
       'ending_soon_label': 'Ending Soon',
       'highest_price_label': 'Highest Price',
       'deactivate_subscription_title': 'Deactivate Subscription',
-      'confirm_deactivate_subscription': 'Are you sure you want to deactivate this subscription?',
+      'confirm_deactivate_subscription':
+          'Are you sure you want to deactivate this subscription?',
       'deactivate_label': 'Deactivate',
-      'subscription_deactivated_successfully': 'Subscription deactivated successfully',
+      'subscription_deactivated_successfully':
+          'Subscription deactivated successfully',
       'failed_to_deactivate_subscription': 'Failed to deactivate subscription',
       'subscription_updated_successfully': 'Subscription updated successfully',
       'failed_to_update_subscription': 'Failed to update subscription',
@@ -2451,8 +2653,7 @@ class AppLocalizations {
       'daily_limit_remaining_label': 'Daily limit remaining: {count}',
       'creator_already_added_by_default':
           'You (group creator) are already added by default.',
-      'user_already_added_to_group':
-          'This user is already added to the group.',
+      'user_already_added_to_group': 'This user is already added to the group.',
       'user_does_not_exist_cant_add':
           "This user doesn't exist and can't be added.",
       'select_friends_title': 'Select Friends',
@@ -2487,8 +2688,10 @@ class AppLocalizations {
       'category_label': 'Category',
       'contact_us_title': 'Contact Us',
       'copied_to_clipboard_message': 'Copied to clipboard',
-      'could_not_open_contact_option_message': 'Could not open this contact option.',
-      'failed_to_load_contact_details_message': 'Failed to load contact details.',
+      'could_not_open_contact_option_message':
+          'Could not open this contact option.',
+      'failed_to_load_contact_details_message':
+          'Failed to load contact details.',
       'failed_to_send_try_again_message': 'Failed to send. Please try again.',
       'frequently_asked_label': 'Frequently Asked',
       'invalid_contact_link_message': 'Invalid contact link.',
@@ -2649,8 +2852,10 @@ class AppLocalizations {
       'no_scan_payment_requests_message': 'No scan payment requests',
       'failed_to_load_scan_payments': 'Failed to load scan payments',
       'reject_scan_payment_title': 'Reject Scan Payment',
-      'scan_payment_marked_processed_message': 'Scan payment marked as processed',
-      'scan_payment_rejected_refunded_message': 'Scan payment rejected and wallet refunded',
+      'scan_payment_marked_processed_message':
+          'Scan payment marked as processed',
+      'scan_payment_rejected_refunded_message':
+          'Scan payment rejected and wallet refunded',
       'scan_payment_pending_admin_review_suffix':
           'payment submitted — it will be sent to the shop within 24–48 hrs',
       'status_all_label': 'All',
@@ -2659,13 +2864,15 @@ class AppLocalizations {
       'status_processed_label': 'Processed',
       'verify_and_pay_label': 'Verify & Pay',
       'verify_payment_id_label': 'Verify Payment ID',
-      'waiting_for_payment_confirmation_message': 'Waiting for payment confirmation...',
+      'waiting_for_payment_confirmation_message':
+          'Waiting for payment confirmation...',
       'withdraw_manual_review_notice_message':
           'Your wallet balance is deducted now. Our team will manually transfer the amount to your bank/UPI within 24–48 hours.',
       'withdrawal_marked_processed_message': 'Withdrawal marked as processed',
       'withdrawal_pending_admin_review_suffix':
           'withdrawal request submitted — funds will be sent within 24–48 hrs',
-      'withdrawal_rejected_refunded_message': 'Withdrawal rejected and wallet refunded',
+      'withdrawal_rejected_refunded_message':
+          'Withdrawal rejected and wallet refunded',
       'withdrawals_label': 'Withdrawals',
       'no_transactions_yet_message': 'No transactions yet',
       'note_optional_label': 'Note (optional)',
@@ -2704,7 +2911,27 @@ class AppLocalizations {
       'wallet_balance_colon_label': 'Wallet Balance:',
       'wallet_received_label': 'Wallet Received',
       'wallet_topup_label': 'Wallet Top-up',
+      'wallet_transaction_pin_label': 'Wallet Transaction PIN',
       'wallet_transfer_label': 'Wallet Transfer',
+      'set_pin_title': 'Set Transaction PIN',
+      'change_pin_title': 'Change PIN',
+      'remove_pin_title': 'Remove PIN',
+      'enter_new_pin_label': 'Enter New PIN',
+      'confirm_new_pin_label': 'Confirm New PIN',
+      'enter_current_pin_label': 'Enter Current PIN',
+      'enter_wallet_pin_label': 'Enter your 6-digit PIN',
+      'use_pin_label': 'Use PIN',
+      'use_email_otp_label': 'Use Email OTP',
+      'pin_set_successfully_message': 'Transaction PIN set successfully.',
+      'pin_changed_successfully_message':
+          'Transaction PIN changed successfully.',
+      'pin_removed_message': 'Transaction PIN removed.',
+      'pin_locked_message': 'Too many wrong attempts. PIN locked.',
+      'wrong_pin_message': 'Incorrect PIN.',
+      'pin_not_set_message':
+          'No PIN set. Please use Email OTP or set a PIN in Settings.',
+      'sending_otp_label': 'Sending OTP…',
+      'verifying_otp_label': 'Verifying OTP…',
       'withdraw_label': 'Withdraw',
       'withdraw_money_title': 'Withdraw Money',
       'withdraw_test_mode_notice_message':
@@ -2757,8 +2984,7 @@ class AppLocalizations {
       'no_blocked_users': 'No blocked users',
       'search_blocked_users_placeholder': 'Search blocked users...',
       'no_suggestions_right_now': 'No suggestions right now',
-      'add_more_friends_for_suggestions':
-          'Add more friends to get suggestions',
+      'add_more_friends_for_suggestions': 'Add more friends to get suggestions',
       'based_on_friends_transactions': 'Based on your friends & transactions',
       'mutual_friend_singular': 'mutual friend',
       'mutual_friends_plural': 'mutual friends',
@@ -2815,8 +3041,7 @@ class AppLocalizations {
       'already_in_friends_list_msg': 'is already in your friends list.',
       'friend_request_pending_for_msg':
           'A friend request is already pending for',
-      'friend_request_sent_to_msg':
-          'Your friend request has been sent to',
+      'friend_request_sent_to_msg': 'Your friend request has been sent to',
       'could_not_send_friend_request_msg':
           'Could not send friend request right now.',
       'unable_to_load_leaderboard_msg':
@@ -2837,13 +3062,16 @@ class AppLocalizations {
       'false_label': 'False',
       'failed_to_load_transactions_msg': 'Failed to load transactions.',
       'an_error_occurred_prefix': 'An error occurred:',
-      'test_mode_credentials_hint': 'Test Mode — use these credentials in Razorpay:',
+      'test_mode_credentials_hint':
+          'Test Mode — use these credentials in Razorpay:',
       'test_card_label': 'Card',
       'test_upi_label': 'UPI',
-      'razorpay_android_ios_only': 'Razorpay payments are only available on Android & iOS.',
+      'razorpay_android_ios_only':
+          'Razorpay payments are only available on Android & iOS.',
       'failed_to_create_order': 'Failed to create order',
       'added_to_wallet_suffix': 'added to wallet!',
-      'payment_received_verification_failed': 'Payment received but verification failed. Contact support.',
+      'payment_received_verification_failed':
+          'Payment received but verification failed. Contact support.',
       'verification_error_prefix': 'Verification error:',
       'payment_failed_prefix': 'Payment failed:',
       'unknown_label': 'Unknown',
@@ -2878,13 +3106,17 @@ class AppLocalizations {
       'category_education_label': 'Education',
       'enter_a_description_message': 'Please enter a description',
       'select_at_least_one_member_message': 'Please select at least one member',
-      'split_total_must_equal_amount_message': 'Split total ({total}) must equal amount ({amount})',
+      'split_total_must_equal_amount_message':
+          'Split total ({total}) must equal amount ({amount})',
       'edit_expense_label': 'Edit Expense',
-      'members_left_group_balances_auto_settled_message': '{count} member(s) who left the group have had their balances auto-settled',
+      'members_left_group_balances_auto_settled_message':
+          '{count} member(s) who left the group have had their balances auto-settled',
       'description_hint_dinner_hotel_message': 'e.g. Dinner, Hotel, Cab',
       'amount_hint': 'Amount',
-      'currency_cannot_be_changed_editing_message': 'Currency cannot be changed while editing',
-      'currency_fixed_for_group_message': 'Currency is fixed to {currency} for this group',
+      'currency_cannot_be_changed_editing_message':
+          'Currency cannot be changed while editing',
+      'currency_fixed_for_group_message':
+          'Currency is fixed to {currency} for this group',
       'added_by_who_paid_label': 'Added by (who paid)',
       'split_between_label': 'Split between',
       'equal_split_label': 'Equal split',
@@ -2892,7 +3124,8 @@ class AppLocalizations {
       'balanced_label': 'Balanced',
       'over_by_label': 'Over by',
       'left_colon_label': 'Left:',
-      'amount_for_each_selected_member_label': 'Set the amount for each selected member',
+      'amount_for_each_selected_member_label':
+          'Set the amount for each selected member',
       'save_changes_label': 'Save Changes',
       'group_expense_feature_label': 'group expense',
       'group_report_label': 'Group Report',
@@ -2908,7 +3141,8 @@ class AppLocalizations {
       'failed_to_delete_expense_message': 'Failed to delete expense',
       'your_share_settled_message': 'Your share has been settled!',
       'failed_to_settle_message': 'Failed to settle',
-      'members_left_cannot_include_message': 'Cannot include members who have left the group',
+      'members_left_cannot_include_message':
+          'Cannot include members who have left the group',
       'expense_added_message': 'Expense added!',
       'failed_to_add_expense_message': 'Failed to add expense',
       'expense_updated_message': 'Expense updated!',
@@ -2954,7 +3188,8 @@ class AppLocalizations {
       'failed_to_remove_member_message': 'Failed to remove member',
       're_add_label': 'Re-add',
       // Group transactions list page
-      'failed_to_load_groups_retry_message': 'Failed to load groups. Please try again.',
+      'failed_to_load_groups_retry_message':
+          'Failed to load groups. Please try again.',
       'created_by_me_label': 'Created by Me',
       'member_label': 'Member',
       'name_a_z_label': 'Name A-Z',
@@ -2975,9 +3210,11 @@ class AppLocalizations {
       'split_expenses_with_friends_message':
           'Split expenses with friends & family effortlessly.\nTap "+" to create your first group!',
       'create_first_group_label': 'Create First Group',
-      'search_group_name_or_creator_email_hint': 'Search by group name or creator email...',
+      'search_group_name_or_creator_email_hint':
+          'Search by group name or creator email...',
       'no_favourite_groups_yet_message': 'No Favourite Groups Yet!',
-      'mark_groups_as_favourites_message': 'Mark groups as favourites to see them here.',
+      'mark_groups_as_favourites_message':
+          'Mark groups as favourites to see them here.',
       'view_details_label': 'View Details',
       'creator_colon_label': 'Creator: {email}',
       'members_colon_label': 'Members: {count}',
@@ -2993,12 +3230,14 @@ class AppLocalizations {
           'Conversion to {currency} is not available yet. Showing INR values instead.',
       'currency_locked_to_message':
           'Locked to {currency} because the first expense in this group used that currency.',
-      'currency_unlocked_other_groups_message': 'You can use a different currency in other groups.',
+      'currency_unlocked_other_groups_message':
+          'You can use a different currency in other groups.',
       'enter_amount_hint': 'Enter amount',
       'enter_expense_description_hint': 'Enter expense description',
       'expense_updated_successfully_message': 'Expense updated successfully!',
       'failed_to_download_receipt_message': 'Failed to download receipt',
-      'failed_to_load_group_transactions_retry_message': 'Failed to load group transactions. Please try again.',
+      'failed_to_load_group_transactions_retry_message':
+          'Failed to load group transactions. Please try again.',
       'filter_all_groups_label': 'All Groups',
       'filter_joined_groups_label': 'Joined Groups',
       'filter_left_groups_label': 'Left Groups',
@@ -3010,13 +3249,15 @@ class AppLocalizations {
       'no_expenses_in_group_yet_message': 'No expenses in this group yet',
       'no_group_transactions_found_message': 'No Group Transactions Found',
       'no_groups_found_message': 'No Groups Found',
-      'not_part_of_any_group_transactions_message': 'You are not part of any group transactions yet.',
+      'not_part_of_any_group_transactions_message':
+          'You are not part of any group transactions yet.',
       'pending_balance_label': 'Pending Balance:',
       'receipt_downloaded_to_path_message': 'Receipt downloaded to {path}',
       'search_groups_hint': 'Search by group name, members, or expenses...',
       'search_groups_label': 'Search Groups',
       'select_members_label': 'Select Members',
-      'something_went_wrong_retry_message': 'Something went wrong. Please try again.',
+      'something_went_wrong_retry_message':
+          'Something went wrong. Please try again.',
       'split_details_label': 'Split Details:',
       'total_expenses_count_label': 'Total Expenses: {count}',
       'total_groups_label': 'Total Groups',
@@ -3027,14 +3268,16 @@ class AppLocalizations {
       'you_suffix_label': ' (You)',
       'your_summary_label': 'Your Summary',
       'across_all_group_expenses_message': 'Across all group expenses',
-      'all_monetary_values_in_message': 'All monetary values shown in {currency}',
+      'all_monetary_values_in_message':
+          'All monetary values shown in {currency}',
       'all_quick_records_message': 'All quick transaction records',
       'all_secure_records_message': 'All secure transaction records',
       'all_transactions_cleared_message': 'All transactions are cleared!',
       'amount_shared_by_you_message': "Amount you've shared with others",
       'amount_still_unsettled_message': 'Amount still unsettled',
       'amount_taken_by_you_message': 'Amount taken by you from others',
-      'analytics_disabled_privacy_message': 'Analytics sharing is currently disabled in your privacy settings.',
+      'analytics_disabled_privacy_message':
+          'Analytics sharing is currently disabled in your privacy settings.',
       'analytics_options_label': 'Analytics Options',
       'analytics_title_label': 'Analytics',
       'average_amount_label': 'Average Amount',
@@ -3044,32 +3287,45 @@ class AppLocalizations {
       'cleared_label': 'Cleared',
       'completion_label': 'Completion',
       'contributed_label': 'Contributed',
-      'conversion_unavailable_for_analytics_message': 'Conversion to {currency} is unavailable for analytics right now.',
-      'currency_unavailable_showing_inr_message': 'Selected analytics currency is not available yet. Showing INR values instead.',
+      'conversion_unavailable_for_analytics_message':
+          'Conversion to {currency} is unavailable for analytics right now.',
+      'currency_unavailable_showing_inr_message':
+          'Selected analytics currency is not available yet. Showing INR values instead.',
       'days_avg_label': '{days} days avg',
       'default_rate_label': 'Default Rate',
-      'enable_analytics_sharing_message': 'Enable analytics sharing in your privacy settings to view insights.',
+      'enable_analytics_sharing_message':
+          'Enable analytics sharing in your privacy settings to view insights.',
       'error_colon_label': 'Error: {error}',
       'extended_metrics_label': 'Extended Metrics',
-      'failed_to_fetch_group_analytics_message': 'Failed to fetch group analytics.',
-      'failed_to_fetch_quick_analytics_message': 'Failed to fetch quick analytics.',
-      'failed_to_fetch_secure_analytics_message': 'Failed to fetch secure analytics.',
-      'failed_to_load_quick_transactions_message': 'Failed to load quick transactions.',
-      'failed_to_load_secure_transactions_message': 'Failed to load secure transactions.',
-      'forecast_pending_cleared_by_message': 'At this pace, your {count} pending transactions should clear by {month} {year}.',
+      'failed_to_fetch_group_analytics_message':
+          'Failed to fetch group analytics.',
+      'failed_to_fetch_quick_analytics_message':
+          'Failed to fetch quick analytics.',
+      'failed_to_fetch_secure_analytics_message':
+          'Failed to fetch secure analytics.',
+      'failed_to_load_quick_transactions_message':
+          'Failed to load quick transactions.',
+      'failed_to_load_secure_transactions_message':
+          'Failed to load secure transactions.',
+      'forecast_pending_cleared_by_message':
+          'At this pace, your {count} pending transactions should clear by {month} {year}.',
       'frequent_person_label': 'Frequent Person',
       'fully_cleared_transactions_message': 'Fully cleared transactions',
-      'group_analytics_subtitle_message': 'Insights from your group expenses and splits',
+      'group_analytics_subtitle_message':
+          'Insights from your group expenses and splits',
       'group_analytics_title_label': 'Group Analytics',
-      'groups_included_in_analytics_message': 'Groups included in this analytics',
+      'groups_included_in_analytics_message':
+          'Groups included in this analytics',
       'groups_trxns_tab_label': 'Groups',
-      'interest_mix_count_label': '{withCount} with interest, {withoutCount} without',
+      'interest_mix_count_label':
+          '{withCount} with interest, {withoutCount} without',
       'interest_split_label': 'Interest Split',
       'interest_tracked_so_far_message': 'Interest tracked so far',
       'largest_pending_label': 'Largest Pending',
       'member_contributions_label': 'Member Contributions',
       'missing_proof_files_label': 'Missing Proof Files',
-      'mixed_currency_context_message': 'Your secure transactions use mixed currencies: {currencies}',
+      'mixed_currency_context_message':
+          'Your secure transactions use mixed currencies: {currencies}',
       'month_net_flow_label': 'Month Net Flow',
       'monthly_activity_label': 'Monthly Activity',
       'needed_info_label': 'Needed Info',
@@ -3079,10 +3335,13 @@ class AppLocalizations {
       'no_data_label': 'No data',
       'no_partner_data_message': 'No partner data is available yet.',
       'no_quick_trend_data_message': 'No quick transaction trend data yet.',
-      'no_secure_currency_data_message': 'No secure transaction currency data yet.',
+      'no_secure_currency_data_message':
+          'No secure transaction currency data yet.',
       'no_transactions_to_forecast_message': 'No transactions to forecast yet.',
-      'not_enough_data_for_tab_message': 'Not enough data to show analytics for this tab yet.',
-      'open_option_charts_message': 'Open any option to view charts and related details.',
+      'not_enough_data_for_tab_message':
+          'Not enough data to show analytics for this tab yet.',
+      'open_option_charts_message':
+          'Open any option to view charts and related details.',
       'open_privacy_settings_label': 'Open Privacy Settings',
       'outstanding_label': 'Outstanding',
       'overdue_interest_label': 'Overdue Interest',
@@ -3093,39 +3352,46 @@ class AppLocalizations {
       'quick_activity_trend_label': 'Quick Activity Trend',
       'quick_amount_shared_by_you_message': "Amount you've shared with others",
       'quick_amount_taken_by_you_message': 'Amount taken by you from others',
-      'quick_analytics_subtitle_message': 'Insights from your quick transactions',
+      'quick_analytics_subtitle_message':
+          'Insights from your quick transactions',
       'quick_analytics_title_label': 'Quick Analytics',
       'quick_breakdown_label': 'Quick Breakdown',
       'quick_facts_label': 'Quick Facts',
       'quick_insights_label': 'Quick Insights',
       'quick_interaction_label': 'Quick interaction',
-      'quick_transactions_already_closed_message': 'Quick transactions already closed',
+      'quick_transactions_already_closed_message':
+          'Quick transactions already closed',
       'quick_transactions_still_open_message': 'Quick transactions still open',
       'quick_trxns_tab_label': 'Quick',
-      'rate_too_slow_to_estimate_message': 'Clearing rate is too slow to estimate a forecast.',
+      'rate_too_slow_to_estimate_message':
+          'Clearing rate is too slow to estimate a forecast.',
       'records_label': 'Records',
       'repayment_speed_label': 'Repayment Speed',
       'risk_attention_label': 'Risk / Attention',
-      'secure_analytics_subtitle_message': 'Insights from your secure transactions',
+      'secure_analytics_subtitle_message':
+          'Insights from your secure transactions',
       'secure_analytics_title_label': 'Secure Analytics',
       'secure_insights_label': 'Secure Insights',
       'secure_trxns_tab_label': 'Secure',
       'showing_in_currency_message': 'Showing in {currency}',
       'showing_inr_values_label': 'Showing INR values',
-      'single_currency_context_message': 'All your secure transactions are in {currency}.',
+      'single_currency_context_message':
+          'All your secure transactions are in {currency}.',
       'spending_by_category_label': 'Spending by Category',
       'splits_already_settled_message': 'Splits already settled',
       'splits_still_pending_message': 'Splits still pending',
       'todays_stats_label': "Today's Stats",
       'top_counterparties_label': 'Top Counterparties',
-      'top_counterparties_subtitle_message': 'Most active lending/borrowing partners.',
+      'top_counterparties_subtitle_message':
+          'Most active lending/borrowing partners.',
       'top_quick_partners_label': 'Top Quick Partners',
       'total_borrowed_label': 'Total Borrowed',
       'total_lent_label': 'Total Lent',
       'total_records_label': 'Total Records',
       'total_transactions_label': 'Total Transactions',
       'tracked_group_expenses_message': 'Tracked group expenses',
-      'transactions_pending_start_clearing_message': '{count} transactions are pending — start clearing them to see a forecast.',
+      'transactions_pending_start_clearing_message':
+          '{count} transactions are pending — start clearing them to see a forecast.',
       'twelve_month_group_trend_message': '12-month group transaction trend',
       'twelve_month_quick_trend_message': '12-month quick transaction trend',
       'twelve_month_transaction_trend_message': '12-month transaction trend',
@@ -3143,55 +3409,69 @@ class AppLocalizations {
       'your_share_title_label': 'Your Share',
       'active_caps_label': 'ACTIVE',
       'active_until_message': 'Active until: {date}',
-      'after_paying_enter_payment_id_message': 'After paying, enter the Payment ID shown on the Razorpay receipt below.',
+      'after_paying_enter_payment_id_message':
+          'After paying, enter the Payment ID shown on the Razorpay receipt below.',
       'all_label': 'All',
       'amount_to_pay_colon_label': 'Amount to pay: {amount}',
       'balance_amount_message': 'Balance: ₹{amount}',
       'before_you_pay_label': 'Before you pay',
-      'carry_over_renewal_message': 'Any days remaining on your current plan will carry over to the new subscription.',
+      'carry_over_renewal_message':
+          'Any days remaining on your current plan will carry over to the new subscription.',
       'compare_label': 'Compare',
-      'conversion_unavailable_subscription_message': 'Conversion to {currency} is not available for subscription plans yet. Showing INR values instead.',
+      'conversion_unavailable_subscription_message':
+          'Conversion to {currency} is not available for subscription plans yet. Showing INR values instead.',
       'days_left_label': 'Days Left',
       'days_left_message': '{count} days left',
       'duration_days_count_message': '{duration} days',
-      'enter_payment_id_before_closing_message': 'Please enter the Payment ID you received after paying before closing this.',
+      'enter_payment_id_before_closing_message':
+          'Please enter the Payment ID you received after paying before closing this.',
       'error_initiating_payment_message': 'Error initiating payment: {error}',
       'expired_caps_label': 'EXPIRED',
       'expired_on_message': 'Expired on: {date}',
       'expires_on_colon_label': 'Expires On:',
       'expiring_soon_label': 'Expiring soon',
-      'failed_to_create_payment_order_message': 'Failed to create payment order',
+      'failed_to_create_payment_order_message':
+          'Failed to create payment order',
       'for_days_message': 'for {duration} days',
       'free_days_left_label': 'Free Days Left',
       'free_days_message': '{count} free days',
       'go_premium_label': 'Go Premium',
       'hide_renewal_options_label': 'Hide Renewal Options',
       'hours_left_message': '{count} hours left',
-      'insufficient_wallet_balance_message': 'Insufficient wallet balance. Need ₹{needed}, have ₹{available}.',
+      'insufficient_wallet_balance_message':
+          'Insufficient wallet balance. Need ₹{needed}, have ₹{available}.',
       'lenden_wallet_label': 'LenDen Wallet',
       'list_view_label': 'List View',
       'money_back_guarantee_label': 'Money Back\nGuarantee',
       'most_popular_label': 'Most Popular',
       'na_label': 'N/A',
-      'need_help_with_payment_message': 'Entered the wrong Payment ID, or facing an issue? Get help below.',
+      'need_help_with_payment_message':
+          'Entered the wrong Payment ID, or facing an issue? Get help below.',
       'no_subscriptions_found_message': 'No subscriptions found',
       'or_label': 'OR',
-      'pay_exact_amount_warning_message': 'Pay exactly {amount} on Razorpay\'s page. If you pay a different amount, it will NOT be refunded and your subscription will NOT be activated.',
-      'pay_exact_amount_wallet_warning_message': 'Pay exactly {amount} on Razorpay\'s page. If you pay a different amount, it will NOT be refunded and will NOT be added to your wallet.',
+      'pay_exact_amount_warning_message':
+          'Pay exactly {amount} on Razorpay\'s page. If you pay a different amount, it will NOT be refunded and your subscription will NOT be activated.',
+      'pay_exact_amount_wallet_warning_message':
+          'Pay exactly {amount} on Razorpay\'s page. If you pay a different amount, it will NOT be refunded and will NOT be added to your wallet.',
       'pay_for_plan_label': 'Pay for {plan}',
       'pay_now_open_link_label': 'Pay Now (Opens Razorpay)',
       'pay_via_lenden_wallet_label': 'Pay via LenDen Wallet',
       'pay_via_razorpay_label': 'Pay via Razorpay',
-      'payment_cancelled_or_failed_message': 'Payment cancelled or failed: {message}',
-      'payment_config_unavailable_message': 'Could not load payment details. Please check your connection and try again.',
+      'payment_cancelled_or_failed_message':
+          'Payment cancelled or failed: {message}',
+      'payment_config_unavailable_message':
+          'Could not load payment details. Please check your connection and try again.',
       'payment_failed_label': 'Payment failed',
-      'payment_only_supported_mobile_message': 'Payment is only supported on Android & iOS. Please use the mobile app.',
-      'payment_verification_failed_generic_message': 'We could not verify this payment. Please check the Payment ID and try again.',
+      'payment_only_supported_mobile_message':
+          'Payment is only supported on Android & iOS. Please use the mobile app.',
+      'payment_verification_failed_generic_message':
+          'We could not verify this payment. Please check the Payment ID and try again.',
       'percent_off_message': '{discount}% OFF',
       'plan_colon_label': 'Plan:',
       'plan_label': 'Plan',
       'plan_with_discount_off_label': '{plan} ({discount}% off)',
-      'please_enter_payment_id_message': 'Please enter the Razorpay Payment ID.',
+      'please_enter_payment_id_message':
+          'Please enter the Razorpay Payment ID.',
       'please_login_to_subscribe_message': 'Please login to subscribe.',
       'please_select_a_plan_message': 'Please select a subscription plan.',
       'premium_label': 'Premium',
@@ -3201,7 +3481,8 @@ class AppLocalizations {
       'renew_extend_subscription_label': 'Renew / Extend Subscription',
       'renew_via_lenden_wallet_label': 'Renew via LenDen Wallet',
       'renew_via_razorpay_label': 'Renew via Razorpay',
-      'save_payment_id_and_receipt_message': 'Once you pay, Razorpay will show a Payment ID (starts with pay_). Copy it (and screenshot the receipt) — you\'ll need to paste the Payment ID below to activate your subscription.',
+      'save_payment_id_and_receipt_message':
+          'Once you pay, Razorpay will show a Payment ID (starts with pay_). Copy it (and screenshot the receipt) — you\'ll need to paste the Payment ID below to activate your subscription.',
       'search_by_plan_name_hint': 'Search by plan name...',
       'secure_payment_label': 'Secure\nPayment',
       'select_a_plan_label': 'Select a Plan',
@@ -3215,7 +3496,8 @@ class AppLocalizations {
       'wallet_payment_failed_message': 'Wallet payment failed',
       'ad_hidden_7_days_message': 'This ad will stay hidden for 7 days.',
       'ad_reported_thanks_message': 'Ad reported. Thanks for the feedback.',
-      'close_after_video_finishes_message': 'Close will appear after the video finishes.',
+      'close_after_video_finishes_message':
+          'Close will appear after the video finishes.',
       'close_anytime_message': 'You can close this ad anytime.',
       'close_available_now_message': 'You can close this ad now.',
       'close_button_available_message': 'Close button is now available.',
@@ -3223,16 +3505,19 @@ class AppLocalizations {
       'close_unlocks_in_seconds_message': 'Close unlocks in {seconds}s.',
       'could_not_hide_ad_message': 'Could not hide this ad right now.',
       'could_not_report_ad_message': 'Could not report this ad right now.',
-      'example_irrelevant_repeated_hint': 'Example: irrelevant, repeated too often, misleading',
+      'example_irrelevant_repeated_hint':
+          'Example: irrelevant, repeated too often, misleading',
       'example_not_relevant_hint': 'Example: not relevant to me',
       'hide_7_days_label': 'Hide 7 Days',
-      'hide_ad_week_help_message': 'We can hide this ad from your screen for a week. You can optionally tell us why.',
+      'hide_ad_week_help_message':
+          'We can hide this ad from your screen for a week. You can optionally tell us why.',
       'hide_today_label': 'Hide Today',
       'loading_video_message': 'Loading video...',
       'not_interested_label': 'Not Interested',
       'optional_reason_label': 'Optional reason',
       'reason_label': 'Reason',
-      'report_ad_help_message': 'Tell us what feels wrong about this ad. This helps admins review and improve what users see.',
+      'report_ad_help_message':
+          'Tell us what feels wrong about this ad. This helps admins review and improve what users see.',
       'report_ad_menu_label': 'Report Ad',
       'report_label': 'Report',
       'report_this_ad_label': 'Report This Ad',
@@ -3264,7 +3549,8 @@ class AppLocalizations {
       'admin_replies_label': 'Admin Replies',
       'admin_reply_label': 'Admin Reply',
       'an_error_occurred_message': 'An error occurred: {error}',
-      'confirm_delete_query_message': 'Are you sure you want to delete this query? This cannot be undone.',
+      'confirm_delete_query_message':
+          'Are you sure you want to delete this query? This cannot be undone.',
       'confirm_deletion_label': 'Confirm Deletion',
       'contact_support_label': 'Contact Support',
       'edit_support_query_label': 'Edit Support Query',
@@ -3273,12 +3559,16 @@ class AppLocalizations {
       'failed_to_submit_query_message': 'Failed to submit query.',
       'failed_to_update_query_message': 'Failed to update query.',
       'fill_both_fields_message': 'Please fill in both fields.',
-      'fill_topic_and_description_message': 'Please fill in both topic and description.',
+      'fill_topic_and_description_message':
+          'Please fill in both topic and description.',
       'help_and_support_label': 'Help & Support',
       'my_disputes_label': 'My Disputes',
-      'network_error_deleting_query_message': 'Network error while deleting query.',
-      'network_error_editing_query_message': 'Network error while editing query.',
-      'network_error_submitting_query_message': 'Network error while submitting query.',
+      'network_error_deleting_query_message':
+          'Network error while deleting query.',
+      'network_error_editing_query_message':
+          'Network error while editing query.',
+      'network_error_submitting_query_message':
+          'Network error while submitting query.',
       'no_queries_found_message': 'No queries found.',
       'pending_status_label': 'PENDING',
       'query_created_message': 'Query created!',
@@ -3295,7 +3585,8 @@ class AppLocalizations {
       'submit_query_label': 'Submit Query',
       'submitted_date_message': 'Submitted: {date}',
       'topic_label': 'Topic',
-      'track_disputes_raised_or_named_message': "Track disputes you've raised or been named in",
+      'track_disputes_raised_or_named_message':
+          "Track disputes you've raised or been named in",
       'view_all_queries_count_message': 'View All {count} Queries',
       'your_queries_label': 'Your Queries',
       // Admin: User Management page
@@ -3325,7 +3616,8 @@ class AppLocalizations {
       'review_failed_title': 'Review Failed',
       'date_unavailable': 'Date unavailable',
       'review_pending_user_title': 'Review Pending User',
-      'verify_this_user_individually_desc': 'Verify this user individually before approving.',
+      'verify_this_user_individually_desc':
+          'Verify this user individually before approving.',
       'no_email': 'No email',
       'joined_colon_label': 'Joined:',
       'keep_pending_label': 'Keep Pending',
@@ -3334,17 +3626,21 @@ class AppLocalizations {
       'user_reviewed_title': 'User Reviewed',
       'pending_user_marked_verified': 'Pending user marked as verified.',
       'export_users_title': 'Export Users',
-      'export_share_options_desc': 'Choose how you would like to share this export.',
+      'export_share_options_desc':
+          'Choose how you would like to share this export.',
       'copy': 'Copy',
       'copied_title': 'Copied',
-      'export_content_copied_to_clipboard': 'Export content copied to clipboard.',
+      'export_content_copied_to_clipboard':
+          'Export content copied to clipboard.',
       'whatsapp_label': 'WhatsApp',
       'telegram_label': 'Telegram',
       'others_label': 'Others',
       'export_ready_title': 'Export Ready',
-      'export_file_prepared_opened_desc': 'The export file has been prepared and opened.',
+      'export_file_prepared_opened_desc':
+          'The export file has been prepared and opened.',
       'share_app_unavailable_title': 'App Unavailable',
-      'share_app_unavailable_desc': 'No app was found to handle this share option.',
+      'share_app_unavailable_desc':
+          'No app was found to handle this share option.',
       'export_sent_out_title': 'Export Sent',
       'export_prepared_for_label': 'Export prepared for',
       'user_activated_title': 'User Activated',
@@ -3353,19 +3649,22 @@ class AppLocalizations {
       'failed_to_update_user_status': 'Failed to update user status',
       'status_update_failed_title': 'Status Update Failed',
       'force_logout_user_title': 'Force Logout User?',
-      'force_logout_user_desc': 'This will immediately invalidate all active sessions for this user.',
+      'force_logout_user_desc':
+          'This will immediately invalidate all active sessions for this user.',
       'force_logout_label': 'Force Logout',
       'user_logged_out_title': 'User Logged Out',
       'all_sessions_invalidated_for_label': 'All sessions invalidated for',
       'failed_to_force_logout': 'Failed to force logout user',
       'delete_user_title': 'Delete User?',
-      'delete_user_permanent_desc': 'This will permanently delete this user and all their data. This action cannot be undone.',
+      'delete_user_permanent_desc':
+          'This will permanently delete this user and all their data. This action cannot be undone.',
       'user_deleted_title': 'User Deleted',
       'has_been_permanently_deleted': 'has been permanently deleted.',
       'failed_to_delete_user': 'Failed to delete user',
       'delete_failed_title': 'Delete Failed',
       'user_management': 'User Management',
-      'search_users_by_name_email_username': 'Search users by name, email, or username...',
+      'search_users_by_name_email_username':
+          'Search users by name, email, or username...',
       'sort_by_name_label': 'Name',
       'sort_by_email_label': 'Email',
       'sort_by_date_label': 'Date Joined',
@@ -3384,7 +3683,8 @@ class AppLocalizations {
       'delete_user_label': 'Delete User',
       // Admin: User Details page
       'account_type_label': 'Account Type',
-      'activate_user_confirm_message': 'Are you sure you want to activate this user?',
+      'activate_user_confirm_message':
+          'Are you sure you want to activate this user?',
       'active_plan_label': 'Active Plan',
       'activity_logged_label': 'Activity logged',
       'activity_statistics_label': 'Activity Statistics',
@@ -3393,13 +3693,15 @@ class AppLocalizations {
       'by_label': 'By',
       'counterpart_colon_label': 'Counterpart:',
       'days_active_label': 'Days Active',
-      'deactivate_user_confirm_message': 'Are you sure you want to deactivate this user?',
+      'deactivate_user_confirm_message':
+          'Are you sure you want to deactivate this user?',
       'email_verified_label': 'Email Verified',
       'error_loading_user_details': 'Error loading user details',
       'failed_to_add_note': 'Failed to add note',
       'failed_to_force_logout_short': 'Failed to force logout',
       'failed_to_update_suspension': 'Failed to update suspension',
-      'force_logout_user_all_devices_desc': 'This will immediately invalidate all active sessions. The user will be logged out from all devices.',
+      'force_logout_user_all_devices_desc':
+          'This will immediately invalidate all active sessions. The user will be logged out from all devices.',
       'force_logout_user_label': 'Force Logout User',
       'friends_label': 'Friends',
       'groups_created_label': 'Groups Created',
@@ -3443,21 +3745,29 @@ class AppLocalizations {
       'user_logged_out_label': 'User logged out',
       // Admin: Dashboard page
       'manage_users_label': 'Manage Users',
-      'review_and_control_user_accounts_desc': 'Review and control user accounts',
+      'review_and_control_user_accounts_desc':
+          'Review and control user accounts',
       'manage_secure_transactions_label': 'Manage Secure Transactions',
-      'inspect_and_control_secure_records_desc': 'Inspect and control secure records',
+      'inspect_and_control_secure_records_desc':
+          'Inspect and control secure records',
       'notes_label': 'Notes',
-      'open_internal_notes_and_references_desc': 'Open internal notes and references',
+      'open_internal_notes_and_references_desc':
+          'Open internal notes and references',
       'manage_groups_label': 'Manage Groups',
-      'handle_group_activity_and_expenses_desc': 'Handle group activity and expenses',
+      'handle_group_activity_and_expenses_desc':
+          'Handle group activity and expenses',
       'manage_quick_transactions_label': 'Manage Quick Transactions',
-      'inspect_and_manage_quick_transaction_records_desc': 'Inspect and manage quick transaction records',
-      'monitor_user_side_platform_behaviour_desc': 'Monitor user-side platform behaviour',
+      'inspect_and_manage_quick_transaction_records_desc':
+          'Inspect and manage quick transaction records',
+      'monitor_user_side_platform_behaviour_desc':
+          'Monitor user-side platform behaviour',
       'track_label': 'Track',
       'manage_subscription_label': 'Manage Subscription',
-      'adjust_admin_side_product_controls_desc': 'Adjust admin-side product controls',
+      'adjust_admin_side_product_controls_desc':
+          'Adjust admin-side product controls',
       'manage_gift_cards_label': 'Manage Gift Cards',
-      'create_and_control_gift_card_inventory_desc': 'Create and control gift card inventory',
+      'create_and_control_gift_card_inventory_desc':
+          'Create and control gift card inventory',
       'referral_settings_label': 'Referral Settings',
       'tune_referral_rewards_and_flows_desc': 'Tune referral rewards and flows',
       'referral_label': 'Referral',
@@ -3465,25 +3775,34 @@ class AppLocalizations {
       'publish_and_update_admin_offers_desc': 'Publish and update admin offers',
       'offers_label': 'Offers',
       'contact_settings_label': 'Contact Settings',
-      'update_support_and_contact_details_desc': 'Update support and contact details',
+      'update_support_and_contact_details_desc':
+          'Update support and contact details',
       'contact_label': 'Contact',
-      'resolve_support_queues_and_user_issues_desc': 'Resolve support queues and user issues',
+      'resolve_support_queues_and_user_issues_desc':
+          'Resolve support queues and user issues',
       'manage_disputes_label': 'Manage Disputes',
-      'review_and_resolve_transaction_disputes_desc': 'Review and resolve transaction disputes',
+      'review_and_resolve_transaction_disputes_desc':
+          'Review and resolve transaction disputes',
       'disputes_label': 'Disputes',
       'fraud_alerts_label': 'Fraud Alerts',
-      'automated_anomaly_and_fraud_detection_desc': 'Automated anomaly and fraud detection',
+      'automated_anomaly_and_fraud_detection_desc':
+          'Automated anomaly and fraud detection',
       'content_analytics_label': 'Content Analytics',
-      'track_admin_content_performance_and_moderation_desc': 'Track admin content performance and moderation',
+      'track_admin_content_performance_and_moderation_desc':
+          'Track admin content performance and moderation',
       'app_ratings_label': 'App Ratings',
-      'review_ratings_coming_from_the_app_desc': 'Review ratings coming from the app',
+      'review_ratings_coming_from_the_app_desc':
+          'Review ratings coming from the app',
       'user_feedbacks_label': 'User Feedbacks',
-      'read_submitted_feedback_and_issues_desc': 'Read submitted feedback and issues',
+      'read_submitted_feedback_and_issues_desc':
+          'Read submitted feedback and issues',
       'feedback_label': 'Feedback',
       'contact_messages_label': 'Contact Messages',
-      'view_and_respond_to_contact_form_submissions_desc': 'View and respond to contact form submissions',
+      'view_and_respond_to_contact_form_submissions_desc':
+          'View and respond to contact form submissions',
       'audit_logs_label': 'Audit Logs',
-      'review_all_admin_actions_and_changes_desc': 'Review all admin actions and changes',
+      'review_all_admin_actions_and_changes_desc':
+          'Review all admin actions and changes',
       'logs_label': 'Logs',
       'dashboard_label': 'Dashboard',
       'settings_label': 'Settings',
@@ -3492,11 +3811,14 @@ class AppLocalizations {
       'admin_roles_label': 'Admin Roles',
       'search_admin_sections_hint': 'Search admin sections',
       'admin_options_label': 'Admin Options',
-      'switch_between_cards_or_grid_desc': 'Switch between detailed cards or compact admin grid.',
+      'switch_between_cards_or_grid_desc':
+          'Switch between detailed cards or compact admin grid.',
       'failed_to_load_admin_overview': 'Failed to load admin overview',
       'welcome_back_comma_label': 'Welcome back,',
-      'superadmin_control_active_message': 'Superadmin control is active for this session.',
-      'admin_control_active_message': 'Admin control is active for this session.',
+      'superadmin_control_active_message':
+          'Superadmin control is active for this session.',
+      'admin_control_active_message':
+          'Admin control is active for this session.',
       'hide_box_label': 'Hide Box',
       'open_box_label': 'Open Box',
       'admin_snapshot_label': 'Admin Snapshot',
@@ -3508,14 +3830,17 @@ class AppLocalizations {
       'superadmins_label': 'Superadmins',
       'view_more_alerts_label': 'View More Alerts',
       'priority_queue_label': 'Priority Queue',
-      'overview_unavailable_message': 'Overview is unavailable right now, but admin tools are still available below.',
-      'nothing_urgent_waiting_message': 'Nothing urgent is waiting right now. You can continue with regular admin tasks below.',
+      'overview_unavailable_message':
+          'Overview is unavailable right now, but admin tools are still available below.',
+      'nothing_urgent_waiting_message':
+          'Nothing urgent is waiting right now. You can continue with regular admin tasks below.',
       'review_label': 'Review',
       'review_all_label': 'Review All',
       'do_you_want_to_logout_message': 'Do you want to logout?',
       // Admin: Manage Ads page
       'failed_to_load_ads': 'Failed to load ads',
-      'unexpected_upload_error': 'Something went wrong while uploading. Please try again.',
+      'unexpected_upload_error':
+          'Something went wrong while uploading. Please try again.',
       'ad_title_required_message': 'Ad title is required.',
       'failed_to_save_ad': 'Failed to save ad',
       'ad_edited_successfully_message': 'Ad edited successfully.',
@@ -3532,22 +3857,27 @@ class AppLocalizations {
       'ad_title_label': 'Ad Title',
       'ad_text_label': 'Ad Text',
       'call_to_action_text_label': 'Call-To-Action Text',
-      'cta_text_helper_desc': 'Optional. This becomes the button text users tap, like Learn More or Open Offer.',
+      'cta_text_helper_desc':
+          'Optional. This becomes the button text users tap, like Learn More or Open Offer.',
       'call_to_action_url_label': 'Call-To-Action URL',
-      'cta_url_helper_desc': 'Optional. Add the full link starting with http:// or https:// for the CTA button.',
+      'cta_url_helper_desc':
+          'Optional. Add the full link starting with http:// or https:// for the CTA button.',
       'audience_label': 'Audience',
       'all_users_label': 'All Users',
       'subscribed_only_label': 'Subscribed Only',
       'non_subscribed_only_label': 'Non-Subscribed Only',
-      'starts_at_helper_desc': 'Choose when this ad should start appearing to eligible users.',
-      'ends_at_helper_desc': 'Optional. Choose when this ad should stop appearing.',
+      'starts_at_helper_desc':
+          'Choose when this ad should start appearing to eligible users.',
+      'ends_at_helper_desc':
+          'Optional. Choose when this ad should stop appearing.',
       'placements_label': 'Placements',
       'tags_label': 'Tags',
       'priority_weight_label': 'Priority Weight',
       'daily_cap_per_user_label': 'Daily Cap / User',
       'video_close_button_timing_label': 'Video close button timing',
       'at_end_label': 'At End',
-      'video_close_button_timing_desc': 'For video ads, the close button appears after the selected part of the video has played. Text and image ads can be closed immediately.',
+      'video_close_button_timing_desc':
+          'For video ads, the close button appears after the selected part of the video has played. Text and image ads can be closed immediately.',
       'keep_ad_active_label': 'Keep ad active',
       'pick_image_video_label': 'Pick Image / Video',
       'cancel_edit_label': 'Cancel Edit',
@@ -3575,7 +3905,8 @@ class AppLocalizations {
       'recent_report_reasons_label': 'Recent report reasons',
       'no_reason_provided_label': 'No reason provided',
       'show_ad_to_users_label': 'Show this ad to users',
-      'only_creator_or_superadmin_can_edit_delete_message': 'Only the creator admin or a superadmin can edit or delete this ad.',
+      'only_creator_or_superadmin_can_edit_delete_message':
+          'Only the creator admin or a superadmin can edit or delete this ad.',
       'percent_25_played_label': '25% played',
       'percent_50_played_label': '50% played',
       'percent_75_played_label': '75% played',
@@ -3765,16 +4096,19 @@ class AppLocalizations {
       'administrator': 'व्यवस्थापक',
       'system_management': 'सिस्टम प्रबंधन',
       'system_settings': 'सिस्टम सेटिंग्स',
-      'system_settings_desc': 'सिस्टम-व्यापी सेटिंग्स और प्राथमिकताएं कॉन्फ़िगर करें',
+      'system_settings_desc':
+          'सिस्टम-व्यापी सेटिंग्स और प्राथमिकताएं कॉन्फ़िगर करें',
       'user_management_desc': 'उपयोगकर्ता खातों को प्रबंधित और ट्रैक करें',
       'analytics_and_reports': 'एनालिटिक्स और रिपोर्ट',
-      'analytics_and_reports_desc': 'एनालिटिक्स और रिपोर्टिंग सेटिंग्स कॉन्फ़िगर करें',
+      'analytics_and_reports_desc':
+          'एनालिटिक्स और रिपोर्टिंग सेटिंग्स कॉन्फ़िगर करें',
       'admin_management': 'व्यवस्थापक प्रबंधन',
       'manage_admins': 'व्यवस्थापक प्रबंधित करें',
       'manage_admins_desc': 'व्यवस्थापक खाते जोड़ें या हटाएं',
       'security_and_access': 'सुरक्षा और एक्सेस',
       'security_settings': 'सुरक्षा सेटिंग्स',
-      'security_settings_desc': 'व्यवस्थापक सुरक्षा और एक्सेस नियंत्रण प्रबंधित करें',
+      'security_settings_desc':
+          'व्यवस्थापक सुरक्षा और एक्सेस नियंत्रण प्रबंधित करें',
       'admin_notifications': 'व्यवस्थापक सूचनाएं',
       'admin_notifications_desc': 'व्यवस्थापक-विशिष्ट सूचनाएं कॉन्फ़िगर करें',
       'change_password_desc': 'अपने व्यवस्थापक खाते का पासवर्ड अपडेट करें',
@@ -3782,7 +4116,8 @@ class AppLocalizations {
       'access_logs_desc': 'सिस्टम एक्सेस और गतिविधि लॉग देखें',
       'data_management': 'डेटा प्रबंधन',
       'backup_and_restore': 'बैकअप और पुनर्स्थापन',
-      'backup_and_restore_desc': 'सिस्टम बैकअप और डेटा पुनर्स्थापन प्रबंधित करें',
+      'backup_and_restore_desc':
+          'सिस्टम बैकअप और डेटा पुनर्स्थापन प्रबंधित करें',
       'data_export': 'डेटा निर्यात',
       'data_export_desc': 'सिस्टम डेटा और रिपोर्ट निर्यात करें',
       'system_maintenance': 'सिस्टम अनुरक्षण',
@@ -3817,7 +4152,8 @@ class AppLocalizations {
           'आप अपनी सीमा तक पहुँच गए हैं। सभी सुविधाओं के असीमित एक्सेस के लिए सब्सक्राइब करें।',
       'use_coins': 'कॉइन का उपयोग करें',
       'login_required': 'लॉगिन आवश्यक है',
-      'please_login_to_view_notifications': 'सूचनाएं देखने के लिए कृपया लॉगिन करें।',
+      'please_login_to_view_notifications':
+          'सूचनाएं देखने के लिए कृपया लॉगिन करें।',
       'type': 'प्रकार',
       'to': 'प्रति',
       'secured_by_lenden': 'LenDen द्वारा सुरक्षित',
@@ -3862,9 +4198,11 @@ class AppLocalizations {
       'in_category': 'में',
       'search_by_email_or_username': 'ईमेल या उपयोगकर्ता नाम से खोजें...',
       'no_description': 'कोई विवरण नहीं',
-      'search_user_to_view_activities': 'गतिविधियां देखने के लिए उपयोगकर्ता खोजें',
+      'search_user_to_view_activities':
+          'गतिविधियां देखने के लिए उपयोगकर्ता खोजें',
       'no_activities_found_for': 'इसके लिए कोई गतिविधि नहीं मिली',
-      'enter_email_or_username_above': 'ऊपर खोज बार में ईमेल या उपयोगकर्ता नाम दर्ज करें',
+      'enter_email_or_username_above':
+          'ऊपर खोज बार में ईमेल या उपयोगकर्ता नाम दर्ज करें',
       'try_different_search_term': 'एक अलग खोज शब्द आज़माएं या स्पेलिंग जांचें',
       'show_all_activities': 'सभी गतिविधियां दिखाएं',
       'minutes_ago': 'मिनट पहले',
@@ -3884,16 +4222,19 @@ class AppLocalizations {
       'failed_to_update_expense': 'खर्च अपडेट करने में विफल।',
       'expense_deleted_successfully': 'खर्च सफलतापूर्वक हटाया गया।',
       'failed_to_delete_expense': 'खर्च हटाने में विफल।',
-      'expense_splits_settled_successfully': 'खर्च विभाजन सफलतापूर्वक निपटाए गए।',
+      'expense_splits_settled_successfully':
+          'खर्च विभाजन सफलतापूर्वक निपटाए गए।',
       'failed_to_settle_expense_splits': 'खर्च विभाजन निपटाने में विफल।',
       'failed_to_load_groups': 'ग्रुप लोड करने में विफल।',
       'group_deleted_successfully': 'ग्रुप सफलतापूर्वक हटाया गया।',
       'failed_to_delete_group': 'ग्रुप हटाने में विफल।',
       'pick_group_color': 'ग्रुप का रंग चुनें',
       'delete_group': 'ग्रुप हटाएं',
-      'confirm_delete_group_message': 'क्या आप वाकई इस ग्रुप को हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।',
+      'confirm_delete_group_message':
+          'क्या आप वाकई इस ग्रुप को हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती।',
       'manage_group_transactions_title': 'ग्रुप ट्रांज़ैक्शन प्रबंधित करें',
-      'search_group_member_creator_id_placeholder': 'ग्रुप, सदस्य, निर्माता, आईडी खोजें...',
+      'search_group_member_creator_id_placeholder':
+          'ग्रुप, सदस्य, निर्माता, आईडी खोजें...',
       'all_groups': 'सभी ग्रुप',
       'latest': 'नवीनतम',
       'most_members': 'सर्वाधिक सदस्य',
@@ -3921,8 +4262,10 @@ class AppLocalizations {
       'settle_expense_title': 'खर्च निपटाएं',
       'settle_label': 'निपटाएं',
       'delete_expense_title': 'खर्च हटाएं',
-      'confirm_delete_expense_message': 'क्या आप वाकई इस खर्च को हटाना चाहते हैं?',
-      'mark_pending_splits_settled_message': 'चयनित बकाया विभाजनों को निपटाया गया चिह्नित करें?',
+      'confirm_delete_expense_message':
+          'क्या आप वाकई इस खर्च को हटाना चाहते हैं?',
+      'mark_pending_splits_settled_message':
+          'चयनित बकाया विभाजनों को निपटाया गया चिह्नित करें?',
       'activity_transaction_created': 'लेन-देन बनाया गया',
       'activity_transaction_cleared': 'लेन-देन क्लियर हुआ',
       'activity_partial_payment_made': 'आंशिक भुगतान किया गया',
@@ -3971,13 +4314,15 @@ class AppLocalizations {
       'activity_type_quick_transaction_created': 'क्विक ट्रांज़ैक्शन बनाया गया',
       'activity_type_quick_transaction_updated': 'क्विक ट्रांज़ैक्शन अपडेट हुआ',
       'activity_type_quick_transaction_deleted': 'क्विक ट्रांज़ैक्शन हटाया गया',
-      'activity_type_quick_transaction_cleared': 'क्विक ट्रांज़ैक्शन क्लियर हुआ',
+      'activity_type_quick_transaction_cleared':
+          'क्विक ट्रांज़ैक्शन क्लियर हुआ',
       'activity_type_quick_transaction_cleared_all':
           'सभी क्विक ट्रांज़ैक्शन क्लियर हुए',
       'activity_type_friend_request_sent': 'फ्रेंड रिक्वेस्ट भेजी गई',
       'activity_type_friend_request_received': 'फ्रेंड रिक्वेस्ट प्राप्त हुई',
       'activity_type_friend_request_accepted': 'फ्रेंड रिक्वेस्ट स्वीकार की गई',
-      'activity_type_friend_request_declined': 'फ्रेंड रिक्वेस्ट अस्वीकार की गई',
+      'activity_type_friend_request_declined':
+          'फ्रेंड रिक्वेस्ट अस्वीकार की गई',
       'activity_type_friend_request_canceled': 'फ्रेंड रिक्वेस्ट रद्द की गई',
       'activity_type_friend_removed': 'फ्रेंड हटाया गया',
       'activity_type_user_blocked': 'उपयोगकर्ता को ब्लॉक किया गया',
@@ -4098,7 +4443,8 @@ class AppLocalizations {
 
       'no_manual_updates_yet': 'अभी तक कोई मैन्युअल अपडेट नहीं',
       'currency_conversions': 'मुद्रा रूपांतरण',
-      'manage_latest_manual_conversion_rates': 'नवीनतम मैन्युअल रूपांतरण दरें प्रबंधित करें',
+      'manage_latest_manual_conversion_rates':
+          'नवीनतम मैन्युअल रूपांतरण दरें प्रबंधित करें',
       'supported_currencies_hint':
           'एक सीधी दर दर्ज करें और सिस्टम स्वचालित रूप से रिवर्स जोड़ी निर्धारित करेगा। समर्थित मुद्राएं:',
       'available_pairs': 'उपलब्ध जोड़े',
@@ -4135,7 +4481,8 @@ class AppLocalizations {
       'reply_already_sent_notice':
           'एक जवाब पहले ही भेजा जा चुका है। प्रति संदेश केवल एक जवाब की अनुमति है।',
       'reply_to_user': 'उपयोगकर्ता को जवाब दें',
-      'write_reply_hint': 'अपना जवाब यहां लिखें — यह उपयोगकर्ता को ईमेल किया जाएगा...',
+      'write_reply_hint':
+          'अपना जवाब यहां लिखें — यह उपयोगकर्ता को ईमेल किया जाएगा...',
       'write_reply_before_sending': 'भेजने से पहले एक जवाब लिखें।',
       'reply_sent_to': 'जवाब भेजा गया',
       'sending': 'भेजा जा रहा है...',
@@ -4158,7 +4505,8 @@ class AppLocalizations {
       'action_url': 'एक्शन URL',
       'support_export_csv': 'सहायता निर्यात CSV',
       'failed_export_support_queries': 'सहायता प्रश्न निर्यात करने में विफल।',
-      'network_error_exporting_queries': 'प्रश्न निर्यात करते समय नेटवर्क त्रुटि।',
+      'network_error_exporting_queries':
+          'प्रश्न निर्यात करते समय नेटवर्क त्रुटि।',
       'new_query_created': 'नया प्रश्न बनाया गया!',
       'query_updated': 'प्रश्न अपडेट किया गया!',
       'query_deleted': 'प्रश्न हटाया गया!',
@@ -4173,11 +4521,13 @@ class AppLocalizations {
       'reply_deleted_successfully': 'जवाब सफलतापूर्वक हटाया गया!',
       'failed_to_delete_reply': 'जवाब हटाने में विफल।',
       'network_error_deleting_reply': 'जवाब हटाते समय नेटवर्क त्रुटि।',
-      'query_status_updated_successfully': 'प्रश्न की स्थिति सफलतापूर्वक अपडेट की गई!',
+      'query_status_updated_successfully':
+          'प्रश्न की स्थिति सफलतापूर्वक अपडेट की गई!',
       'failed_to_update_status': 'स्थिति अपडेट करने में विफल।',
       'network_error_updating_status': 'स्थिति अपडेट करते समय नेटवर्क त्रुटि।',
       'support_workflow_updated': 'सहायता वर्कफ़्लो अपडेट किया गया',
-      'failed_to_update_support_workflow': 'सहायता वर्कफ़्लो अपडेट करने में विफल।',
+      'failed_to_update_support_workflow':
+          'सहायता वर्कफ़्लो अपडेट करने में विफल।',
       'network_error_updating_support_workflow':
           'सहायता वर्कफ़्लो अपडेट करते समय नेटवर्क त्रुटि।',
       'manage_support_queries': 'सहायता प्रश्न प्रबंधित करें',
@@ -4211,7 +4561,8 @@ class AppLocalizations {
       'add_note': 'नोट जोड़ें',
 
       'change_your_password_title': 'अपना पासवर्ड बदलें',
-      'enter_current_choose_new': 'अपना मौजूदा पासवर्ड दर्ज करें और एक नया चुनें',
+      'enter_current_choose_new':
+          'अपना मौजूदा पासवर्ड दर्ज करें और एक नया चुनें',
       'current_password': 'मौजूदा पासवर्ड',
       'enter_current_password': 'अपना मौजूदा पासवर्ड दर्ज करें',
       'please_enter_current_password': 'कृपया अपना मौजूदा पासवर्ड दर्ज करें',
@@ -4243,7 +4594,8 @@ class AppLocalizations {
       'failed_load_referral_settings': 'रेफ़रल सेटिंग्स लोड करने में विफल।',
       'network_error_loading_referral_settings':
           'रेफ़रल सेटिंग्स लोड करते समय नेटवर्क त्रुटि।',
-      'reward_coins_non_negative': 'रिवॉर्ड कॉइन एक ऋणात्मक न होने वाली संख्या होनी चाहिए।',
+      'reward_coins_non_negative':
+          'रिवॉर्ड कॉइन एक ऋणात्मक न होने वाली संख्या होनी चाहिए।',
       'referral_settings_saved': 'रेफ़रल सेटिंग्स सहेजी गईं।',
       'failed_to_save_referral_settings': 'रेफ़रल सेटिंग्स सहेजने में विफल।',
       'network_error_saving_referral_settings':
@@ -4274,15 +4626,21 @@ class AppLocalizations {
       'otp_verification_failed': 'OTP सत्यापन विफल।',
       'failed_to_reset_password': 'पासवर्ड रीसेट करने में विफल।',
       'password_reset_successful': 'पासवर्ड रीसेट सफल',
-      'password_reset_successful_message': 'आपका पासवर्ड सफलतापूर्वक रीसेट हो गया है!',
+      'password_reset_successful_message':
+          'आपका पासवर्ड सफलतापूर्वक रीसेट हो गया है!',
       'reset_your_password_securely': 'अपना पासवर्ड सुरक्षित रूप से रीसेट करें',
       'confirm_password': 'पासवर्ड की पुष्टि करें',
       'send_otp': 'OTP भेजें',
       'verify_otp': 'OTP सत्यापित करें',
       'resend_otp': 'OTP पुनः भेजें',
+      'invalid_otp': 'अमान्य OTP। कृपया एक नया OTP अनुरोध करें।',
+      'otp_required': 'कृपया अपने ईमेल पर भेजा गया 6-अंकीय OTP दर्ज करें।',
+      'otp_cooldown_message':
+          'कृपया दूसरा OTP अनुरोध करने से पहले {seconds} सेकंड प्रतीक्षा करें।',
       'otp_expires_in': 'OTP समाप्त होने में',
 
-      'server_starting_up': 'सर्वर शुरू हो रहा है। कृपया कुछ क्षण रुकें और पुनः प्रयास करें।',
+      'server_starting_up':
+          'सर्वर शुरू हो रहा है। कृपया कुछ क्षण रुकें और पुनः प्रयास करें।',
       'could_not_send_otp_email':
           'OTP ईमेल नहीं भेजा जा सका। कृपया अपना ईमेल पता जांचें और पुनः प्रयास करें।',
       'user_not_found': 'उपयोगकर्ता नहीं मिला',
@@ -4291,13 +4649,15 @@ class AppLocalizations {
       'user_name_fallback': 'उपयोगकर्ता',
       'user_email_fallback': 'user@example.com',
       'failed_to_send_otp_retry': 'OTP भेजने में विफल। कृपया पुनः प्रयास करें।',
-      'otp_verification_failed_retry': 'OTP सत्यापन विफल। कृपया पुनः प्रयास करें।',
+      'otp_verification_failed_retry':
+          'OTP सत्यापन विफल। कृपया पुनः प्रयास करें।',
       'enter_otp_title': 'OTP दर्ज करें',
       'enter_6_digit_otp': 'अपने ईमेल पर भेजा गया 6-अंकीय OTP दर्ज करें:',
       'verify': 'सत्यापित करें',
 
       'alternative_email': 'वैकल्पिक ईमेल',
-      'alt_email_backup_desc': 'खाता पुनर्प्राप्ति और सूचनाओं के लिए एक बैकअप ईमेल जोड़ें',
+      'alt_email_backup_desc':
+          'खाता पुनर्प्राप्ति और सूचनाओं के लिए एक बैकअप ईमेल जोड़ें',
       'current_alternative_email': 'मौजूदा वैकल्पिक ईमेल:',
       'please_enter_email_address': 'कृपया एक ईमेल पता दर्ज करें',
       'please_enter_valid_email_address': 'कृपया एक मान्य ईमेल पता दर्ज करें',
@@ -4316,7 +4676,8 @@ class AppLocalizations {
       'error_loading_current_email': 'मौजूदा ईमेल लोड करने में त्रुटि:',
       'otp_sent_check_email': 'OTP सफलतापूर्वक भेजा गया! अपना ईमेल जांचें।',
       'please_enter_valid_6_digit_otp': 'कृपया एक मान्य 6-अंकीय OTP दर्ज करें',
-      'alt_email_verified_added': 'वैकल्पिक ईमेल सत्यापित और सफलतापूर्वक जोड़ा गया!',
+      'alt_email_verified_added':
+          'वैकल्पिक ईमेल सत्यापित और सफलतापूर्वक जोड़ा गया!',
       'failed_to_verify_otp': 'OTP सत्यापित करने में विफल',
       'alt_email_removed_successfully': 'वैकल्पिक ईमेल सफलतापूर्वक हटाया गया!',
       'failed_to_remove_alt_email': 'वैकल्पिक ईमेल हटाने में विफल',
@@ -4329,28 +4690,37 @@ class AppLocalizations {
           'LenDen एक व्यापक पीयर-टू-पीयर मनी मैनेजमेंट प्लेटफ़ॉर्म है जो दोस्तों, परिवार और सहकर्मियों के साथ वित्तीय लेन-देन को ट्रैक करने, निपटाने और प्रबंधित करने को सरल बनाने के लिए डिज़ाइन किया गया है।\n\nचाहे आप रेस्तरां का बिल बांट रहे हों, किसी मित्र को दिए गए ऋण को ट्रैक कर रहे हों, या किसी यात्रा के लिए समूह खर्च प्रबंधित कर रहे हों — LenDen आपके लिए है।',
       'core_features': 'मुख्य विशेषताएं',
       'feature_quick_tx_title': 'त्वरित लेन-देन',
-      'feature_quick_tx_desc': 'केवल एक ईमेल और राशि के साथ तुरंत रिकॉर्ड करें कि किसका कितना बकाया है।',
+      'feature_quick_tx_desc':
+          'केवल एक ईमेल और राशि के साथ तुरंत रिकॉर्ड करें कि किसका कितना बकाया है।',
       'feature_secure_tx_title': 'सुरक्षित लेन-देन',
-      'feature_secure_tx_desc': 'डिजिटल स्वीकृति और प्रमाण के साथ औपचारिक उधार/ऋण रिकॉर्ड।',
+      'feature_secure_tx_desc':
+          'डिजिटल स्वीकृति और प्रमाण के साथ औपचारिक उधार/ऋण रिकॉर्ड।',
       'feature_group_expenses_title': 'समूह खर्च',
-      'feature_group_expenses_desc': 'समूहों में खर्च जोड़ें और लागत को स्वचालित रूप से विभाजित करें।',
+      'feature_group_expenses_desc':
+          'समूहों में खर्च जोड़ें और लागत को स्वचालित रूप से विभाजित करें।',
       'feature_wallet_title': 'LenDen वॉलेट',
-      'feature_wallet_desc': 'अपना वॉलेट टॉप-अप करें और ऐप के माध्यम से सीधे भुगतान करें।',
+      'feature_wallet_desc':
+          'अपना वॉलेट टॉप-अप करें और ऐप के माध्यम से सीधे भुगतान करें।',
       'feature_razorpay_title': 'Razorpay भुगतान',
-      'feature_razorpay_desc': 'Razorpay के माध्यम से कार्ड, UPI, या नेट बैंकिंग से भुगतान करें।',
+      'feature_razorpay_desc':
+          'Razorpay के माध्यम से कार्ड, UPI, या नेट बैंकिंग से भुगतान करें।',
       'feature_analytics_title': 'एनालिटिक्स',
-      'feature_analytics_desc': 'आपके खर्च और उधार देने की आदतों का विज़ुअल विवरण।',
+      'feature_analytics_desc':
+          'आपके खर्च और उधार देने की आदतों का विज़ुअल विवरण।',
       'feature_leaderboard_title': 'लीडरबोर्ड',
-      'feature_leaderboard_desc': 'समय पर निपटान में मित्रों के बीच अपनी रैंक देखें।',
+      'feature_leaderboard_desc':
+          'समय पर निपटान में मित्रों के बीच अपनी रैंक देखें।',
       'feature_gift_cards_title': 'गिफ्ट कार्ड',
-      'feature_gift_cards_desc': 'अपने संपर्कों को गिफ्ट कार्ड और रिवॉर्ड भेजें।',
+      'feature_gift_cards_desc':
+          'अपने संपर्कों को गिफ्ट कार्ड और रिवॉर्ड भेजें।',
       'security_and_privacy': 'सुरक्षा और गोपनीयता',
       'security_privacy_intro':
           'आपकी सुरक्षा हमारी सर्वोच्च प्राथमिकता है। LenDen आपके डेटा की सुरक्षा के लिए उद्योग-मानक प्रथाओं का उपयोग करता है:',
       'security_bullet_jwt': 'ऑटो टोकन रीफ्रेश के साथ JWT-आधारित प्रमाणीकरण',
       'security_bullet_bcrypt': 'bcrypt पासवर्ड हैशिंग (10 राउंड)',
       'security_bullet_https': 'केवल HTTPS संचार',
-      'security_bullet_mongo': 'एटॉमिक वॉलेट ऑपरेशन के लिए MongoDB ट्रांज़ैक्शन',
+      'security_bullet_mongo':
+          'एटॉमिक वॉलेट ऑपरेशन के लिए MongoDB ट्रांज़ैक्शन',
       'security_bullet_razorpay': 'सभी भुगतानों पर Razorpay सिग्नेचर सत्यापन',
       'security_bullet_otp': 'OTP-सत्यापित वैकल्पिक ईमेल परिवर्तन',
       'security_bullet_device': 'डिवाइस प्रबंधन और सेशन नियंत्रण',
@@ -4366,7 +4736,8 @@ class AppLocalizations {
       'made_with_love_in_india': 'भारत में ❤️ से बनाया गया',
       'all_rights_reserved': 'सर्वाधिकार सुरक्षित।',
 
-      'manage_personal_account_details': 'अपने व्यक्तिगत खाता विवरण प्रबंधित करें',
+      'manage_personal_account_details':
+          'अपने व्यक्तिगत खाता विवरण प्रबंधित करें',
       'personal_information': 'व्यक्तिगत जानकारी',
       'full_name': 'पूरा नाम',
       'enter_full_name': 'अपना पूरा नाम दर्ज करें',
@@ -4404,7 +4775,8 @@ class AppLocalizations {
           '• बेहतर सेवा के लिए अपनी जानकारी अद्यतन रखें\n• आपका उपयोगकर्ता नाम और ईमेल बदला नहीं जा सकता\n• सटीक जानकारी खाता सुरक्षा में मदद करती है\n• हम इस जानकारी का उपयोग आपके अनुभव को निजीकृत करने के लिए करते हैं',
       'valid_phone_error': 'एक मान्य 10-अंकीय भारतीय मोबाइल नंबर दर्ज करें',
       'error_loading_account_info': 'खाता जानकारी लोड करने में त्रुटि:',
-      'account_info_updated_successfully': 'खाता जानकारी सफलतापूर्वक अपडेट की गई!',
+      'account_info_updated_successfully':
+          'खाता जानकारी सफलतापूर्वक अपडेट की गई!',
       'failed_update_account_info': 'खाता जानकारी अपडेट करने में विफल',
       'set_a_pin_title': '4-6 अंकों का पिन सेट करें',
       'confirm_your_pin_title': 'अपने पिन की पुष्टि करें',
@@ -4412,24 +4784,30 @@ class AppLocalizations {
       'app_lock_enabled_msg': 'ऐप लॉक सक्षम किया गया।',
       'app_lock_disabled_msg': 'ऐप लॉक अक्षम किया गया।',
       'disable_app_lock_title': 'ऐप लॉक अक्षम करें',
-      'disable_app_lock_confirm': 'क्या आप वाकई पिन और बायोमेट्रिक ऐप लॉक अक्षम करना चाहते हैं?',
+      'disable_app_lock_confirm':
+          'क्या आप वाकई पिन और बायोमेट्रिक ऐप लॉक अक्षम करना चाहते हैं?',
       'disable': 'अक्षम करें',
       'pin_app_lock': 'पिन ऐप लॉक',
       'app_lock_enabled_subtitle': 'सक्षम — ऐप खोलने के लिए पिन आवश्यक है',
       'require_pin_subtitle': 'ऐप खोलने के लिए पिन आवश्यक करें',
       'change_pin': 'पिन बदलें',
       'biometric_unlock_title': 'बायोमेट्रिक अनलॉक',
-      'biometric_unlock_subtitle': 'शॉर्टकट के रूप में फिंगरप्रिंट/फेस अनलॉक का उपयोग करें',
+      'biometric_unlock_subtitle':
+          'शॉर्टकट के रूप में फिंगरप्रिंट/फेस अनलॉक का उपयोग करें',
       'pin_hint_4_6_digit': '4-6 अंकों का पिन',
       'notification_preferences_title': 'सूचना प्राथमिकताएं',
-      'customize_notifications_subtitle': 'अपनी सूचनाएं कैसे और कब प्राप्त करें, इसे अनुकूलित करें',
+      'customize_notifications_subtitle':
+          'अपनी सूचनाएं कैसे और कब प्राप्त करें, इसे अनुकूलित करें',
       'notification_types': 'सूचना प्रकार',
       'transaction_notifications_title': 'ट्रांज़ैक्शन सूचनाएं',
-      'transaction_notifications_desc': 'नई ट्रांज़ैक्शन और अपडेट के बारे में सूचित हों',
+      'transaction_notifications_desc':
+          'नई ट्रांज़ैक्शन और अपडेट के बारे में सूचित हों',
       'payment_reminders_title': 'भुगतान रिमाइंडर',
-      'payment_reminders_desc': 'आने वाले भुगतानों के लिए रिमाइंडर प्राप्त करें',
+      'payment_reminders_desc':
+          'आने वाले भुगतानों के लिए रिमाइंडर प्राप्त करें',
       'group_notifications_title': 'ग्रुप सूचनाएं',
-      'group_notifications_desc': 'ग्रुप गतिविधियों के बारे में अपडेट प्राप्त करें',
+      'group_notifications_desc':
+          'ग्रुप गतिविधियों के बारे में अपडेट प्राप्त करें',
       'chat_notifications_title': 'चैट सूचनाएं',
       'chat_notifications_desc': 'नए संदेश प्राप्त होने पर सूचित हों',
       'notification_channels': 'सूचना चैनल',
@@ -4438,7 +4816,8 @@ class AppLocalizations {
       'push_app_notifications_title': 'पुश ऐप सूचनाएं',
       'push_app_notifications_desc': 'ऐप में सूचनाएं प्राप्त करें',
       'sms_notifications_title': 'एसएमएस सूचनाएं',
-      'sms_notifications_desc': 'टेक्स्ट संदेश के माध्यम से सूचनाएं प्राप्त करें',
+      'sms_notifications_desc':
+          'टेक्स्ट संदेश के माध्यम से सूचनाएं प्राप्त करें',
       'display_notification_count_title': 'सूचना गणना दिखाएं',
       'display_notification_count_desc': 'अपठित सूचनाओं की संख्या दिखाएं',
       'reminder_settings': 'रिमाइंडर सेटिंग्स',
@@ -4461,7 +4840,8 @@ class AppLocalizations {
       'notification_settings_saved': 'सूचना सेटिंग्स सफलतापूर्वक सहेजी गईं!',
       'failed_save_settings': 'सेटिंग्स सहेजने में विफल',
       'privacy_security_title': 'गोपनीयता और सुरक्षा',
-      'control_privacy_subtitle': 'अपनी गोपनीयता और सुरक्षा प्राथमिकताओं को नियंत्रित करें',
+      'control_privacy_subtitle':
+          'अपनी गोपनीयता और सुरक्षा प्राथमिकताओं को नियंत्रित करें',
       'profile_visibility_title': 'प्रोफ़ाइल दृश्यता',
       'profile_visibility_desc': 'दूसरों को अपनी प्रोफ़ाइल जानकारी देखने दें',
       'contact_sharing_title': 'संपर्क साझाकरण',
@@ -4470,9 +4850,11 @@ class AppLocalizations {
       'analytics_sharing_desc': 'एनालिटिक्स पेज पर एनालिटिक्स डेटा छुपाएं',
       'security_settings_section': 'सुरक्षा सेटिंग्स',
       'login_notifications_title': 'लॉगिन सूचनाएं',
-      'login_notifications_desc': 'जब कोई आपके खाते में लॉगिन करे तो ईमेल द्वारा सूचित हों',
+      'login_notifications_desc':
+          'जब कोई आपके खाते में लॉगिन करे तो ईमेल द्वारा सूचित हों',
       'device_management_title': 'डिवाइस प्रबंधन',
-      'device_management_desc': 'कई डिवाइसों को अपने खाते तक पहुंचने की अनुमति दें',
+      'device_management_desc':
+          'कई डिवाइसों को अपने खाते तक पहुंचने की अनुमति दें',
       'session_timeout_title': 'सेशन टाइमआउट',
       'session_timeout_desc': 'निष्क्रियता के बाद ऑटो-लॉगआउट',
       'minutes_15': '15 मिनट',
@@ -4486,14 +4868,17 @@ class AppLocalizations {
       'ip_label': 'आईपी',
       'last_active_label': 'अंतिम सक्रिय',
       'logout_from_this_device': 'इस डिवाइस से लॉग आउट करें',
-      'logout_from_this_device_remotely': 'इस डिवाइस से दूरस्थ रूप से लॉग आउट करें',
+      'logout_from_this_device_remotely':
+          'इस डिवाइस से दूरस्थ रूप से लॉग आउट करें',
       'logout_all_other_devices_title': 'सभी अन्य डिवाइस से लॉग आउट करें',
       'logout_all_other_devices_desc': 'इसके अलावा हर डिवाइस से साइन आउट करें',
       'account_management_section': 'खाता प्रबंधन',
       'export_my_data_title': 'मेरा डेटा निर्यात करें',
-      'export_my_data_desc': 'LenDen पर संग्रहीत आपके डेटा का सारांश प्राप्त करें',
+      'export_my_data_desc':
+          'LenDen पर संग्रहीत आपके डेटा का सारांश प्राप्त करें',
       'deactivate_account_title': 'खाता निष्क्रिय करें',
-      'deactivate_account_desc': 'अपना खाता अस्थायी रूप से निष्क्रिय करें। आप इसे बाद में पुनर्प्राप्त कर सकते हैं।',
+      'deactivate_account_desc':
+          'अपना खाता अस्थायी रूप से निष्क्रिय करें। आप इसे बाद में पुनर्प्राप्त कर सकते हैं।',
       'privacy_security_tips_title': 'गोपनीयता और सुरक्षा सुझाव:',
       'privacy_security_tips_body':
           '• बेहतर सुरक्षा के लिए दो-चरणीय सत्यापन सक्षम करें\n• नियमित रूप से अपनी गोपनीयता सेटिंग्स की जांच करें\n• व्यक्तिगत जानकारी साझा करने में सावधानी बरतें\n• नवीनतम सुरक्षा सुविधाओं के लिए अपना ऐप अपडेट रखें',
@@ -4502,12 +4887,14 @@ class AppLocalizations {
       'deactivating_account_progress': 'खाता निष्क्रिय किया जा रहा है...',
       'account_deactivated_success': 'खाता सफलतापूर्वक निष्क्रिय किया गया',
       'failed_deactivate_account': 'खाता हटाने में विफल',
-      'network_error_deactivate_account': 'नेटवर्क त्रुटि: खाता हटाने में असमर्थ। कृपया पुनः प्रयास करें।',
+      'network_error_deactivate_account':
+          'नेटवर्क त्रुटि: खाता हटाने में असमर्थ। कृपया पुनः प्रयास करें।',
       'logout_all_devices_title': 'सभी डिवाइस से लॉग आउट करें',
       'logout_all_devices_confirm_message':
           'यह आपको सभी अन्य डिवाइसों से लॉग आउट कर देगा। आप इस डिवाइस पर लॉग इन रहेंगे।',
       'logout_all_button': 'सभी लॉग आउट करें',
-      'logged_out_from_all_other_devices': 'सभी अन्य डिवाइसों से लॉग आउट किया गया',
+      'logged_out_from_all_other_devices':
+          'सभी अन्य डिवाइसों से लॉग आउट किया गया',
       'failed_logout_all_devices': 'सभी डिवाइस लॉग आउट करने में विफल',
       'logged_out_from_this_device': 'इस डिवाइस से लॉग आउट किया गया',
       'device_logged_out': 'डिवाइस लॉग आउट किया गया',
@@ -4517,13 +4904,17 @@ class AppLocalizations {
       'transactions_label': 'ट्रांज़ैक्शन',
       'wallet_entries_label': 'वॉलेट प्रविष्टियां',
       'subscriptions_label': 'सब्सक्रिप्शन',
-      'server_waking_up_retry': 'सर्वर शुरू हो रहा है, कृपया थोड़ी देर में पुनः प्रयास करें।',
-      'session_expired_login_again': 'सेशन समाप्त हो गया। कृपया फिर से लॉग इन करें।',
+      'server_waking_up_retry':
+          'सर्वर शुरू हो रहा है, कृपया थोड़ी देर में पुनः प्रयास करें।',
+      'session_expired_login_again':
+          'सेशन समाप्त हो गया। कृपया फिर से लॉग इन करें।',
       'failed_export_data': 'डेटा निर्यात करने में विफल',
       'pp_last_updated_prefix': 'अंतिम अपडेट:',
-      'pp_header_intro': 'हम आपकी व्यक्तिगत जानकारी और आपकी गोपनीयता के अधिकार की रक्षा के लिए प्रतिबद्ध हैं।',
+      'pp_header_intro':
+          'हम आपकी व्यक्तिगत जानकारी और आपकी गोपनीयता के अधिकार की रक्षा के लिए प्रतिबद्ध हैं।',
       'pp_s1_title': '1. हम जो जानकारी एकत्र करते हैं',
-      'pp_s1_p1': 'जब आप निम्नलिखित करते हैं तो हम आपके द्वारा सीधे प्रदान की गई जानकारी एकत्र करते हैं:',
+      'pp_s1_p1':
+          'जब आप निम्नलिखित करते हैं तो हम आपके द्वारा सीधे प्रदान की गई जानकारी एकत्र करते हैं:',
       'pp_s1_b1': 'एक खाता बनाएं (नाम, ईमेल, फोन, पता)',
       'pp_s1_b2': 'अपनी प्रोफ़ाइल पूरी करें (लिंग, जन्मदिन, फोटो)',
       'pp_s1_b3': 'अन्य उपयोगकर्ताओं के साथ ट्रांज़ैक्शन रिकॉर्ड करें',
@@ -4532,7 +4923,8 @@ class AppLocalizations {
       'pp_s1_p2': 'हम स्वचालित रूप से भी एकत्र करते हैं:',
       'pp_s1_b6': 'डिवाइस जानकारी (डिवाइस प्रकार, OS संस्करण)',
       'pp_s1_b7': 'आईपी एड्रेस और स्थान डेटा',
-      'pp_s1_b8': 'उपयोग डेटा (उपयोग की गई सुविधाएं, देखी गई स्क्रीन, सेशन अवधि)',
+      'pp_s1_b8':
+          'उपयोग डेटा (उपयोग की गई सुविधाएं, देखी गई स्क्रीन, सेशन अवधि)',
       'pp_s1_b9': 'ट्रांज़ैक्शन इतिहास और वॉलेट गतिविधि',
       'pp_s2_title': '2. हम आपकी जानकारी का उपयोग कैसे करते हैं',
       'pp_s2_p1': 'हम एकत्रित जानकारी का उपयोग इसके लिए करते हैं:',
@@ -4545,50 +4937,74 @@ class AppLocalizations {
       'pp_s2_b7': 'कानूनी दायित्वों का पालन करना',
       'pp_s2_b8': 'प्रचार संचार भेजना (आपकी सहमति से)',
       'pp_s3_title': '3. जानकारी साझाकरण',
-      'pp_s3_p1': 'हम आपकी व्यक्तिगत जानकारी नहीं बेचते। हम निम्नलिखित परिस्थितियों में जानकारी साझा कर सकते हैं:',
-      'pp_s3_b1': 'अन्य उपयोगकर्ताओं के साथ: आपका नाम और ईमेल उन उपयोगकर्ताओं को दृश्य होता है जिनके साथ आप ट्रांज़ैक्शन करते हैं।',
-      'pp_s3_b2': 'सेवा प्रदाता: Razorpay (पेमेंट प्रोसेसिंग), ईमेल डिलीवरी सेवाएं।',
-      'pp_s3_b3': 'कानूनी आवश्यकताएं: जब कानून द्वारा आवश्यक हो या हमारे अधिकारों की रक्षा के लिए।',
+      'pp_s3_p1':
+          'हम आपकी व्यक्तिगत जानकारी नहीं बेचते। हम निम्नलिखित परिस्थितियों में जानकारी साझा कर सकते हैं:',
+      'pp_s3_b1':
+          'अन्य उपयोगकर्ताओं के साथ: आपका नाम और ईमेल उन उपयोगकर्ताओं को दृश्य होता है जिनके साथ आप ट्रांज़ैक्शन करते हैं।',
+      'pp_s3_b2':
+          'सेवा प्रदाता: Razorpay (पेमेंट प्रोसेसिंग), ईमेल डिलीवरी सेवाएं।',
+      'pp_s3_b3':
+          'कानूनी आवश्यकताएं: जब कानून द्वारा आवश्यक हो या हमारे अधिकारों की रक्षा के लिए।',
       'pp_s3_b4': 'व्यापार स्थानांतरण: विलय या अधिग्रहण की स्थिति में।',
-      'pp_s3_p2': 'आपकी संपर्क जानकारी केवल आपकी "Contact Sharing" गोपनीयता सेटिंग के आधार पर साझा की जाती है।',
+      'pp_s3_p2':
+          'आपकी संपर्क जानकारी केवल आपकी "Contact Sharing" गोपनीयता सेटिंग के आधार पर साझा की जाती है।',
       'pp_s4_title': '4. डेटा सुरक्षा',
-      'pp_s4_p1': 'हम आपकी जानकारी की सुरक्षा के लिए उद्योग-स्तरीय सुरक्षा उपाय लागू करते हैं:',
+      'pp_s4_p1':
+          'हम आपकी जानकारी की सुरक्षा के लिए उद्योग-स्तरीय सुरक्षा उपाय लागू करते हैं:',
       'pp_s4_b1': 'ट्रांज़िट में डेटा के लिए AES-256 एन्क्रिप्शन (HTTPS)',
       'pp_s4_b2': 'पासवर्ड के लिए bcrypt हैशिंग',
       'pp_s4_b3': 'कम समाप्ति अवधि वाले JWT टोकन',
       'pp_s4_b4': 'नियमित सुरक्षा ऑडिट',
       'pp_s4_b5': 'डेटाबेस एक्सेस नियंत्रण और मॉनिटरिंग',
-      'pp_s4_p2': 'हालांकि हम आपकी जानकारी की सुरक्षा के लिए प्रयास करते हैं, इंटरनेट पर ट्रांसमिशन का कोई भी तरीका 100% सुरक्षित नहीं है।',
+      'pp_s4_p2':
+          'हालांकि हम आपकी जानकारी की सुरक्षा के लिए प्रयास करते हैं, इंटरनेट पर ट्रांसमिशन का कोई भी तरीका 100% सुरक्षित नहीं है।',
       'pp_s5_title': '5. आपके गोपनीयता अधिकार',
       'pp_s5_p1': 'आपके डेटा पर आपके निम्नलिखित अधिकार हैं:',
-      'pp_s5_b1': 'एक्सेस: हमारे पास मौजूद आपके व्यक्तिगत डेटा की एक प्रति का अनुरोध करें।',
-      'pp_s5_b2': 'सुधार: अपनी प्रोफ़ाइल के माध्यम से गलत या अधूरी जानकारी अपडेट करें।',
+      'pp_s5_b1':
+          'एक्सेस: हमारे पास मौजूद आपके व्यक्तिगत डेटा की एक प्रति का अनुरोध करें।',
+      'pp_s5_b2':
+          'सुधार: अपनी प्रोफ़ाइल के माध्यम से गलत या अधूरी जानकारी अपडेट करें।',
       'pp_s5_b3': 'विलोपन: अपने खाते और संबंधित डेटा को हटाने का अनुरोध करें।',
-      'pp_s5_b4': 'पोर्टेबिलिटी: गोपनीयता सेटिंग्स पेज के माध्यम से अपना डेटा निर्यात करें।',
+      'pp_s5_b4':
+          'पोर्टेबिलिटी: गोपनीयता सेटिंग्स पेज के माध्यम से अपना डेटा निर्यात करें।',
       'pp_s5_b5': 'ऑप्ट-आउट: कभी भी मार्केटिंग ईमेल से अनसब्सक्राइब करें।',
-      'pp_s5_b6': 'दृश्यता: नियंत्रित करें कि आपकी प्रोफ़ाइल और संपर्क जानकारी कौन देख सकता है।',
+      'pp_s5_b6':
+          'दृश्यता: नियंत्रित करें कि आपकी प्रोफ़ाइल और संपर्क जानकारी कौन देख सकता है।',
       'pp_s6_title': '6. डेटा प्रतिधारण',
-      'pp_s6_p1': 'जब तक आपका खाता सक्रिय है या सेवाएं प्रदान करने के लिए आवश्यक है, हम आपका व्यक्तिगत डेटा बनाए रखते हैं।',
-      'pp_s6_p2': 'ट्रांज़ैक्शन रिकॉर्ड कानूनी और लेखा उद्देश्यों के लिए खाता हटाने के बाद भी 7 साल तक रखे जा सकते हैं।',
-      'pp_s6_p3': 'जब आप अपना खाता निष्क्रिय करते हैं, तो आपकी व्यक्तिगत प्रोफ़ाइल डेटा सुरक्षित रहता है लेकिन आपका खाता निलंबित हो जाता है। स्थायी विलोपन के लिए सहायता से संपर्क करके अनुरोध किया जा सकता है।',
+      'pp_s6_p1':
+          'जब तक आपका खाता सक्रिय है या सेवाएं प्रदान करने के लिए आवश्यक है, हम आपका व्यक्तिगत डेटा बनाए रखते हैं।',
+      'pp_s6_p2':
+          'ट्रांज़ैक्शन रिकॉर्ड कानूनी और लेखा उद्देश्यों के लिए खाता हटाने के बाद भी 7 साल तक रखे जा सकते हैं।',
+      'pp_s6_p3':
+          'जब आप अपना खाता निष्क्रिय करते हैं, तो आपकी व्यक्तिगत प्रोफ़ाइल डेटा सुरक्षित रहता है लेकिन आपका खाता निलंबित हो जाता है। स्थायी विलोपन के लिए सहायता से संपर्क करके अनुरोध किया जा सकता है।',
       'pp_s7_title': '7. कुकीज़ और ट्रैकिंग',
-      'pp_s7_p1': 'LenDen एक मोबाइल एप्लिकेशन है और ब्राउज़र कुकीज़ का उपयोग नहीं करता है। हम उपयोग करते हैं:',
-      'pp_s7_b1': 'प्रमाणीकरण टोकन और प्राथमिकताओं के लिए सुरक्षित डिवाइस स्टोरेज।',
-      'pp_s7_b2': 'आपके सक्रिय सेशन को प्रबंधित करने और डिवाइस प्रबंधन सुविधाओं को सक्षम करने के लिए डिवाइस पहचानकर्ता।',
+      'pp_s7_p1':
+          'LenDen एक मोबाइल एप्लिकेशन है और ब्राउज़र कुकीज़ का उपयोग नहीं करता है। हम उपयोग करते हैं:',
+      'pp_s7_b1':
+          'प्रमाणीकरण टोकन और प्राथमिकताओं के लिए सुरक्षित डिवाइस स्टोरेज।',
+      'pp_s7_b2':
+          'आपके सक्रिय सेशन को प्रबंधित करने और डिवाइस प्रबंधन सुविधाओं को सक्षम करने के लिए डिवाइस पहचानकर्ता।',
       'pp_s7_b3': 'ऐप उपयोग पैटर्न को समझने के लिए एनालिटिक्स डेटा (गुमनाम)।',
       'pp_s8_title': '8. बच्चों की गोपनीयता',
-      'pp_s8_p1': 'LenDen 18 वर्ष से कम उम्र के बच्चों के लिए नहीं है। हम जानबूझकर 18 वर्ष से कम उम्र के बच्चों से व्यक्तिगत जानकारी एकत्र नहीं करते हैं।',
-      'pp_s8_p2': 'यदि आप माता-पिता या अभिभावक हैं और मानते हैं कि आपके बच्चे ने हमें व्यक्तिगत जानकारी प्रदान की है, तो कृपया तुरंत हमसे संपर्क करें।',
+      'pp_s8_p1':
+          'LenDen 18 वर्ष से कम उम्र के बच्चों के लिए नहीं है। हम जानबूझकर 18 वर्ष से कम उम्र के बच्चों से व्यक्तिगत जानकारी एकत्र नहीं करते हैं।',
+      'pp_s8_p2':
+          'यदि आप माता-पिता या अभिभावक हैं और मानते हैं कि आपके बच्चे ने हमें व्यक्तिगत जानकारी प्रदान की है, तो कृपया तुरंत हमसे संपर्क करें।',
       'pp_s9_title': '9. थर्ड-पार्टी सेवाएं',
       'pp_s9_p1': 'हमारा ऐप निम्नलिखित थर्ड-पार्टी सेवाओं के साथ एकीकृत है:',
-      'pp_s9_b1': 'Razorpay: पेमेंट प्रोसेसिंग। Razorpay की गोपनीयता नीति के अधीन।',
+      'pp_s9_b1':
+          'Razorpay: पेमेंट प्रोसेसिंग। Razorpay की गोपनीयता नीति के अधीन।',
       'pp_s9_b2': 'ईमेल प्रदाता: OTP, सूचनाएं और खाता ईमेल भेजने के लिए।',
-      'pp_s9_p2': 'इन थर्ड पार्टियों की अपनी गोपनीयता नीतियां और डेटा प्रथाएं हैं जिन्हें हम नियंत्रित नहीं करते हैं।',
+      'pp_s9_p2':
+          'इन थर्ड पार्टियों की अपनी गोपनीयता नीतियां और डेटा प्रथाएं हैं जिन्हें हम नियंत्रित नहीं करते हैं।',
       'pp_s10_title': '10. इस नीति में परिवर्तन',
-      'pp_s10_p1': 'हम समय-समय पर इस गोपनीयता नीति को अपडेट कर सकते हैं। हम आपको ऐप के माध्यम से महत्वपूर्ण परिवर्तनों की सूचना देंगे।',
-      'pp_s10_p2': 'परिवर्तन पोस्ट किए जाने के बाद LenDen का आपका निरंतर उपयोग अपडेट की गई नीति की आपकी स्वीकृति का गठन करता है।',
+      'pp_s10_p1':
+          'हम समय-समय पर इस गोपनीयता नीति को अपडेट कर सकते हैं। हम आपको ऐप के माध्यम से महत्वपूर्ण परिवर्तनों की सूचना देंगे।',
+      'pp_s10_p2':
+          'परिवर्तन पोस्ट किए जाने के बाद LenDen का आपका निरंतर उपयोग अपडेट की गई नीति की आपकी स्वीकृति का गठन करता है।',
       'pp_s11_title': '11. हमसे संपर्क करें',
-      'pp_s11_p1': 'यदि आपके पास इस गोपनीयता नीति या आपके व्यक्तिगत डेटा के संबंध में प्रश्न, चिंताएं या अनुरोध हैं, तो कृपया हमसे इसके माध्यम से संपर्क करें:',
+      'pp_s11_p1':
+          'यदि आपके पास इस गोपनीयता नीति या आपके व्यक्तिगत डेटा के संबंध में प्रश्न, चिंताएं या अनुरोध हैं, तो कृपया हमसे इसके माध्यम से संपर्क करें:',
       'pp_s11_b1': 'ऐप में सहायता और समर्थन सेक्शन',
       'pp_s11_b2': 'आपका पंजीकृत ईमेल पता',
       'manage_updates': 'प्रकाशन प्रबंधित करें',
@@ -4648,13 +5064,15 @@ class AppLocalizations {
           'केवल निर्माता व्यवस्थापक या सुपरएडमिन ही इस अपडेट को संपादित या हटा सकते हैं।',
       'content_analytics': 'सामग्री एनालिटिक्स',
       'top_ads': 'टॉप विज्ञापन',
-      'top_ads_subtitle': 'क्लिक और पहुंच के आधार पर सर्वश्रेष्ठ प्रदर्शन करने वाले विज्ञापन।',
+      'top_ads_subtitle':
+          'क्लिक और पहुंच के आधार पर सर्वश्रेष्ठ प्रदर्शन करने वाले विज्ञापन।',
       'no_ad_analytics_yet': 'अभी तक कोई विज्ञापन एनालिटिक्स उपलब्ध नहीं है।',
       'top_updates': 'टॉप अपडेट',
       'top_updates_subtitle': 'उपयोगकर्ताओं में सबसे अधिक पढ़े गए अपडेट।',
       'no_update_analytics_yet': 'अभी तक कोई अपडेट एनालिटिक्स उपलब्ध नहीं है।',
       'moderation_queue': 'मॉडरेशन कतार',
-      'moderation_queue_subtitle': 'रिपोर्ट किए गए या बार-बार छिपाए गए विज्ञापन जिन्हें समीक्षा की आवश्यकता हो सकती है।',
+      'moderation_queue_subtitle':
+          'रिपोर्ट किए गए या बार-बार छिपाए गए विज्ञापन जिन्हें समीक्षा की आवश्यकता हो सकती है।',
       'no_moderation_items_right_now': 'अभी कोई मॉडरेशन आइटम नहीं है।',
       'ads': 'विज्ञापन',
       'active_ads': 'सक्रिय विज्ञापन',
@@ -4679,7 +5097,8 @@ class AppLocalizations {
       'log_plural': 'लॉग',
       'no_audit_logs_found': 'कोई ऑडिट लॉग नहीं मिला',
       'failed_to_fetch_gift_cards': 'गिफ्ट कार्ड लाने में विफल',
-      'gift_card_updated_successfully': 'गिफ्ट कार्ड सफलतापूर्वक अपडेट किया गया',
+      'gift_card_updated_successfully':
+          'गिफ्ट कार्ड सफलतापूर्वक अपडेट किया गया',
       'failed_to_update_gift_card': 'गिफ्ट कार्ड अपडेट करने में विफल',
       'gift_card_deleted_successfully': 'गिफ्ट कार्ड सफलतापूर्वक हटाया गया',
       'failed_to_delete_gift_card': 'गिफ्ट कार्ड हटाने में विफल',
@@ -4700,7 +5119,8 @@ class AppLocalizations {
       'enter_a_valid_number': 'एक मान्य संख्या दर्ज करें',
       'please_enter_a_valid_number': 'कृपया एक मान्य संख्या दर्ज करें',
       'delete_gift_card': 'गिफ्ट कार्ड हटाएं',
-      'delete_gift_card_confirm': 'क्या आप वाकई इस गिफ्ट कार्ड को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।',
+      'delete_gift_card_confirm':
+          'क्या आप वाकई इस गिफ्ट कार्ड को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।',
       'cards_label': 'कार्ड',
       'visible_label': 'दृश्यमान',
       'total_value_label': 'कुल मूल्य',
@@ -4730,80 +5150,120 @@ class AppLocalizations {
       'view_gift_cards_tab': 'गिफ्ट कार्ड देखें',
       'tos_last_updated_prefix': 'अंतिम अपडेट:',
       'tos_s1_title': '1. शर्तों की स्वीकृति',
-      'tos_s1_p1': 'LenDen ("ऐप") तक पहुंचने या उपयोग करने पर, आप इन सेवा की शर्तों से बंधे होने के लिए सहमत होते हैं। यदि आप इन शर्तों से सहमत नहीं हैं, तो कृपया ऐप का उपयोग न करें।',
-      'tos_s1_p2': 'ये शर्तें ऐप के सभी उपयोगकर्ताओं पर लागू होती हैं, जिनमें वे उपयोगकर्ता भी शामिल हैं जो सामग्री, जानकारी और अन्य सामग्री या सेवाओं के योगदानकर्ता भी हैं।',
+      'tos_s1_p1':
+          'LenDen ("ऐप") तक पहुंचने या उपयोग करने पर, आप इन सेवा की शर्तों से बंधे होने के लिए सहमत होते हैं। यदि आप इन शर्तों से सहमत नहीं हैं, तो कृपया ऐप का उपयोग न करें।',
+      'tos_s1_p2':
+          'ये शर्तें ऐप के सभी उपयोगकर्ताओं पर लागू होती हैं, जिनमें वे उपयोगकर्ता भी शामिल हैं जो सामग्री, जानकारी और अन्य सामग्री या सेवाओं के योगदानकर्ता भी हैं।',
       'tos_s2_title': '2. सेवा का विवरण',
-      'tos_s2_p1': 'LenDen एक पीयर-टू-पीयर मनी मैनेजमेंट एप्लिकेशन है जो उपयोगकर्ताओं को निम्न करने की अनुमति देता है:',
-      'tos_s2_p2': '• अन्य उपयोगकर्ताओं के साथ वित्तीय ट्रांज़ैक्शन रिकॉर्ड और ट्रैक करें',
+      'tos_s2_p1':
+          'LenDen एक पीयर-टू-पीयर मनी मैनेजमेंट एप्लिकेशन है जो उपयोगकर्ताओं को निम्न करने की अनुमति देता है:',
+      'tos_s2_p2':
+          '• अन्य उपयोगकर्ताओं के साथ वित्तीय ट्रांज़ैक्शन रिकॉर्ड और ट्रैक करें',
       'tos_s2_p3': '• कई प्रतिभागियों के बीच ग्रुप खर्च विभाजित करें',
       'tos_s2_p4': '• इन-ऐप पेमेंट के लिए एक डिजिटल वॉलेट प्रबंधित करें',
       'tos_s2_p5': '• एकीकृत पेमेंट गेटवे के माध्यम से भुगतान करें',
       'tos_s2_p6': '• वित्तीय गतिविधि का एनालिटिक्स और इतिहास देखें',
       'tos_s3_title': '3. उपयोगकर्ता खाते',
-      'tos_s3_p1': 'LenDen का उपयोग करने के लिए आपको एक खाता बनाना होगा। आप अपने खाते की साख की गोपनीयता बनाए रखने के लिए जिम्मेदार हैं।',
-      'tos_s3_p2': 'आप पंजीकरण के दौरान सटीक, वर्तमान और पूर्ण जानकारी प्रदान करने और इसे सटीक बनाए रखने के लिए अपडेट करने के लिए सहमत हैं।',
-      'tos_s3_p3': 'आप अपने खाते के अंतर्गत होने वाली सभी गतिविधियों के लिए जिम्मेदार हैं। किसी भी अनधिकृत उपयोग की हमें तुरंत सूचना दें।',
-      'tos_s3_p4': 'LenDen का उपयोग करने के लिए उपयोगकर्ताओं की आयु कम से कम 18 वर्ष होनी चाहिए।',
+      'tos_s3_p1':
+          'LenDen का उपयोग करने के लिए आपको एक खाता बनाना होगा। आप अपने खाते की साख की गोपनीयता बनाए रखने के लिए जिम्मेदार हैं।',
+      'tos_s3_p2':
+          'आप पंजीकरण के दौरान सटीक, वर्तमान और पूर्ण जानकारी प्रदान करने और इसे सटीक बनाए रखने के लिए अपडेट करने के लिए सहमत हैं।',
+      'tos_s3_p3':
+          'आप अपने खाते के अंतर्गत होने वाली सभी गतिविधियों के लिए जिम्मेदार हैं। किसी भी अनधिकृत उपयोग की हमें तुरंत सूचना दें।',
+      'tos_s3_p4':
+          'LenDen का उपयोग करने के लिए उपयोगकर्ताओं की आयु कम से कम 18 वर्ष होनी चाहिए।',
       'tos_s4_title': '4. वित्तीय ट्रांज़ैक्शन',
-      'tos_s4_p1': 'LenDen एक रिकॉर्ड-कीपिंग और सुविधा प्रदान करने वाले प्लेटफॉर्म के रूप में कार्य करता है। हम कोई बैंक या लाइसेंस प्राप्त वित्तीय संस्थान नहीं हैं।',
-      'tos_s4_p2': 'उपयोगकर्ताओं के बीच सभी ट्रांज़ैक्शन शामिल पक्षों की एकमात्र जिम्मेदारी हैं। LenDen यह गारंटी नहीं देता कि प्रतिपक्ष अपने भुगतान दायित्वों को पूरा करेंगे।',
-      'tos_s4_p3': 'वॉलेट टॉप-अप और भुगतान Razorpay के माध्यम से प्रोसेस किए जाते हैं। भुगतान करके, आप Razorpay की सेवा की शर्तों से सहमत होते हैं।',
-      'tos_s4_p4': 'आप LenDen का उपयोग अवैध ट्रांज़ैक्शन, मनी लॉन्ड्रिंग, या किसी भी धोखाधड़ी गतिविधि के लिए न करने के लिए सहमत हैं।',
+      'tos_s4_p1':
+          'LenDen एक रिकॉर्ड-कीपिंग और सुविधा प्रदान करने वाले प्लेटफॉर्म के रूप में कार्य करता है। हम कोई बैंक या लाइसेंस प्राप्त वित्तीय संस्थान नहीं हैं।',
+      'tos_s4_p2':
+          'उपयोगकर्ताओं के बीच सभी ट्रांज़ैक्शन शामिल पक्षों की एकमात्र जिम्मेदारी हैं। LenDen यह गारंटी नहीं देता कि प्रतिपक्ष अपने भुगतान दायित्वों को पूरा करेंगे।',
+      'tos_s4_p3':
+          'वॉलेट टॉप-अप और भुगतान Razorpay के माध्यम से प्रोसेस किए जाते हैं। भुगतान करके, आप Razorpay की सेवा की शर्तों से सहमत होते हैं।',
+      'tos_s4_p4':
+          'आप LenDen का उपयोग अवैध ट्रांज़ैक्शन, मनी लॉन्ड्रिंग, या किसी भी धोखाधड़ी गतिविधि के लिए न करने के लिए सहमत हैं।',
       'tos_s5_title': '5. वॉलेट और भुगतान',
-      'tos_s5_p1': 'LenDen वॉलेट एक इन-ऐप बैलेंस है जिसका उपयोग पीयर-टू-पीयर भुगतान और सब्सक्रिप्शन खरीद के लिए किया जा सकता है।',
-      'tos_s5_p2': 'वॉलेट बैलेंस किसी भी सरकारी योजना द्वारा बीमित या गारंटीकृत नहीं है।',
-      'tos_s5_p3': 'बैंक खातों या UPI में निकासी प्रोसेसिंग समय के अधीन है और पहचान सत्यापन की आवश्यकता हो सकती है।',
-      'tos_s5_p4': 'टेस्ट मोड में, निकासी सिम्युलेटेड होती है और कोई वास्तविक धनराशि स्थानांतरित नहीं होती है।',
+      'tos_s5_p1':
+          'LenDen वॉलेट एक इन-ऐप बैलेंस है जिसका उपयोग पीयर-टू-पीयर भुगतान और सब्सक्रिप्शन खरीद के लिए किया जा सकता है।',
+      'tos_s5_p2':
+          'वॉलेट बैलेंस किसी भी सरकारी योजना द्वारा बीमित या गारंटीकृत नहीं है।',
+      'tos_s5_p3':
+          'बैंक खातों या UPI में निकासी प्रोसेसिंग समय के अधीन है और पहचान सत्यापन की आवश्यकता हो सकती है।',
+      'tos_s5_p4':
+          'टेस्ट मोड में, निकासी सिम्युलेटेड होती है और कोई वास्तविक धनराशि स्थानांतरित नहीं होती है।',
       'tos_s6_title': '6. निषिद्ध आचरण',
       'tos_s6_p1': 'आप सहमत हैं कि आप नहीं करेंगे:',
       'tos_s6_p2': '• किसी भी गैरकानूनी उद्देश्य के लिए ऐप का उपयोग करना',
-      'tos_s6_p3': '• ऐप के किसी भी हिस्से तक अनधिकृत पहुंच प्राप्त करने का प्रयास करना',
-      'tos_s6_p4': '• अन्य उपयोगकर्ताओं को परेशान करना, दुर्व्यवहार करना या नुकसान पहुंचाना',
+      'tos_s6_p3':
+          '• ऐप के किसी भी हिस्से तक अनधिकृत पहुंच प्राप्त करने का प्रयास करना',
+      'tos_s6_p4':
+          '• अन्य उपयोगकर्ताओं को परेशान करना, दुर्व्यवहार करना या नुकसान पहुंचाना',
       'tos_s6_p5': '• गलत या भ्रामक ट्रांज़ैक्शन जानकारी सबमिट करना',
       'tos_s6_p6': '• ऐप को रिवर्स इंजीनियर, डिकंपाइल, या डिसएसेंबल करना',
       'tos_s6_p7': '• ऐप के खिलाफ स्वचालित टूल (बॉट, स्क्रेपर) का उपयोग करना',
       'tos_s6_p8': '• अपनी खाता साख तीसरे पक्षों के साथ साझा करना',
       'tos_s7_title': '7. गोपनीयता',
-      'tos_s7_p1': 'आपकी गोपनीयता हमारे लिए महत्वपूर्ण है। हमारी प्रथाओं को समझने के लिए कृपया हमारी गोपनीयता नीति की समीक्षा करें, जो ऐप के आपके उपयोग को भी नियंत्रित करती है।',
-      'tos_s7_p2': 'LenDen का उपयोग करके, आप अपने डेटा के संग्रह और उपयोग के लिए सहमति देते हैं जैसा कि हमारी गोपनीयता नीति में वर्णित है।',
+      'tos_s7_p1':
+          'आपकी गोपनीयता हमारे लिए महत्वपूर्ण है। हमारी प्रथाओं को समझने के लिए कृपया हमारी गोपनीयता नीति की समीक्षा करें, जो ऐप के आपके उपयोग को भी नियंत्रित करती है।',
+      'tos_s7_p2':
+          'LenDen का उपयोग करके, आप अपने डेटा के संग्रह और उपयोग के लिए सहमति देते हैं जैसा कि हमारी गोपनीयता नीति में वर्णित है।',
       'tos_s8_title': '8. बौद्धिक संपदा',
-      'tos_s8_p1': 'ऐप और इसकी मूल सामग्री, सुविधाएं और कार्यक्षमता LenDen के स्वामित्व में हैं और लागू बौद्धिक संपदा कानूनों द्वारा संरक्षित हैं।',
-      'tos_s8_p2': 'आप हमारी स्पष्ट लिखित अनुमति के बिना ऐप के किसी भी हिस्से को पुन: प्रस्तुत, वितरित, संशोधित या व्युत्पन्न कार्य नहीं बना सकते।',
+      'tos_s8_p1':
+          'ऐप और इसकी मूल सामग्री, सुविधाएं और कार्यक्षमता LenDen के स्वामित्व में हैं और लागू बौद्धिक संपदा कानूनों द्वारा संरक्षित हैं।',
+      'tos_s8_p2':
+          'आप हमारी स्पष्ट लिखित अनुमति के बिना ऐप के किसी भी हिस्से को पुन: प्रस्तुत, वितरित, संशोधित या व्युत्पन्न कार्य नहीं बना सकते।',
       'tos_s9_title': '9. सब्सक्रिप्शन प्लान',
-      'tos_s9_p1': 'LenDen पेड सब्सक्रिप्शन प्लान प्रदान करता है जो अतिरिक्त सुविधाओं को अनलॉक करते हैं। सब्सक्रिप्शन चयनित प्लान के अनुसार बिल किए जाते हैं।',
-      'tos_s9_p2': 'सब्सक्रिप्शन अप्रतिदेय हैं जब तक कि लागू कानून द्वारा आवश्यक न हो।',
-      'tos_s9_p3': 'हम उचित अग्रिम सूचना के साथ सब्सक्रिप्शन मूल्य निर्धारण को संशोधित करने का अधिकार सुरक्षित रखते हैं।',
+      'tos_s9_p1':
+          'LenDen पेड सब्सक्रिप्शन प्लान प्रदान करता है जो अतिरिक्त सुविधाओं को अनलॉक करते हैं। सब्सक्रिप्शन चयनित प्लान के अनुसार बिल किए जाते हैं।',
+      'tos_s9_p2':
+          'सब्सक्रिप्शन अप्रतिदेय हैं जब तक कि लागू कानून द्वारा आवश्यक न हो।',
+      'tos_s9_p3':
+          'हम उचित अग्रिम सूचना के साथ सब्सक्रिप्शन मूल्य निर्धारण को संशोधित करने का अधिकार सुरक्षित रखते हैं।',
       'tos_s10_title': '10. समाप्ति',
-      'tos_s10_p1': 'हम इन शर्तों के उल्लंघन के लिए या अपने विवेक पर किसी अन्य कारण से किसी भी समय आपका खाता समाप्त या निलंबित कर सकते हैं।',
-      'tos_s10_p2': 'समाप्ति पर, ऐप का उपयोग करने का आपका अधिकार तुरंत समाप्त हो जाएगा। कानून द्वारा आवश्यक होने पर कोई भी बकाया ट्रांज़ैक्शन रिकॉर्ड बनाए रखा जाएगा।',
-      'tos_s10_p3': 'आप किसी भी समय गोपनीयता सेटिंग्स पेज के माध्यम से अपना खाता निष्क्रिय कर सकते हैं, बकाया वित्तीय दायित्वों को साफ़ करने के अधीन।',
+      'tos_s10_p1':
+          'हम इन शर्तों के उल्लंघन के लिए या अपने विवेक पर किसी अन्य कारण से किसी भी समय आपका खाता समाप्त या निलंबित कर सकते हैं।',
+      'tos_s10_p2':
+          'समाप्ति पर, ऐप का उपयोग करने का आपका अधिकार तुरंत समाप्त हो जाएगा। कानून द्वारा आवश्यक होने पर कोई भी बकाया ट्रांज़ैक्शन रिकॉर्ड बनाए रखा जाएगा।',
+      'tos_s10_p3':
+          'आप किसी भी समय गोपनीयता सेटिंग्स पेज के माध्यम से अपना खाता निष्क्रिय कर सकते हैं, बकाया वित्तीय दायित्वों को साफ़ करने के अधीन।',
       'tos_s11_title': '11. अस्वीकरण',
-      'tos_s11_p1': 'ऐप "जैसा है" और "जैसा उपलब्ध है" बिना किसी प्रकार की वारंटी के, स्पष्ट या निहित प्रदान किया जाता है।',
-      'tos_s11_p2': 'हम यह वारंटी नहीं देते कि ऐप निर्बाध, त्रुटि-मुक्त, या वायरस या अन्य हानिकारक घटकों से मुक्त होगा।',
-      'tos_s11_p3': 'हम उपयोगकर्ताओं के बीच ट्रांज़ैक्शन से होने वाले किसी भी वित्तीय नुकसान के लिए जिम्मेदार नहीं हैं।',
+      'tos_s11_p1':
+          'ऐप "जैसा है" और "जैसा उपलब्ध है" बिना किसी प्रकार की वारंटी के, स्पष्ट या निहित प्रदान किया जाता है।',
+      'tos_s11_p2':
+          'हम यह वारंटी नहीं देते कि ऐप निर्बाध, त्रुटि-मुक्त, या वायरस या अन्य हानिकारक घटकों से मुक्त होगा।',
+      'tos_s11_p3':
+          'हम उपयोगकर्ताओं के बीच ट्रांज़ैक्शन से होने वाले किसी भी वित्तीय नुकसान के लिए जिम्मेदार नहीं हैं।',
       'tos_s12_title': '12. दायित्व की सीमा',
-      'tos_s12_p1': 'कानून द्वारा अनुमत अधिकतम सीमा तक, LenDen किसी भी अप्रत्यक्ष, आकस्मिक, विशेष, परिणामी, या दंडात्मक क्षति के लिए उत्तरदायी नहीं होगा।',
-      'tos_s12_p2': 'ऐप के आपके उपयोग से उत्पन्न होने वाले किसी भी दावे के लिए आपके प्रति हमारी कुल जिम्मेदारी दावे से पहले के बारह महीनों में आपके द्वारा हमें भुगतान की गई राशि से अधिक नहीं होगी।',
+      'tos_s12_p1':
+          'कानून द्वारा अनुमत अधिकतम सीमा तक, LenDen किसी भी अप्रत्यक्ष, आकस्मिक, विशेष, परिणामी, या दंडात्मक क्षति के लिए उत्तरदायी नहीं होगा।',
+      'tos_s12_p2':
+          'ऐप के आपके उपयोग से उत्पन्न होने वाले किसी भी दावे के लिए आपके प्रति हमारी कुल जिम्मेदारी दावे से पहले के बारह महीनों में आपके द्वारा हमें भुगतान की गई राशि से अधिक नहीं होगी।',
       'tos_s13_title': '13. शर्तों में परिवर्तन',
-      'tos_s13_p1': 'हम किसी भी समय इन शर्तों को संशोधित करने का अधिकार सुरक्षित रखते हैं। हम ऐप के माध्यम से उपयोगकर्ताओं को महत्वपूर्ण परिवर्तनों की सूचना देंगे।',
-      'tos_s13_p2': 'परिवर्तन पोस्ट किए जाने के बाद ऐप का आपका निरंतर उपयोग संशोधित शर्तों की आपकी स्वीकृति का गठन करता है।',
+      'tos_s13_p1':
+          'हम किसी भी समय इन शर्तों को संशोधित करने का अधिकार सुरक्षित रखते हैं। हम ऐप के माध्यम से उपयोगकर्ताओं को महत्वपूर्ण परिवर्तनों की सूचना देंगे।',
+      'tos_s13_p2':
+          'परिवर्तन पोस्ट किए जाने के बाद ऐप का आपका निरंतर उपयोग संशोधित शर्तों की आपकी स्वीकृति का गठन करता है।',
       'tos_s14_title': '14. शासकीय कानून',
-      'tos_s14_p1': 'ये शर्तें भारत के कानूनों के अनुसार शासित और निर्मित की जाएंगी।',
-      'tos_s14_p2': 'इन शर्तों से उत्पन्न होने वाले किसी भी विवाद भारत में स्थित न्यायालयों के विशेष अधिकार क्षेत्र के अधीन होंगे।',
+      'tos_s14_p1':
+          'ये शर्तें भारत के कानूनों के अनुसार शासित और निर्मित की जाएंगी।',
+      'tos_s14_p2':
+          'इन शर्तों से उत्पन्न होने वाले किसी भी विवाद भारत में स्थित न्यायालयों के विशेष अधिकार क्षेत्र के अधीन होंगे।',
       'tos_s15_title': '15. हमसे संपर्क करें',
-      'tos_s15_p1': 'यदि आपके पास इन सेवा की शर्तों के बारे में प्रश्न हैं, तो कृपया ऐप के सहायता और समर्थन सेक्शन के माध्यम से हमसे संपर्क करें।',
+      'tos_s15_p1':
+          'यदि आपके पास इन सेवा की शर्तों के बारे में प्रश्न हैं, तो कृपया ऐप के सहायता और समर्थन सेक्शन के माध्यम से हमसे संपर्क करें।',
       'manage_offers': 'ऑफ़र प्रबंधित करें',
       'manage_quick_transactions': 'क्विक ट्रांज़ैक्शन प्रबंधित करें',
       'edit_quick_transaction_title': 'क्विक ट्रांज़ैक्शन संपादित करें',
       'delete_quick_transaction_title': 'ट्रांज़ैक्शन हटाएं',
-      'confirm_delete_quick_transaction': 'यह इस क्विक ट्रांज़ैक्शन को स्थायी रूप से हटा देगा।',
+      'confirm_delete_quick_transaction':
+          'यह इस क्विक ट्रांज़ैक्शन को स्थायी रूप से हटा देगा।',
       'person_label': 'व्यक्ति',
       'oldest_label': 'सबसे पुराना',
       'old_updated_label': 'पुराना अपडेट',
       'amt_low_label': 'राशि कम',
       'amt_high_label': 'राशि अधिक',
       'deleted_label': 'हटाया गया',
-      'quick_transaction_deleted_message': 'क्विक ट्रांज़ैक्शन हटा दिया गया है।',
+      'quick_transaction_deleted_message':
+          'क्विक ट्रांज़ैक्शन हटा दिया गया है।',
       'all_people_label': 'सभी लोग',
       'clear_quick_transaction_title': 'क्विक ट्रांज़ैक्शन साफ़ करें',
       'confirm_clear_transaction_message':
@@ -4850,13 +5310,15 @@ class AppLocalizations {
       'settlement_requested_title': 'निपटान का अनुरोध किया गया',
       'other_user_can_accept_or_reject_message':
           'अब दूसरा उपयोगकर्ता इसे स्वीकार या अस्वीकार कर सकता है।',
-      'unable_to_request_settlement_message': 'निपटान का अनुरोध करने में असमर्थ',
+      'unable_to_request_settlement_message':
+          'निपटान का अनुरोध करने में असमर्थ',
       'payment_successful_settlement_complete_message':
           'भुगतान सफल! निपटान पूरा हुआ।',
       'payment_done_status_update_failed_message':
           'भुगतान हो गया लेकिन स्थिति अपडेट विफल रही। कृपया रीफ्रेश करें।',
       'settlement_rejected_title': 'निपटान अस्वीकृत',
-      'settlement_rejected_success_message': 'निपटान सफलतापूर्वक अस्वीकृत किया गया',
+      'settlement_rejected_success_message':
+          'निपटान सफलतापूर्वक अस्वीकृत किया गया',
       'unable_to_reject_settlement_message': 'निपटान अस्वीकार करने में असमर्थ',
       'amount_high_to_low_label': 'राशि (अधिक से कम)',
       'amount_low_to_high_label': 'राशि (कम से अधिक)',
@@ -4884,8 +5346,10 @@ class AppLocalizations {
       'they_owe_label': 'वे देते हैं',
       'mark_transaction_favourite_to_see_here_message':
           'इसे यहां देखने के लिए किसी ट्रांज़ैक्शन को पसंदीदा के रूप में चिह्नित करें।',
-      'no_favourite_transactions_found_message': 'कोई पसंदीदा ट्रांज़ैक्शन नहीं मिला',
-      'no_quick_transactions_yet_message': 'अभी तक कोई क्विक ट्रांज़ैक्शन नहीं है।',
+      'no_favourite_transactions_found_message':
+          'कोई पसंदीदा ट्रांज़ैक्शन नहीं मिला',
+      'no_quick_transactions_yet_message':
+          'अभी तक कोई क्विक ट्रांज़ैक्शन नहीं है।',
       'no_transactions_found_message': 'कोई ट्रांज़ैक्शन नहीं मिला',
       'reset_filters_label': 'फ़िल्टर रीसेट करें',
       'reset_label': 'रीसेट करें',
@@ -4909,7 +5373,8 @@ class AppLocalizations {
       'request_settlement_label': 'निपटान का अनुरोध करें',
       'settlement_requested_by_other_user_label':
           'दूसरे उपयोगकर्ता द्वारा निपटान का अनुरोध किया गया',
-      'settlement_requested_by_you_label': 'आपके द्वारा निपटान का अनुरोध किया गया',
+      'settlement_requested_by_you_label':
+          'आपके द्वारा निपटान का अनुरोध किया गया',
       'share_receipt_label': 'शेयर / रसीद',
       'unpin_label': 'अनपिन करें',
       'choose_counterparty_title': 'दूसरा पक्ष चुनें',
@@ -4927,11 +5392,13 @@ class AppLocalizations {
       'enable_disable_control_shown_in_front_message':
           'सक्षम या अक्षम करने का नियंत्रण सामने दिखाया गया है।',
       'favourite_filter_label': 'पसंदीदा फ़िल्टर',
-      'focus_on_lent_or_borrowed_message': 'आपने जो उधार दिया या लिया उस पर ध्यान दें।',
+      'focus_on_lent_or_borrowed_message':
+          'आपने जो उधार दिया या लिया उस पर ध्यान दें।',
       'not_cleared_label': 'क्लियर नहीं',
       'pick_person_cleaner_list_view_message':
           'साफ़ पूर्ण सूची दृश्य के लिए एक व्यक्ति चुनें।',
-      'pick_quick_date_window_message': 'सूची के लिए एक त्वरित तारीख़ विंडो चुनें।',
+      'pick_quick_date_window_message':
+          'सूची के लिए एक त्वरित तारीख़ विंडो चुनें।',
       'quick_transaction_filters_title': 'क्विक ट्रांज़ैक्शन फ़िल्टर',
       'role_label': 'भूमिका',
       'selected_person_label': 'चयनित व्यक्ति',
@@ -5062,7 +5529,8 @@ class AppLocalizations {
           'सिक्योर ट्रांज़ैक्शन बनाने से पहले विवरण की एक बार जांच करें।',
       'could_not_detect_receipt_details_message':
           'इस रसीद से कोई विवरण नहीं मिल सका।',
-      'could_not_read_selected_image_message': 'चयनित इमेज को पढ़ा नहीं जा सका।',
+      'could_not_read_selected_image_message':
+          'चयनित इमेज को पढ़ा नहीं जा सका।',
       'detected_from_receipt_title': 'रसीद से पहचाना गया',
       'no_proof_files_added_yet_label': 'अभी तक कोई प्रमाण फ़ाइल नहीं जोड़ी गई',
       'optional_and_not_selected_label': 'वैकल्पिक और चयनित नहीं',
@@ -5083,7 +5551,8 @@ class AppLocalizations {
       'counterparty_not_selected_label': 'दूसरा पक्ष चयनित नहीं',
       'daily_secure_transactions_limit_reached_message':
           'आप आज की 2 सिक्योर ट्रांज़ैक्शन की सीमा तक पहुँच गए हैं। मुफ़्त प्रयास भी कल तक रुके हुए हैं।\n\nअसीमित एक्सेस के लिए सब्सक्राइब करें।',
-      'enter_amount_to_build_summary_label': 'सारांश बनाने के लिए राशि दर्ज करें',
+      'enter_amount_to_build_summary_label':
+          'सारांश बनाने के लिए राशि दर्ज करें',
       'estimated_repayment_label': 'अनुमानित पुनर्भुगतान',
       'go_back_and_edit_label': 'वापस जाएं और संपादित करें',
       'invalid_or_expired_otp_message': 'अमान्य या समाप्त हो गया OTP',
@@ -5110,7 +5579,8 @@ class AppLocalizations {
       'send_otp_label': 'OTP भेजें',
       'verified_label': 'सत्यापित',
       'verify_otp_label': 'OTP सत्यापित करें',
-      'add_note_or_description_hint': 'इस ट्रांज़ैक्शन के लिए एक नोट या विवरण जोड़ें',
+      'add_note_or_description_hint':
+          'इस ट्रांज़ैक्शन के लिए एक नोट या विवरण जोड़ें',
       'amount_required_label': 'राशि आवश्यक है',
       'annually_label': 'वार्षिक (1x/वर्ष)',
       'basic_details_subtitle_message':
@@ -5131,9 +5601,11 @@ class AppLocalizations {
       'enter_valid_number_message': 'एक मान्य संख्या दर्ज करें',
       'expected_return_date_optional_label': 'अनुमानित वापसी तिथि (वैकल्पिक)',
       'expected_return_date_required_star_label': 'अनुमानित वापसी तिथि *',
-      'free_transactions_remaining_message': '{count} मुफ्त ट्रांज़ैक्शन शेष हैं',
+      'free_transactions_remaining_message':
+          '{count} मुफ्त ट्रांज़ैक्शन शेष हैं',
       'how_often_interest_compounded_label': 'ब्याज कितनी बार कंपाउंड होता है?',
-      'interest_rate_cannot_exceed_100_message': 'ब्याज दर 100% से अधिक नहीं हो सकती',
+      'interest_rate_cannot_exceed_100_message':
+          'ब्याज दर 100% से अधिक नहीं हो सकती',
       'interest_rate_must_be_greater_than_zero_message':
           'ब्याज दर 0 से अधिक होनी चाहिए',
       'interest_rate_percent_label': 'ब्याज दर (%)',
@@ -5166,15 +5638,21 @@ class AppLocalizations {
           'OTP से दोनों ईमेल पतों को सत्यापित करें। दोनों सत्यापित होने के बाद, सुरक्षा के लिए मुख्य ट्रांज़ैक्शन विवरण लॉक हो जाते हैं।',
       'verification_title': 'सत्यापन',
       'your_email_label': 'आपका ईमेल',
-      'no_outstanding_balance_to_pay_message': 'भुगतान के लिए कोई बाकी राशि नहीं है।',
+      'no_outstanding_balance_to_pay_message':
+          'भुगतान के लिए कोई बाकी राशि नहीं है।',
       'secure_transaction_repayment_label': 'सिक्योर ट्रांज़ैक्शन पुनर्भुगतान',
-      'payment_sent_and_marked_cleared_message': 'भुगतान भेजा गया और क्लियर के रूप में चिह्नित किया गया!',
-      'payment_sent_refresh_status_message': 'भुगतान भेजा गया! अपडेटेड स्थिति देखने के लिए रिफ्रेश करें।',
+      'payment_sent_and_marked_cleared_message':
+          'भुगतान भेजा गया और क्लियर के रूप में चिह्नित किया गया!',
+      'payment_sent_refresh_status_message':
+          'भुगतान भेजा गया! अपडेटेड स्थिति देखने के लिए रिफ्रेश करें।',
       'failed_to_update_favourite_message': 'फेवरेट अपडेट करने में विफल',
-      'failed_to_clear_transaction_message': 'ट्रांज़ैक्शन क्लियर करने में विफल',
-      'could_not_open_chat_user_not_found_message': 'चैट नहीं खोल सका। उपयोगकर्ता नहीं मिला।',
+      'failed_to_clear_transaction_message':
+          'ट्रांज़ैक्शन क्लियर करने में विफल',
+      'could_not_open_chat_user_not_found_message':
+          'चैट नहीं खोल सका। उपयोगकर्ता नहीं मिला।',
       'generate_receipt_label': 'रसीद जनरेट करें',
-      'choose_option_generate_receipt_message': 'रसीद जनरेट करने के लिए एक विकल्प चुनें।',
+      'choose_option_generate_receipt_message':
+          'रसीद जनरेट करने के लिए एक विकल्प चुनें।',
       'send_to_email_label': 'ईमेल पर भेजें',
       'download_locally_label': 'लोकली डाउनलोड करें',
       'sending_to_email_message': 'ईमेल पर भेजा जा रहा है...',
@@ -5192,30 +5670,38 @@ class AppLocalizations {
           'इसकी समीक्षा एक एडमिन द्वारा की जाएगी। हल होने पर {email} को सूचित किया जाएगा।',
       'describe_what_happened_label': 'बताएं क्या हुआ',
       'please_describe_what_happened_message': 'कृपया बताएं कि क्या हुआ।',
-      'dispute_submitted_message': 'विवाद सबमिट किया गया। एडमिन शीघ्र ही इसकी समीक्षा करेगा।',
+      'dispute_submitted_message':
+          'विवाद सबमिट किया गया। एडमिन शीघ्र ही इसकी समीक्षा करेगा।',
       'failed_to_submit_dispute_message': 'विवाद सबमिट करने में विफल',
       'transaction_id_copied_message': 'ट्रांज़ैक्शन आईडी कॉपी की गई!',
       'none_label': 'कोई नहीं',
       'transaction_summary_label': 'ट्रांज़ैक्शन सारांश',
       'shared_via_lenden_message': 'LenDen के माध्यम से साझा किया गया',
       'lenden_transaction_label': 'LenDen ट्रांज़ैक्शन',
-      'no_interest_on_transaction_message': 'इस ट्रांज़ैक्शन पर कोई ब्याज नहीं है',
-      'daily_limit_remaining_message': 'आज की दैनिक सीमा में से {count} शेष है।',
+      'no_interest_on_transaction_message':
+          'इस ट्रांज़ैक्शन पर कोई ब्याज नहीं है',
+      'daily_limit_remaining_message':
+          'आज की दैनिक सीमा में से {count} शेष है।',
       'free_attempts_left_message': '{count} मुफ्त प्रयास शेष हैं',
-      'free_attempts_paused_resets_tomorrow_message': 'मुफ्त प्रयास भी रोक दिए गए हैं। कल रीसेट होंगे।',
-      'no_free_feature_attempts_left_message': 'कोई मुफ्त {feature} प्रयास शेष नहीं',
-      'use_coins_continue_daily_limit_message': 'आप जारी रखने के लिए LenDen कॉइन का उपयोग कर सकते हैं (दैनिक सीमा: आज {count} शेष)।',
+      'free_attempts_paused_resets_tomorrow_message':
+          'मुफ्त प्रयास भी रोक दिए गए हैं। कल रीसेट होंगे।',
+      'no_free_feature_attempts_left_message':
+          'कोई मुफ्त {feature} प्रयास शेष नहीं',
+      'use_coins_continue_daily_limit_message':
+          'आप जारी रखने के लिए LenDen कॉइन का उपयोग कर सकते हैं (दैनिक सीमा: आज {count} शेष)।',
       'use_coins_label': '{coins} कॉइन का उपयोग करें',
       'used_all_free_attempts_message':
           'आपने अपने सभी मुफ्त {feature} प्रयास उपयोग कर लिए हैं। जारी रखने के लिए आप {coins} LenDen कॉइन खर्च कर सकते हैं।',
       'add_expense_label': 'खर्च जोड़ें',
       'add_member_label': 'सदस्य जोड़ें',
-      'balance_auto_settled_message': 'सभी खर्चों में आपका बैलेंस स्वतः सेटल हो जाएगा।',
+      'balance_auto_settled_message':
+          'सभी खर्चों में आपका बैलेंस स्वतः सेटल हो जाएगा।',
       'by_creator_label': '{creator} द्वारा',
       'change_group_color_label': 'ग्रुप रंग बदलें',
       'creator_can_readd_later_message':
           'क्रिएटर आपको बाद में फिर से जोड़ सकता है — आपका इतिहास सुरक्षित रहता है।',
-      'delete_group_confirm_message': '"{title}" हटाएं? यह पूर्ववत नहीं किया जा सकता।',
+      'delete_group_confirm_message':
+          '"{title}" हटाएं? यह पूर्ववत नहीं किया जा सकता।',
       'delete_group_title': 'ग्रुप हटाएं',
       'failed_to_delete_group_message': 'हटाने में विफल',
       'failed_to_leave_group_message': 'ग्रुप छोड़ने में विफल',
@@ -5224,12 +5710,15 @@ class AppLocalizations {
       'is_owed_label': 'पाना है',
       'leave_group_title_message': '"{title}" छोड़ें?',
       'leave_label': 'छोड़ें',
-      'leave_request_sent_to_members_message': 'छोड़ने का अनुरोध ग्रुप सदस्यों को भेजा गया।',
-      'marked_as_left_in_group_message': 'आपको ग्रुप में "छोड़ा हुआ" के रूप में चिह्नित किया जाएगा।',
+      'leave_request_sent_to_members_message':
+          'छोड़ने का अनुरोध ग्रुप सदस्यों को भेजा गया।',
+      'marked_as_left_in_group_message':
+          'आपको ग्रुप में "छोड़ा हुआ" के रूप में चिह्नित किया जाएगा।',
       'no_expenses_yet_label': 'अभी तक कोई खर्च नहीं',
       'owes_label': 'देना है',
       'pay_label': 'भुगतान करें',
-      'payment_sent_and_recorded_message': 'भुगतान भेजा गया और रिकॉर्ड किया गया!',
+      'payment_sent_and_recorded_message':
+          'भुगतान भेजा गया और रिकॉर्ड किया गया!',
       'pays_label': 'भुगतान करता है',
       'pending_expenses_auto_settle_message':
           'आपके पास ₹{amount} के बकाया खर्च हैं। जब आप छोड़ेंगे तो ये स्वतः सेटल हो जाएंगे।',
@@ -5242,21 +5731,25 @@ class AppLocalizations {
       'active_filters_label': 'सक्रिय फ़िल्टर',
       'amount_due_label': 'देय राशि',
       'amount_range_label': 'राशि सीमा',
-      'amount_range_subtitle_message': 'केवल एक मूल्य सीमा के भीतर ट्रांज़ैक्शन देखें।',
+      'amount_range_subtitle_message':
+          'केवल एक मूल्य सीमा के भीतर ट्रांज़ैक्शन देखें।',
       'any_label': 'कोई भी',
       'borrowing_amount_label': 'उधार राशि',
       'borrowing_label': 'उधार',
       'clearance_status_label': 'क्लीयरेंस स्थिति',
-      'clearance_status_subtitle_message': 'चुनें कि ट्रांज़ैक्शन कितनी आगे बढ़ी है।',
+      'clearance_status_subtitle_message':
+          'चुनें कि ट्रांज़ैक्शन कितनी आगे बढ़ी है।',
       'conversion_not_available_secure_message':
           '{currency} में रूपांतरण एक या अधिक सिक्योर ट्रांज़ैक्शन के लिए उपलब्ध नहीं है। मूल मुद्राएं दिखाई जा रही हैं।',
-      'date_range_subtitle_message': 'परिणामों को एक ट्रांज़ैक्शन अवधि तक सीमित करें।',
+      'date_range_subtitle_message':
+          'परिणामों को एक ट्रांज़ैक्शन अवधि तक सीमित करें।',
       'dates_label': 'तिथियां',
       'fav_label': 'फेव',
       'filters_count_label': 'फ़िल्टर ({count})',
       'filters_label': 'फ़िल्टर',
       'interest_type_label': 'ब्याज प्रकार',
-      'interest_type_subtitle_message': 'उस ब्याज सेटअप पर ध्यान दें जिसे आप देखना चाहते हैं।',
+      'interest_type_subtitle_message':
+          'उस ब्याज सेटअप पर ध्यान दें जिसे आप देखना चाहते हैं।',
       'lending_amount_label': 'उधार दी गई राशि',
       'lending_label': 'उधार देना',
       'mark_transaction_favourite_hint_message':
@@ -5279,7 +5772,8 @@ class AppLocalizations {
           'सिक्योर ट्रांज़ैक्शन को निर्माण समय, ट्रांज़ैक्शन तिथि, राशि या स्थिति के अनुसार क्रमित करें।',
       'totally_cleared_label': 'पूरी तरह क्लियर',
       'totally_uncleared_label': 'पूरी तरह अनक्लियर्ड',
-      'try_adjusting_search_filters_message': 'अपनी खोज या फ़िल्टर समायोजित करने का प्रयास करें',
+      'try_adjusting_search_filters_message':
+          'अपनी खोज या फ़िल्टर समायोजित करने का प्रयास करें',
       'view_all_transactions_label': 'सभी ट्रांज़ैक्शन देखें',
       'your_transactions_count_title': 'आपके ट्रांज़ैक्शन ({count})',
       'clear_sheet_label': 'शीट साफ़ करें',
@@ -5345,13 +5839,13 @@ class AppLocalizations {
       'settlement_status_label': 'सेटलमेंट स्थिति',
       'mark_as_settled_cleared': 'सेटल्ड / क्लियर के रूप में चिह्नित करें',
       'transaction_deleted_successfully': 'ट्रांज़ैक्शन सफलतापूर्वक हटाया गया।',
-      'transaction_updated_successfully': 'ट्रांज़ैक्शन सफलतापूर्वक अपडेट किया गया।',
+      'transaction_updated_successfully':
+          'ट्रांज़ैक्शन सफलतापूर्वक अपडेट किया गया।',
       'failed_to_delete_transaction': 'ट्रांज़ैक्शन हटाने में विफल।',
       'failed_to_update_transaction': 'ट्रांज़ैक्शन अपडेट करने में विफल।',
       'failed_to_load_transactions': 'ट्रांज़ैक्शन लोड करने में विफल।',
       'uncleared': 'अनक्लियर्ड',
-      'search_by_email_description_placeholder':
-          'ईमेल, विवरण से खोजें...',
+      'search_by_email_description_placeholder': 'ईमेल, विवरण से खोजें...',
       'view_all_label': 'सभी देखें',
       'settlement_colon': 'सेटलमेंट:',
       'creator_colon': 'निर्माता:',
@@ -5359,7 +5853,8 @@ class AppLocalizations {
       'date_colon': 'तारीख:',
       'time_colon': 'समय:',
       'id_colon': 'आईडी:',
-      'cannot_add_expense_no_members': 'खर्च नहीं जोड़ा जा सकता: समूह में कोई सदस्य नहीं है।',
+      'cannot_add_expense_no_members':
+          'खर्च नहीं जोड़ा जा सकता: समूह में कोई सदस्य नहीं है।',
       'add_expense_title': 'खर्च जोड़ें',
       'edit_expense_title': 'खर्च संपादित करें',
       'split_type_label': 'विभाजन प्रकार',
@@ -5382,12 +5877,15 @@ class AppLocalizations {
       'most_label': 'सर्वाधिक',
       'a_z_label': 'A-Z',
       'least_label': 'न्यूनतम',
-      'tap_counterparty_card_hint': 'प्रोफ़ाइल विवरण खोलने के लिए किसी भी काउंटरपार्टी कार्ड पर टैप करें।',
+      'tap_counterparty_card_hint':
+          'प्रोफ़ाइल विवरण खोलने के लिए किसी भी काउंटरपार्टी कार्ड पर टैप करें।',
       'no_counterparties_yet': 'अभी तक कोई काउंटरपार्टी नहीं',
-      'no_counterparties_match_search': 'कोई काउंटरपार्टी आपकी खोज से मेल नहीं खाती',
+      'no_counterparties_match_search':
+          'कोई काउंटरपार्टी आपकी खोज से मेल नहीं खाती',
       'account_inactive': 'खाता निष्क्रिय',
       'private_profile': 'निजी प्रोफ़ाइल',
-      'user_account_deactivated_msg': 'यह उपयोगकर्ता खाता निष्क्रिय कर दिया गया है।',
+      'user_account_deactivated_msg':
+          'यह उपयोगकर्ता खाता निष्क्रिय कर दिया गया है।',
       'user_profile_private_msg': 'इस उपयोगकर्ता की प्रोफ़ाइल निजी है।',
       'profile_not_available_msg': 'यह प्रोफ़ाइल उपलब्ध नहीं है।',
       'counterparty_label': 'काउंटरपार्टी',
@@ -5426,7 +5924,8 @@ class AppLocalizations {
       'share_via_label': 'इसके द्वारा शेयर करें',
       'shares_label': 'शेयर',
       'step_both_earn_coins': 'आप दोनों LenDen कॉइन कमाते हैं',
-      'step_friend_first_transaction': 'आपका मित्र अपना पहला लेन-देन पूरा करता है',
+      'step_friend_first_transaction':
+          'आपका मित्र अपना पहला लेन-देन पूरा करता है',
       'step_friend_signs_up': 'आपका मित्र आपके कोड से साइन अप करता है',
       'step_share_referral_code': 'अपना रेफरल कोड शेयर करें',
       'the_app_label': 'ऐप',
@@ -5437,7 +5936,8 @@ class AppLocalizations {
       'draft_label': 'ड्राफ्ट',
       'ended_label': 'समाप्त',
       'failed_to_fetch_offers': 'ऑफ़र लाने में विफल',
-      'delete_offer_confirm': 'यह ऑफ़र और दावों को स्थायी रूप से हटा देगा। जारी रखें?',
+      'delete_offer_confirm':
+          'यह ऑफ़र और दावों को स्थायी रूप से हटा देगा। जारी रखें?',
       'offer_deleted_successfully': 'ऑफ़र सफलतापूर्वक हटाया गया',
       'failed_to_delete_offer': 'ऑफ़र हटाने में विफल',
       'failed_to_load_analytics': 'एनालिटिक्स लोड करने में विफल',
@@ -5469,7 +5969,8 @@ class AppLocalizations {
       'specific_users_label': 'विशिष्ट उपयोगकर्ता',
       'search_by_name_username_email': 'नाम/उपयोगकर्ता नाम/ईमेल से खोजें',
       'no_searched_users_yet': 'अभी तक कोई खोजा गया उपयोगकर्ता नहीं।',
-      'extra_recipient_emails_label': 'अतिरिक्त प्राप्तकर्ता ईमेल (अल्पविराम से अलग)',
+      'extra_recipient_emails_label':
+          'अतिरिक्त प्राप्तकर्ता ईमेल (अल्पविराम से अलग)',
       'update_metadata_label': 'मेटाडेटा अपडेट करें',
       'update_reason_label': 'अपडेट कारण',
       'offer_name_required': 'ऑफ़र का नाम आवश्यक है।',
@@ -5478,11 +5979,16 @@ class AppLocalizations {
       'coins_cannot_exceed_10000': 'कॉइन 10000 से अधिक नहीं हो सकती।',
       'start_date_time_required': 'प्रारंभ तिथि और समय आवश्यक है।',
       'end_date_time_required': 'समाप्ति तिथि और समय आवश्यक है।',
-      'end_date_after_start_date': 'समाप्ति तिथि प्रारंभ तिथि के समान या बाद में होनी चाहिए।',
-      'end_time_after_start_time_same_date': 'एक ही तारीख के लिए, समाप्ति समय प्रारंभ समय से बाद का होना चाहिए।',
-      'end_datetime_after_start_datetime': 'समाप्ति तिथि/समय प्रारंभ तिथि/समय से बाद का होना चाहिए।',
-      'select_user_or_email_required': 'विशिष्ट उपयोगकर्ताओं के लिए, कम से कम एक उपयोगकर्ता चुनें या प्राप्तकर्ता ईमेल जोड़ें।',
-      'offer_updated_reverted_prefix': 'ऑफ़र अपडेट किया गया। पुनः स्वीकार के लिए वापस किया गया',
+      'end_date_after_start_date':
+          'समाप्ति तिथि प्रारंभ तिथि के समान या बाद में होनी चाहिए।',
+      'end_time_after_start_time_same_date':
+          'एक ही तारीख के लिए, समाप्ति समय प्रारंभ समय से बाद का होना चाहिए।',
+      'end_datetime_after_start_datetime':
+          'समाप्ति तिथि/समय प्रारंभ तिथि/समय से बाद का होना चाहिए।',
+      'select_user_or_email_required':
+          'विशिष्ट उपयोगकर्ताओं के लिए, कम से कम एक उपयोगकर्ता चुनें या प्राप्तकर्ता ईमेल जोड़ें।',
+      'offer_updated_reverted_prefix':
+          'ऑफ़र अपडेट किया गया। पुनः स्वीकार के लिए वापस किया गया',
       'offer_updated_reverted_suffix': 'दावे और',
       'offer_updated_reverted_coins_suffix': 'कॉइन।',
       'offer_created_successfully': 'ऑफ़र सफलतापूर्वक बनाया गया',
@@ -5518,19 +6024,26 @@ class AppLocalizations {
       'creating_ellipsis': 'बनाया जा रहा है...',
       'create_admin': 'व्यवस्थापक बनाएं',
       'role_management_title': 'भूमिका प्रबंधन',
-      'role_management_subtitle_super': 'आप यहां से व्यवस्थापकों को प्रोन्नत, पदावनत, अनुमतियां संपादित और हटा सकते हैं।',
-      'role_management_subtitle_restricted': 'आप यहां व्यवस्थापकों को देख सकते हैं। सुपरएडमिन भूमिका कार्रवाइयां प्रतिबंधित हैं।',
+      'role_management_subtitle_super':
+          'आप यहां से व्यवस्थापकों को प्रोन्नत, पदावनत, अनुमतियां संपादित और हटा सकते हैं।',
+      'role_management_subtitle_restricted':
+          'आप यहां व्यवस्थापकों को देख सकते हैं। सुपरएडमिन भूमिका कार्रवाइयां प्रतिबंधित हैं।',
       'show_latest_5': 'नवीनतम 5 दिखाएं',
       'admin_audit_trail_title': 'व्यवस्थापक ऑडिट ट्रेल',
-      'admin_audit_trail_subtitle': 'जवाबदेही और समीक्षा के लिए हाल की महत्वपूर्ण व्यवस्थापक कार्रवाइयां यहां ट्रैक की जाती हैं।',
+      'admin_audit_trail_subtitle':
+          'जवाबदेही और समीक्षा के लिए हाल की महत्वपूर्ण व्यवस्थापक कार्रवाइयां यहां ट्रैक की जाती हैं।',
       'superadmin_label': 'सुपरएडमिन',
       'admin_label': 'व्यवस्थापक',
       'superadmin_access_title': 'सुपरएडमिन एक्सेस',
-      'toggle_elevated_admin_desc': 'इस खाते के लिए उन्नत व्यवस्थापक नियंत्रण टॉगल करें।',
-      'only_eligible_superadmins_access_desc': 'केवल योग्य सुपरएडमिन ही इस एक्सेस को बदल सकते हैं।',
+      'toggle_elevated_admin_desc':
+          'इस खाते के लिए उन्नत व्यवस्थापक नियंत्रण टॉगल करें।',
+      'only_eligible_superadmins_access_desc':
+          'केवल योग्य सुपरएडमिन ही इस एक्सेस को बदल सकते हैं।',
       'permissions_label': 'अनुमतियां',
-      'allow_admin_manage_prefix': 'इस व्यवस्थापक को प्रबंधित करने की अनुमति दें',
-      'only_eligible_superadmins_permissions_desc': 'केवल योग्य सुपरएडमिन ही अनुमतियां बदल सकते हैं।',
+      'allow_admin_manage_prefix':
+          'इस व्यवस्थापक को प्रबंधित करने की अनुमति दें',
+      'only_eligible_superadmins_permissions_desc':
+          'केवल योग्य सुपरएडमिन ही अनुमतियां बदल सकते हैं।',
       'remove_admin_button': 'व्यवस्थापक हटाएं',
       'show_less': 'कम दिखाएं',
       'show_all_count': 'सभी दिखाएं',
@@ -5540,21 +6053,25 @@ class AppLocalizations {
       'digitise_perm_label': 'डिजिटाइज़',
       'failed_to_fetch_admins': 'व्यवस्थापक लाने में विफल',
       'add_new_admin': 'नया व्यवस्थापक जोड़ें',
-      'password_requirements_short': 'अपरकेस, लोअरकेस और विशेष वर्ण के साथ 8-30 अक्षर होना चाहिए',
+      'password_requirements_short':
+          'अपरकेस, लोअरकेस और विशेष वर्ण के साथ 8-30 अक्षर होना चाहिए',
       'adding_admin_ellipsis': 'व्यवस्थापक जोड़ा जा रहा है...',
       'add_admin': 'व्यवस्थापक जोड़ें',
       'admin_added_successfully': 'व्यवस्थापक सफलतापूर्वक जोड़ा गया',
       'failed_to_add_admin': 'व्यवस्थापक जोड़ने में विफल',
       'revoke_super_admin_question': 'सुपर एडमिन रद्द करें?',
       'grant_super_admin_question': 'सुपर एडमिन प्रदान करें?',
-      'admin_lose_super_privileges': 'इस व्यवस्थापक के सभी सुपर एडमिन विशेषाधिकार समाप्त हो जाएंगे।',
-      'admin_gain_super_access': 'इस व्यवस्थापक को सभी सुविधाओं तक पूर्ण सुपर एडमिन एक्सेस मिल जाएगा।',
+      'admin_lose_super_privileges':
+          'इस व्यवस्थापक के सभी सुपर एडमिन विशेषाधिकार समाप्त हो जाएंगे।',
+      'admin_gain_super_access':
+          'इस व्यवस्थापक को सभी सुविधाओं तक पूर्ण सुपर एडमिन एक्सेस मिल जाएगा।',
       'revoke': 'रद्द करें',
       'grant': 'प्रदान करें',
       'super_admin_privileges_granted': 'सुपर एडमिन विशेषाधिकार प्रदान किए गए',
       'super_admin_privileges_revoked': 'सुपर एडमिन विशेषाधिकार रद्द किए गए',
       'failed_to_update': 'अपडेट करने में विफल',
-      'failed_to_update_super_admin_status': 'सुपर एडमिन स्थिति अपडेट करने में विफल',
+      'failed_to_update_super_admin_status':
+          'सुपर एडमिन स्थिति अपडेट करने में विफल',
       'permissions_updated_successfully': 'अनुमतियां सफलतापूर्वक अपडेट की गईं',
       'failed_to_update_permissions': 'अनुमतियां अपडेट करने में विफल',
       'manage_transactions': 'ट्रांज़ैक्शन प्रबंधित करें',
@@ -5565,7 +6082,8 @@ class AppLocalizations {
       'view_audit_logs': 'ऑडिट लॉग देखें',
       'super_admin': 'सुपर एडमिन',
       'full_access_all_features': 'सभी सुविधाओं तक पूर्ण एक्सेस',
-      'super_admins_have_all_permissions': 'सुपर एडमिन के पास स्वचालित रूप से सभी अनुमतियां होती हैं।',
+      'super_admins_have_all_permissions':
+          'सुपर एडमिन के पास स्वचालित रूप से सभी अनुमतियां होती हैं।',
       'save_permissions': 'अनुमतियां सहेजें',
       'restricted_suffix': 'प्रतिबंधित',
       'admin_removed_successfully': 'व्यवस्थापक सफलतापूर्वक हटाया गया',
@@ -5583,7 +6101,8 @@ class AppLocalizations {
       'remove_access': 'एक्सेस हटाएं',
       'failed_to_load_disputes': 'विवाद लोड करने में विफल',
       'update_dispute': 'विवाद अपडेट करें',
-      'resolution_notes_both_parties': 'समाधान नोट्स (दोनों पक्षों को भेजे जाएंगे)',
+      'resolution_notes_both_parties':
+          'समाधान नोट्स (दोनों पक्षों को भेजे जाएंगे)',
       'dispute_updated': 'विवाद अपडेट किया गया।',
       'failed_to_update_dispute': 'विवाद अपडेट करने में विफल।',
       'no_disputes_found': 'कोई विवाद नहीं मिला।',
@@ -5610,7 +6129,8 @@ class AppLocalizations {
       'paid_by_label': 'भुगतानकर्ता',
       'showing_label': 'दिखा रहे हैं',
       'no_transactions_found': 'कोई ट्रांज़ैक्शन नहीं मिला',
-      'admin_notifications_alerts_subtitle': 'व्यवस्थापक-विशिष्ट सूचनाएं और अलर्ट कॉन्फ़िगर करें',
+      'admin_notifications_alerts_subtitle':
+          'व्यवस्थापक-विशिष्ट सूचनाएं और अलर्ट कॉन्फ़िगर करें',
       'system_alerts': 'सिस्टम अलर्ट',
       'general_system_notifications': 'सामान्य सिस्टम सूचनाएं',
       'maintenance_alerts': 'रखरखाव अलर्ट',
@@ -5625,7 +6145,8 @@ class AppLocalizations {
       'backup_status_notifications': 'बैकअप स्थिति सूचनाएं',
       'user_management_alerts': 'उपयोगकर्ता प्रबंधन अलर्ट',
       'new_user_alerts': 'नए उपयोगकर्ता अलर्ट',
-      'new_user_registrations_notifications': 'नए उपयोगकर्ता पंजीकरण की सूचनाएं',
+      'new_user_registrations_notifications':
+          'नए उपयोगकर्ता पंजीकरण की सूचनाएं',
       'suspicious_activity': 'संदिग्ध गतिविधि',
       'suspicious_user_activity_alerts': 'संदिग्ध उपयोगकर्ता गतिविधि अलर्ट',
       'account_lockout_alerts': 'खाता लॉकआउट अलर्ट',
@@ -5642,15 +6163,19 @@ class AppLocalizations {
       'failed_transaction_alerts': 'असफल ट्रांज़ैक्शन अलर्ट',
       'failed_transaction_notifications': 'असफल ट्रांज़ैक्शन सूचनाएं',
       'suspicious_transaction_alerts': 'संदिग्ध ट्रांज़ैक्शन अलर्ट',
-      'suspicious_transaction_pattern_alerts': 'संदिग्ध ट्रांज़ैक्शन पैटर्न अलर्ट',
+      'suspicious_transaction_pattern_alerts':
+          'संदिग्ध ट्रांज़ैक्शन पैटर्न अलर्ट',
       'daily_transaction_summary': 'दैनिक ट्रांज़ैक्शन सारांश',
       'daily_transaction_summary_reports': 'दैनिक ट्रांज़ैक्शन सारांश रिपोर्ट',
       'weekly_transaction_summary': 'साप्ताहिक ट्रांज़ैक्शन सारांश',
-      'weekly_transaction_summary_reports': 'साप्ताहिक ट्रांज़ैक्शन सारांश रिपोर्ट',
+      'weekly_transaction_summary_reports':
+          'साप्ताहिक ट्रांज़ैक्शन सारांश रिपोर्ट',
       'monthly_transaction_summary': 'मासिक ट्रांज़ैक्शन सारांश',
-      'monthly_transaction_summary_reports': 'मासिक ट्रांज़ैक्शन सारांश रिपोर्ट',
+      'monthly_transaction_summary_reports':
+          'मासिक ट्रांज़ैक्शन सारांश रिपोर्ट',
       'email_notifications': 'ईमेल सूचनाएं',
-      'receive_notifications_via_email': 'ईमेल के माध्यम से सूचनाएं प्राप्त करें',
+      'receive_notifications_via_email':
+          'ईमेल के माध्यम से सूचनाएं प्राप्त करें',
       'push_app_notifications': 'पुश ऐप सूचनाएं',
       'receive_notifications_in_app': 'ऐप में सूचनाएं प्राप्त करें',
       'sms_notifications': 'एसएमएस सूचनाएं',
@@ -5681,18 +6206,21 @@ class AppLocalizations {
       'in_app': 'ऐप के भीतर',
       'notifications_active_via': 'सूचनाएं इनके माध्यम से सक्रिय हैं:',
       'edit_user_information_title': 'उपयोगकर्ता जानकारी संपादित करें',
-      'update_user_details_settings': 'उपयोगकर्ता विवरण और खाता सेटिंग्स अपडेट करें',
+      'update_user_details_settings':
+          'उपयोगकर्ता विवरण और खाता सेटिंग्स अपडेट करें',
       'email_address_label': 'ईमेल पता',
       'please_enter_full_name': 'कृपया पूरा नाम दर्ज करें',
       'date_of_birth_label': 'जन्म तिथि',
       'account_role_label': 'खाता भूमिका',
       'moderator': 'मॉडरेटर',
       'account_active_label': 'खाता सक्रिय',
-      'enable_disable_user_account_desc': 'उपयोगकर्ता खाते को सक्षम या अक्षम करें',
+      'enable_disable_user_account_desc':
+          'उपयोगकर्ता खाते को सक्षम या अक्षम करें',
       'email_verified_title': 'ईमेल सत्यापित',
       'mark_email_verified_desc': 'ईमेल को सत्यापित के रूप में चिह्नित करें',
       'phone_verified_title': 'फ़ोन सत्यापित',
-      'mark_phone_verified_desc': 'फ़ोन नंबर को सत्यापित के रूप में चिह्नित करें',
+      'mark_phone_verified_desc':
+          'फ़ोन नंबर को सत्यापित के रूप में चिह्नित करें',
       'two_factor_authentication_label': 'दो-चरणीय सत्यापन',
       'enable_two_factor_auth_desc': 'दो-चरणीय सत्यापन सक्षम करें',
       'user_updated_successfully': 'उपयोगकर्ता सफलतापूर्वक अपडेट किया गया!',
@@ -5712,7 +6240,8 @@ class AppLocalizations {
       'friends': 'मित्र',
       'system': 'सिस्टम',
       'compose_notification': 'सूचना लिखें',
-      'compose_notification_desc': 'यहां से उपयोगकर्ताओं या व्यवस्थापकों के लिए स्पष्ट सूचनाएं बनाएं।',
+      'compose_notification_desc':
+          'यहां से उपयोगकर्ताओं या व्यवस्थापकों के लिए स्पष्ट सूचनाएं बनाएं।',
       'delivery': 'डिलीवरी',
       'send_now': 'अभी भेजें',
       'save_draft': 'ड्राफ्ट सहेजें',
@@ -5731,8 +6260,10 @@ class AppLocalizations {
       'hr_ago': 'घंटे पहले',
       'day_ago': 'दिन पहले',
       'recently': 'हाल ही में',
-      'notification_scheduled_successfully': 'सूचना सफलतापूर्वक निर्धारित की गई।',
-      'notification_draft_saved_successfully': 'सूचना ड्राफ्ट सफलतापूर्वक सहेजा गया।',
+      'notification_scheduled_successfully':
+          'सूचना सफलतापूर्वक निर्धारित की गई।',
+      'notification_draft_saved_successfully':
+          'सूचना ड्राफ्ट सफलतापूर्वक सहेजा गया।',
       'notification_sent_successfully': 'सूचना सफलतापूर्वक भेजी गई।',
       'failed_to_send_notification': 'सूचना भेजने में विफल।',
       'unexpected_error_occurred': 'एक अप्रत्याशित त्रुटि हुई',
@@ -5754,36 +6285,48 @@ class AppLocalizations {
       'feature_discover_label': 'आपके परिचित लोगों को खोजें',
       'feature_view_rankings_label': 'अन्य उपयोगकर्ताओं की रैंकिंग देखें',
       'plan_includes_label': 'इस प्लान में शामिल है',
-      'no_features_selected_message': 'इस प्लान के लिए अभी तक कोई सुविधा चुनी नहीं गई है।',
+      'no_features_selected_message':
+          'इस प्लान के लिए अभी तक कोई सुविधा चुनी नहीं गई है।',
       'select_plan_features_label': 'यह सब्सक्रिप्शन क्या अनुमति देता है?',
       'active_plan_tab': 'सक्रिय प्लान',
       'history_tab': 'इतिहास',
-      'not_subscribed_yet_message': 'आपके पास अभी तक कोई सक्रिय सदस्यता नहीं है।',
+      'not_subscribed_yet_message':
+          'आपके पास अभी तक कोई सक्रिय सदस्यता नहीं है।',
       'view_plans_label': 'प्लान देखें',
-      'no_subscription_history_yet_message': 'आपके पास अभी तक कोई सदस्यता इतिहास नहीं है।',
+      'no_subscription_history_yet_message':
+          'आपके पास अभी तक कोई सदस्यता इतिहास नहीं है।',
       'already_subscribed_browse_plans_message':
           'आप पहले से सदस्यता ले चुके हैं। अपनी सदस्यता को नवीनीकृत या विस्तारित करने के लिए "सक्रिय प्लान" टैब पर जाएं।',
       'go_to_other_details_label': 'सक्रिय प्लान पर जाएं',
-      'no_benefits_listed_message': 'अभी तक कोई प्रीमियम लाभ सूचीबद्ध नहीं किया गया है।',
+      'no_benefits_listed_message':
+          'अभी तक कोई प्रीमियम लाभ सूचीबद्ध नहीं किया गया है।',
       'no_faqs_listed_message': 'अभी तक कोई सामान्य प्रश्न नहीं जोड़ा गया है।',
       'search_plans_hint': 'नाम, कीमत, अवधि, सुविधाओं से प्लान खोजें...',
       'no_plans_match_search_message': 'आपकी खोज से कोई प्लान मेल नहीं खाता।',
       'available_label': 'उपलब्ध',
       'unavailable_label': 'अनुपलब्ध',
       'unlock_premium_title': 'प्रीमियम अनलॉक करें',
-      'unlock_premium_subtitle': 'असीमित क्विक और सुरक्षित ट्रांजैक्शन, ग्रुप्स, चैट्स, रैंकिंग और भी बहुत कुछ पाएं — बिना विज्ञापन के।',
+      'unlock_premium_subtitle':
+          'असीमित क्विक और सुरक्षित ट्रांजैक्शन, ग्रुप्स, चैट्स, रैंकिंग और भी बहुत कुछ पाएं — बिना विज्ञापन के।',
       'selected_label': 'चयनित',
-      'expiring_today_message': 'आपकी सदस्यता आज समाप्त हो रही है। प्रीमियम सुविधाएं बनाए रखने के लिए अभी नवीनीकृत करें।',
-      'expiring_soon_message': 'आपकी सदस्यता {days} दिनों में समाप्त हो रही है। प्रीमियम सुविधाएं खोने से बचने के लिए अभी नवीनीकृत करें।',
-      'expiring_today_auto_renew_message': 'आपकी सदस्यता आज समाप्त हो रही है और यदि आपके वॉलेट में पर्याप्त बैलेंस है तो यह जल्द ही स्वतः नवीनीकृत हो जाएगी।',
-      'expiring_soon_auto_renew_message': 'आपकी सदस्यता {days} दिनों में समाप्त हो रही है और यह आपके लेनडेन वॉलेट से स्वतः नवीनीकृत हो जाएगी।',
+      'expiring_today_message':
+          'आपकी सदस्यता आज समाप्त हो रही है। प्रीमियम सुविधाएं बनाए रखने के लिए अभी नवीनीकृत करें।',
+      'expiring_soon_message':
+          'आपकी सदस्यता {days} दिनों में समाप्त हो रही है। प्रीमियम सुविधाएं खोने से बचने के लिए अभी नवीनीकृत करें।',
+      'expiring_today_auto_renew_message':
+          'आपकी सदस्यता आज समाप्त हो रही है और यदि आपके वॉलेट में पर्याप्त बैलेंस है तो यह जल्द ही स्वतः नवीनीकृत हो जाएगी।',
+      'expiring_soon_auto_renew_message':
+          'आपकी सदस्यता {days} दिनों में समाप्त हो रही है और यह आपके लेनडेन वॉलेट से स्वतः नवीनीकृत हो जाएगी।',
       'auto_renew_label': 'ऑटो-रिन्यू',
-      'auto_renew_description': 'समाप्ति से पहले अपने लेनडेन वॉलेट से स्वचालित रूप से नवीनीकृत करें।',
+      'auto_renew_description':
+          'समाप्ति से पहले अपने लेनडेन वॉलेट से स्वचालित रूप से नवीनीकृत करें।',
       'auto_renew_enabled_message': 'ऑटो-रिन्यू सक्षम किया गया।',
       'auto_renew_disabled_message': 'ऑटो-रिन्यू अक्षम किया गया।',
-      'failed_to_update_auto_renew_message': 'ऑटो-रिन्यू प्राथमिकता अपडेट करने में विफल।',
+      'failed_to_update_auto_renew_message':
+          'ऑटो-रिन्यू प्राथमिकता अपडेट करने में विफल।',
       'grant_subscription_label': 'सदस्यता प्रदान करें',
-      'grant_subscription_subtitle': 'किसी उपयोगकर्ता को मैन्युअल रूप से सदस्यता प्रदान करें या बढ़ाएं, जैसे सहायता या मुआवजे के मामलों के लिए।',
+      'grant_subscription_subtitle':
+          'किसी उपयोगकर्ता को मैन्युअल रूप से सदस्यता प्रदान करें या बढ़ाएं, जैसे सहायता या मुआवजे के मामलों के लिए।',
       'user_email_label': 'उपयोगकर्ता ईमेल',
       'please_enter_an_email': 'कृपया एक ईमेल दर्ज करें',
       'select_existing_plan_optional_label': 'मौजूदा प्लान चुनें (वैकल्पिक)',
@@ -5811,11 +6354,14 @@ class AppLocalizations {
       'please_enter_a_price': 'कृपया एक मूल्य दर्ज करें',
       'please_enter_a_valid_price': 'कृपया 0 से अधिक एक मान्य मूल्य दर्ज करें',
       'please_enter_a_duration': 'कृपया एक अवधि दर्ज करें',
-      'please_enter_a_valid_duration': 'कृपया 0 से अधिक एक मान्य अवधि दर्ज करें',
+      'please_enter_a_valid_duration':
+          'कृपया 0 से अधिक एक मान्य अवधि दर्ज करें',
       'please_enter_a_discount': 'कृपया एक छूट दर्ज करें',
-      'please_enter_a_valid_discount': 'कृपया 0 से 100 के बीच एक मान्य छूट दर्ज करें',
+      'please_enter_a_valid_discount':
+          'कृपया 0 से 100 के बीच एक मान्य छूट दर्ज करें',
       'please_enter_free_days': 'कृपया मुफ्त दिन दर्ज करें',
-      'please_enter_a_valid_free_days': 'कृपया मुफ्त दिनों की एक मान्य संख्या दर्ज करें',
+      'please_enter_a_valid_free_days':
+          'कृपया मुफ्त दिनों की एक मान्य संख्या दर्ज करें',
       'add_plan_title': 'प्लान जोड़ें',
       'edit_plan_title': 'प्लान संपादित करें',
       'delete_plan_title': 'प्लान हटाएं',
@@ -5825,8 +6371,10 @@ class AppLocalizations {
       'failed_to_delete_plan': 'प्लान हटाने में विफल',
       'failed_to_save_plan': 'प्लान सहेजने में विफल',
       'failed_to_load_plans_message': 'सदस्यता प्लान लोड करने में विफल',
-      'plan_availability_updated_successfully': 'प्लान उपलब्धता सफलतापूर्वक अपडेट की गई',
-      'failed_to_update_plan_availability_message': 'प्लान उपलब्धता अपडेट करने में विफल',
+      'plan_availability_updated_successfully':
+          'प्लान उपलब्धता सफलतापूर्वक अपडेट की गई',
+      'failed_to_update_plan_availability_message':
+          'प्लान उपलब्धता अपडेट करने में विफल',
       'add_benefit_title': 'लाभ जोड़ें',
       'edit_benefit_title': 'लाभ संपादित करें',
       'delete_benefit_title': 'लाभ हटाएं',
@@ -5841,7 +6389,8 @@ class AppLocalizations {
       'add_faq_title': 'सामान्य प्रश्न जोड़ें',
       'edit_faq_title': 'सामान्य प्रश्न संपादित करें',
       'delete_faq_title': 'सामान्य प्रश्न हटाएं',
-      'confirm_delete_faq': 'क्या आप वाकई इस सामान्य प्रश्न को हटाना चाहते हैं?',
+      'confirm_delete_faq':
+          'क्या आप वाकई इस सामान्य प्रश्न को हटाना चाहते हैं?',
       'question_label': 'प्रश्न',
       'answer_label': 'उत्तर',
       'please_enter_a_question': 'कृपया एक प्रश्न दर्ज करें',
@@ -5855,11 +6404,15 @@ class AppLocalizations {
       'ending_soon_label': 'जल्द समाप्त हो रहा है',
       'highest_price_label': 'सर्वाधिक मूल्य',
       'deactivate_subscription_title': 'सब्सक्रिप्शन निष्क्रिय करें',
-      'confirm_deactivate_subscription': 'क्या आप वाकई इस सब्सक्रिप्शन को निष्क्रिय करना चाहते हैं?',
+      'confirm_deactivate_subscription':
+          'क्या आप वाकई इस सब्सक्रिप्शन को निष्क्रिय करना चाहते हैं?',
       'deactivate_label': 'निष्क्रिय करें',
-      'subscription_deactivated_successfully': 'सब्सक्रिप्शन सफलतापूर्वक निष्क्रिय की गई',
-      'failed_to_deactivate_subscription': 'सब्सक्रिप्शन निष्क्रिय करने में विफल',
-      'subscription_updated_successfully': 'सब्सक्रिप्शन सफलतापूर्वक अपडेट की गई',
+      'subscription_deactivated_successfully':
+          'सब्सक्रिप्शन सफलतापूर्वक निष्क्रिय की गई',
+      'failed_to_deactivate_subscription':
+          'सब्सक्रिप्शन निष्क्रिय करने में विफल',
+      'subscription_updated_successfully':
+          'सब्सक्रिप्शन सफलतापूर्वक अपडेट की गई',
       'failed_to_update_subscription': 'सब्सक्रिप्शन अपडेट करने में विफल',
       'total_label': 'कुल',
       'free_label': 'मुफ्त',
@@ -5912,22 +6465,21 @@ class AppLocalizations {
       'to_label': 'को',
       'created_colon': 'बनाया गया:',
       'manage_transactions_title': 'ट्रांज़ैक्शन प्रबंधित करें',
-      'search_transactions_hint':
-          'राशि, लेंडर, बॉरोअर, आईडी, नोट्स खोजें...',
+      'search_transactions_hint': 'राशि, लेंडर, बॉरोअर, आईडी, नोट्स खोजें...',
       'view_label': 'देखें',
       'share_all_files': 'सभी फ़ाइलें साझा करें',
       'system_snapshot': 'सिस्टम स्नैपशॉट',
       'support_label': 'सहायता',
       'create_backup': 'बैकअप बनाएं',
-      'create_backup_desc': 'इस डिवाइस पर सहेजी गई CSV फ़ाइलों के रूप में उपयोगकर्ताओं, ट्रांज़ैक्शन और सहायता क्वेरी को एक्सपोर्ट करता है। इतिहास ऐप रीस्टार्ट के बाद भी बना रहता है।',
+      'create_backup_desc':
+          'इस डिवाइस पर सहेजी गई CSV फ़ाइलों के रूप में उपयोगकर्ताओं, ट्रांज़ैक्शन और सहायता क्वेरी को एक्सपोर्ट करता है। इतिहास ऐप रीस्टार्ट के बाद भी बना रहता है।',
       'create_backup_now': 'अभी बैकअप बनाएं',
       'amount_high': 'राशि अधिक',
       'amount_low': 'राशि कम',
       'latest_label': 'नवीनतम',
       'search_sections_placeholder': 'सेक्शन खोजें...',
       'quick_actions_view_label': 'क्विक एक्शन व्यू',
-      'choose_quick_actions_display':
-          'चुनें कि 9 क्विक एक्शन कैसे दिखाए जाएं।',
+      'choose_quick_actions_display': 'चुनें कि 9 क्विक एक्शन कैसे दिखाए जाएं।',
       'grid_label': 'ग्रिड',
       'orbit_label': 'ऑर्बिट',
       'vertical_orbit_label': 'वर्टिकल ऑर्बिट',
@@ -5966,12 +6518,12 @@ class AppLocalizations {
           'आप (ग्रुप निर्माता) को स्वचालित रूप से ग्रुप में जोड़ दिया जाएगा।',
       'enter_email_one_at_a_time': 'ईमेल दर्ज करें (एक बार में एक)',
       'add_from_friends_label': 'दोस्तों से जोड़ें',
-      'free_group_creations_remaining':
-          '{count} मुफ़्त ग्रुप निर्माण शेष हैं।',
+      'free_group_creations_remaining': '{count} मुफ़्त ग्रुप निर्माण शेष हैं।',
       'daily_limit_remaining_label': 'दैनिक सीमा शेष: {count}',
       'creator_already_added_by_default':
           'आप (ग्रुप निर्माता) पहले से ही डिफ़ॉल्ट रूप से जुड़े हुए हैं।',
-      'user_already_added_to_group': 'यह उपयोगकर्ता पहले से ही ग्रुप में जोड़ा गया है।',
+      'user_already_added_to_group':
+          'यह उपयोगकर्ता पहले से ही ग्रुप में जोड़ा गया है।',
       'user_does_not_exist_cant_add':
           'यह उपयोगकर्ता मौजूद नहीं है और जोड़ा नहीं जा सकता।',
       'select_friends_title': 'दोस्त चुनें',
@@ -6006,9 +6558,12 @@ class AppLocalizations {
       'category_label': 'श्रेणी',
       'contact_us_title': 'हमसे संपर्क करें',
       'copied_to_clipboard_message': 'क्लिपबोर्ड पर कॉपी किया गया',
-      'could_not_open_contact_option_message': 'यह संपर्क विकल्प नहीं खोला जा सका।',
-      'failed_to_load_contact_details_message': 'संपर्क विवरण लोड करने में विफल।',
-      'failed_to_send_try_again_message': 'भेजने में विफल। कृपया पुनः प्रयास करें।',
+      'could_not_open_contact_option_message':
+          'यह संपर्क विकल्प नहीं खोला जा सका।',
+      'failed_to_load_contact_details_message':
+          'संपर्क विवरण लोड करने में विफल।',
+      'failed_to_send_try_again_message':
+          'भेजने में विफल। कृपया पुनः प्रयास करें।',
       'frequently_asked_label': 'अक्सर पूछे जाने वाले प्रश्न',
       'invalid_contact_link_message': 'अमान्य संपर्क लिंक।',
       'message_sent_label': 'मैसेज भेज दिया गया!',
@@ -6029,7 +6584,8 @@ class AppLocalizations {
       'subject_optional_label': 'विषय (वैकल्पिक)',
       'thanks_for_reaching_out_message':
           'संपर्क करने के लिए धन्यवाद। हम 24 घंटों के भीतर आपसे संपर्क करेंगे।',
-      'typically_responds_24h_message': '24 घंटों के भीतर सामान्यतः जवाब मिलता है',
+      'typically_responds_24h_message':
+          '24 घंटों के भीतर सामान्यतः जवाब मिलता है',
       'your_name_label': 'आपका नाम',
       'category_account_profile_label': 'खाता और प्रोफ़ाइल',
       'category_payments_transactions_label': 'पेमेंट और ट्रांज़ैक्शन',
@@ -6056,7 +6612,8 @@ class AppLocalizations {
       'faq_delete_account_q': 'मैं अपना LenDen खाता कैसे बंद या डिलीट करूं?',
       'faq_delete_account_a':
           'सेटिंग्स → प्राइवेसी और सुरक्षा → खाता प्रबंधन पर जाएं। आप वहां से अपना खाता निष्क्रिय या स्थायी रूप से डिलीट कर सकते हैं।',
-      'faq_fraud_q': 'अगर मुझे किसी अनधिकृत गतिविधि का संदेह हो तो मुझे क्या करना चाहिए?',
+      'faq_fraud_q':
+          'अगर मुझे किसी अनधिकृत गतिविधि का संदेह हो तो मुझे क्या करना चाहिए?',
       'faq_fraud_a':
           'विवरण के साथ ईमेल या व्हाट्सएप के माध्यम से हमसे तुरंत संपर्क करें। आप सेटिंग्स से अपना खाता भी लॉक कर सकते हैं। हम सभी धोखाधड़ी रिपोर्टों को शीर्ष प्राथमिकता के साथ देखते हैं।',
       'rate_our_app_title': 'हमारे ऐप को रेट करें!',
@@ -6070,8 +6627,7 @@ class AppLocalizations {
       'you_have_label': 'आपके पास',
       'pending_requests_suffix': 'पेंडिंग रिक्वेस्ट हैं।',
       'are_you_sure_title': 'क्या आप वाकई सुनिश्चित हैं?',
-      'logout_confirm_message':
-          'आप अपने खाते से\nलॉगआउट हो जाएंगे।',
+      'logout_confirm_message': 'आप अपने खाते से\nलॉगआउट हो जाएंगे।',
       'logging_out_label': 'लॉग आउट हो रहा है...',
       'secure_label': 'सिक्योर',
       'coins_label': 'कॉइन',
@@ -6100,9 +6656,11 @@ class AppLocalizations {
       'earned_label': 'कमाया गया',
       'spent_label': 'खर्च किया गया',
       'source_split_label': 'स्रोत विभाजन',
-      'no_tracked_source_entries_message': 'अभी तक कोई ट्रैक किया गया स्रोत नहीं।',
+      'no_tracked_source_entries_message':
+          'अभी तक कोई ट्रैक किया गया स्रोत नहीं।',
       'source_label': 'स्रोत',
-      'no_tracked_coin_entries_message': 'अभी तक कोई ट्रैक की गई कॉइन प्रविष्टि नहीं।',
+      'no_tracked_coin_entries_message':
+          'अभी तक कोई ट्रैक की गई कॉइन प्रविष्टि नहीं।',
       'unknown_time_message': 'अज्ञात समय',
       'account_holder_name_label': 'खाता धारक का नाम',
       'account_number_label': 'खाता संख्या',
@@ -6129,12 +6687,14 @@ class AppLocalizations {
       'instant_transfer_label': 'इंस्टेंट ट्रांसफर',
       'insufficient_balance_label': 'अपर्याप्त बैलेंस',
       'invalid_upi_id_message': 'अमान्य UPI ID (उदा. name@bank)',
-      'manage_lend_borrow_records_message': 'लेंड और बॉरो रिकॉर्ड प्रबंधित करें',
+      'manage_lend_borrow_records_message':
+          'लेंड और बॉरो रिकॉर्ड प्रबंधित करें',
       'minimum_rupee_10_hint': 'न्यूनतम ₹10',
       'minimum_rupee_100_hint': 'न्यूनतम ₹100',
       'minimum_withdrawal_label': 'न्यूनतम निकासी ₹100 है',
       'action_failed_label': 'कार्रवाई विफल रही',
-      'already_paid_enter_payment_id_label': 'पहले ही भुगतान कर दिया? पेमेंट आईडी दर्ज करें',
+      'already_paid_enter_payment_id_label':
+          'पहले ही भुगतान कर दिया? पेमेंट आईडी दर्ज करें',
       'auto_credit_in_progress_message':
           'पुष्टि मिलते ही हम इसे अपने आप आपके वॉलेट में जोड़ देंगे।',
       'change_details_label': 'विवरण बदलें',
@@ -6160,7 +6720,8 @@ class AppLocalizations {
           'लंबित वॉलेट निकासी की समीक्षा और प्रक्रिया करें',
       'scan_and_pay_title': 'स्कैन करें और भुगतान करें',
       'scan_qr_code_label': 'QR कोड स्कैन करें',
-      'scan_qr_code_desc': 'अपने LenDen वॉलेट से UPI QR के ज़रिए दुकान को भुगतान करें',
+      'scan_qr_code_desc':
+          'अपने LenDen वॉलेट से UPI QR के ज़रिए दुकान को भुगतान करें',
       'pay_user_desc': 'किसी LenDen यूज़र को सीधे पैसे भेजें',
       'manage_scan_payments_label': 'स्कैन भुगतान प्रबंधित करें',
       'manage_scan_payments_title': 'स्कैन भुगतान प्रबंधित करें',
@@ -6169,8 +6730,10 @@ class AppLocalizations {
       'no_scan_payment_requests_message': 'कोई स्कैन भुगतान अनुरोध नहीं',
       'failed_to_load_scan_payments': 'स्कैन भुगतान लोड करने में विफल',
       'reject_scan_payment_title': 'स्कैन भुगतान अस्वीकार करें',
-      'scan_payment_marked_processed_message': 'स्कैन भुगतान संसाधित के रूप में चिह्नित किया गया',
-      'scan_payment_rejected_refunded_message': 'स्कैन भुगतान अस्वीकृत और वॉलेट वापस जोड़ा गया',
+      'scan_payment_marked_processed_message':
+          'स्कैन भुगतान संसाधित के रूप में चिह्नित किया गया',
+      'scan_payment_rejected_refunded_message':
+          'स्कैन भुगतान अस्वीकृत और वॉलेट वापस जोड़ा गया',
       'scan_payment_pending_admin_review_suffix':
           'भुगतान सबमिट किया गया — यह 24–48 घंटों में दुकान को भेज दिया जाएगा',
       'status_all_label': 'सभी',
@@ -6179,21 +6742,26 @@ class AppLocalizations {
       'status_processed_label': 'संसाधित',
       'verify_and_pay_label': 'सत्यापित करें और भुगतान करें',
       'verify_payment_id_label': 'पेमेंट आईडी सत्यापित करें',
-      'waiting_for_payment_confirmation_message': 'भुगतान पुष्टि की प्रतीक्षा है...',
+      'waiting_for_payment_confirmation_message':
+          'भुगतान पुष्टि की प्रतीक्षा है...',
       'withdraw_manual_review_notice_message':
           'आपका वॉलेट बैलेंस अभी काट लिया गया है। हमारी टीम 24–48 घंटों के भीतर राशि आपके बैंक/UPI में मैन्युअल रूप से ट्रांसफर करेगी।',
-      'withdrawal_marked_processed_message': 'निकासी को संसाधित के रूप में चिह्नित किया गया',
+      'withdrawal_marked_processed_message':
+          'निकासी को संसाधित के रूप में चिह्नित किया गया',
       'withdrawal_pending_admin_review_suffix':
           'निकासी अनुरोध सबमिट किया गया — राशि 24–48 घंटों में भेजी जाएगी',
-      'withdrawal_rejected_refunded_message': 'निकासी अस्वीकृत और वॉलेट रिफंड किया गया',
+      'withdrawal_rejected_refunded_message':
+          'निकासी अस्वीकृत और वॉलेट रिफंड किया गया',
       'withdrawals_label': 'निकासी',
       'no_transactions_yet_message': 'अभी तक कोई ट्रांज़ैक्शन नहीं',
       'note_optional_label': 'नोट (वैकल्पिक)',
       'open_razorpay_upi_more_label': 'Razorpay खोलें  (UPI और अधिक)',
       'opening_ellipsis_label': 'खुल रहा है...',
-      'pay_off_pending_balances_message': 'वास्तविक पैसे से बकाया बैलेंस चुकाएं',
+      'pay_off_pending_balances_message':
+          'वास्तविक पैसे से बकाया बैलेंस चुकाएं',
       'pay_to_user_title': 'यूज़र को पे करें',
-      'pay_to_user_email_label': 'जिस उपयोगकर्ता को आप भुगतान करना चाहते हैं उसका ईमेल',
+      'pay_to_user_email_label':
+          'जिस उपयोगकर्ता को आप भुगतान करना चाहते हैं उसका ईमेल',
       'select_a_friend_label': 'एक दोस्त चुनें',
       'pay_via_razorpay_upi_more_label': 'Razorpay (UPI और अधिक) से पे करें',
       'payment_verification_failed_contact_support_message':
@@ -6201,7 +6769,8 @@ class AppLocalizations {
       'phone_not_on_lenden_message':
           'दूसरे सदस्य का फ़ोन नंबर LenDen पर नहीं है। यदि आप जानते हैं तो इसे मैन्युअल रूप से दर्ज करें (UPI के लिए), या LenDen वॉलेट से पे करें।',
       'phone_number_not_found_label': 'फ़ोन नंबर नहीं मिला',
-      'please_wait_do_not_go_back_message': 'कृपया प्रतीक्षा करें, वापस न जाएं।',
+      'please_wait_do_not_go_back_message':
+          'कृपया प्रतीक्षा करें, वापस न जाएं।',
       'razorpay_p2p_label': 'Razorpay P2P',
       'razorpay_received_label': 'Razorpay प्राप्त हुआ',
       'retry_payment_label': 'पेमेंट पुनः प्रयास करें',
@@ -6223,7 +6792,28 @@ class AppLocalizations {
       'wallet_balance_colon_label': 'वॉलेट बैलेंस:',
       'wallet_received_label': 'वॉलेट प्राप्त हुआ',
       'wallet_topup_label': 'वॉलेट टॉप-अप',
+      'wallet_transaction_pin_label': 'वॉलेट ट्रांज़ैक्शन PIN',
       'wallet_transfer_label': 'वॉलेट ट्रांसफर',
+      'set_pin_title': 'ट्रांज़ैक्शन PIN सेट करें',
+      'change_pin_title': 'PIN बदलें',
+      'remove_pin_title': 'PIN हटाएं',
+      'enter_new_pin_label': 'नया PIN दर्ज करें',
+      'confirm_new_pin_label': 'नया PIN पुष्टि करें',
+      'enter_current_pin_label': 'वर्तमान PIN दर्ज करें',
+      'enter_wallet_pin_label': 'अपना 6-अंकीय PIN दर्ज करें',
+      'use_pin_label': 'PIN उपयोग करें',
+      'use_email_otp_label': 'Email OTP उपयोग करें',
+      'pin_set_successfully_message':
+          'ट्रांज़ैक्शन PIN सफलतापूर्वक सेट हो गया।',
+      'pin_changed_successfully_message':
+          'ट्रांज़ैक्शन PIN सफलतापूर्वक बदल दिया।',
+      'pin_removed_message': 'ट्रांज़ैक्शन PIN हटा दिया गया।',
+      'pin_locked_message': 'बहुत अधिक गलत प्रयास। PIN लॉक हो गया।',
+      'wrong_pin_message': 'PIN गलत है।',
+      'pin_not_set_message':
+          'PIN सेट नहीं है। Email OTP उपयोग करें या Settings में PIN सेट करें।',
+      'sending_otp_label': 'OTP भेज रहे हैं…',
+      'verifying_otp_label': 'OTP सत्यापित हो रहा है…',
       'withdraw_label': 'निकालें',
       'withdraw_money_title': 'पैसे निकालें',
       'withdraw_test_mode_notice_message':
@@ -6272,11 +6862,9 @@ class AppLocalizations {
       'leaderboard_updated_msg':
           'चयनित फ़िल्टर के लिए लीडरबोर्ड अपडेट किया गया।',
       'already_in_friends_list_msg': 'पहले से ही आपकी मित्र सूची में है।',
-      'friend_request_pending_for_msg':
-          'के लिए मित्र अनुरोध पहले से लंबित है',
+      'friend_request_pending_for_msg': 'के लिए मित्र अनुरोध पहले से लंबित है',
       'friend_request_sent_to_msg': 'को आपका मित्र अनुरोध भेज दिया गया है',
-      'could_not_send_friend_request_msg':
-          'अभी मित्र अनुरोध नहीं भेजा जा सका।',
+      'could_not_send_friend_request_msg': 'अभी मित्र अनुरोध नहीं भेजा जा सका।',
       'unable_to_load_leaderboard_msg':
           'अभी लीडरबोर्ड लोड करने में असमर्थ। कृपया पुनः प्रयास करें।',
       'unknown_user_label': 'अज्ञात उपयोगकर्ता',
@@ -6306,7 +6894,8 @@ class AppLocalizations {
       'confirm_unblock_user_message': 'इस उपयोगकर्ता को अनब्लॉक करें?',
       'cannot_add_self_friend':
           'यह आप हैं! आप अपने आप को मित्र के रूप में नहीं जोड़ सकते।',
-      'user_already_in_friends_list': 'उपयोगकर्ता पहले से आपकी मित्र सूची में है।',
+      'user_already_in_friends_list':
+          'उपयोगकर्ता पहले से आपकी मित्र सूची में है।',
       'user_blocked_unblock_to_add':
           'उपयोगकर्ता ब्लॉक है। फिर से जोड़ने के लिए अनब्लॉक करें।',
       'no_users_found_for': 'इसके लिए कोई उपयोगकर्ता नहीं मिला',
@@ -6340,9 +6929,9 @@ class AppLocalizations {
       'no_blocked_users': 'कोई ब्लॉक किया गया उपयोगकर्ता नहीं',
       'search_blocked_users_placeholder': 'ब्लॉक किए गए उपयोगकर्ता खोजें...',
       'no_suggestions_right_now': 'अभी कोई सुझाव नहीं',
-      'add_more_friends_for_suggestions':
-          'सुझाव पाने के लिए अधिक मित्र जोड़ें',
-      'based_on_friends_transactions': 'आपके मित्रों और ट्रांज़ैक्शन के आधार पर',
+      'add_more_friends_for_suggestions': 'सुझाव पाने के लिए अधिक मित्र जोड़ें',
+      'based_on_friends_transactions':
+          'आपके मित्रों और ट्रांज़ैक्शन के आधार पर',
       'mutual_friend_singular': 'म्यूचुअल मित्र',
       'mutual_friends_plural': 'म्यूचुअल मित्र',
       'add_label': 'जोड़ें',
@@ -6359,13 +6948,16 @@ class AppLocalizations {
       'you_and_prefix': 'आप और',
       'could_not_load_mutual_friends': 'म्यूचुअल मित्र लोड नहीं हो सके।',
       'no_mutual_friends_found': 'कोई म्यूचुअल मित्र नहीं मिला',
-      'test_mode_credentials_hint': 'टेस्ट मोड — Razorpay में इन क्रेडेंशियल्स का उपयोग करें:',
+      'test_mode_credentials_hint':
+          'टेस्ट मोड — Razorpay में इन क्रेडेंशियल्स का उपयोग करें:',
       'test_card_label': 'कार्ड',
       'test_upi_label': 'UPI',
-      'razorpay_android_ios_only': 'Razorpay पेमेंट केवल Android और iOS पर उपलब्ध हैं।',
+      'razorpay_android_ios_only':
+          'Razorpay पेमेंट केवल Android और iOS पर उपलब्ध हैं।',
       'failed_to_create_order': 'ऑर्डर बनाने में विफल',
       'added_to_wallet_suffix': 'वॉलेट में जोड़ा गया!',
-      'payment_received_verification_failed': 'पेमेंट प्राप्त हुई लेकिन सत्यापन विफल। सहायता से संपर्क करें।',
+      'payment_received_verification_failed':
+          'पेमेंट प्राप्त हुई लेकिन सत्यापन विफल। सहायता से संपर्क करें।',
       'verification_error_prefix': 'सत्यापन त्रुटि:',
       'payment_failed_prefix': 'पेमेंट विफल:',
       'unknown_label': 'अज्ञात',
@@ -6400,13 +6992,17 @@ class AppLocalizations {
       'category_education_label': 'शिक्षा',
       'enter_a_description_message': 'कृपया विवरण दर्ज करें',
       'select_at_least_one_member_message': 'कृपया कम से कम एक सदस्य चुनें',
-      'split_total_must_equal_amount_message': 'स्प्लिट का कुल ({total}) राशि ({amount}) के बराबर होना चाहिए',
+      'split_total_must_equal_amount_message':
+          'स्प्लिट का कुल ({total}) राशि ({amount}) के बराबर होना चाहिए',
       'edit_expense_label': 'खर्च संपादित करें',
-      'members_left_group_balances_auto_settled_message': 'समूह छोड़ने वाले {count} सदस्य(ओं) का बैलेंस स्वतः निपटाया गया',
+      'members_left_group_balances_auto_settled_message':
+          'समूह छोड़ने वाले {count} सदस्य(ओं) का बैलेंस स्वतः निपटाया गया',
       'description_hint_dinner_hotel_message': 'जैसे डिनर, होटल, कैब',
       'amount_hint': 'राशि',
-      'currency_cannot_be_changed_editing_message': 'संपादन के दौरान करेंसी नहीं बदली जा सकती',
-      'currency_fixed_for_group_message': 'इस समूह के लिए करेंसी {currency} पर निर्धारित है',
+      'currency_cannot_be_changed_editing_message':
+          'संपादन के दौरान करेंसी नहीं बदली जा सकती',
+      'currency_fixed_for_group_message':
+          'इस समूह के लिए करेंसी {currency} पर निर्धारित है',
       'added_by_who_paid_label': 'जोड़ा गया (किसने भुगतान किया)',
       'split_between_label': 'इनके बीच स्प्लिट करें',
       'equal_split_label': 'समान स्प्लिट',
@@ -6414,7 +7010,8 @@ class AppLocalizations {
       'balanced_label': 'संतुलित',
       'over_by_label': 'इससे अधिक',
       'left_colon_label': 'शेष:',
-      'amount_for_each_selected_member_label': 'प्रत्येक चयनित सदस्य के लिए राशि सेट करें',
+      'amount_for_each_selected_member_label':
+          'प्रत्येक चयनित सदस्य के लिए राशि सेट करें',
       'save_changes_label': 'बदलाव सहेजें',
       'group_expense_feature_label': 'ग्रुप खर्च',
       'group_report_label': 'ग्रुप रिपोर्ट',
@@ -6430,13 +7027,15 @@ class AppLocalizations {
       'failed_to_delete_expense_message': 'खर्च हटाने में विफल',
       'your_share_settled_message': 'आपका हिस्सा निपटाया जा चुका है!',
       'failed_to_settle_message': 'निपटाने में विफल',
-      'members_left_cannot_include_message': 'समूह छोड़ चुके सदस्यों को शामिल नहीं किया जा सकता',
+      'members_left_cannot_include_message':
+          'समूह छोड़ चुके सदस्यों को शामिल नहीं किया जा सकता',
       'expense_added_message': 'खर्च जोड़ा गया!',
       'failed_to_add_expense_message': 'खर्च जोड़ने में विफल',
       'expense_updated_message': 'खर्च अपडेट किया गया!',
       'failed_to_update_expense_message': 'खर्च अपडेट करने में विफल',
       'settled_successfully_message': 'सफलतापूर्वक निपटाया गया!',
-      'all_splits_already_settled_message': 'सभी स्प्लिट पहले से निपटाए जा चुके हैं!',
+      'all_splits_already_settled_message':
+          'सभी स्प्लिट पहले से निपटाए जा चुके हैं!',
       'settle_members_title_message': 'सदस्यों को निपटाएं — {description}',
       'settle_all_label': 'सभी निपटाएं',
       'splits_title_message': 'स्प्लिट: {description}',
@@ -6476,7 +7075,8 @@ class AppLocalizations {
       'failed_to_remove_member_message': 'सदस्य हटाने में विफल',
       're_add_label': 'फिर से जोड़ें',
       // Group transactions list page
-      'failed_to_load_groups_retry_message': 'ग्रुप लोड करने में विफल। कृपया पुनः प्रयास करें।',
+      'failed_to_load_groups_retry_message':
+          'ग्रुप लोड करने में विफल। कृपया पुनः प्रयास करें।',
       'created_by_me_label': 'मेरे द्वारा बनाया गया',
       'member_label': 'सदस्य',
       'name_a_z_label': 'नाम A-Z',
@@ -6497,9 +7097,11 @@ class AppLocalizations {
       'split_expenses_with_friends_message':
           'दोस्तों और परिवार के साथ आसानी से खर्च स्प्लिट करें।\nअपना पहला ग्रुप बनाने के लिए "+" टैप करें!',
       'create_first_group_label': 'पहला ग्रुप बनाएं',
-      'search_group_name_or_creator_email_hint': 'ग्रुप के नाम या निर्माता के ईमेल से खोजें...',
+      'search_group_name_or_creator_email_hint':
+          'ग्रुप के नाम या निर्माता के ईमेल से खोजें...',
       'no_favourite_groups_yet_message': 'अभी तक कोई पसंदीदा ग्रुप नहीं!',
-      'mark_groups_as_favourites_message': 'ग्रुप्स को यहाँ देखने के लिए उन्हें पसंदीदा के रूप में चिह्नित करें।',
+      'mark_groups_as_favourites_message':
+          'ग्रुप्स को यहाँ देखने के लिए उन्हें पसंदीदा के रूप में चिह्नित करें।',
       'view_details_label': 'विवरण देखें',
       'creator_colon_label': 'निर्माता: {email}',
       'members_colon_label': 'सदस्य: {count}',
@@ -6515,12 +7117,15 @@ class AppLocalizations {
           '{currency} में रूपांतरण अभी उपलब्ध नहीं है। इसके बजाय INR मान दिखाए जा रहे हैं।',
       'currency_locked_to_message':
           '{currency} पर लॉक है क्योंकि इस ग्रुप के पहले खर्च में उस करेंसी का उपयोग किया गया था।',
-      'currency_unlocked_other_groups_message': 'आप अन्य समूहों में एक अलग करेंसी का उपयोग कर सकते हैं।',
+      'currency_unlocked_other_groups_message':
+          'आप अन्य समूहों में एक अलग करेंसी का उपयोग कर सकते हैं।',
       'enter_amount_hint': 'राशि दर्ज करें',
       'enter_expense_description_hint': 'खर्च का विवरण दर्ज करें',
-      'expense_updated_successfully_message': 'खर्च सफलतापूर्वक अपडेट किया गया!',
+      'expense_updated_successfully_message':
+          'खर्च सफलतापूर्वक अपडेट किया गया!',
       'failed_to_download_receipt_message': 'रसीद डाउनलोड करने में विफल',
-      'failed_to_load_group_transactions_retry_message': 'ग्रुप ट्रांज़ैक्शन लोड करने में विफल। कृपया पुनः प्रयास करें।',
+      'failed_to_load_group_transactions_retry_message':
+          'ग्रुप ट्रांज़ैक्शन लोड करने में विफल। कृपया पुनः प्रयास करें।',
       'filter_all_groups_label': 'सभी ग्रुप',
       'filter_joined_groups_label': 'शामिल हुए ग्रुप',
       'filter_left_groups_label': 'छोड़े गए ग्रुप',
@@ -6529,34 +7134,40 @@ class AppLocalizations {
       'invalid_date_label': 'अमान्य तारीख़',
       'messages_label': 'संदेश',
       'network_error_message': 'नेटवर्क त्रुटि: {error}',
-      'no_expenses_in_group_yet_message': 'इस ग्रुप में अभी तक कोई खर्च नहीं है',
+      'no_expenses_in_group_yet_message':
+          'इस ग्रुप में अभी तक कोई खर्च नहीं है',
       'no_group_transactions_found_message': 'कोई ग्रुप ट्रांज़ैक्शन नहीं मिला',
       'no_groups_found_message': 'कोई ग्रुप नहीं मिला',
-      'not_part_of_any_group_transactions_message': 'आप अभी तक किसी भी ग्रुप ट्रांज़ैक्शन का हिस्सा नहीं हैं।',
+      'not_part_of_any_group_transactions_message':
+          'आप अभी तक किसी भी ग्रुप ट्रांज़ैक्शन का हिस्सा नहीं हैं।',
       'pending_balance_label': 'लंबित बैलेंस:',
       'receipt_downloaded_to_path_message': 'रसीद {path} पर डाउनलोड की गई',
       'search_groups_hint': 'ग्रुप के नाम, सदस्यों या खर्चों से खोजें...',
       'search_groups_label': 'ग्रुप खोजें',
       'select_members_label': 'सदस्य चुनें',
-      'something_went_wrong_retry_message': 'कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
+      'something_went_wrong_retry_message':
+          'कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
       'split_details_label': 'स्प्लिट विवरण:',
       'total_expenses_count_label': 'कुल खर्चे: {count}',
       'total_groups_label': 'कुल ग्रुप',
       'total_split_amount_label': 'कुल स्प्लिट राशि:',
       'total_summary_label': 'कुल सारांश',
-      'try_adjusting_search_terms_message': 'अपने खोज शब्दों को समायोजित करने का प्रयास करें।',
+      'try_adjusting_search_terms_message':
+          'अपने खोज शब्दों को समायोजित करने का प्रयास करें।',
       'view_all_count_label': 'सभी देखें ({count})',
       'you_suffix_label': ' (आप)',
       'your_summary_label': 'आपका सारांश',
       'across_all_group_expenses_message': 'सभी समूह खर्चों में',
-      'all_monetary_values_in_message': 'सभी राशि मूल्य {currency} में दिखाए गए हैं',
+      'all_monetary_values_in_message':
+          'सभी राशि मूल्य {currency} में दिखाए गए हैं',
       'all_quick_records_message': 'सभी क्विक ट्रांज़ैक्शन रिकॉर्ड',
       'all_secure_records_message': 'सभी सिक्योर ट्रांज़ैक्शन रिकॉर्ड',
       'all_transactions_cleared_message': 'सभी ट्रांज़ैक्शन क्लियर हो गए हैं!',
       'amount_shared_by_you_message': 'आपने दूसरों के साथ साझा की गई राशि',
       'amount_still_unsettled_message': 'अभी भी न निपटाई गई राशि',
       'amount_taken_by_you_message': 'आपने दूसरों से ली गई राशि',
-      'analytics_disabled_privacy_message': 'एनालिटिक्स शेयरिंग आपकी प्राइवेसी सेटिंग्स में बंद है।',
+      'analytics_disabled_privacy_message':
+          'एनालिटिक्स शेयरिंग आपकी प्राइवेसी सेटिंग्स में बंद है।',
       'analytics_options_label': 'एनालिटिक्स विकल्प',
       'analytics_title_label': 'एनालिटिक्स',
       'average_amount_label': 'औसत राशि',
@@ -6566,32 +7177,44 @@ class AppLocalizations {
       'cleared_label': 'क्लियर',
       'completion_label': 'पूर्णता',
       'contributed_label': 'योगदान दिया',
-      'conversion_unavailable_for_analytics_message': '{currency} में बदलना अभी एनालिटिक्स के लिए उपलब्ध नहीं है।',
-      'currency_unavailable_showing_inr_message': 'चुनी गई एनालिटिक्स करेंसी अभी उपलब्ध नहीं है। इसके बजाय INR मूल्य दिखाए जा रहे हैं।',
+      'conversion_unavailable_for_analytics_message':
+          '{currency} में बदलना अभी एनालिटिक्स के लिए उपलब्ध नहीं है।',
+      'currency_unavailable_showing_inr_message':
+          'चुनी गई एनालिटिक्स करेंसी अभी उपलब्ध नहीं है। इसके बजाय INR मूल्य दिखाए जा रहे हैं।',
       'days_avg_label': 'औसतन {days} दिन',
       'default_rate_label': 'डिफॉल्ट रेट',
-      'enable_analytics_sharing_message': 'इनसाइट्स देखने के लिए अपनी प्राइवेसी सेटिंग्स में एनालिटिक्स शेयरिंग चालू करें।',
+      'enable_analytics_sharing_message':
+          'इनसाइट्स देखने के लिए अपनी प्राइवेसी सेटिंग्स में एनालिटिक्स शेयरिंग चालू करें।',
       'error_colon_label': 'त्रुटि: {error}',
       'extended_metrics_label': 'विस्तृत मेट्रिक्स',
-      'failed_to_fetch_group_analytics_message': 'समूह एनालिटिक्स लाने में विफल।',
-      'failed_to_fetch_quick_analytics_message': 'क्विक एनालिटिक्स लाने में विफल।',
-      'failed_to_fetch_secure_analytics_message': 'सिक्योर एनालिटिक्स लाने में विफल।',
-      'failed_to_load_quick_transactions_message': 'क्विक ट्रांज़ैक्शन लोड करने में विफल।',
-      'failed_to_load_secure_transactions_message': 'सिक्योर ट्रांज़ैक्शन लोड करने में विफल।',
-      'forecast_pending_cleared_by_message': 'इस रफ़्तार से, आपके {count} पेंडिंग ट्रांज़ैक्शन {month} {year} तक क्लियर हो जाने चाहिए।',
+      'failed_to_fetch_group_analytics_message':
+          'समूह एनालिटिक्स लाने में विफल।',
+      'failed_to_fetch_quick_analytics_message':
+          'क्विक एनालिटिक्स लाने में विफल।',
+      'failed_to_fetch_secure_analytics_message':
+          'सिक्योर एनालिटिक्स लाने में विफल।',
+      'failed_to_load_quick_transactions_message':
+          'क्विक ट्रांज़ैक्शन लोड करने में विफल।',
+      'failed_to_load_secure_transactions_message':
+          'सिक्योर ट्रांज़ैक्शन लोड करने में विफल।',
+      'forecast_pending_cleared_by_message':
+          'इस रफ़्तार से, आपके {count} पेंडिंग ट्रांज़ैक्शन {month} {year} तक क्लियर हो जाने चाहिए।',
       'frequent_person_label': 'सबसे बार-बार वाला व्यक्ति',
       'fully_cleared_transactions_message': 'पूरी तरह क्लियर ट्रांज़ैक्शन',
-      'group_analytics_subtitle_message': 'आपके समूह खर्चों और स्प्लिट्स से इनसाइट्स',
+      'group_analytics_subtitle_message':
+          'आपके समूह खर्चों और स्प्लिट्स से इनसाइट्स',
       'group_analytics_title_label': 'समूह एनालिटिक्स',
       'groups_included_in_analytics_message': 'इस एनालिटिक्स में शामिल समूह',
       'groups_trxns_tab_label': 'समूह',
-      'interest_mix_count_label': '{withCount} ब्याज के साथ, {withoutCount} बिना ब्याज',
+      'interest_mix_count_label':
+          '{withCount} ब्याज के साथ, {withoutCount} बिना ब्याज',
       'interest_split_label': 'ब्याज विभाजन',
       'interest_tracked_so_far_message': 'अब तक ट्रैक किया गया ब्याज',
       'largest_pending_label': 'सबसे बड़ा पेंडिंग',
       'member_contributions_label': 'सदस्य योगदान',
       'missing_proof_files_label': 'गायब प्रूफ फाइलें',
-      'mixed_currency_context_message': 'आपके सिक्योर ट्रांज़ैक्शन मिश्रित करेंसी का उपयोग करते हैं: {currencies}',
+      'mixed_currency_context_message':
+          'आपके सिक्योर ट्रांज़ैक्शन मिश्रित करेंसी का उपयोग करते हैं: {currencies}',
       'month_net_flow_label': 'महीने का नेट फ्लो',
       'monthly_activity_label': 'मासिक गतिविधि',
       'needed_info_label': 'ज़रूरी जानकारी',
@@ -6600,11 +7223,16 @@ class AppLocalizations {
       'no_counterparty_data_message': 'अभी तक कोई काउंटरपार्टी डेटा नहीं।',
       'no_data_label': 'कोई डेटा नहीं',
       'no_partner_data_message': 'अभी तक कोई पार्टनर डेटा उपलब्ध नहीं है।',
-      'no_quick_trend_data_message': 'अभी तक कोई क्विक ट्रांज़ैक्शन ट्रेंड डेटा नहीं।',
-      'no_secure_currency_data_message': 'अभी तक कोई सिक्योर ट्रांज़ैक्शन करेंसी डेटा नहीं।',
-      'no_transactions_to_forecast_message': 'पूर्वानुमान के लिए अभी कोई ट्रांज़ैक्शन नहीं।',
-      'not_enough_data_for_tab_message': 'इस टैब के लिए एनालिटिक्स दिखाने के लिए अभी पर्याप्त डेटा नहीं है।',
-      'open_option_charts_message': 'चार्ट और संबंधित विवरण देखने के लिए कोई भी विकल्प खोलें।',
+      'no_quick_trend_data_message':
+          'अभी तक कोई क्विक ट्रांज़ैक्शन ट्रेंड डेटा नहीं।',
+      'no_secure_currency_data_message':
+          'अभी तक कोई सिक्योर ट्रांज़ैक्शन करेंसी डेटा नहीं।',
+      'no_transactions_to_forecast_message':
+          'पूर्वानुमान के लिए अभी कोई ट्रांज़ैक्शन नहीं।',
+      'not_enough_data_for_tab_message':
+          'इस टैब के लिए एनालिटिक्स दिखाने के लिए अभी पर्याप्त डेटा नहीं है।',
+      'open_option_charts_message':
+          'चार्ट और संबंधित विवरण देखने के लिए कोई भी विकल्प खोलें।',
       'open_privacy_settings_label': 'प्राइवेसी सेटिंग्स खोलें',
       'outstanding_label': 'बाकी राशि',
       'overdue_interest_label': 'अतिदेय ब्याज',
@@ -6613,7 +7241,8 @@ class AppLocalizations {
       'pending_transactions_message': 'पेंडिंग ट्रांज़ैक्शन',
       'per_person_ledger_label': 'प्रति-व्यक्ति लेजर',
       'quick_activity_trend_label': 'क्विक एक्टिविटी ट्रेंड',
-      'quick_amount_shared_by_you_message': 'आपने दूसरों के साथ साझा की गई राशि',
+      'quick_amount_shared_by_you_message':
+          'आपने दूसरों के साथ साझा की गई राशि',
       'quick_amount_taken_by_you_message': 'आपने दूसरों से ली गई राशि',
       'quick_analytics_subtitle_message': 'आपके क्विक ट्रांज़ैक्शन से इनसाइट्स',
       'quick_analytics_title_label': 'क्विक एनालिटिक्स',
@@ -6621,63 +7250,80 @@ class AppLocalizations {
       'quick_facts_label': 'त्वरित जानकारी',
       'quick_insights_label': 'क्विक इनसाइट्स',
       'quick_interaction_label': 'क्विक इंटरैक्शन',
-      'quick_transactions_already_closed_message': 'क्विक ट्रांज़ैक्शन जो बंद हो चुके हैं',
-      'quick_transactions_still_open_message': 'क्विक ट्रांज़ैक्शन जो अभी भी खुले हैं',
+      'quick_transactions_already_closed_message':
+          'क्विक ट्रांज़ैक्शन जो बंद हो चुके हैं',
+      'quick_transactions_still_open_message':
+          'क्विक ट्रांज़ैक्शन जो अभी भी खुले हैं',
       'quick_trxns_tab_label': 'क्विक',
-      'rate_too_slow_to_estimate_message': 'क्लियरिंग दर पूर्वानुमान लगाने के लिए बहुत धीमी है।',
+      'rate_too_slow_to_estimate_message':
+          'क्लियरिंग दर पूर्वानुमान लगाने के लिए बहुत धीमी है।',
       'records_label': 'रिकॉर्ड्स',
       'repayment_speed_label': 'रीपेमेंट स्पीड',
       'risk_attention_label': 'जोखिम / ध्यान दें',
-      'secure_analytics_subtitle_message': 'आपके सिक्योर ट्रांज़ैक्शन से इनसाइट्स',
+      'secure_analytics_subtitle_message':
+          'आपके सिक्योर ट्रांज़ैक्शन से इनसाइट्स',
       'secure_analytics_title_label': 'सिक्योर एनालिटिक्स',
       'secure_insights_label': 'सिक्योर इनसाइट्स',
       'secure_trxns_tab_label': 'सिक्योर',
       'showing_in_currency_message': '{currency} में दिखाया जा रहा है',
       'showing_inr_values_label': 'INR मूल्य दिखाए जा रहे हैं',
-      'single_currency_context_message': 'आपके सभी सिक्योर ट्रांज़ैक्शन {currency} में हैं।',
+      'single_currency_context_message':
+          'आपके सभी सिक्योर ट्रांज़ैक्शन {currency} में हैं।',
       'spending_by_category_label': 'श्रेणी के अनुसार खर्च',
       'splits_already_settled_message': 'स्प्लिट्स जो निपट चुके हैं',
       'splits_still_pending_message': 'स्प्लिट्स जो अभी भी पेंडिंग हैं',
       'todays_stats_label': 'आज के आँकड़े',
       'top_counterparties_label': 'टॉप काउंटरपार्टी',
-      'top_counterparties_subtitle_message': 'सबसे सक्रिय उधार देने/लेने वाले पार्टनर।',
+      'top_counterparties_subtitle_message':
+          'सबसे सक्रिय उधार देने/लेने वाले पार्टनर।',
       'top_quick_partners_label': 'टॉप क्विक पार्टनर',
       'total_borrowed_label': 'कुल उधार लिया',
       'total_lent_label': 'कुल उधार दिया',
       'total_records_label': 'कुल रिकॉर्ड्स',
       'total_transactions_label': 'कुल ट्रांज़ैक्शन',
       'tracked_group_expenses_message': 'ट्रैक किए गए समूह खर्च',
-      'transactions_pending_start_clearing_message': '{count} ट्रांज़ैक्शन पेंडिंग हैं — पूर्वानुमान देखने के लिए उन्हें क्लियर करना शुरू करें।',
-      'twelve_month_group_trend_message': '12-महीने का समूह ट्रांज़ैक्शन ट्रेंड',
-      'twelve_month_quick_trend_message': '12-महीने का क्विक ट्रांज़ैक्शन ट्रेंड',
-      'twelve_month_transaction_trend_message': '12-महीने का ट्रांज़ैक्शन ट्रेंड',
+      'transactions_pending_start_clearing_message':
+          '{count} ट्रांज़ैक्शन पेंडिंग हैं — पूर्वानुमान देखने के लिए उन्हें क्लियर करना शुरू करें।',
+      'twelve_month_group_trend_message':
+          '12-महीने का समूह ट्रांज़ैक्शन ट्रेंड',
+      'twelve_month_quick_trend_message':
+          '12-महीने का क्विक ट्रांज़ैक्शन ट्रेंड',
+      'twelve_month_transaction_trend_message':
+          '12-महीने का ट्रांज़ैक्शन ट्रेंड',
       'twelve_months_label': '12 महीने',
       'txn_count_cleared_message': '{count} ट्रांज़ैक्शन · {cleared} क्लियर',
-      'unable_to_load_quick_insights_message': 'क्विक इनसाइट्स लोड नहीं हो सके।',
+      'unable_to_load_quick_insights_message':
+          'क्विक इनसाइट्स लोड नहीं हो सके।',
       'uncleared_quick_amount_message': 'क्लियर न हुई क्विक ट्रांज़ैक्शन राशि',
       'unsettled_label': 'अनसेटल्ड',
       'view_quick_transactions_label': 'क्विक ट्रांज़ैक्शन देखें',
       'what_belongs_to_you_message': 'समूह स्प्लिट्स से जो आपका है',
-      'what_you_paid_into_groups_message': 'आपने अपने समूहों में जो भुगतान किया',
+      'what_you_paid_into_groups_message':
+          'आपने अपने समूहों में जो भुगतान किया',
       'who_paid_into_group_message': 'समूह में किसने और कितना भुगतान किया',
       'you_owe_label': 'आप पर बाकी है',
       'you_will_get_label': 'आपको मिलेगा',
       'your_share_title_label': 'आपका हिस्सा',
       'active_caps_label': 'सक्रिय',
       'active_until_message': '{date} तक सक्रिय',
-      'after_paying_enter_payment_id_message': 'भुगतान करने के बाद, नीचे Razorpay रसीद पर दिखाई गई Payment ID दर्ज करें।',
+      'after_paying_enter_payment_id_message':
+          'भुगतान करने के बाद, नीचे Razorpay रसीद पर दिखाई गई Payment ID दर्ज करें।',
       'all_label': 'सभी',
       'amount_to_pay_colon_label': 'भुगतान करने योग्य राशि: {amount}',
       'balance_amount_message': 'बैलेंस: ₹{amount}',
       'before_you_pay_label': 'भुगतान करने से पहले',
-      'carry_over_renewal_message': 'आपकी मौजूदा योजना के बचे हुए दिन नई सदस्यता में जुड़ जाएंगे।',
+      'carry_over_renewal_message':
+          'आपकी मौजूदा योजना के बचे हुए दिन नई सदस्यता में जुड़ जाएंगे।',
       'compare_label': 'तुलना करें',
-      'conversion_unavailable_subscription_message': '{currency} में बदलना अभी सदस्यता योजनाओं के लिए उपलब्ध नहीं है। इसके बजाय INR मूल्य दिखाए जा रहे हैं।',
+      'conversion_unavailable_subscription_message':
+          '{currency} में बदलना अभी सदस्यता योजनाओं के लिए उपलब्ध नहीं है। इसके बजाय INR मूल्य दिखाए जा रहे हैं।',
       'days_left_label': 'बचे हुए दिन',
       'days_left_message': '{count} दिन बचे हैं',
       'duration_days_count_message': '{duration} दिन',
-      'enter_payment_id_before_closing_message': 'इसे बंद करने से पहले कृपया भुगतान के बाद मिली Payment ID दर्ज करें।',
-      'error_initiating_payment_message': 'भुगतान शुरू करने में त्रुटि: {error}',
+      'enter_payment_id_before_closing_message':
+          'इसे बंद करने से पहले कृपया भुगतान के बाद मिली Payment ID दर्ज करें।',
+      'error_initiating_payment_message':
+          'भुगतान शुरू करने में त्रुटि: {error}',
       'expired_caps_label': 'समाप्त',
       'expired_on_message': '{date} पर समाप्त हुआ',
       'expires_on_colon_label': 'समाप्ति तिथि:',
@@ -6689,32 +7335,41 @@ class AppLocalizations {
       'go_premium_label': 'प्रीमियम लें',
       'hide_renewal_options_label': 'रिन्यूअल विकल्प छुपाएं',
       'hours_left_message': '{count} घंटे बचे हैं',
-      'insufficient_wallet_balance_message': 'वॉलेट में पर्याप्त बैलेंस नहीं है। ₹{needed} चाहिए, आपके पास ₹{available} है।',
+      'insufficient_wallet_balance_message':
+          'वॉलेट में पर्याप्त बैलेंस नहीं है। ₹{needed} चाहिए, आपके पास ₹{available} है।',
       'lenden_wallet_label': 'LenDen वॉलेट',
       'list_view_label': 'लिस्ट व्यू',
       'money_back_guarantee_label': 'पैसा वापसी की\nगारंटी',
       'most_popular_label': 'सबसे लोकप्रिय',
       'na_label': 'लागू नहीं',
-      'need_help_with_payment_message': 'गलत Payment ID डाल दी या कोई समस्या आ रही है? नीचे से सहायता प्राप्त करें।',
+      'need_help_with_payment_message':
+          'गलत Payment ID डाल दी या कोई समस्या आ रही है? नीचे से सहायता प्राप्त करें।',
       'no_subscriptions_found_message': 'कोई सदस्यता नहीं मिली',
       'or_label': 'या',
-      'pay_exact_amount_warning_message': 'Razorpay के पेज पर ठीक {amount} ही भुगतान करें। यदि आप कोई अन्य राशि भुगतान करते हैं, तो वह वापस नहीं की जाएगी और आपकी सदस्यता सक्रिय नहीं होगी।',
-      'pay_exact_amount_wallet_warning_message': 'Razorpay के पेज पर ठीक {amount} ही भुगतान करें। यदि आप कोई अन्य राशि भुगतान करते हैं, तो वह वापस नहीं की जाएगी और आपके वॉलेट में नहीं जुड़ेगी।',
+      'pay_exact_amount_warning_message':
+          'Razorpay के पेज पर ठीक {amount} ही भुगतान करें। यदि आप कोई अन्य राशि भुगतान करते हैं, तो वह वापस नहीं की जाएगी और आपकी सदस्यता सक्रिय नहीं होगी।',
+      'pay_exact_amount_wallet_warning_message':
+          'Razorpay के पेज पर ठीक {amount} ही भुगतान करें। यदि आप कोई अन्य राशि भुगतान करते हैं, तो वह वापस नहीं की जाएगी और आपके वॉलेट में नहीं जुड़ेगी।',
       'pay_for_plan_label': '{plan} के लिए भुगतान करें',
       'pay_now_open_link_label': 'अभी भुगतान करें (Razorpay खुलेगा)',
       'pay_via_lenden_wallet_label': 'LenDen वॉलेट से भुगतान करें',
       'pay_via_razorpay_label': 'Razorpay से भुगतान करें',
-      'payment_cancelled_or_failed_message': 'भुगतान रद्द या विफल हुआ: {message}',
-      'payment_config_unavailable_message': 'भुगतान विवरण लोड नहीं हो सका। कृपया अपना कनेक्शन जांचें और पुनः प्रयास करें।',
+      'payment_cancelled_or_failed_message':
+          'भुगतान रद्द या विफल हुआ: {message}',
+      'payment_config_unavailable_message':
+          'भुगतान विवरण लोड नहीं हो सका। कृपया अपना कनेक्शन जांचें और पुनः प्रयास करें।',
       'payment_failed_label': 'भुगतान विफल',
-      'payment_only_supported_mobile_message': 'भुगतान केवल Android और iOS पर समर्थित है। कृपया मोबाइल ऐप का उपयोग करें।',
-      'payment_verification_failed_generic_message': 'हम इस भुगतान को सत्यापित नहीं कर सके। कृपया Payment ID जांचें और पुनः प्रयास करें।',
+      'payment_only_supported_mobile_message':
+          'भुगतान केवल Android और iOS पर समर्थित है। कृपया मोबाइल ऐप का उपयोग करें।',
+      'payment_verification_failed_generic_message':
+          'हम इस भुगतान को सत्यापित नहीं कर सके। कृपया Payment ID जांचें और पुनः प्रयास करें।',
       'percent_off_message': '{discount}% छूट',
       'plan_colon_label': 'योजना:',
       'plan_label': 'योजना',
       'plan_with_discount_off_label': '{plan} ({discount}% छूट)',
       'please_enter_payment_id_message': 'कृपया Razorpay Payment ID दर्ज करें।',
-      'please_login_to_subscribe_message': 'सदस्यता लेने के लिए कृपया लॉगिन करें।',
+      'please_login_to_subscribe_message':
+          'सदस्यता लेने के लिए कृपया लॉगिन करें।',
       'please_select_a_plan_message': 'कृपया एक सदस्यता योजना चुनें।',
       'premium_label': 'प्रीमियम',
       'premium_member_check_label': 'प्रीमियम सदस्य ✓',
@@ -6723,7 +7378,8 @@ class AppLocalizations {
       'renew_extend_subscription_label': 'सदस्यता रिन्यू / बढ़ाएं',
       'renew_via_lenden_wallet_label': 'LenDen वॉलेट से रिन्यू करें',
       'renew_via_razorpay_label': 'Razorpay से रिन्यू करें',
-      'save_payment_id_and_receipt_message': 'भुगतान करने पर, Razorpay एक Payment ID दिखाएगा (pay_ से शुरू होने वाली)। उसे कॉपी करें (और रसीद का स्क्रीनशॉट लें) — अपनी सदस्यता सक्रिय करने के लिए आपको नीचे यह Payment ID दर्ज करनी होगी।',
+      'save_payment_id_and_receipt_message':
+          'भुगतान करने पर, Razorpay एक Payment ID दिखाएगा (pay_ से शुरू होने वाली)। उसे कॉपी करें (और रसीद का स्क्रीनशॉट लें) — अपनी सदस्यता सक्रिय करने के लिए आपको नीचे यह Payment ID दर्ज करनी होगी।',
       'search_by_plan_name_hint': 'योजना के नाम से खोजें...',
       'secure_payment_label': 'सुरक्षित\nभुगतान',
       'select_a_plan_label': 'एक योजना चुनें',
@@ -6736,25 +7392,32 @@ class AppLocalizations {
       'verify_and_add_to_wallet_label': 'सत्यापित करें और वॉलेट में जोड़ें',
       'wallet_payment_failed_message': 'वॉलेट भुगतान विफल हुआ',
       'ad_hidden_7_days_message': 'यह विज्ञापन 7 दिनों के लिए छिपा रहेगा।',
-      'ad_reported_thanks_message': 'विज्ञापन की रिपोर्ट कर दी गई। फीडबैक के लिए धन्यवाद।',
-      'close_after_video_finishes_message': 'वीडियो खत्म होने के बाद क्लोज दिखेगा।',
+      'ad_reported_thanks_message':
+          'विज्ञापन की रिपोर्ट कर दी गई। फीडबैक के लिए धन्यवाद।',
+      'close_after_video_finishes_message':
+          'वीडियो खत्म होने के बाद क्लोज दिखेगा।',
       'close_anytime_message': 'आप इस विज्ञापन को कभी भी बंद कर सकते हैं।',
       'close_available_now_message': 'अब आप इस विज्ञापन को बंद कर सकते हैं।',
       'close_button_available_message': 'क्लोज बटन अब उपलब्ध है।',
       'close_unlocks_after_message': '{label} के बाद क्लोज अनलॉक होगा।',
-      'close_unlocks_in_seconds_message': '{seconds} सेकंड में क्लोज अनलॉक होगा।',
+      'close_unlocks_in_seconds_message':
+          '{seconds} सेकंड में क्लोज अनलॉक होगा।',
       'could_not_hide_ad_message': 'अभी इस विज्ञापन को छिपाया नहीं जा सका।',
-      'could_not_report_ad_message': 'अभी इस विज्ञापन की रिपोर्ट नहीं की जा सकी।',
-      'example_irrelevant_repeated_hint': 'उदाहरण: अप्रासंगिक, बहुत बार दोहराया गया, भ्रामक',
+      'could_not_report_ad_message':
+          'अभी इस विज्ञापन की रिपोर्ट नहीं की जा सकी।',
+      'example_irrelevant_repeated_hint':
+          'उदाहरण: अप्रासंगिक, बहुत बार दोहराया गया, भ्रामक',
       'example_not_relevant_hint': 'उदाहरण: मेरे लिए उपयुक्त नहीं',
       'hide_7_days_label': '7 दिन छुपाएं',
-      'hide_ad_week_help_message': 'हम इस विज्ञापन को एक सप्ताह के लिए आपकी स्क्रीन से छिपा सकते हैं। आप चाहें तो कारण बता सकते हैं।',
+      'hide_ad_week_help_message':
+          'हम इस विज्ञापन को एक सप्ताह के लिए आपकी स्क्रीन से छिपा सकते हैं। आप चाहें तो कारण बता सकते हैं।',
       'hide_today_label': 'आज के लिए छुपाएं',
       'loading_video_message': 'वीडियो लोड हो रहा है...',
       'not_interested_label': 'दिलचस्पी नहीं है',
       'optional_reason_label': 'वैकल्पिक कारण',
       'reason_label': 'कारण',
-      'report_ad_help_message': 'हमें बताएं कि इस विज्ञापन में क्या गलत लगा। यह एडमिन को रिव्यू करने और बेहतर बनाने में मदद करता है।',
+      'report_ad_help_message':
+          'हमें बताएं कि इस विज्ञापन में क्या गलत लगा। यह एडमिन को रिव्यू करने और बेहतर बनाने में मदद करता है।',
       'report_ad_menu_label': 'विज्ञापन की रिपोर्ट करें',
       'report_label': 'रिपोर्ट करें',
       'report_this_ad_label': 'इस विज्ञापन की रिपोर्ट करें',
@@ -6776,7 +7439,8 @@ class AppLocalizations {
       'mark_all_read_label': 'सभी को पढ़ा हुआ चिह्नित करें',
       'mark_read_label': 'पढ़ा हुआ चिह्नित करें',
       'new_label': 'नया',
-      'no_updates_matched_filter_message': 'इस फ़िल्टर से कोई अपडेट मेल नहीं खाया।',
+      'no_updates_matched_filter_message':
+          'इस फ़िल्टर से कोई अपडेट मेल नहीं खाया।',
       'normal_label': 'सामान्य',
       'search_updates_hint': 'अपडेट्स, टैग या वर्शन खोजें…',
       'security_category_label': 'सुरक्षा',
@@ -6786,7 +7450,8 @@ class AppLocalizations {
       'admin_replies_label': 'एडमिन के जवाब',
       'admin_reply_label': 'एडमिन का जवाब',
       'an_error_occurred_message': 'एक त्रुटि हुई: {error}',
-      'confirm_delete_query_message': 'क्या आप वाकई इस क्वेरी को हटाना चाहते हैं? यह वापस नहीं किया जा सकता।',
+      'confirm_delete_query_message':
+          'क्या आप वाकई इस क्वेरी को हटाना चाहते हैं? यह वापस नहीं किया जा सकता।',
       'confirm_deletion_label': 'हटाने की पुष्टि करें',
       'contact_support_label': 'सहायता से संपर्क करें',
       'edit_support_query_label': 'सहायता क्वेरी संपादित करें',
@@ -6798,9 +7463,12 @@ class AppLocalizations {
       'fill_topic_and_description_message': 'कृपया विषय और विवरण दोनों भरें।',
       'help_and_support_label': 'सहायता और समर्थन',
       'my_disputes_label': 'मेरे विवाद',
-      'network_error_deleting_query_message': 'क्वेरी हटाते समय नेटवर्क त्रुटि हुई।',
-      'network_error_editing_query_message': 'क्वेरी संपादित करते समय नेटवर्क त्रुटि हुई।',
-      'network_error_submitting_query_message': 'क्वेरी सबमिट करते समय नेटवर्क त्रुटि हुई।',
+      'network_error_deleting_query_message':
+          'क्वेरी हटाते समय नेटवर्क त्रुटि हुई।',
+      'network_error_editing_query_message':
+          'क्वेरी संपादित करते समय नेटवर्क त्रुटि हुई।',
+      'network_error_submitting_query_message':
+          'क्वेरी सबमिट करते समय नेटवर्क त्रुटि हुई।',
       'no_queries_found_message': 'कोई क्वेरी नहीं मिली।',
       'pending_status_label': 'पेंडिंग',
       'query_created_message': 'क्वेरी बनाई गई!',
@@ -6817,7 +7485,8 @@ class AppLocalizations {
       'submit_query_label': 'क्वेरी सबमिट करें',
       'submitted_date_message': 'सबमिट किया गया: {date}',
       'topic_label': 'विषय',
-      'track_disputes_raised_or_named_message': 'उन विवादों को ट्रैक करें जो आपने उठाए हैं या जिनमें आपका नाम है',
+      'track_disputes_raised_or_named_message':
+          'उन विवादों को ट्रैक करें जो आपने उठाए हैं या जिनमें आपका नाम है',
       'view_all_queries_count_message': 'सभी {count} क्वेरी देखें',
       'your_queries_label': 'आपकी क्वेरी',
       // Admin: User Management page
@@ -6829,8 +7498,10 @@ class AppLocalizations {
       'selected_user_singular': 'चयनित उपयोगकर्ता',
       'force_logout_all_label': 'सभी को फोर्स लॉगआउट करें',
       'force_logout_done_title': 'फोर्स लॉगआउट पूर्ण',
-      'selected_users_logged_out': 'चयनित उपयोगकर्ताओं को लॉगआउट कर दिया गया है।',
-      'bulk_force_logout_failed': 'चयनित उपयोगकर्ताओं को फोर्स लॉगआउट करने में विफल',
+      'selected_users_logged_out':
+          'चयनित उपयोगकर्ताओं को लॉगआउट कर दिया गया है।',
+      'bulk_force_logout_failed':
+          'चयनित उपयोगकर्ताओं को फोर्स लॉगआउट करने में विफल',
       'force_logout_failed_title': 'फोर्स लॉगआउट विफल',
       'users_activated_title': 'उपयोगकर्ता सक्रिय किए गए',
       'users_deactivated_title': 'उपयोगकर्ता निष्क्रिय किए गए',
@@ -6842,52 +7513,65 @@ class AppLocalizations {
       'export_failed_title': 'निर्यात विफल',
       'pending_reviewed_title': 'लंबित उपयोगकर्ताओं की जांच की गई',
       'all_clear_title': 'सब ठीक है',
-      'no_pending_users_left_to_review': 'जांचने के लिए कोई लंबित उपयोगकर्ता नहीं बचा है।',
+      'no_pending_users_left_to_review':
+          'जांचने के लिए कोई लंबित उपयोगकर्ता नहीं बचा है।',
       'failed_to_clear_pending_users': 'लंबित उपयोगकर्ताओं को हटाने में विफल',
       'review_failed_title': 'समीक्षा विफल',
       'date_unavailable': 'तारीख उपलब्ध नहीं',
       'review_pending_user_title': 'लंबित उपयोगकर्ता की समीक्षा करें',
-      'verify_this_user_individually_desc': 'स्वीकृति देने से पहले इस उपयोगकर्ता को व्यक्तिगत रूप से सत्यापित करें।',
+      'verify_this_user_individually_desc':
+          'स्वीकृति देने से पहले इस उपयोगकर्ता को व्यक्तिगत रूप से सत्यापित करें।',
       'no_email': 'कोई ईमेल नहीं',
       'joined_colon_label': 'शामिल हुए:',
       'keep_pending_label': 'लंबित रखें',
       'mark_verified_label': 'सत्यापित के रूप में चिह्नित करें',
-      'failed_to_review_pending_user': 'लंबित उपयोगकर्ता की समीक्षा करने में विफल',
+      'failed_to_review_pending_user':
+          'लंबित उपयोगकर्ता की समीक्षा करने में विफल',
       'user_reviewed_title': 'उपयोगकर्ता की समीक्षा की गई',
-      'pending_user_marked_verified': 'लंबित उपयोगकर्ता को सत्यापित के रूप में चिह्नित किया गया।',
+      'pending_user_marked_verified':
+          'लंबित उपयोगकर्ता को सत्यापित के रूप में चिह्नित किया गया।',
       'export_users_title': 'उपयोगकर्ता निर्यात करें',
-      'export_share_options_desc': 'चुनें कि आप इस निर्यात को कैसे साझा करना चाहते हैं।',
+      'export_share_options_desc':
+          'चुनें कि आप इस निर्यात को कैसे साझा करना चाहते हैं।',
       'copy': 'कॉपी करें',
       'copied_title': 'कॉपी किया गया',
-      'export_content_copied_to_clipboard': 'निर्यात सामग्री क्लिपबोर्ड पर कॉपी की गई।',
+      'export_content_copied_to_clipboard':
+          'निर्यात सामग्री क्लिपबोर्ड पर कॉपी की गई।',
       'whatsapp_label': 'व्हाट्सएप',
       'telegram_label': 'टेलीग्राम',
       'others_label': 'अन्य',
       'export_ready_title': 'निर्यात तैयार है',
-      'export_file_prepared_opened_desc': 'निर्यात फ़ाइल तैयार करके खोल दी गई है।',
+      'export_file_prepared_opened_desc':
+          'निर्यात फ़ाइल तैयार करके खोल दी गई है।',
       'share_app_unavailable_title': 'ऐप उपलब्ध नहीं है',
-      'share_app_unavailable_desc': 'इस शेयर विकल्प को संभालने के लिए कोई ऐप नहीं मिला।',
+      'share_app_unavailable_desc':
+          'इस शेयर विकल्प को संभालने के लिए कोई ऐप नहीं मिला।',
       'export_sent_out_title': 'निर्यात भेजा गया',
       'export_prepared_for_label': 'निर्यात तैयार किया गया',
       'user_activated_title': 'उपयोगकर्ता सक्रिय किया गया',
       'user_deactivated_title': 'उपयोगकर्ता निष्क्रिय किया गया',
-      'user_status_updated_successfully': 'उपयोगकर्ता की स्थिति सफलतापूर्वक अपडेट की गई।',
-      'failed_to_update_user_status': 'उपयोगकर्ता की स्थिति अपडेट करने में विफल',
+      'user_status_updated_successfully':
+          'उपयोगकर्ता की स्थिति सफलतापूर्वक अपडेट की गई।',
+      'failed_to_update_user_status':
+          'उपयोगकर्ता की स्थिति अपडेट करने में विफल',
       'status_update_failed_title': 'स्थिति अपडेट विफल',
       'force_logout_user_title': 'उपयोगकर्ता को फोर्स लॉगआउट करें?',
-      'force_logout_user_desc': 'यह इस उपयोगकर्ता के सभी सक्रिय सत्रों को तुरंत अमान्य कर देगा।',
+      'force_logout_user_desc':
+          'यह इस उपयोगकर्ता के सभी सक्रिय सत्रों को तुरंत अमान्य कर देगा।',
       'force_logout_label': 'फोर्स लॉगआउट',
       'user_logged_out_title': 'उपयोगकर्ता को लॉगआउट किया गया',
       'all_sessions_invalidated_for_label': 'सभी सत्र अमान्य कर दिए गए:',
       'failed_to_force_logout': 'उपयोगकर्ता को फोर्स लॉगआउट करने में विफल',
       'delete_user_title': 'उपयोगकर्ता हटाएं?',
-      'delete_user_permanent_desc': 'यह इस उपयोगकर्ता और उनके सभी डेटा को स्थायी रूप से हटा देगा। यह कार्रवाई पूर्ववत नहीं की जा सकती।',
+      'delete_user_permanent_desc':
+          'यह इस उपयोगकर्ता और उनके सभी डेटा को स्थायी रूप से हटा देगा। यह कार्रवाई पूर्ववत नहीं की जा सकती।',
       'user_deleted_title': 'उपयोगकर्ता हटाया गया',
       'has_been_permanently_deleted': 'को स्थायी रूप से हटा दिया गया है।',
       'failed_to_delete_user': 'उपयोगकर्ता को हटाने में विफल',
       'delete_failed_title': 'हटाना विफल',
       'user_management': 'उपयोगकर्ता प्रबंधन',
-      'search_users_by_name_email_username': 'नाम, ईमेल या यूज़रनेम से उपयोगकर्ता खोजें...',
+      'search_users_by_name_email_username':
+          'नाम, ईमेल या यूज़रनेम से उपयोगकर्ता खोजें...',
       'sort_by_name_label': 'नाम',
       'sort_by_email_label': 'ईमेल',
       'sort_by_date_label': 'शामिल होने की तारीख',
@@ -6906,7 +7590,8 @@ class AppLocalizations {
       'delete_user_label': 'उपयोगकर्ता हटाएं',
       // Admin: User Details page
       'account_type_label': 'खाता प्रकार',
-      'activate_user_confirm_message': 'क्या आप वाकई इस उपयोगकर्ता को सक्रिय करना चाहते हैं?',
+      'activate_user_confirm_message':
+          'क्या आप वाकई इस उपयोगकर्ता को सक्रिय करना चाहते हैं?',
       'active_plan_label': 'सक्रिय प्लान',
       'activity_logged_label': 'गतिविधि दर्ज की गई',
       'activity_statistics_label': 'गतिविधि आंकड़े',
@@ -6915,13 +7600,15 @@ class AppLocalizations {
       'by_label': 'द्वारा',
       'counterpart_colon_label': 'प्रतिपक्ष:',
       'days_active_label': 'सक्रिय दिन',
-      'deactivate_user_confirm_message': 'क्या आप वाकई इस उपयोगकर्ता को निष्क्रिय करना चाहते हैं?',
+      'deactivate_user_confirm_message':
+          'क्या आप वाकई इस उपयोगकर्ता को निष्क्रिय करना चाहते हैं?',
       'email_verified_label': 'ईमेल सत्यापित',
       'error_loading_user_details': 'उपयोगकर्ता विवरण लोड करने में त्रुटि',
       'failed_to_add_note': 'नोट जोड़ने में विफल',
       'failed_to_force_logout_short': 'फोर्स लॉगआउट करने में विफल',
       'failed_to_update_suspension': 'सस्पेंशन अपडेट करने में विफल',
-      'force_logout_user_all_devices_desc': 'यह सभी सक्रिय सत्रों को तुरंत अमान्य कर देगा। उपयोगकर्ता को सभी डिवाइस से लॉगआउट कर दिया जाएगा।',
+      'force_logout_user_all_devices_desc':
+          'यह सभी सक्रिय सत्रों को तुरंत अमान्य कर देगा। उपयोगकर्ता को सभी डिवाइस से लॉगआउट कर दिया जाएगा।',
       'force_logout_user_label': 'उपयोगकर्ता को फोर्स लॉगआउट करें',
       'friends_label': 'मित्र',
       'groups_created_label': 'बनाए गए ग्रुप',
@@ -6957,55 +7644,75 @@ class AppLocalizations {
       'two_factor_auth_label': 'टू-फैक्टर ऑथेंटिकेशन',
       'until_label': 'तक',
       'user_activated_successfully': 'उपयोगकर्ता सफलतापूर्वक सक्रिय किया गया',
-      'user_deactivated_successfully': 'उपयोगकर्ता सफलतापूर्वक निष्क्रिय किया गया',
+      'user_deactivated_successfully':
+          'उपयोगकर्ता सफलतापूर्वक निष्क्रिय किया गया',
       'user_details_title': 'उपयोगकर्ता विवरण',
       'user_id_label': 'उपयोगकर्ता आईडी',
       'user_logged_in_label': 'उपयोगकर्ता लॉगिन हुआ',
-      'user_logged_out_all_devices_message': 'उपयोगकर्ता को सभी डिवाइस से लॉगआउट किया गया',
+      'user_logged_out_all_devices_message':
+          'उपयोगकर्ता को सभी डिवाइस से लॉगआउट किया गया',
       'user_logged_out_label': 'उपयोगकर्ता लॉगआउट हुआ',
       // Admin: Dashboard page
       'manage_users_label': 'उपयोगकर्ता प्रबंधन',
-      'review_and_control_user_accounts_desc': 'उपयोगकर्ता खातों की जांच और नियंत्रण करें',
+      'review_and_control_user_accounts_desc':
+          'उपयोगकर्ता खातों की जांच और नियंत्रण करें',
       'manage_secure_transactions_label': 'सिक्योर ट्रांज़ैक्शन प्रबंधित करें',
-      'inspect_and_control_secure_records_desc': 'सिक्योर रिकॉर्ड का निरीक्षण और नियंत्रण करें',
+      'inspect_and_control_secure_records_desc':
+          'सिक्योर रिकॉर्ड का निरीक्षण और नियंत्रण करें',
       'notes_label': 'नोट्स',
       'open_internal_notes_and_references_desc': 'आंतरिक नोट्स और संदर्भ खोलें',
       'manage_groups_label': 'ग्रुप प्रबंधित करें',
-      'handle_group_activity_and_expenses_desc': 'ग्रुप गतिविधि और खर्चों को संभालें',
+      'handle_group_activity_and_expenses_desc':
+          'ग्रुप गतिविधि और खर्चों को संभालें',
       'manage_quick_transactions_label': 'क्विक ट्रांज़ैक्शन प्रबंधित करें',
-      'inspect_and_manage_quick_transaction_records_desc': 'क्विक ट्रांज़ैक्शन रिकॉर्ड का निरीक्षण और प्रबंधन करें',
-      'monitor_user_side_platform_behaviour_desc': 'उपयोगकर्ता-साइड प्लेटफ़ॉर्म व्यवहार की निगरानी करें',
+      'inspect_and_manage_quick_transaction_records_desc':
+          'क्विक ट्रांज़ैक्शन रिकॉर्ड का निरीक्षण और प्रबंधन करें',
+      'monitor_user_side_platform_behaviour_desc':
+          'उपयोगकर्ता-साइड प्लेटफ़ॉर्म व्यवहार की निगरानी करें',
       'track_label': 'ट्रैक करें',
       'manage_subscription_label': 'सब्सक्रिप्शन प्रबंधित करें',
-      'adjust_admin_side_product_controls_desc': 'व्यवस्थापक-साइड उत्पाद नियंत्रण समायोजित करें',
+      'adjust_admin_side_product_controls_desc':
+          'व्यवस्थापक-साइड उत्पाद नियंत्रण समायोजित करें',
       'manage_gift_cards_label': 'गिफ्ट कार्ड प्रबंधित करें',
-      'create_and_control_gift_card_inventory_desc': 'गिफ्ट कार्ड इन्वेंट्री बनाएं और नियंत्रित करें',
+      'create_and_control_gift_card_inventory_desc':
+          'गिफ्ट कार्ड इन्वेंट्री बनाएं और नियंत्रित करें',
       'referral_settings_label': 'रेफरल सेटिंग्स',
-      'tune_referral_rewards_and_flows_desc': 'रेफरल रिवॉर्ड और फ़्लो को ट्यून करें',
+      'tune_referral_rewards_and_flows_desc':
+          'रेफरल रिवॉर्ड और फ़्लो को ट्यून करें',
       'referral_label': 'रेफरल',
       'manage_offers_label': 'ऑफर प्रबंधित करें',
-      'publish_and_update_admin_offers_desc': 'व्यवस्थापक ऑफर प्रकाशित और अपडेट करें',
+      'publish_and_update_admin_offers_desc':
+          'व्यवस्थापक ऑफर प्रकाशित और अपडेट करें',
       'offers_label': 'ऑफर',
       'contact_settings_label': 'संपर्क सेटिंग्स',
-      'update_support_and_contact_details_desc': 'सहायता और संपर्क विवरण अपडेट करें',
+      'update_support_and_contact_details_desc':
+          'सहायता और संपर्क विवरण अपडेट करें',
       'contact_label': 'संपर्क',
-      'resolve_support_queues_and_user_issues_desc': 'सहायता कतारों और उपयोगकर्ता समस्याओं का समाधान करें',
+      'resolve_support_queues_and_user_issues_desc':
+          'सहायता कतारों और उपयोगकर्ता समस्याओं का समाधान करें',
       'manage_disputes_label': 'विवाद प्रबंधित करें',
-      'review_and_resolve_transaction_disputes_desc': 'ट्रांज़ैक्शन विवादों की जांच और समाधान करें',
+      'review_and_resolve_transaction_disputes_desc':
+          'ट्रांज़ैक्शन विवादों की जांच और समाधान करें',
       'disputes_label': 'विवाद',
       'fraud_alerts_label': 'धोखाधड़ी अलर्ट',
-      'automated_anomaly_and_fraud_detection_desc': 'स्वचालित विसंगति और धोखाधड़ी पहचान',
+      'automated_anomaly_and_fraud_detection_desc':
+          'स्वचालित विसंगति और धोखाधड़ी पहचान',
       'content_analytics_label': 'कंटेंट एनालिटिक्स',
-      'track_admin_content_performance_and_moderation_desc': 'व्यवस्थापक कंटेंट प्रदर्शन और मॉडरेशन को ट्रैक करें',
+      'track_admin_content_performance_and_moderation_desc':
+          'व्यवस्थापक कंटेंट प्रदर्शन और मॉडरेशन को ट्रैक करें',
       'app_ratings_label': 'ऐप रेटिंग',
-      'review_ratings_coming_from_the_app_desc': 'ऐप से आने वाली रेटिंग की जांच करें',
+      'review_ratings_coming_from_the_app_desc':
+          'ऐप से आने वाली रेटिंग की जांच करें',
       'user_feedbacks_label': 'उपयोगकर्ता फीडबैक',
-      'read_submitted_feedback_and_issues_desc': 'सबमिट किया गया फीडबैक और समस्याएं पढ़ें',
+      'read_submitted_feedback_and_issues_desc':
+          'सबमिट किया गया फीडबैक और समस्याएं पढ़ें',
       'feedback_label': 'फीडबैक',
       'contact_messages_label': 'संपर्क संदेश',
-      'view_and_respond_to_contact_form_submissions_desc': 'संपर्क फॉर्म सबमिशन देखें और जवाब दें',
+      'view_and_respond_to_contact_form_submissions_desc':
+          'संपर्क फॉर्म सबमिशन देखें और जवाब दें',
       'audit_logs_label': 'ऑडिट लॉग',
-      'review_all_admin_actions_and_changes_desc': 'सभी व्यवस्थापक कार्रवाइयों और परिवर्तनों की जांच करें',
+      'review_all_admin_actions_and_changes_desc':
+          'सभी व्यवस्थापक कार्रवाइयों और परिवर्तनों की जांच करें',
       'logs_label': 'लॉग',
       'dashboard_label': 'डैशबोर्ड',
       'settings_label': 'सेटिंग्स',
@@ -7014,11 +7721,14 @@ class AppLocalizations {
       'admin_roles_label': 'व्यवस्थापक भूमिकाएं',
       'search_admin_sections_hint': 'व्यवस्थापक सेक्शन खोजें',
       'admin_options_label': 'व्यवस्थापक विकल्प',
-      'switch_between_cards_or_grid_desc': 'विस्तृत कार्ड या संक्षिप्त व्यवस्थापक ग्रिड के बीच स्विच करें।',
+      'switch_between_cards_or_grid_desc':
+          'विस्तृत कार्ड या संक्षिप्त व्यवस्थापक ग्रिड के बीच स्विच करें।',
       'failed_to_load_admin_overview': 'व्यवस्थापक अवलोकन लोड करने में विफल',
       'welcome_back_comma_label': 'वापसी पर स्वागत है,',
-      'superadmin_control_active_message': 'इस सत्र के लिए सुपरएडमिन नियंत्रण सक्रिय है।',
-      'admin_control_active_message': 'इस सत्र के लिए व्यवस्थापक नियंत्रण सक्रिय है।',
+      'superadmin_control_active_message':
+          'इस सत्र के लिए सुपरएडमिन नियंत्रण सक्रिय है।',
+      'admin_control_active_message':
+          'इस सत्र के लिए व्यवस्थापक नियंत्रण सक्रिय है।',
       'hide_box_label': 'बॉक्स छिपाएं',
       'open_box_label': 'बॉक्स खोलें',
       'admin_snapshot_label': 'व्यवस्थापक स्नैपशॉट',
@@ -7030,17 +7740,21 @@ class AppLocalizations {
       'superadmins_label': 'सुपरएडमिन',
       'view_more_alerts_label': 'अधिक अलर्ट देखें',
       'priority_queue_label': 'प्राथमिकता कतार',
-      'overview_unavailable_message': 'अवलोकन अभी उपलब्ध नहीं है, लेकिन व्यवस्थापक टूल नीचे अभी भी उपलब्ध हैं।',
-      'nothing_urgent_waiting_message': 'अभी कुछ भी जरूरी नहीं है। आप नीचे नियमित व्यवस्थापक कार्य जारी रख सकते हैं।',
+      'overview_unavailable_message':
+          'अवलोकन अभी उपलब्ध नहीं है, लेकिन व्यवस्थापक टूल नीचे अभी भी उपलब्ध हैं।',
+      'nothing_urgent_waiting_message':
+          'अभी कुछ भी जरूरी नहीं है। आप नीचे नियमित व्यवस्थापक कार्य जारी रख सकते हैं।',
       'review_label': 'समीक्षा करें',
       'review_all_label': 'सभी की समीक्षा करें',
       'do_you_want_to_logout_message': 'क्या आप लॉगआउट करना चाहते हैं?',
       // Admin: Manage Ads page
       'failed_to_load_ads': 'विज्ञापन लोड करने में विफल',
-      'unexpected_upload_error': 'अपलोड करते समय कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
+      'unexpected_upload_error':
+          'अपलोड करते समय कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
       'ad_title_required_message': 'विज्ञापन शीर्षक आवश्यक है।',
       'failed_to_save_ad': 'विज्ञापन सहेजने में विफल',
-      'ad_edited_successfully_message': 'विज्ञापन सफलतापूर्वक संपादित किया गया।',
+      'ad_edited_successfully_message':
+          'विज्ञापन सफलतापूर्वक संपादित किया गया।',
       'ad_created_successfully_message': 'विज्ञापन सफलतापूर्वक बनाया गया।',
       'failed_to_update_ad_status': 'विज्ञापन की स्थिति अपडेट करने में विफल',
       'ad_status_updated_message': 'विज्ञापन की स्थिति अपडेट की गई।',
@@ -7054,22 +7768,27 @@ class AppLocalizations {
       'ad_title_label': 'विज्ञापन शीर्षक',
       'ad_text_label': 'विज्ञापन टेक्स्ट',
       'call_to_action_text_label': 'कॉल-टू-एक्शन टेक्स्ट',
-      'cta_text_helper_desc': 'वैकल्पिक। यह वह बटन टेक्स्ट बन जाता है जिसे उपयोगकर्ता टैप करते हैं, जैसे "अधिक जानें" या "ऑफर खोलें"।',
+      'cta_text_helper_desc':
+          'वैकल्पिक। यह वह बटन टेक्स्ट बन जाता है जिसे उपयोगकर्ता टैप करते हैं, जैसे "अधिक जानें" या "ऑफर खोलें"।',
       'call_to_action_url_label': 'कॉल-टू-एक्शन URL',
-      'cta_url_helper_desc': 'वैकल्पिक। CTA बटन के लिए http:// या https:// से शुरू होने वाला पूरा लिंक जोड़ें।',
+      'cta_url_helper_desc':
+          'वैकल्पिक। CTA बटन के लिए http:// या https:// से शुरू होने वाला पूरा लिंक जोड़ें।',
       'audience_label': 'ऑडियंस',
       'all_users_label': 'सभी उपयोगकर्ता',
       'subscribed_only_label': 'केवल सब्सक्राइब्ड',
       'non_subscribed_only_label': 'केवल नॉन-सब्सक्राइब्ड',
-      'starts_at_helper_desc': 'चुनें कि यह विज्ञापन योग्य उपयोगकर्ताओं को कब दिखना शुरू होना चाहिए।',
-      'ends_at_helper_desc': 'वैकल्पिक। चुनें कि यह विज्ञापन दिखना कब बंद हो जाना चाहिए।',
+      'starts_at_helper_desc':
+          'चुनें कि यह विज्ञापन योग्य उपयोगकर्ताओं को कब दिखना शुरू होना चाहिए।',
+      'ends_at_helper_desc':
+          'वैकल्पिक। चुनें कि यह विज्ञापन दिखना कब बंद हो जाना चाहिए।',
       'placements_label': 'प्लेसमेंट',
       'tags_label': 'टैग',
       'priority_weight_label': 'प्राथमिकता वेट',
       'daily_cap_per_user_label': 'दैनिक सीमा / उपयोगकर्ता',
       'video_close_button_timing_label': 'वीडियो बंद बटन समय',
       'at_end_label': 'अंत में',
-      'video_close_button_timing_desc': 'वीडियो विज्ञापनों के लिए, चुने गए हिस्से के चलने के बाद बंद बटन दिखता है। टेक्स्ट और इमेज विज्ञापनों को तुरंत बंद किया जा सकता है।',
+      'video_close_button_timing_desc':
+          'वीडियो विज्ञापनों के लिए, चुने गए हिस्से के चलने के बाद बंद बटन दिखता है। टेक्स्ट और इमेज विज्ञापनों को तुरंत बंद किया जा सकता है।',
       'keep_ad_active_label': 'विज्ञापन सक्रिय रखें',
       'pick_image_video_label': 'इमेज / वीडियो चुनें',
       'cancel_edit_label': 'संपादन रद्द करें',
@@ -7083,7 +7802,8 @@ class AppLocalizations {
       'videos_label': 'वीडियो',
       'text_label': 'टेक्स्ट',
       'show_latest_3_label': 'नवीनतम 3 दिखाएं',
-      'no_ads_found_for_filter_message': 'इस फ़िल्टर के लिए कोई विज्ञापन नहीं मिला।',
+      'no_ads_found_for_filter_message':
+          'इस फ़िल्टर के लिए कोई विज्ञापन नहीं मिला।',
       'media_label': 'मीडिया',
       'published_colon_label': 'प्रकाशित:',
       'hides_label': 'छिपाए गए',
@@ -7097,7 +7817,8 @@ class AppLocalizations {
       'recent_report_reasons_label': 'हाल की रिपोर्ट के कारण',
       'no_reason_provided_label': 'कोई कारण नहीं दिया गया',
       'show_ad_to_users_label': 'उपयोगकर्ताओं को यह विज्ञापन दिखाएं',
-      'only_creator_or_superadmin_can_edit_delete_message': 'केवल बनाने वाला व्यवस्थापक या सुपरएडमिन इस विज्ञापन को संपादित या हटा सकता है।',
+      'only_creator_or_superadmin_can_edit_delete_message':
+          'केवल बनाने वाला व्यवस्थापक या सुपरएडमिन इस विज्ञापन को संपादित या हटा सकता है।',
       'percent_25_played_label': '25% चला',
       'percent_50_played_label': '50% चला',
       'percent_75_played_label': '75% चला',
@@ -7106,7 +7827,9 @@ class AppLocalizations {
   };
 
   String t(String key) {
-    return _translations[locale.languageCode]?[key] ?? _translations['en']![key] ?? key;
+    return _translations[locale.languageCode]?[key] ??
+        _translations['en']![key] ??
+        key;
   }
 }
 
@@ -7114,11 +7837,12 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) =>
-      AppLocalizations.supportedLocales.any((l) => l.languageCode == locale.languageCode);
+  bool isSupported(Locale locale) => AppLocalizations.supportedLocales
+      .any((l) => l.languageCode == locale.languageCode);
 
   @override
-  Future<AppLocalizations> load(Locale locale) async => AppLocalizations(locale);
+  Future<AppLocalizations> load(Locale locale) async =>
+      AppLocalizations(locale);
 
   @override
   bool shouldReload(LocalizationsDelegate<AppLocalizations> old) => false;

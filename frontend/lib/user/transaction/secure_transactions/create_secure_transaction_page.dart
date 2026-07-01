@@ -15,6 +15,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'view_secure_transactions_page.dart';
+import '../../../settings/set_wallet_pin_page.dart';
 
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
@@ -65,6 +66,11 @@ class _TransactionPageState extends State<TransactionPage> {
   int _userOtpSeconds = 0;
   bool _counterpartyVerified = false;
   bool _userVerified = false;
+  // PIN alternative for the user self-verification step
+  bool _hasPinSet = false;
+  bool _userPinMode = false;
+  String _userPinCode = '';
+  bool _verifyingUserPin = false;
   String _interestType = 'none';
   final TextEditingController _interestRateController = TextEditingController();
   DateTime? _expectedReturnDate;
@@ -724,6 +730,7 @@ class _TransactionPageState extends State<TransactionPage> {
     }
     _loadFriends();
     _loadDailyLimits();
+    _loadPinStatus();
     _counterpartyEmailController.addListener(_updateFriendSuggestions);
     _amountController.addListener(_saveDraft);
     _placeController.addListener(_saveDraft);
@@ -738,6 +745,74 @@ class _TransactionPageState extends State<TransactionPage> {
       }
       _restoreDraftIfAvailable();
     });
+  }
+
+  Widget _creationPinTab(String label, IconData icon, bool isPinMode) {
+    final selected = _userPinMode == isPinMode;
+    return Expanded(
+        child: GestureDetector(
+      onTap: () => setState(() {
+        _userPinMode = isPinMode;
+        _userPinCode = '';
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: selected ? AppColors.cyan : Colors.grey.shade300),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 14, color: selected ? Colors.white : Colors.grey),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : Colors.grey)),
+        ]),
+      ),
+    ));
+  }
+
+  Future<void> _loadPinStatus() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/pin/status');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _hasPinSet = data['hasPin'] == true;
+          _userPinMode = _hasPinSet;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _verifyUserPin() async {
+    if (_userPinCode.length != 6) return;
+    setState(() => _verifyingUserPin = true);
+    try {
+      final res = await ApiClient.post('/api/transactions/verify-creation-pin',
+          body: {'pin': _userPinCode});
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() {
+          _verifyingUserPin = false;
+          _userVerified = true;
+        });
+      } else {
+        final err = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+        setState(() => _verifyingUserPin = false);
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(err?['error'] ?? 'PIN verification failed'),
+              backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _verifyingUserPin = false);
+    }
   }
 
   String _draftStorageKey() {
@@ -2860,6 +2935,8 @@ class _TransactionPageState extends State<TransactionPage> {
                 onChanged: onOtpChanged,
                 enabled: enabled,
                 autoFocus: false,
+                obscureText: true,
+                showVisibilityToggle: true,
               ),
               const SizedBox(height: 8),
               ElevatedButton(
@@ -2955,7 +3032,8 @@ class _TransactionPageState extends State<TransactionPage> {
           title: Row(
             children: [
               IconButton(
-                icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)),
+                icon: Icon(Icons.arrow_back,
+                    color: AppThemeColors.primaryText(context)),
                 onPressed: () {
                   if (Navigator.of(context).canPop()) {
                     Navigator.of(context).pop();
@@ -3489,36 +3567,158 @@ class _TransactionPageState extends State<TransactionPage> {
                   },
                 ),
                 const SizedBox(height: 12),
-                _buildOtpSection(
-                  label: t('your_email_label'),
-                  emailController: _userEmailController,
-                  verified: _userVerified,
-                  otpError: _userOtpError,
-                  otpSeconds: _userOtpSeconds,
-                  onSendOtp: () async {
-                    final email = _userEmailController.text;
-                    if (!await _checkEmailExists(email)) {
-                      setState(() =>
-                          _userEmailError = t('email_not_registered_label'));
-                      return;
-                    }
-                    setState(() => _userEmailError = null);
-                    await _sendOtp(email, false);
-                  },
-                  onOtpChanged: (val) => _userOtp = val,
-                  onVerifyOtp: () async {
-                    if ((_userOtp ?? '').length != 6) {
-                      setState(
-                          () => _userOtpError = t('enter_6_digit_otp_label'));
-                      return;
-                    }
-                    await _verifyOtp(
-                        _userEmailController.text, _userOtp!, false);
-                  },
-                  enabled: !_userVerified,
-                  emailError: _userEmailError,
-                  readOnlyEmail: true,
-                ),
+                // User self-verification — always shows PIN/OTP tabs
+                if (!_userVerified) ...[
+                  Row(children: [
+                    _creationPinTab(
+                        t('use_pin_label'), Icons.dialpad_rounded, true),
+                    const SizedBox(width: 8),
+                    _creationPinTab(
+                        t('use_email_otp_label'), Icons.email_outlined, false),
+                  ]),
+                  const SizedBox(height: 12),
+                ],
+                if (_userPinMode && !_userVerified) ...[
+                  if (!_hasPinSet) ...[
+                    // PIN not configured — redirect prompt
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(children: [
+                              Icon(Icons.info_outline_rounded,
+                                  color: Colors.orange, size: 16),
+                              SizedBox(width: 8),
+                              Expanded(
+                                  child: Text(
+                                      'You haven\'t set up a wallet PIN yet.',
+                                      style: TextStyle(
+                                          color: Colors.orange,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500))),
+                            ]),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.cyan,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10))),
+                              icon: const Icon(Icons.dialpad_rounded,
+                                  color: Colors.white, size: 15),
+                              label: const Text('Set Up PIN',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                              onPressed: () async {
+                                await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const SetWalletPinPage()));
+                                if (mounted) _loadPinStatus();
+                              },
+                            ),
+                          ]),
+                    ),
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.grey.withValues(alpha: 0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1))
+                        ],
+                      ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.dialpad_rounded,
+                                  color: AppColors.cyan, size: 18),
+                              const SizedBox(width: 8),
+                              Text(t('enter_wallet_pin_label'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ]),
+                            const SizedBox(height: 12),
+                            OtpInput(
+                                onChanged: (code) =>
+                                    setState(() => _userPinCode = code),
+                                enabled: !_verifyingUserPin,
+                                autoFocus: false,
+                                obscureText: true,
+                                showVisibilityToggle: true),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed:
+                                  _verifyingUserPin ? null : _verifyUserPin,
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green),
+                              child: _verifyingUserPin
+                                  ? const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                          SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white)),
+                                          SizedBox(width: 8),
+                                          Text('Verifying…'),
+                                        ])
+                                  : const Text('Verify PIN'),
+                            ),
+                          ]),
+                    ),
+                  ],
+                ] else ...[
+                  _buildOtpSection(
+                    label: t('your_email_label'),
+                    emailController: _userEmailController,
+                    verified: _userVerified,
+                    otpError: _userOtpError,
+                    otpSeconds: _userOtpSeconds,
+                    onSendOtp: () async {
+                      final email = _userEmailController.text;
+                      if (!await _checkEmailExists(email)) {
+                        setState(() =>
+                            _userEmailError = t('email_not_registered_label'));
+                        return;
+                      }
+                      setState(() => _userEmailError = null);
+                      await _sendOtp(email, false);
+                    },
+                    onOtpChanged: (val) => _userOtp = val,
+                    onVerifyOtp: () async {
+                      if ((_userOtp ?? '').length != 6) {
+                        setState(
+                            () => _userOtpError = t('enter_6_digit_otp_label'));
+                        return;
+                      }
+                      await _verifyOtp(
+                          _userEmailController.text, _userOtp!, false);
+                    },
+                    enabled: !_userVerified,
+                    emailError: _userEmailError,
+                    readOnlyEmail: true,
+                  ),
+                ],
                 if (_sameEmailError != null) ...[
                   const SizedBox(height: 8),
                   Text(_sameEmailError!,

@@ -11,6 +11,7 @@ import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
+import '../../../settings/set_wallet_pin_page.dart';
 
 class PartialPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -19,7 +20,8 @@ class PartialPaymentPage extends StatefulWidget {
   // real-wallet-transfer flow instead of a separate no-OTP payment path.
   final bool isFullPayment;
 
-  const PartialPaymentPage({Key? key, required this.transaction, this.isFullPayment = false})
+  const PartialPaymentPage(
+      {Key? key, required this.transaction, this.isFullPayment = false})
       : super(key: key);
 
   @override
@@ -28,11 +30,9 @@ class PartialPaymentPage extends StatefulWidget {
 
 class _PartialPaymentPageState extends State<PartialPaymentPage> {
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _descriptionController =
-      TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _lenderOtpController = TextEditingController();
-  final TextEditingController _borrowerOtpController =
-      TextEditingController();
+  final TextEditingController _borrowerOtpController = TextEditingController();
 
   String? lenderEmail;
   String? borrowerEmail;
@@ -51,6 +51,12 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
   String? _amountWarning;
   bool _insufficientBalance = false;
 
+  // PIN alternative for the payer's own verification step.
+  bool _hasPinSet = false;
+  bool _payerPinMode = false; // true → payer uses PIN, false → payer uses OTP
+  String _payerPinCode = '';
+  bool _verifyingPayerPin = false;
+
   int lenderOtpSecondsLeft = 0;
   int borrowerOtpSecondsLeft = 0;
   bool lenderOtpExpired = false;
@@ -67,6 +73,57 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     _amountController.addListener(_validateAmount);
     if (widget.isFullPayment) {
       _amountController.text = _calculateRemainingAmount(widget.transaction);
+    }
+    _loadPinStatus();
+  }
+
+  Future<void> _loadPinStatus() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/pin/status');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _hasPinSet = data['hasPin'] == true;
+          _payerPinMode = _hasPinSet;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _verifyPayerPin() async {
+    if (_payerPinCode.length != 6) {
+      _showMessage('Please enter your 6-digit PIN.', isError: true);
+      return;
+    }
+    setState(() => _verifyingPayerPin = true);
+    try {
+      final res = await ApiClient.post(
+          '/api/transactions/partial-payment/verify-pin',
+          body: {
+            'transactionId': widget.transaction['transactionId'],
+            'pin': _payerPinCode,
+          });
+      if (!mounted) return;
+      final data = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+      if (res.statusCode == 200) {
+        final role = (data?['role'] ?? '').toString();
+        setState(() {
+          _verifyingPayerPin = false;
+          if (role == 'lender') lenderOtpVerified = true;
+          if (role == 'borrower') borrowerOtpVerified = true;
+        });
+        _showMessage('PIN verified');
+      } else {
+        setState(() => _verifyingPayerPin = false);
+        _showMessage(data?['error'] ?? 'PIN verification failed',
+            isError: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _verifyingPayerPin = false);
+        _showMessage('$e', isError: true);
+      }
     }
   }
 
@@ -85,8 +142,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
   }
 
   void _initializeEmails() {
-    final user =
-        Provider.of<SessionProvider>(context, listen: false).user;
+    final user = Provider.of<SessionProvider>(context, listen: false).user;
     final userEmail = user?['email'];
 
     if (widget.transaction['role'] == 'lender') {
@@ -135,8 +191,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     } else if (transaction['isPartiallyPaid'] == true &&
         transaction['partialPayments'] != null) {
       List pp = transaction['partialPayments'] as List;
-      paid = pp.fold<double>(
-          0, (s, p) => s + (p['amount'] as num).toDouble());
+      paid = pp.fold<double>(0, (s, p) => s + (p['amount'] as num).toDouble());
     }
     double remaining = original - paid;
     if (paid >= original) return '0.00';
@@ -150,9 +205,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
           if (transaction['interestType'] == 'simple') {
             remaining = remaining + (remaining * rate * days / 365);
           } else if (transaction['interestType'] == 'compound') {
-            final n =
-                transaction['compoundingFrequency']?.toInt() ?? 1;
-            remaining = remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
+            final n = transaction['compoundingFrequency']?.toInt() ?? 1;
+            remaining =
+                remaining * pow(1 + (rate / 100) / n, n * (days / 365.0));
           }
         }
       }
@@ -165,18 +220,14 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       setState(() => lenderOtpSecondsLeft--);
       if (lenderOtpSecondsLeft == 0) {
         setState(() => lenderOtpExpired = true);
-        _showMessage('Lender OTP has expired. Please resend.',
-            isError: true);
+        _showMessage('Lender OTP has expired. Please resend.', isError: true);
       }
     }
-    if (borrowerOtpSecondsLeft > 0 &&
-        borrowerOtpSent &&
-        !borrowerOtpVerified) {
+    if (borrowerOtpSecondsLeft > 0 && borrowerOtpSent && !borrowerOtpVerified) {
       setState(() => borrowerOtpSecondsLeft--);
       if (borrowerOtpSecondsLeft == 0) {
         setState(() => borrowerOtpExpired = true);
-        _showMessage('Borrower OTP has expired. Please resend.',
-            isError: true);
+        _showMessage('Borrower OTP has expired. Please resend.', isError: true);
       }
     }
   }
@@ -207,8 +258,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             isSendingBorrowerOtp = false;
           }
         });
-        _showMessage(
-            'OTP sent to ${isLender ? 'lender' : 'borrower'} email');
+        _showMessage('OTP sent to ${isLender ? 'lender' : 'borrower'} email');
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
@@ -233,16 +283,13 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     }
   }
 
-  Future<void> _verifyOtp(
-      String email, String otp, bool isLender) async {
+  Future<void> _verifyOtp(String email, String otp, bool isLender) async {
     if (isLender && lenderOtpExpired) {
-      _showMessage('Lender OTP has expired. Please resend.',
-          isError: true);
+      _showMessage('Lender OTP has expired. Please resend.', isError: true);
       return;
     }
     if (!isLender && borrowerOtpExpired) {
-      _showMessage('Borrower OTP has expired. Please resend.',
-          isError: true);
+      _showMessage('Borrower OTP has expired. Please resend.', isError: true);
       return;
     }
     setState(() {
@@ -270,13 +317,11 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             isVerifyingBorrowerOtp = false;
           }
         });
-        _showMessage(
-            'OTP verified for ${isLender ? 'lender' : 'borrower'}');
+        _showMessage('OTP verified for ${isLender ? 'lender' : 'borrower'}');
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        _showMessage(data['error'] ?? 'Failed to verify OTP',
-            isError: true);
+        _showMessage(data['error'] ?? 'Failed to verify OTP', isError: true);
         setState(() {
           if (isLender) {
             isVerifyingLenderOtp = false;
@@ -308,15 +353,17 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       return;
     }
     final remainingAmount =
-        double.tryParse(_calculateRemainingAmount(widget.transaction)) ??
-            0.0;
+        double.tryParse(_calculateRemainingAmount(widget.transaction)) ?? 0.0;
     if (amount > remainingAmount) {
       _showMessage(
           'Payment amount cannot exceed remaining amount of ${remainingAmount.toStringAsFixed(2)} ${widget.transaction['currency']}',
           isError: true);
       return;
     }
-    setState(() { isProcessing = true; _insufficientBalance = false; });
+    setState(() {
+      isProcessing = true;
+      _insufficientBalance = false;
+    });
     try {
       // transactionId + paidBy is enough — the backend derives lender/borrower
       // emails from the transaction record itself and checks OTP verification
@@ -340,7 +387,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
           navigator.pushReplacement(
             MaterialPageRoute(
               builder: (_) => PaymentSuccessPage(
-                title: widget.isFullPayment ? 'Payment Successful!' : 'Partial Payment Successful!',
+                title: widget.isFullPayment
+                    ? 'Payment Successful!'
+                    : 'Partial Payment Successful!',
                 amount: amount,
                 recipientName: recipient,
                 transactionType: widget.isFullPayment
@@ -355,8 +404,10 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       } else {
         final data =
             response.body.isNotEmpty ? jsonDecode(response.body) : null;
-        final errMsg = (data?['error'] ?? 'Failed to process partial payment').toString();
-        setState(() => _insufficientBalance = errMsg.toLowerCase().contains('insufficient'));
+        final errMsg =
+            (data?['error'] ?? 'Failed to process partial payment').toString();
+        setState(() => _insufficientBalance =
+            errMsg.toLowerCase().contains('insufficient'));
         _showMessage(errMsg, isError: true);
       }
     } catch (e) {
@@ -364,6 +415,199 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     } finally {
       setState(() => isProcessing = false);
     }
+  }
+
+  // Returns the right verification widget for each party.
+  // The payer (whichever side matches `paidBy`) gets a PIN/OTP toggle;
+  // the counterparty always uses OTP only (they can't use your PIN).
+  Widget _buildVerificationSection({required bool isLender}) {
+    final isPayerSide = (paidBy == 'lender') == isLender;
+    final verified = isLender ? lenderOtpVerified : borrowerOtpVerified;
+
+    if (isPayerSide && !verified) {
+      // Payer section — always shows PIN/OTP tabs so user knows the option exists
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _modePillTab('Use PIN', Icons.dialpad_rounded, true),
+          const SizedBox(width: 8),
+          _modePillTab('Use OTP', Icons.email_outlined, false),
+        ]),
+        const SizedBox(height: 12),
+        if (_payerPinMode) ...[
+          if (!_hasPinSet) ...[
+            // PIN not configured yet — show redirect prompt
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.info_outline_rounded,
+                          color: Colors.orange, size: 16),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                          child: Text('You haven\'t set up a wallet PIN yet.',
+                              style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500))),
+                    ]),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                      icon: const Icon(Icons.dialpad_rounded,
+                          color: Colors.white, size: 15),
+                      label: const Text('Set Up PIN',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                      onPressed: () async {
+                        await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SetWalletPinPage()));
+                        if (mounted) _loadPinStatus();
+                      },
+                    ),
+                  ]),
+            ),
+          ] else ...[
+            // PIN configured — show PIN input
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      spreadRadius: 1,
+                      blurRadius: 3,
+                      offset: const Offset(0, 1))
+                ],
+              ),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.dialpad_rounded,
+                          color: AppColors.cyan, size: 20),
+                      const SizedBox(width: 8),
+                      const Text('Your Transaction PIN',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15)),
+                    ]),
+                    const SizedBox(height: 8),
+                    Text(
+                        'Enter your 6-digit wallet PIN to verify your identity.',
+                        style:
+                            TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    const SizedBox(height: 12),
+                    OtpInput(
+                      onChanged: (code) => setState(() {
+                        _payerPinCode = code;
+                      }),
+                      enabled: !_verifyingPayerPin && !isProcessing,
+                      autoFocus: false,
+                      obscureText: true,
+                      showVisibilityToggle: true,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: _verifyingPayerPin ? null : _verifyPayerPin,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green),
+                      child: _verifyingPayerPin
+                          ? Row(mainAxisSize: MainAxisSize.min, children: [
+                              const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white)),
+                              const SizedBox(width: 8),
+                              const Text('Verifying…'),
+                            ])
+                          : const Text('Verify PIN'),
+                    ),
+                  ]),
+            ),
+          ],
+        ] else ...[
+          // OTP mode — existing OTP section
+          _otpSection(
+            title: isLender
+                ? 'Lender OTP Verification'
+                : 'Borrower OTP Verification',
+            email: isLender ? lenderEmail : borrowerEmail,
+            otpSent: isLender ? lenderOtpSent : borrowerOtpSent,
+            otpVerified: isLender ? lenderOtpVerified : borrowerOtpVerified,
+            otpExpired: isLender ? lenderOtpExpired : borrowerOtpExpired,
+            otpSecondsLeft:
+                isLender ? lenderOtpSecondsLeft : borrowerOtpSecondsLeft,
+            isSending: isLender ? isSendingLenderOtp : isSendingBorrowerOtp,
+            isVerifying:
+                isLender ? isVerifyingLenderOtp : isVerifyingBorrowerOtp,
+            otpController:
+                isLender ? _lenderOtpController : _borrowerOtpController,
+            isLender: isLender,
+          ),
+        ],
+      ]);
+    }
+
+    // Counterparty or already-verified: always OTP-only
+    return _otpSection(
+      title: isLender ? 'Lender OTP Verification' : 'Borrower OTP Verification',
+      email: isLender ? lenderEmail : borrowerEmail,
+      otpSent: isLender ? lenderOtpSent : borrowerOtpSent,
+      otpVerified: isLender ? lenderOtpVerified : borrowerOtpVerified,
+      otpExpired: isLender ? lenderOtpExpired : borrowerOtpExpired,
+      otpSecondsLeft: isLender ? lenderOtpSecondsLeft : borrowerOtpSecondsLeft,
+      isSending: isLender ? isSendingLenderOtp : isSendingBorrowerOtp,
+      isVerifying: isLender ? isVerifyingLenderOtp : isVerifyingBorrowerOtp,
+      otpController: isLender ? _lenderOtpController : _borrowerOtpController,
+      isLender: isLender,
+    );
+  }
+
+  Widget _modePillTab(String label, IconData icon, bool isPinMode) {
+    final selected = _payerPinMode == isPinMode;
+    return Expanded(
+        child: GestureDetector(
+      onTap: () => setState(() {
+        _payerPinMode = isPinMode;
+        _payerPinCode = '';
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: selected ? AppColors.cyan : Colors.grey.shade300),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon,
+              size: 14, color: selected ? Colors.white : Colors.grey[600]),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : Colors.grey[600])),
+        ]),
+      ),
+    ));
   }
 
   Widget _otpSection({
@@ -399,8 +643,8 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             const Icon(Icons.lock_clock, color: AppColors.cyan, size: 20),
             const SizedBox(width: 8),
             Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ]),
           const SizedBox(height: 8),
           Text('Email: ${email ?? ''}'),
@@ -413,6 +657,8 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
               onChanged: (val) => otpController.text = val,
               enabled: otpSent,
               autoFocus: false,
+              obscureText: true,
+              showVisibilityToggle: true,
             ),
             const SizedBox(height: 12),
           ],
@@ -455,8 +701,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             const SizedBox(height: 4),
             Row(children: [
               Icon(otpExpired ? Icons.warning : Icons.timer,
-                  color: otpExpired ? Colors.red : Colors.orange,
-                  size: 14),
+                  color: otpExpired ? Colors.red : Colors.orange, size: 14),
               const SizedBox(width: 4),
               Text(
                 otpExpired
@@ -490,8 +735,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                         : Colors.green.withValues(alpha: 0.3)),
               ),
               child: Row(children: [
-                Icon(
-                    isMessageError ? Icons.error : Icons.check_circle,
+                Icon(isMessageError ? Icons.error : Icons.check_circle,
                     color: isMessageError ? Colors.red : Colors.green,
                     size: 16),
                 const SizedBox(width: 6),
@@ -512,8 +756,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
               onPressed: (!isVerifying)
                   ? () => _verifyOtp(email!, otpController.text, isLender)
                   : null,
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: isVerifying
                   ? Row(mainAxisSize: MainAxisSize.min, children: [
                       const SizedBox(
@@ -571,228 +814,224 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
           Padding(
             padding: EdgeInsets.only(top: context.sh(90)),
             child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Icon(Icons.payment, color: AppColors.cyan, size: 28),
-              const SizedBox(width: 12),
-              Text(widget.isFullPayment ? 'Pay Now' : 'Partial Payment',
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold)),
-            ]),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _amountController,
-              decoration: InputDecoration(
-                labelText: 'Payment Amount',
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: _amountWarning != null ? Colors.red : Colors.grey,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: _amountWarning != null ? Colors.red : Colors.grey,
-                    width: _amountWarning != null ? 1.5 : 1.0,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: _amountWarning != null ? Colors.red : AppColors.cyan,
-                    width: 2,
-                  ),
-                ),
-                prefixIcon: const Icon(Icons.attach_money),
-                helperText: widget.isFullPayment
-                    ? 'Paying the full remaining amount'
-                    : (lenderOtpVerified && borrowerOtpVerified)
-                        ? 'Amount locked after OTP verification'
-                        : 'Maximum: ${_calculateRemainingAmount(widget.transaction)} ${widget.transaction['currency']}',
-                helperMaxLines: 2,
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              enabled: !widget.isFullPayment && !(lenderOtpVerified && borrowerOtpVerified),
-            ),
-            if (_amountWarning != null) ...[
-              const SizedBox(height: 6),
-              Row(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.red, size: 16),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _amountWarning!,
-                      style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500),
+                  Row(children: [
+                    const Icon(Icons.payment, color: AppColors.cyan, size: 28),
+                    const SizedBox(width: 12),
+                    Text(widget.isFullPayment ? 'Pay Now' : 'Partial Payment',
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                  ]),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _amountController,
+                    decoration: InputDecoration(
+                      labelText: 'Payment Amount',
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color:
+                              _amountWarning != null ? Colors.red : Colors.grey,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color:
+                              _amountWarning != null ? Colors.red : Colors.grey,
+                          width: _amountWarning != null ? 1.5 : 1.0,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: _amountWarning != null
+                              ? Colors.red
+                              : AppColors.cyan,
+                          width: 2,
+                        ),
+                      ),
+                      prefixIcon: const Icon(Icons.attach_money),
+                      helperText: widget.isFullPayment
+                          ? 'Paying the full remaining amount'
+                          : (lenderOtpVerified && borrowerOtpVerified)
+                              ? 'Amount locked after OTP verification'
+                              : 'Maximum: ${_calculateRemainingAmount(widget.transaction)} ${widget.transaction['currency']}',
+                      helperMaxLines: 2,
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    enabled: !widget.isFullPayment &&
+                        !(lenderOtpVerified && borrowerOtpVerified),
+                  ),
+                  if (_amountWarning != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: Colors.red, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _amountWarning!,
+                            style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: AppColors.cyan.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.account_balance_wallet_rounded,
+                            color: AppColors.cyan, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '₹${_amountController.text.trim().isNotEmpty ? _amountController.text.trim() : _calculateRemainingAmount(widget.transaction)} will be deducted from your LenDen Wallet and credited to the other party once both OTPs are verified.',
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                color: Colors.blueGrey[700],
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.cyan.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '₹${_amountController.text.trim().isNotEmpty ? _amountController.text.trim() : _calculateRemainingAmount(widget.transaction)} will be deducted from your LenDen Wallet and credited to the other party once both OTPs are verified.',
-                      style: TextStyle(fontSize: 12.5, color: Colors.blueGrey[700], fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: 'Description (Optional)',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.description),
-                helperText: (lenderOtpVerified && borrowerOtpVerified)
-                    ? 'Description locked after OTP verification'
-                    : null,
-              ),
-              maxLines: 2,
-              enabled: !(lenderOtpVerified && borrowerOtpVerified),
-            ),
-            const SizedBox(height: 20),
-            _otpSection(
-              title: 'Lender OTP Verification',
-              email: lenderEmail,
-              otpSent: lenderOtpSent,
-              otpVerified: lenderOtpVerified,
-              otpExpired: lenderOtpExpired,
-              otpSecondsLeft: lenderOtpSecondsLeft,
-              isSending: isSendingLenderOtp,
-              isVerifying: isVerifyingLenderOtp,
-              otpController: _lenderOtpController,
-              isLender: true,
-            ),
-            const SizedBox(height: 16),
-            _otpSection(
-              title: 'Borrower OTP Verification',
-              email: borrowerEmail,
-              otpSent: borrowerOtpSent,
-              otpVerified: borrowerOtpVerified,
-              otpExpired: borrowerOtpExpired,
-              otpSecondsLeft: borrowerOtpSecondsLeft,
-              isSending: isSendingBorrowerOtp,
-              isVerifying: isVerifyingBorrowerOtp,
-              otpController: _borrowerOtpController,
-              isLender: false,
-            ),
-            const SizedBox(height: 20),
-            if (message != null &&
-                !message!.contains('lender') &&
-                !message!.contains('Lender') &&
-                !message!.contains('borrower') &&
-                !message!.contains('Borrower')) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isMessageError
-                      ? Colors.red.withValues(alpha: 0.1)
-                      : Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: isMessageError
-                          ? Colors.red.withValues(alpha: 0.3)
-                          : Colors.green.withValues(alpha: 0.3)),
-                ),
-                child: Row(children: [
-                  Icon(
-                      isMessageError
-                          ? Icons.error
-                          : Icons.check_circle,
-                      color:
-                          isMessageError ? Colors.red : Colors.green,
-                      size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: Text(message!,
-                          style: TextStyle(
-                              color: isMessageError
-                                  ? Colors.red[700]
-                                  : Colors.green[700],
-                              fontWeight: FontWeight.w500))),
-                ]),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_insufficientBalance) ...[
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.cyan, width: 1.5),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  icon: const Icon(Icons.add_card_rounded, color: AppColors.cyan),
-                  label: const Text('Add Money',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.cyan)),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LendenWalletPage(autoOpenAddMoney: true)),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                      onPressed: isProcessing
-                          ? null
-                          : () => Navigator.pop(context, false),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.white))),
-                  ElevatedButton(
-                      onPressed: (lenderOtpVerified &&
-                              borrowerOtpVerified &&
-                              !isProcessing &&
-                              _amountWarning == null)
-                          ? _processPartialPayment
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Description (Optional)',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.description),
+                      helperText: (lenderOtpVerified && borrowerOtpVerified)
+                          ? 'Description locked after OTP verification'
                           : null,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
-                      child: isProcessing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white))
-                          : Text(widget.isFullPayment ? 'Pay Now' : 'Process Payment',
-                              style: const TextStyle(color: Colors.white))),
-                ]),
-          ],
-        ),
-      ),
+                    ),
+                    maxLines: 2,
+                    enabled: !(lenderOtpVerified && borrowerOtpVerified),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildVerificationSection(isLender: true),
+                  const SizedBox(height: 16),
+                  _buildVerificationSection(isLender: false),
+                  const SizedBox(height: 20),
+                  if (message != null &&
+                      !message!.contains('lender') &&
+                      !message!.contains('Lender') &&
+                      !message!.contains('borrower') &&
+                      !message!.contains('Borrower')) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isMessageError
+                            ? Colors.red.withValues(alpha: 0.1)
+                            : Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: isMessageError
+                                ? Colors.red.withValues(alpha: 0.3)
+                                : Colors.green.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(children: [
+                        Icon(isMessageError ? Icons.error : Icons.check_circle,
+                            color: isMessageError ? Colors.red : Colors.green,
+                            size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text(message!,
+                                style: TextStyle(
+                                    color: isMessageError
+                                        ? Colors.red[700]
+                                        : Colors.green[700],
+                                    fontWeight: FontWeight.w500))),
+                      ]),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_insufficientBalance) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(
+                              color: AppColors.cyan, width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.add_card_rounded,
+                            color: AppColors.cyan),
+                        label: const Text('Add Money',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: AppColors.cyan)),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const LendenWalletPage(
+                                    autoOpenAddMoney: true)),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                            onPressed: isProcessing
+                                ? null
+                                : () => Navigator.pop(context, false),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey),
+                            child: const Text('Cancel',
+                                style: TextStyle(color: Colors.white))),
+                        ElevatedButton(
+                            onPressed: (lenderOtpVerified &&
+                                    borrowerOtpVerified &&
+                                    !isProcessing &&
+                                    _amountWarning == null)
+                                ? _processPartialPayment
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green),
+                            child: isProcessing
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white))
+                                : Text(
+                                    widget.isFullPayment
+                                        ? 'Pay Now'
+                                        : 'Process Payment',
+                                    style:
+                                        const TextStyle(color: Colors.white))),
+                      ]),
+                ],
+              ),
+            ),
           ),
         ],
       ),

@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema({
     attemptCount: { type: Number, default: 0 },
     windowStart: { type: Date },
   },
+  // Optional 6-digit transaction PIN as an alternative to email OTP on every
+  // outgoing wallet payment. Stored as a bcrypt hash (never plaintext).
+  // walletPinAttempts counts consecutive wrong guesses; hitting 5 sets
+  // walletPinLockedUntil for 15 minutes to block brute-force.
+  walletPin: { type: String, default: null },
+  walletPinAttempts: { type: Number, default: 0 },
+  walletPinLockedUntil: { type: Date, default: null },
   memberSince: { type: Date, default: Date.now },
   lendingBudget: {
     monthlyLimit: { type: Number, default: null },

@@ -1015,6 +1015,100 @@ exports.deleteTransaction = async (req, res) => {
 };
 
 // Send OTP for partial payment verification
+// ── Transaction PIN alternatives ─────────────────────────────────────────────
+// Verify the PAYER's own 6-digit transaction PIN as an alternative to their
+// own email OTP step in the two-sided Secure-Transaction partial-payment flow.
+// On success, marks the same server-side flag that verifyPartialPaymentOTP sets
+// so processPartialPayment can proceed.
+exports.verifyPartialPaymentPin = async (req, res) => {
+  try {
+    const { transactionId, pin } = req.body;
+    if (!transactionId || !pin || !/^\d{6}$/.test(pin)) {
+      return res.status(400).json({ error: 'transactionId and a 6-digit PIN are required' });
+    }
+
+    const transaction = await Transaction.findOne({ transactionId });
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+
+    const cleanEmail = (req.user.email || '').toLowerCase().trim();
+    let role;
+    if (transaction.userEmail.toLowerCase() === cleanEmail) {
+      role = transaction.role;
+    } else if (transaction.counterpartyEmail.toLowerCase() === cleanEmail) {
+      role = transaction.role === 'lender' ? 'borrower' : 'lender';
+    } else {
+      return res.status(403).json({ error: 'You are not a party to this transaction' });
+    }
+
+    const user = await User.findById(req.user._id).select('walletPin walletPinAttempts walletPinLockedUntil');
+    if (!user || !user.walletPin) {
+      return res.status(400).json({ error: 'No transaction PIN is set. Please use OTP or set a PIN in Settings first.' });
+    }
+    if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
+      const mins = Math.ceil((user.walletPinLockedUntil - Date.now()) / 60000);
+      return res.status(423).json({ error: `PIN is locked for ${mins} more minute${mins === 1 ? '' : 's'}.` });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const valid = await bcrypt.compare(String(pin), user.walletPin);
+    if (!valid) {
+      const newAttempts = (user.walletPinAttempts || 0) + 1;
+      const lock = newAttempts >= 5
+        ? { walletPinAttempts: 0, walletPinLockedUntil: new Date(Date.now() + 15 * 60 * 1000) }
+        : { walletPinAttempts: newAttempts };
+      await User.updateOne({ _id: user._id }, { $set: lock });
+      const left = 5 - newAttempts;
+      if (left <= 0) return res.status(423).json({ error: 'Too many wrong PINs. Locked for 15 minutes.' });
+      return res.status(400).json({ error: `Incorrect PIN. ${left} attempt${left === 1 ? '' : 's'} remaining.` });
+    }
+
+    await User.updateOne({ _id: user._id }, { $set: { walletPinAttempts: 0 }, $unset: { walletPinLockedUntil: 1 } });
+    lendingborrowingotp.markPartialPaymentVerified(transactionId, role);
+    res.json({ verified: true, role });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to verify PIN' });
+  }
+};
+
+// Verify the logged-in user's transaction PIN as an alternative to the
+// self-OTP step during Secure Transaction CREATION. Returns { verified: true }
+// on success so the frontend can set its _userVerified flag.
+exports.verifyTransactionCreationPin = async (req, res) => {
+  try {
+    const { pin } = req.body;
+    if (!pin || !/^\d{6}$/.test(pin)) {
+      return res.status(400).json({ error: 'A 6-digit PIN is required' });
+    }
+
+    const user = await User.findById(req.user._id).select('walletPin walletPinAttempts walletPinLockedUntil');
+    if (!user || !user.walletPin) {
+      return res.status(400).json({ error: 'No transaction PIN is set. Please use OTP or set a PIN in Settings first.' });
+    }
+    if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
+      const mins = Math.ceil((user.walletPinLockedUntil - Date.now()) / 60000);
+      return res.status(423).json({ error: `PIN is locked for ${mins} more minute${mins === 1 ? '' : 's'}.` });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const valid = await bcrypt.compare(String(pin), user.walletPin);
+    if (!valid) {
+      const newAttempts = (user.walletPinAttempts || 0) + 1;
+      const lock = newAttempts >= 5
+        ? { walletPinAttempts: 0, walletPinLockedUntil: new Date(Date.now() + 15 * 60 * 1000) }
+        : { walletPinAttempts: newAttempts };
+      await User.updateOne({ _id: user._id }, { $set: lock });
+      const left = 5 - newAttempts;
+      if (left <= 0) return res.status(423).json({ error: 'Too many wrong PINs. Locked for 15 minutes.' });
+      return res.status(400).json({ error: `Incorrect PIN. ${left} attempt${left === 1 ? '' : 's'} remaining.` });
+    }
+
+    await User.updateOne({ _id: user._id }, { $set: { walletPinAttempts: 0 }, $unset: { walletPinLockedUntil: 1 } });
+    res.json({ verified: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to verify PIN' });
+  }
+};
+
 exports.sendPartialPaymentOTP = async (req, res) => {
   try {
     const { email } = req.body;

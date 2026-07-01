@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
 const SubscriptionPlan = require('../models/subscriptionPlan');
@@ -226,23 +227,10 @@ exports.sendPayOtp = async (req, res) => {
     }
 
     const now = new Date();
-    const existing = user.walletPayOTP;
-
-    if (existing?.sentAt && (now - existing.sentAt) < 60 * 1000) {
-      const secondsLeft = Math.ceil((60 * 1000 - (now - existing.sentAt)) / 1000);
-      return res.status(429).json({ error: `Please wait ${secondsLeft} seconds before requesting another OTP` });
-    }
-    const hourAgo = new Date(now - 60 * 60 * 1000);
-    const windowStart = existing?.windowStart && existing.windowStart > hourAgo ? existing.windowStart : now;
-    const attemptCount = existing?.windowStart && existing.windowStart > hourAgo ? (existing.attemptCount || 0) : 0;
-    if (attemptCount >= 5) {
-      return res.status(429).json({ error: 'Too many OTP requests. Please try again in an hour.' });
-    }
-
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
 
-    user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now, attemptCount: attemptCount + 1, windowStart };
+    user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now };
     await user.save();
 
     await sendWalletPayOTP(user.email, otp, user.name);
@@ -254,27 +242,201 @@ exports.sendPayOtp = async (req, res) => {
   }
 };
 
-// Verifies the sender's OTP and performs the wallet-to-wallet transfer in one step.
-// Mirrors pay()'s ACID transfer logic exactly, with an OTP check gating entry.
+// Generic OTP send for wallet payment auth (no recipient validation — just
+// sends a fresh OTP to the logged-in user's own email so they can prove they
+// are the one initiating the payment). Used by _PaymentSheet and any other
+// outgoing-payment UI that doesn't already have a dedicated send-otp route.
+exports.sendWalletAuthOtp = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const now = new Date();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+
+    user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now };
+    await user.save();
+
+    await sendWalletPayOTP(user.email, otp, user.name);
+    res.json({ message: 'OTP sent to your registered email', email: user.email });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// ── Wallet Transaction PIN management ────────────────────────────────────────
+// PIN lets users skip the email OTP wait on every outgoing payment. Set once
+// in Settings; verified server-side via bcrypt on each payment.
+
+exports.getWalletPinStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('walletPin walletPinLockedUntil');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const lockedUntil = user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()
+      ? user.walletPinLockedUntil : null;
+    res.json({ hasPin: !!user.walletPin, lockedUntil });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const validateWalletOtp = (user, otp) => {
+  if (!otp) {
+    return { ok: false, error: 'Email OTP is required.' };
+  }
+  if (!user.walletPayOTP?.code) {
+    return { ok: false, error: 'No OTP is pending. Please request a new OTP first.' };
+  }
+  if (user.walletPayOTP.code !== String(otp)) {
+    return { ok: false, error: 'Invalid OTP.' };
+  }
+  if (new Date() > new Date(user.walletPayOTP.expiry)) {
+    return { ok: false, error: 'OTP has expired. Please request a new one.' };
+  }
+  return { ok: true };
+};
+
+exports.verifyWalletOtp = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    const user = await User.findById(req.user._id).select('walletPayOTP');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const validation = validateWalletOtp(user, otp);
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    // Mark the pending walletPayOTP as verified so the subsequent PIN set
+    // request can consume it. We avoid removing the OTP here because the
+    // frontend flow verifies the code first then calls /wallet/pin/set — if
+    // the OTP is removed on verify, the later set call will find no pending
+    // OTP and fail with "No OTP is pending". Keep the code+expiry and add
+    // a verified flag which setWalletPin will accept.
+    user.walletPayOTP = {
+      ...(user.walletPayOTP || {}),
+      verified: true,
+    };
+    await user.save();
+    res.json({ verified: true, message: 'OTP verified successfully.' });
+  } catch (err) {
+    console.error('Error verifying wallet OTP:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Set or change the wallet transaction PIN.
+//
+// Three distinct paths — never mixing PIN + OTP in the same request:
+//   1. First time (no existing PIN): email OTP only → set new PIN
+//   2. Normal change (knows current PIN): current PIN only → set new PIN
+//   3. Forgot PIN reset: email OTP only → overwrite PIN (no current PIN needed)
+exports.setWalletPin = async (req, res) => {
+  try {
+    const { newPin, currentPin, otp } = req.body;
+    if (!newPin || !/^\d{6}$/.test(newPin)) {
+      return res.status(400).json({ error: 'PIN must be exactly 6 digits.' });
+    }
+
+    const user = await User.findById(req.user._id).select(
+      'walletPin walletPinAttempts walletPinLockedUntil walletPayOTP'
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (!user.walletPin) {
+      // ── Path 1: first time — email OTP required ───────────────────────
+      const validation = validateWalletOtp(user, otp);
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.error || 'Email OTP is required to set your PIN for the first time.' });
+      }
+    } else if (currentPin) {
+      // ── Path 2: normal change — current PIN only ──────────────────────
+      if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
+        const mins = Math.ceil((user.walletPinLockedUntil - Date.now()) / 60000);
+        return res.status(423).json({ error: `PIN is locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
+      }
+      const valid = await bcrypt.compare(String(currentPin), user.walletPin);
+      if (!valid) {
+        const newAttempts = (user.walletPinAttempts || 0) + 1;
+        const lockUpdate = newAttempts >= 5
+          ? { walletPinAttempts: 0, walletPinLockedUntil: new Date(Date.now() + 15 * 60 * 1000) }
+          : { walletPinAttempts: newAttempts };
+        await User.updateOne({ _id: user._id }, { $set: lockUpdate });
+        const left = 5 - newAttempts;
+        if (left <= 0) return res.status(423).json({ error: 'Too many wrong PINs. Locked for 15 minutes.' });
+        return res.status(400).json({ error: `Incorrect PIN. ${left} attempt${left === 1 ? '' : 's'} remaining.` });
+      }
+    } else if (otp) {
+      // ── Path 3: forgot PIN — email OTP only ──────────────────────────
+      const validation = validateWalletOtp(user, otp);
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.error || 'Email OTP is required to reset your PIN.' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Either your current PIN or an email OTP is required.' });
+    }
+
+    user.walletPin = await bcrypt.hash(String(newPin), 10);
+    user.walletPinAttempts = 0;
+    user.walletPinLockedUntil = null;
+    user.walletPayOTP = undefined;
+    await user.save();
+
+    res.json({ message: 'Transaction PIN updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Remove the wallet PIN. Requires the current PIN only — no OTP needed since
+// the user must already know their PIN to remove it. (If they forgot it, they
+// should use the "Forgot PIN" reset flow to set a new one first.)
+exports.removeWalletPin = async (req, res) => {
+  try {
+    const { currentPin } = req.body;
+    if (!currentPin) {
+      return res.status(400).json({ error: 'Current PIN is required to remove it.' });
+    }
+
+    const user = await User.findById(req.user._id).select(
+      'walletPin walletPinAttempts walletPinLockedUntil'
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.walletPin) {
+      return res.status(400).json({ error: 'No PIN is currently set.' });
+    }
+    if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
+      const mins = Math.ceil((user.walletPinLockedUntil - Date.now()) / 60000);
+      return res.status(423).json({ error: `PIN is locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
+    }
+    const valid = await bcrypt.compare(String(currentPin), user.walletPin);
+    if (!valid) {
+      return res.status(400).json({ error: 'PIN is incorrect.' });
+    }
+
+    user.walletPin = null;
+    user.walletPinAttempts = 0;
+    user.walletPinLockedUntil = null;
+    await user.save();
+    res.json({ message: 'Transaction PIN removed.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Performs the wallet-to-wallet transfer for "Pay User". Auth (OTP or PIN) has
+// already been verified and cleared by walletAuthMiddleware before this runs.
 exports.payToUserWithOtp = async (req, res) => {
   const session = await mongoose.startSession();
   try {
-    const { to, amount, note, otp } = req.body;
+    const { to, amount, note } = req.body;
     if (!to || !amount || amount <= 0) {
       return res.status(400).json({ error: 'to (email) and a positive amount are required' });
-    }
-    if (!otp || !/^\d{6}$/.test(otp)) {
-      return res.status(400).json({ error: 'A valid 6-digit OTP is required' });
     }
 
     const senderDoc = await User.findById(req.user._id);
     if (!senderDoc) return res.status(404).json({ error: 'User not found' });
-    if (!senderDoc.walletPayOTP || senderDoc.walletPayOTP.code !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-    if (new Date() > senderDoc.walletPayOTP.expiry) {
-      return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
-    }
 
     const receiver = await validateRecipient(to, senderDoc);
 
@@ -282,7 +444,7 @@ exports.payToUserWithOtp = async (req, res) => {
     await session.withTransaction(async () => {
       const sender = await User.findOneAndUpdate(
         { _id: req.user._id, walletBalance: { $gte: amount } },
-        { $inc: { walletBalance: -amount }, $unset: { walletPayOTP: 1 } },
+        { $inc: { walletBalance: -amount } },
         { new: true, session }
       );
       if (!sender) {

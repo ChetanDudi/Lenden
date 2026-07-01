@@ -13,7 +13,8 @@ module.exports = (io) => {
   const editProfileController = require('../controllers/editProfileController');
   const auth = require('../middleware/auth');
   const sessionTimeout = require('../middleware/sessionTimeout');
-  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter } = require('../middleware/rateLimit');
+  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter, pinVerifyLimiter } = require('../middleware/rateLimit');
+  const walletAuthMiddleware = require('../middleware/walletAuth');
   const fs = require('fs');
   const multer = require('multer');
   const os = require('os');
@@ -174,7 +175,7 @@ module.exports = (io) => {
   router.put('/quick-transactions/:id', auth, quickTransactionController.updateQuickTransaction);
   router.delete('/quick-transactions/:id', auth, quickTransactionController.deleteQuickTransaction);
   router.put('/quick-transactions/:id/clear', auth, quickTransactionController.clearQuickTransaction);
-  router.post('/quick-transactions/:id/pay', auth, quickTransactionController.payQuickTransaction);
+  router.post('/quick-transactions/:id/pay', auth, walletAuthMiddleware, quickTransactionController.payQuickTransaction);
   router.post('/quick-transactions/:id/request-settlement', auth, quickTransactionController.requestQuickTransactionSettlement);
   router.post('/quick-transactions/:id/respond-settlement', auth, quickTransactionController.respondQuickTransactionSettlement);
   router.delete('/quick-transactions', auth, quickTransactionController.clearAllQuickTransactions);
@@ -214,6 +215,8 @@ module.exports = (io) => {
   // Partial payment routes
   router.post('/transactions/send-partial-payment-otp', auth, transactionController.sendPartialPaymentOTP);
   router.post('/transactions/verify-partial-payment-otp', auth, transactionController.verifyPartialPaymentOTP);
+  router.post('/transactions/partial-payment/verify-pin', auth, pinVerifyLimiter, transactionController.verifyPartialPaymentPin);
+  router.post('/transactions/verify-creation-pin', auth, pinVerifyLimiter, transactionController.verifyTransactionCreationPin);
   router.post('/transactions/partial-payment', auth, transactionController.processPartialPayment);
   router.get('/transactions/:transactionId', auth, transactionController.getTransactionDetails);
 
@@ -318,7 +321,7 @@ module.exports = (io) => {
   router.post('/group-transactions/:groupId/remove-member', auth, groupTransactionController.removeMember);
   router.post('/group-transactions/:groupId/settle-member-expenses', auth, groupTransactionController.settleMemberExpenses);
   router.post('/group-transactions/:groupId/self-settle', auth, groupTransactionController.selfSettleExpenses);
-  router.post('/group-transactions/:groupId/record-payment', auth, groupTransactionController.recordMemberPayment);
+  router.post('/group-transactions/:groupId/record-payment', auth, walletAuthMiddleware, groupTransactionController.recordMemberPayment);
   router.post('/group-transactions/:groupId/add-expense', auth, groupTransactionController.addExpense);
   router.put('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.editExpense);
   router.delete('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.deleteExpense);
@@ -511,19 +514,29 @@ module.exports = (io) => {
   router.get('/wallet/balance', auth, walletController.getBalance);
   router.get('/wallet/history', auth, walletController.getHistory);
   router.post('/wallet/pay', auth, walletController.pay);
-  router.post('/wallet/qr-pay', auth, walletController.qrPay);
-  router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
+
+  // Outgoing wallet payments — every route below is gated by walletAuthMiddleware
+  // which requires either authPin (transaction PIN) or authOtp (email OTP).
+  router.post('/wallet/qr-pay', auth, walletAuthMiddleware, walletController.qrPay);
+  router.post('/wallet/pay-subscription', auth, walletAuthMiddleware, walletController.paySubscription);
 
   // Real-money wallet top-up via the Razorpay Payment Handle link
   router.post('/wallet/topup/manual/verify', auth, manualPaymentVerifyLimiter, walletController.verifyManualTopUp);
 
-  // Pay User — sender email OTP gate
-  router.post('/wallet/pay/send-otp', auth, otpSendLimiter, walletController.sendPayOtp);
-  router.post('/wallet/pay/verify-otp', auth, otpVerifyLimiter, walletController.payToUserWithOtp);
+  // Pay User — send OTP or use PIN, then transfer
+  router.post('/wallet/auth/send-otp', auth, walletController.sendWalletAuthOtp);
+  router.post('/wallet/pay/send-otp', auth, otpSendLimiter, walletController.sendPayOtp); // legacy — kept for existing OTP-only flow
+  router.post('/wallet/pay/verify-otp', auth, walletAuthMiddleware, walletController.payToUserWithOtp);
+
+  // Wallet Transaction PIN management
+  router.get('/wallet/pin/status', auth, walletController.getWalletPinStatus);
+  router.post('/wallet/pin/verify-otp', auth, walletController.verifyWalletOtp);
+  router.post('/wallet/pin/set', auth, walletController.setWalletPin);
+  router.post('/wallet/pin/remove', auth, walletController.removeWalletPin);
 
   // Wallet Withdrawal routes (Razorpay Payouts)
   const withdrawalController = require('../controllers/withdrawalController');
-  router.post('/wallet/withdraw', auth, withdrawalController.initiateWithdrawal);
+  router.post('/wallet/withdraw', auth, walletAuthMiddleware, withdrawalController.initiateWithdrawal);
   router.get('/wallet/withdrawals', auth, withdrawalController.getWithdrawalHistory);
   router.post('/wallet/payout-webhook', withdrawalController.handlePayoutWebhook); // no auth — Razorpay calls this
 
@@ -536,7 +549,7 @@ module.exports = (io) => {
   // RazorpayX payout account is configured, so this replaces the old
   // Razorpay-order test-key checkout flow entirely)
   const scanPaymentController = require('../controllers/scanPaymentController');
-  router.post('/wallet/scan-payment', auth, scanPaymentController.initiateScanPayment);
+  router.post('/wallet/scan-payment', auth, walletAuthMiddleware, scanPaymentController.initiateScanPayment);
   router.get('/wallet/scan-payments', auth, scanPaymentController.getScanPaymentHistory);
   router.get('/admin/scan-payments', auth, isAdmin, scanPaymentController.adminGetScanPayments);
   router.post('/admin/scan-payments/:id/process', auth, isAdmin, scanPaymentController.adminMarkProcessed);

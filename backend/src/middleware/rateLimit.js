@@ -36,6 +36,18 @@ exports.passwordResetLimiter = rateLimit({
   message: { error: 'Too many password reset attempts. Please try again later.' },
 });
 
+// PIN verify: PIN is a 6-digit secret, so this MUST be tight. Unlike OTP
+// (which has its own account-level lockout inside walletAuthMiddleware), the
+// rate-limiter here is the network-level first line of defence for the
+// dedicated PIN-verify endpoints used by Secure Transactions.
+exports.pinVerifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many PIN attempts. Please try again in 10 minutes.' },
+});
+
 // Manual payment-ID verification: not a brute-forceable secret (Razorpay payment
 // IDs are long random strings), but still throttle scripted submission attempts.
 exports.manualPaymentVerifyLimiter = rateLimit({
