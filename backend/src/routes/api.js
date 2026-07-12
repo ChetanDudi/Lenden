@@ -13,7 +13,7 @@ module.exports = (io) => {
   const editProfileController = require('../controllers/editProfileController');
   const auth = require('../middleware/auth');
   const sessionTimeout = require('../middleware/sessionTimeout');
-  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter, pinVerifyLimiter } = require('../middleware/rateLimit');
+  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter } = require('../middleware/rateLimit');
   const walletAuthMiddleware = require('../middleware/walletAuth');
   const fs = require('fs');
   const multer = require('multer');
@@ -112,6 +112,7 @@ module.exports = (io) => {
   router.get('/rating/my', auth, AppratingController.getMyRating);
     // User rating routes (for RatingsPage)
     router.get('/ratings/me', auth, ratingController.getMyRatings);
+    router.get('/ratings/top', auth, ratingController.getTopRatedUsers);
     router.post('/ratings', auth, ratingController.rateUser);
     router.patch('/ratings/:ratingId', auth, ratingController.updateRating);
     router.get('/ratings/user-avg', auth, ratingController.getUserAvgRating);
@@ -215,8 +216,8 @@ module.exports = (io) => {
   // Partial payment routes
   router.post('/transactions/send-partial-payment-otp', auth, transactionController.sendPartialPaymentOTP);
   router.post('/transactions/verify-partial-payment-otp', auth, transactionController.verifyPartialPaymentOTP);
-  router.post('/transactions/partial-payment/verify-pin', auth, pinVerifyLimiter, transactionController.verifyPartialPaymentPin);
-  router.post('/transactions/verify-creation-pin', auth, pinVerifyLimiter, transactionController.verifyTransactionCreationPin);
+  router.post('/transactions/partial-payment/verify-pin', auth, transactionController.verifyPartialPaymentPin);
+  router.post('/transactions/verify-creation-pin', auth, transactionController.verifyTransactionCreationPin);
   router.post('/transactions/partial-payment', auth, transactionController.processPartialPayment);
   router.get('/transactions/:transactionId', auth, transactionController.getTransactionDetails);
 
@@ -513,7 +514,7 @@ module.exports = (io) => {
   const walletController = require('../controllers/walletController');
   router.get('/wallet/balance', auth, walletController.getBalance);
   router.get('/wallet/history', auth, walletController.getHistory);
-  router.post('/wallet/pay', auth, walletController.pay);
+  router.post('/wallet/pay', auth, walletAuthMiddleware, walletController.pay);
 
   // Outgoing wallet payments — every route below is gated by walletAuthMiddleware
   // which requires either authPin (transaction PIN) or authOtp (email OTP).
@@ -525,7 +526,7 @@ module.exports = (io) => {
 
   // Pay User — send OTP or use PIN, then transfer
   router.post('/wallet/auth/send-otp', auth, walletController.sendWalletAuthOtp);
-  router.post('/wallet/pay/send-otp', auth, otpSendLimiter, walletController.sendPayOtp); // legacy — kept for existing OTP-only flow
+  router.post('/wallet/pay/send-otp', auth, walletController.sendPayOtp); // legacy — kept for existing OTP-only flow
   router.post('/wallet/pay/verify-otp', auth, walletAuthMiddleware, walletController.payToUserWithOtp);
 
   // Wallet Transaction PIN management

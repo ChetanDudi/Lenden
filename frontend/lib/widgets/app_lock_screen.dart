@@ -54,7 +54,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
       _pin += digit;
       _error = null;
     });
-    if (_pin.length == 4 || _pin.length == 6) {
+    if (_pin.length == 6) {
       _verify();
     }
   }

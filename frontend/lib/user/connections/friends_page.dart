@@ -6,6 +6,7 @@ import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../api_config.dart';
 import '../transaction/quick_transactions/quick_transactions_page.dart';
 import '../transaction/secure_transactions/create_secure_transaction_page.dart';
 import '../transaction/group_transactions/create_group_page.dart';
@@ -33,6 +34,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   List<Map<String, dynamic>> _blocked = [];
   List<Map<String, dynamic>> _searchResults = [];
   List<Map<String, dynamic>> _suggestions = [];
+  List<Map<String, dynamic>> _topRatedUsers = [];
   final Set<String> _pendingOutgoingIds = {};
   final Set<String> _selectedForGroup = {};
   String _friendsQuery = '';
@@ -121,9 +123,21 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       _loadInteractionCounts();
       _loadMutualCounts();
       _loadSuggestions();
+      _loadTopRated();
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loadTopRated() async {
+    try {
+      final res = await ApiClient.get('/api/ratings/top?limit=10');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() => _topRatedUsers = List<Map<String, dynamic>>.from(data['topRated'] ?? []));
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadSuggestions() async {
@@ -510,6 +524,35 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     );
   }
 
+  Widget _profileAvatar(String userId, String displayName, String username, {double radius = 24}) {
+    final color = _avatarColor(displayName.isNotEmpty ? displayName : username);
+    final size = radius * 2;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      child: ClipOval(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: Text(
+                _initials(displayName, username),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: radius * 0.65),
+              ),
+            ),
+            if (userId.isNotEmpty)
+              Image.network(
+                '${ApiConfig.baseUrl}/api/users/$userId/profile-image',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFriendCard(Map<String, dynamic> friend, int index) {
     final email = (friend['email'] ?? '').toString();
     final name = (friend['name'] ?? '').toString();
@@ -543,14 +586,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   // Avatar
                   Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: color,
-                        child: Text(
-                          _initials(name, username),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                      ),
+                      _profileAvatar(friendId, displayName, username, radius: 26),
                       if (selected)
                         Positioned(
                           right: 0, bottom: 0,
@@ -733,7 +769,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final name = (person['name'] ?? person['username'] ?? 'Unknown').toString();
     final email = (person['email'] ?? '').toString();
     final username = (person['username'] ?? '').toString();
-    final color = _avatarColor(name);
+    final personId = (person['_id'] ?? '').toString();
 
     return _tricolorBorder(
       child: Container(
@@ -741,11 +777,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: color,
-              child: Text(_initials(name, username), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+            _profileAvatar(personId, name.isNotEmpty ? name : username, username, radius: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -779,7 +811,6 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       final from = r['from'];
       return (from is Map ? from['_id'] : from)?.toString() == uid;
     });
-    final color = _avatarColor(name.isNotEmpty ? name : username);
 
     return _tricolorBorder(
       child: Container(
@@ -787,11 +818,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: color,
-              child: Text(_initials(name, username), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+            _profileAvatar(uid, name.isNotEmpty ? name : username, username, radius: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -846,7 +873,6 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final mutualCount = (u['mutualFriends'] ?? u['mutual'] ?? 0) as int;
     final reason = (u['reason'] ?? '').toString();
     final displayName = name.isNotEmpty ? name : username;
-    final color = _avatarColor(displayName);
     final suid = u['_id']?.toString() ?? '';
     final isOutgoing = _pendingOutgoingIds.contains(suid) ||
         _outgoing.any((r) {
@@ -860,12 +886,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: color,
-              child: Text(_initials(name, username),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
+            _profileAvatar(suid, displayName, username, radius: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1135,7 +1156,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     final name = (to['name'] ?? to['username'] ?? 'Unknown').toString();
                                     final email = (to['email'] ?? '').toString();
                                     final username = (to['username'] ?? '').toString();
-                                    final color = _avatarColor(name);
+                                    final toId = (to['_id'] ?? '').toString();
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 8),
                                       child: Container(
@@ -1146,12 +1167,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                           border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
                                         ),
                                         child: Row(children: [
-                                          CircleAvatar(
-                                            radius: 20,
-                                            backgroundColor: color,
-                                            child: Text(_initials(name, username),
-                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                          ),
+                                          _profileAvatar(toId, name, username, radius: 20),
                                           const SizedBox(width: 10),
                                           Expanded(child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1475,6 +1491,131 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                         padding: const EdgeInsets.only(bottom: 10),
                                         child: _buildSuggestionCard(u),
                                       )),
+                                    const SizedBox(height: 20),
+                                    _sectionHeader(t('top_rated_users_label'), _topRatedUsers.length, badgeColor: Colors.amber),
+                                    const SizedBox(height: 8),
+                                    if (_topRatedUsers.isEmpty)
+                                      Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 24),
+                                          child: Text(t('no_top_rated_yet'), style: TextStyle(color: AppThemeColors.mutedText(context))),
+                                        ),
+                                      )
+                                    else
+                                      Builder(builder: (ctx) {
+                                        final myId = Provider.of<SessionProvider>(ctx, listen: false).user?['_id']?.toString() ?? '';
+                                        final friendIds = _friends.map((f) => f['_id']?.toString()).toSet();
+                                        return Column(
+                                          children: _topRatedUsers.map((u) {
+                                            final uid = (u['_id'] ?? '').toString();
+                                            if (uid == myId) return const SizedBox.shrink();
+                                            final name = (u['name'] ?? u['username'] ?? 'Unknown').toString();
+                                            final username = (u['username'] ?? '').toString();
+                                            final avg = (u['avgRating'] as num?)?.toStringAsFixed(1) ?? '0.0';
+                                            final rank = u['rank'] as int? ?? 0;
+                                            final isFriend = friendIds.contains(uid);
+                                            final isOutgoing = _pendingOutgoingIds.contains(uid) ||
+                                              _outgoing.any((r) {
+                                                final to = r['to'];
+                                                return (to is Map ? to['_id'] : to)?.toString() == uid;
+                                              });
+                                            final isIncoming = _incoming.any((r) {
+                                              final from = r['from'];
+                                              return (from is Map ? from['_id'] : from)?.toString() == uid;
+                                            });
+                                            return Padding(
+                                              padding: const EdgeInsets.only(bottom: 8),
+                                              child: _tricolorBorder(
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                  decoration: BoxDecoration(
+                                                    color: AppThemeColors.cardBg(context),
+                                                    borderRadius: BorderRadius.circular(18),
+                                                  ),
+                                                  child: Row(children: [
+                                                    Container(
+                                                      width: 30,
+                                                      alignment: Alignment.center,
+                                                      child: Text('#$rank',
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.amber)),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    _profileAvatar(uid, name, username, radius: 22),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                        Row(children: [
+                                                          if (username.isNotEmpty)
+                                                            Text('@$username ', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                                                          const Icon(Icons.star_rounded, size: 13, color: Colors.amber),
+                                                          const SizedBox(width: 2),
+                                                          Text(avg, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                                        ]),
+                                                      ],
+                                                    )),
+                                                    const SizedBox(width: 8),
+                                                    if (isFriend)
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.green.withValues(alpha: 0.1),
+                                                          borderRadius: BorderRadius.circular(20),
+                                                          border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                                        ),
+                                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                                          const Icon(Icons.check, size: 12, color: Colors.green),
+                                                          const SizedBox(width: 4),
+                                                          Text(t('friends_label'), style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.w600)),
+                                                        ]),
+                                                      )
+                                                    else if (isIncoming)
+                                                      ElevatedButton(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: Colors.green,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                          elevation: 0, minimumSize: Size.zero,
+                                                        ),
+                                                        onPressed: () {
+                                                          final req = _incoming.firstWhere((r) {
+                                                            final from = r['from'];
+                                                            return (from is Map ? from['_id'] : from)?.toString() == uid;
+                                                          }, orElse: () => {});
+                                                          if (req.isNotEmpty) _acceptRequest(req['_id']?.toString() ?? '');
+                                                        },
+                                                        child: Text(t('accept'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                      )
+                                                    else if (isOutgoing)
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.orange.withValues(alpha: 0.1),
+                                                          borderRadius: BorderRadius.circular(20),
+                                                          border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                                                        ),
+                                                        child: Text(t('pending_label'), style: const TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.w600)),
+                                                      )
+                                                    else
+                                                      ElevatedButton.icon(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: AppColors.cyan,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                          elevation: 0, minimumSize: Size.zero,
+                                                        ),
+                                                        icon: const Icon(Icons.person_add, color: Colors.white, size: 13),
+                                                        label: Text(t('add_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                                        onPressed: () => _addFriend({'_id': uid, 'name': name, 'username': username}),
+                                                      ),
+                                                  ]),
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        );
+                                      }),
                                   ],
                                 );
                               },

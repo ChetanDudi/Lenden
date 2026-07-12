@@ -2483,7 +2483,34 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Future<void> _submitWithCoins() async {
-    // Logic to submit with coins
+    setState(() => _sameEmailError = null);
+    final t = AppLocalizations.of(context).t;
+    if (_selectedDate == null) {
+      _showStylishErrorDialog(
+        t('transaction_date_required_title'),
+        t('select_transaction_date_message'),
+      );
+      return;
+    }
+    if (_selectedTime == null) {
+      _showStylishErrorDialog(
+        t('transaction_time_required_title'),
+        t('select_transaction_time_message'),
+      );
+      return;
+    }
+    if (_interestType != 'none' && _expectedReturnDate == null) {
+      _showStylishErrorDialog(t('expected_return_date_required_title'),
+          t('select_expected_return_date_interest_message'));
+      return;
+    }
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      _showStylishErrorDialog(
+        t('incomplete_form_title'),
+        t('fill_required_fields_message'),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> body = {
@@ -2570,6 +2597,21 @@ class _TransactionPageState extends State<TransactionPage> {
     setState(() => _sameEmailError = null);
     final t = AppLocalizations.of(context).t;
 
+    if (_selectedDate == null) {
+      _showStylishErrorDialog(
+        t('transaction_date_required_title'),
+        t('select_transaction_date_message'),
+      );
+      return;
+    }
+    if (_selectedTime == null) {
+      _showStylishErrorDialog(
+        t('transaction_time_required_title'),
+        t('select_transaction_time_message'),
+      );
+      return;
+    }
+
     // Custom validation for expected return date when interest is selected
     if (_interestType != 'none' && _expectedReturnDate == null) {
       _showStylishErrorDialog(t('expected_return_date_required_title'),
@@ -2577,13 +2619,15 @@ class _TransactionPageState extends State<TransactionPage> {
       return;
     }
 
-    // Validate form
-    if (!_formKey.currentState!.validate()) {
-      print('Form validation failed');
+    // Validate form — show dialog so the error is never silently lost below the fold
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      _showStylishErrorDialog(
+        t('incomplete_form_title'),
+        t('fill_required_fields_message'),
+      );
       return;
     }
 
-    print('Form validation passed, proceeding with submission');
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> body = {

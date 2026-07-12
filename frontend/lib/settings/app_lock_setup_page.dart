@@ -40,7 +40,10 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
   Future<void> _setupPin() async {
     final t = AppLocalizations.of(context).t;
     final pin = await _showPinDialog(t('set_a_pin_title'));
-    if (pin == null || pin.length < 4) return;
+    if (pin == null || pin.length != 6) {
+      if (pin != null) showSnack(context, t('pin_must_be_6_digits'), isError: true);
+      return;
+    }
     final confirm = await _showPinDialog(t('confirm_your_pin_title'));
     if (confirm != pin) {
       showSnack(context, t('pins_did_not_match'), isError: true);
@@ -102,7 +105,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
           maxLength: 6,
           style: TextStyle(color: AppThemeColors.primaryText(ctx)),
           decoration: InputDecoration(
-            hintText: t('pin_hint_4_6_digit'),
+            hintText: t('pin_hint_6_digit'),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -186,8 +189,17 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
                               value: _biometricEnabled,
                               activeColor: AppColors.cyan,
                               onChanged: (v) async {
+                                if (v) {
+                                  // Verify biometric works before enabling
+                                  final ok = await AppLockService.authenticateWithBiometrics();
+                                  if (!mounted) return;
+                                  if (!ok) {
+                                    showSnack(context, t('biometric_auth_failed'), isError: true);
+                                    return;
+                                  }
+                                }
                                 await AppLockService.setBiometricEnabled(v);
-                                setState(() => _biometricEnabled = v);
+                                if (mounted) setState(() => _biometricEnabled = v);
                               },
                             ),
                         ],

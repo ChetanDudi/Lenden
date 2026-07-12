@@ -16,6 +16,7 @@ import '../../widgets/payment_success_page.dart';
 import '../../utils/theme_helper.dart';
 import '../../settings/set_wallet_pin_page.dart';
 import '../../l10n/app_localizations.dart';
+import '../../api_config.dart';
 
 class LendenWalletPage extends StatefulWidget {
   final bool autoOpenPayUser;
@@ -106,6 +107,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
             List<Map<String, dynamic>>.from(data['transactions'] ?? []));
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
@@ -1976,11 +1978,14 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                     separatorBuilder: (_, __) => const SizedBox(width: 14),
                     itemBuilder: (_, i) {
                       final f = _friends[i];
+                      final fId = (f['_id'] ?? '').toString();
                       final name = (f['name'] ?? '').toString();
                       final username = (f['username'] ?? '').toString();
                       final email = (f['email'] ?? '').toString();
                       final selected = _emailCtrl.text.trim().toLowerCase() ==
                           email.toLowerCase();
+                      final avatarColor = _avatarColor(name.isNotEmpty ? name : username);
+                      final initials = _initials(name, username);
                       return GestureDetector(
                         onTap: () => setState(() {
                           _emailCtrl.text = email;
@@ -2018,15 +2023,21 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                                     ]
                                   : null,
                             ),
-                            child: CircleAvatar(
-                              radius: 24,
-                              backgroundColor: _avatarColor(
-                                  name.isNotEmpty ? name : username),
-                              child: Text(_initials(name, username),
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15)),
+                            child: Container(
+                              width: 48, height: 48,
+                              decoration: BoxDecoration(shape: BoxShape.circle, color: avatarColor),
+                              child: ClipOval(
+                                child: Stack(fit: StackFit.expand, children: [
+                                  Center(child: Text(initials,
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
+                                  if (fId.isNotEmpty)
+                                    Image.network(
+                                      '${ApiConfig.baseUrl}/api/users/$fId/profile-image',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                    ),
+                                ]),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -3156,6 +3167,8 @@ class _WalletAuthStepState extends State<_WalletAuthStep> {
               }),
               enabled: !busy,
               autoFocus: true,
+              obscureText: true,
+              showVisibilityToggle: true,
             )),
           ],
         ],

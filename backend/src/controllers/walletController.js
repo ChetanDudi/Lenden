@@ -6,7 +6,7 @@ const SubscriptionPlan = require('../models/subscriptionPlan');
 const Subscription = require('../models/subscription');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const Admin = require('../models/admin');
-const { sendWalletPayOTP } = require('../utils/walletPayOtp');
+const { sendWalletPayOTP, sendWalletPinSetupOTP } = require('../utils/walletPayOtp');
 
 exports.getBalance = async (req, res) => {
   try {
@@ -258,7 +258,7 @@ exports.sendWalletAuthOtp = async (req, res) => {
     user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now };
     await user.save();
 
-    await sendWalletPayOTP(user.email, otp, user.name);
+    await sendWalletPinSetupOTP(user.email, otp, user.name);
     res.json({ message: 'OTP sent to your registered email', email: user.email });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

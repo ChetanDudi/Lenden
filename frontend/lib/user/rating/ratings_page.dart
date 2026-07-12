@@ -8,6 +8,7 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../digitise/subscriptions_page.dart';
+import '../../api_config.dart';
 
 class RatingsPage extends StatefulWidget {
   const RatingsPage({super.key});
@@ -46,6 +47,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   Map<String, int>? _searchedDistribution;
   bool _searching = false;
 
+  // Friends list
+  List<Map<String, dynamic>> _friends = [];
+
   // Rating activities
   List<dynamic> ratingActivities = [];
 
@@ -55,6 +59,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     _tabController = TabController(length: 3, vsync: this);
     fetchRatings();
     fetchRatingActivities();
+    _fetchFriends();
     _usernameController.addListener(() {
       if (_showSuccess) setState(() => _showSuccess = false);
     });
@@ -70,19 +75,29 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   }
 
   Future<void> fetchRatings() async {
-    final t = AppLocalizations.of(context).t;
     setState(() { loading = true; error = null; });
-    final res = await ApiClient.get('/api/ratings/me');
-    if (res.statusCode == 200) {
-      final data = json.decode(res.body);
-      setState(() {
-        avgRating = data['avgRating']?.toDouble();
-        ratingsGiven = data['ratingsGiven'] ?? [];
-        ratingsReceived = data['ratingsReceived'] ?? [];
+    try {
+      final res = await ApiClient.get('/api/ratings/me');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        setState(() {
+          avgRating = data['avgRating']?.toDouble();
+          ratingsGiven = data['ratingsGiven'] ?? [];
+          ratingsReceived = data['ratingsReceived'] ?? [];
+          loading = false;
+        });
+      } else {
+        setState(() {
+          error = AppLocalizations.of(context).t('failed_to_load_ratings');
+          loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() {
+        error = AppLocalizations.of(context).t('failed_to_load_ratings');
         loading = false;
       });
-    } else {
-      setState(() { error = t('failed_to_load_ratings'); loading = false; });
     }
   }
 
@@ -92,6 +107,16 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         if (mounted) setState(() => ratingActivities = data['activities'] ?? []);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchFriends() async {
+    try {
+      final res = await ApiClient.get('/api/friends');
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body);
+        setState(() => _friends = List<Map<String, dynamic>>.from(data['friends'] ?? []));
       }
     } catch (_) {}
   }
@@ -613,8 +638,70 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                                 ),
                                                 validator: (val) => val == null || val.isEmpty ? t('required') : null,
                                               ),
+                                              // Unrated friends quick-pick
+                                              Builder(builder: (context) {
+                                                final ratedIds = ratingsGiven.map((r) =>
+                                                  r['ratee']?.toString() ?? '').toSet();
+                                                final unrated = _friends.where((f) {
+                                                  final fid = (f['_id'] ?? '').toString();
+                                                  return fid.isNotEmpty && !ratedIds.contains(fid);
+                                                }).toList();
+                                                if (unrated.isEmpty) return const SizedBox.shrink();
+                                                return Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const SizedBox(height: 14),
+                                                    Text(t('friends_to_rate_label'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.mutedText(context))),
+                                                    const SizedBox(height: 8),
+                                                    SizedBox(
+                                                      height: 72,
+                                                      child: ListView.separated(
+                                                        scrollDirection: Axis.horizontal,
+                                                        itemCount: unrated.length,
+                                                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                                        itemBuilder: (ctx, i) {
+                                                          final f = unrated[i];
+                                                          final fId = (f['_id'] ?? '').toString();
+                                                          final fName = (f['name'] ?? f['username'] ?? '').toString();
+                                                          final fUsername = (f['username'] ?? '').toString();
+                                                          final initials = fName.isNotEmpty ? fName[0].toUpperCase() : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
+                                                          return GestureDetector(
+                                                            onTap: () {
+                                                              _usernameController.text = fUsername;
+                                                              if (_showSuccess) setState(() => _showSuccess = false);
+                                                            },
+                                                            child: Column(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                Container(
+                                                                  width: 44, height: 44,
+                                                                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: 0.15)),
+                                                                  child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                                                    Center(child: Text(initials, style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 16))),
+                                                                    if (fId.isNotEmpty)
+                                                                      Image.network(
+                                                                        '${ApiConfig.baseUrl}/api/users/$fId/profile-image',
+                                                                        fit: BoxFit.cover,
+                                                                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                                                      ),
+                                                                  ])),
+                                                                ),
+                                                                const SizedBox(height: 4),
+                                                                SizedBox(
+                                                                  width: 52,
+                                                                  child: Text(fUsername, style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              }),
                                               const SizedBox(height: 20),
-                                              Text(t('your_rating_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
+                                              Text(t('give_rating_as_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
                                               const SizedBox(height: 10),
                                               Center(
                                                 child: Column(
@@ -795,6 +882,56 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                         ),
                                       ),
                                     ),
+                                    // Friends quick-pick chips
+                                    if (_friends.isNotEmpty) ...[
+                                      const SizedBox(height: 12),
+                                      Text(t('friends_ratings_header_label'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.mutedText(context))),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 72,
+                                        child: ListView.separated(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: _friends.length,
+                                          separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                          itemBuilder: (ctx, i) {
+                                            final f = _friends[i];
+                                            final fId = (f['_id'] ?? '').toString();
+                                            final fName = (f['name'] ?? f['username'] ?? '').toString();
+                                            final fUsername = (f['username'] ?? '').toString();
+                                            final initials = fName.isNotEmpty ? fName[0].toUpperCase() : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
+                                            return GestureDetector(
+                                              onTap: () {
+                                                _searchController.text = fUsername;
+                                                _searchUserRating();
+                                              },
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 44, height: 44,
+                                                    decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: 0.15)),
+                                                    child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                                      Center(child: Text(initials, style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 16))),
+                                                      if (fId.isNotEmpty)
+                                                        Image.network(
+                                                          '${ApiConfig.baseUrl}/api/users/$fId/profile-image',
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                                        ),
+                                                    ])),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  SizedBox(
+                                                    width: 52,
+                                                    child: Text(fUsername, style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                     if (_searchedAvgRating != null) ...[
                                       const SizedBox(height: 16),
                                       _tricolorBorder(
@@ -818,12 +955,16 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             if (_searchedEmail?.isNotEmpty == true)
                                               Text(_searchedEmail!, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
                                             const SizedBox(height: 16),
-                                            _starRow(_searchedAvgRating!, size: 30),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              _searchedAvgRating!.toStringAsFixed(2),
-                                              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF0096C7)),
-                                            ),
+                                            if ((_searchedTotalRatings ?? 0) == 0)
+                                              const _Marquee(text: 'You are the first one to rate this user! ⭐')
+                                            else ...[
+                                              _starRow(_searchedAvgRating!, size: 30),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                _searchedAvgRating!.toStringAsFixed(2),
+                                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF0096C7)),
+                                              ),
+                                            ],
                                             if (_searchedTotalRatings != null)
                                               Text('${t('based_on_label')} $_searchedTotalRatings ${_searchedTotalRatings == 1 ? t('rating_singular_label') : t('ratings_plural_label')}',
                                                 style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
@@ -959,6 +1100,64 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
           const SizedBox(height: 8),
           Text(msg, style: TextStyle(color: AppThemeColors.mutedText(context))),
         ]),
+      ),
+    );
+  }
+}
+
+class _Marquee extends StatefulWidget {
+  const _Marquee({required this.text});
+  final String text;
+
+  @override
+  State<_Marquee> createState() => _MarqueeState();
+}
+
+class _MarqueeState extends State<_Marquee> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+    _animation = Tween<double>(begin: 1.0, end: -1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ClipRect(
+        child: AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            return FractionalTranslation(
+              translation: Offset(_animation.value, 0),
+              child: child,
+            );
+          },
+          child: Text(
+            widget.text,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.cyan,
+            ),
+            maxLines: 1,
+          ),
+        ),
       ),
     );
   }

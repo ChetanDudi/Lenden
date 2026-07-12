@@ -62,14 +62,27 @@ module.exports = async function walletAuthMiddleware(req, res, next) {
   }
 
   // ── OTP path ──────────────────────────────────────────────────────────────
+  const OTP_MAX_ATTEMPTS = 5;
+
   if (!user.walletPayOTP || !user.walletPayOTP.code) {
     return res.status(400).json({ error: 'No OTP is pending. Please request a new OTP first.' });
   }
-  if (user.walletPayOTP.code !== String(verifyOtp)) {
-    return res.status(400).json({ error: 'Invalid OTP.' });
-  }
   if (new Date() > new Date(user.walletPayOTP.expiry)) {
+    await User.updateOne({ _id: user._id }, { $unset: { walletPayOTP: 1 } });
     return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+  }
+
+  if (user.walletPayOTP.code !== String(verifyOtp)) {
+    const newAttempts = (user.walletPayOTP.attemptCount || 0) + 1;
+    if (newAttempts >= OTP_MAX_ATTEMPTS) {
+      await User.updateOne({ _id: user._id }, { $unset: { walletPayOTP: 1 } });
+      return res.status(423).json({ error: 'Too many wrong OTP attempts. The OTP has been invalidated. Please request a new one.' });
+    }
+    await User.updateOne({ _id: user._id }, { $set: { 'walletPayOTP.attemptCount': newAttempts } });
+    const attemptsLeft = OTP_MAX_ATTEMPTS - newAttempts;
+    return res.status(400).json({
+      error: `Invalid OTP. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining.`,
+    });
   }
 
   // One-time use — clear immediately after successful verification.

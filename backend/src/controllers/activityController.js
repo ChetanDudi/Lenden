@@ -211,10 +211,11 @@ exports.bookmarkActivity = async (req, res) => {
 
 // Create activity for transaction events
 exports.logTransactionActivity = async (userId, type, transaction, metadata = {}, creatorInfo = null) => {
+  const isPartialPayment = type === 'partial_payment_made' || type === 'partial_payment_received';
   const activityData = {
     title: '',
     description: '',
-    amount: transaction.amount,
+    amount: isPartialPayment ? (metadata.paymentAmount ?? transaction.amount) : transaction.amount,
     currency: transaction.currency,
     relatedTransaction: transaction._id,
     metadata
@@ -597,6 +598,7 @@ exports.cleanupOldActivities = async (req, res) => {
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     const result = await Activity.deleteMany({
+      user: req.user._id,
       createdAt: { $lt: cutoffDate }
     });
     

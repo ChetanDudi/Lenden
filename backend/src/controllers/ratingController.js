@@ -109,37 +109,90 @@ exports.rateUser = async (req, res) => {
 exports.getMyRatings = async (req, res) => {
   try {
     const userId = req.user._id;
-    const user = await User.findById(userId);
-    // Recalculate avgRating from ratings collection
-    const ratingsReceived = await Rating.find({ ratee: userId });
-    let avg = 0;
-    if (ratingsReceived.length > 0) {
-      avg = ratingsReceived.reduce((sum, r) => sum + r.rating, 0) / ratingsReceived.length;
-    }
-    user.avgRating = avg;
-    await user.save();
-    // Ratings received
-    const received = await Rating.find({ ratee: userId }).populate('rater', 'username name');
-    // Ratings given
-    const given = await Rating.find({ rater: userId }).populate('ratee', 'username name');
+    // Single round-trip: fetch populated lists for both calc and response
+    const [received, given] = await Promise.all([
+      Rating.find({ ratee: userId }).populate('rater', 'username name'),
+      Rating.find({ rater: userId }).populate('ratee', 'username name'),
+    ]);
+
+    const avg = received.length > 0
+      ? received.reduce((sum, r) => sum + r.rating, 0) / received.length
+      : 0;
+
+    await User.updateOne({ _id: userId }, { $set: { avgRating: avg } });
+
     res.json({
-      avgRating: user.avgRating || 0,
-      ratingsReceived: received.map(r => ({
+      avgRating: avg,
+      ratingsReceived: received.filter(r => r.rater).map(r => ({
         rater: r.rater._id,
         raterName: r.rater.name || r.rater.username,
         rating: r.rating,
         comment: r.comment,
-        createdAt: r.createdAt
+        createdAt: r.createdAt,
       })),
-      ratingsGiven: given.map(r => ({
+      ratingsGiven: given.filter(r => r.ratee).map(r => ({
         _id: r._id,
         ratee: r.ratee._id,
+        rateeUsername: r.ratee.username,
         rateeName: r.ratee.name || r.ratee.username,
         rating: r.rating,
         comment: r.comment,
-        createdAt: r.createdAt
-      }))
+        createdAt: r.createdAt,
+      })),
     });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// GET /api/ratings/top - Top 10 rated users (ties get same rank)
+exports.getTopRatedUsers = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+
+    const topAgg = await Rating.aggregate([
+      { $group: { _id: '$ratee', avgRating: { $avg: '$rating' }, totalRatings: { $sum: 1 } } },
+      { $sort: { avgRating: -1, totalRatings: -1 } },
+      { $limit: limit },
+    ]);
+
+    if (topAgg.length === 0) return res.json({ topRated: [] });
+
+    const users = await User.find({ _id: { $in: topAgg.map(u => u._id) } })
+      .select('name username email');
+    const userMap = {};
+    for (const u of users) userMap[u._id.toString()] = u;
+
+    let rank = 1;
+    let prevAvg = null;
+    let sameCount = 0;
+    const result = [];
+
+    for (let i = 0; i < topAgg.length; i++) {
+      const entry = topAgg[i];
+      const avg = Math.round(entry.avgRating * 100) / 100;
+      if (prevAvg !== null && avg < prevAvg) {
+        rank += sameCount;
+        sameCount = 1;
+      } else {
+        sameCount++;
+      }
+      prevAvg = avg;
+      const u = userMap[entry._id.toString()];
+      if (u) {
+        result.push({
+          _id: entry._id,
+          name: u.name || '',
+          username: u.username || '',
+          email: u.email || '',
+          avgRating: avg,
+          totalRatings: entry.totalRatings,
+          rank,
+        });
+      }
+    }
+
+    res.json({ topRated: result });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

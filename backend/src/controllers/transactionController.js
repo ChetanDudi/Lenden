@@ -955,14 +955,18 @@ exports.clearTransaction = async (req, res) => {
       }
       try {
         const creatorInfo = { creatorId: req.user._id, creatorEmail: email };
-        await logTransactionActivity(transaction.userEmail === email ? transaction.userEmail : transaction.counterpartyEmail, 'transaction_cleared', transaction, {
+        // req.user._id is the current user's ObjectId — only the counterparty needs a lookup
+        const otherPartyDoc = await User.findOne({ email: otherPartyEmail }).select('_id');
+        await logTransactionActivity(req.user._id, 'transaction_cleared', transaction, {
           clearedBy: email,
           otherParty: otherPartyEmail
         }, creatorInfo);
-        await logTransactionActivity(otherPartyEmail, 'transaction_cleared', transaction, {
-          clearedBy: email,
-          otherParty: email
-        }, creatorInfo);
+        if (otherPartyDoc) {
+          await logTransactionActivity(otherPartyDoc._id, 'transaction_cleared', transaction, {
+            clearedBy: email,
+            otherParty: otherPartyEmail
+          }, creatorInfo);
+        }
       } catch (e) {
         console.error('Failed to log transaction activity:', e);
       }
@@ -1193,6 +1197,10 @@ exports.processPartialPayment = async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
+    if (transaction.userCleared && transaction.counterpartyCleared) {
+      return res.status(400).json({ error: 'This transaction has already been fully paid off.' });
+    }
+
     // Resolve both parties from the transaction record itself — never from
     // client-supplied emails — so the payment can't be redirected.
     const lenderEmail = transaction.role === 'lender' ? transaction.userEmail : transaction.counterpartyEmail;
@@ -1248,8 +1256,8 @@ exports.processPartialPayment = async (req, res) => {
       }
     }
 
-    // Initialize remaining amount if not set
-    if (!transaction.remainingAmount) {
+    // Initialize remaining amount if not set (use == null to avoid treating 0 as unset)
+    if (transaction.remainingAmount == null) {
       transaction.remainingAmount = totalAmountWithInterest;
       transaction.totalAmountWithInterest = totalAmountWithInterest;
     } else {
@@ -1309,8 +1317,12 @@ exports.processPartialPayment = async (req, res) => {
         { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: description || 'Secure transaction repayment' },
       ], { session });
 
-      // Process the partial payment
-      transaction.remainingAmount = totalAmountWithInterest - amount;
+      // Process the partial payment — round to 2 dp to avoid floating-point
+      // artefacts (e.g. 100.5 - 100.5 = 1.77e-15) that would prevent clearing.
+      const rawRemaining = totalAmountWithInterest - amount;
+      transaction.remainingAmount = rawRemaining <= 0
+        ? 0
+        : Math.round(rawRemaining * 100) / 100;
       transaction.isPartiallyPaid = true;
 
       // Add to partial payments history
@@ -1321,7 +1333,7 @@ exports.processPartialPayment = async (req, res) => {
         description: description || ''
       });
 
-      // If remaining amount is 0 or less, mark transaction as cleared
+      // If remaining amount is 0 or effectively 0 (< 1 cent), mark as cleared
       if (transaction.remainingAmount <= 0) {
         transaction.userCleared = true;
         transaction.counterpartyCleared = true;
@@ -1337,25 +1349,21 @@ exports.processPartialPayment = async (req, res) => {
     lendingborrowingotp.consumePartialPaymentVerified(transactionId);
 
     // Log activity for partial payment - both parties get notified
+    // req.user._id is the payer; payee._id was already fetched above (line ~1293).
     try {
-      const creatorInfo = {
-        creatorId: req.user._id,
-        creatorEmail: paidBy === 'lender' ? lenderEmail : borrowerEmail
-      };
-
-      // Log for the payer
-      await logTransactionActivity(paidBy === 'lender' ? lenderEmail : borrowerEmail, 'partial_payment_made', transaction, {
-        amount: amount,
+      const creatorInfo = { creatorId: req.user._id, creatorEmail: payerEmail };
+      await logTransactionActivity(req.user._id, 'partial_payment_made', transaction, {
+        paymentAmount: amount,
         description: description || '',
         remainingAmount: transaction.remainingAmount
       }, creatorInfo);
-
-      // Log for the other party
-      await logTransactionActivity(paidBy === 'lender' ? borrowerEmail : lenderEmail, 'partial_payment_received', transaction, {
-        amount: amount,
-        description: description || '',
-        remainingAmount: transaction.remainingAmount
-      }, creatorInfo);
+      if (payee) {
+        await logTransactionActivity(payee._id, 'partial_payment_received', transaction, {
+          paymentAmount: amount,
+          description: description || '',
+          remainingAmount: transaction.remainingAmount
+        }, creatorInfo);
+      }
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
     }
