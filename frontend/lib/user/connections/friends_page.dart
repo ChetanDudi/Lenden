@@ -41,6 +41,10 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   int _friendsVisibleCount = 10;
   String _blockedQuery = '';
   int _blockedVisibleCount = 10;
+
+  // Friends tab filter/sort
+  String? _filterGender;   // null = All, 'Male', 'Female', 'Other'
+  String _sortFriends = 'name_az'; // name_az | name_za | friend_since | member_since | rating
   Map<String, int> _mutualCounts = {};
   Map<String, int> _interactionCounts = {};
   late TabController _tabController;
@@ -83,16 +87,51 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     return '?';
   }
 
-  // Filtered view — pure client-side, no network call needed
+  // Filtered + sorted view — pure client-side
   List<Map<String, dynamic>> get _filteredFriends {
-    if (_friendsQuery.isEmpty) return _friends;
-    final q = _friendsQuery.toLowerCase();
-    return _friends.where((f) {
+    var list = _friends.where((f) {
       final name = (f['name'] ?? '').toString().toLowerCase();
       final username = (f['username'] ?? '').toString().toLowerCase();
       final email = (f['email'] ?? '').toString().toLowerCase();
-      return name.contains(q) || username.contains(q) || email.contains(q);
+      final q = _friendsQuery.toLowerCase();
+      final matchesQuery = q.isEmpty || name.contains(q) || username.contains(q) || email.contains(q);
+      final matchesGender = _filterGender == null || (f['gender'] ?? '') == _filterGender;
+      return matchesQuery && matchesGender;
     }).toList();
+
+    switch (_sortFriends) {
+      case 'name_za':
+        list.sort((a, b) => (b['name'] ?? b['username'] ?? '').toString().toLowerCase()
+            .compareTo((a['name'] ?? a['username'] ?? '').toString().toLowerCase()));
+        break;
+      case 'friend_since':
+        list.sort((a, b) {
+          final ad = a['friendSince'] != null ? DateTime.tryParse(a['friendSince'].toString()) : null;
+          final bd = b['friendSince'] != null ? DateTime.tryParse(b['friendSince'].toString()) : null;
+          if (bd == null && ad == null) return 0;
+          if (bd == null) return -1;
+          if (ad == null) return 1;
+          return bd.compareTo(ad); // newest first
+        });
+        break;
+      case 'member_since':
+        list.sort((a, b) {
+          final ad = a['memberSince'] != null ? DateTime.tryParse(a['memberSince'].toString()) : null;
+          final bd = b['memberSince'] != null ? DateTime.tryParse(b['memberSince'].toString()) : null;
+          if (bd == null && ad == null) return 0;
+          if (bd == null) return -1;
+          if (ad == null) return 1;
+          return bd.compareTo(ad); // newest first
+        });
+        break;
+      case 'rating':
+        list.sort((a, b) => ((b['avgRating'] as num?) ?? 0).compareTo((a['avgRating'] as num?) ?? 0));
+        break;
+      default: // name_az
+        list.sort((a, b) => (a['name'] ?? a['username'] ?? '').toString().toLowerCase()
+            .compareTo((b['name'] ?? b['username'] ?? '').toString().toLowerCase()));
+    }
+    return list;
   }
 
   Future<void> _fetchFriends() async {
@@ -746,6 +785,48 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     );
   }
 
+  Widget _filterChip(String label, String? value, String? current, void Function(String?) onTap, {IconData? icon}) {
+    final selected = current == value;
+    return GestureDetector(
+      onTap: () => onTap(selected ? null : value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? AppColors.cyan : AppThemeColors.divider(context)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: selected ? Colors.white : AppThemeColors.secondaryText(context)),
+            const SizedBox(width: 4),
+          ],
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context))),
+        ]),
+      ),
+    );
+  }
+
+  Widget _sortChipF(String label, String value) {
+    final selected = _sortFriends == value;
+    return GestureDetector(
+      onTap: () => setState(() { _sortFriends = value; _friendsVisibleCount = 10; }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? Colors.deepPurple : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? Colors.deepPurple : AppThemeColors.divider(context)),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+          color: selected ? Colors.white : AppThemeColors.secondaryText(context))),
+      ),
+    );
+  }
+
   Widget _sectionHeader(String title, int count, {Color? badgeColor}) {
     return Row(
       children: [
@@ -1211,9 +1292,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 // ── Friends list ─────────────────────────────
                                 _sectionHeader(t('your_friends_label'), _filteredFriends.length),
                                 const SizedBox(height: 10),
-                                // Filter search
+                                // Search box
                                 Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin: const EdgeInsets.only(bottom: 8),
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(
                                     color: AppThemeColors.cardBg(context),
@@ -1225,7 +1306,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     decoration: InputDecoration(
                                       hintText: t('filter_friends_placeholder'),
                                       hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-                                      prefixIcon: Icon(Icons.filter_list, size: 18, color: AppThemeColors.mutedText(context)),
+                                      prefixIcon: Icon(Icons.search, size: 18, color: AppThemeColors.mutedText(context)),
                                       border: InputBorder.none,
                                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
@@ -1234,6 +1315,38 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     },
                                   ),
                                 ),
+                                // Gender filter row
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(children: [
+                                    _filterChip(t('all_genders_label'), null, _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.people),
+                                    const SizedBox(width: 6),
+                                    _filterChip(t('male_label'), 'Male', _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.male),
+                                    const SizedBox(width: 6),
+                                    _filterChip(t('female_label'), 'Female', _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.female),
+                                    const SizedBox(width: 6),
+                                    _filterChip(t('other_gender_label'), 'Other', _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.person_outline),
+                                  ]),
+                                ),
+                                const SizedBox(height: 6),
+                                // Sort row
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(children: [
+                                    Icon(Icons.sort, size: 14, color: AppThemeColors.mutedText(context)),
+                                    const SizedBox(width: 4),
+                                    _sortChipF(t('sort_name_az'), 'name_az'),
+                                    const SizedBox(width: 6),
+                                    _sortChipF(t('sort_name_za'), 'name_za'),
+                                    const SizedBox(width: 6),
+                                    _sortChipF(t('sort_friend_since'), 'friend_since'),
+                                    const SizedBox(width: 6),
+                                    _sortChipF(t('sort_member_since'), 'member_since'),
+                                    const SizedBox(width: 6),
+                                    _sortChipF(t('sort_rating_label'), 'rating'),
+                                  ]),
+                                ),
+                                const SizedBox(height: 10),
                                 if (_filteredFriends.isEmpty)
                                   Center(
                                     child: Padding(

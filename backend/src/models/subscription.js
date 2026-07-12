@@ -61,7 +61,28 @@ const subscriptionSchema = new mongoose.Schema({
     autoRenew: {
         type: Boolean,
         default: false
-    }
+    },
+    adminDeactivated: {
+        type: Boolean,
+        default: false
+    },
+    deactivatedAt: {
+        type: Date,
+        default: null
+    },
+    deactivationReason: {
+        type: String,
+        default: null
+    },
+    reactivatedAt: {
+        type: Date,
+        default: null
+    },
+    adminEvents: [{
+        type: { type: String, enum: ['deactivated', 'reactivated'] },
+        at: { type: Date },
+        reason: { type: String, default: null }
+    }]
 }, { timestamps: true });
 
 // Partial unique index: only enforces uniqueness where razorpayPaymentId is an

@@ -25,6 +25,22 @@ exports.getSubscriptionStatus = async (req, res) => {
             if (subscription && subscription.status === 'active') {
                 Subscription.findByIdAndUpdate(subscription._id, { $set: { status: 'expired' } }).catch(() => {});
             }
+            // Check if the user has an admin-deactivated subscription with remaining days
+            const deactivated = await Subscription.findOne({
+                user: req.user._id,
+                adminDeactivated: true,
+            }).sort({ deactivatedAt: -1 });
+            if (deactivated && deactivated.endDate && deactivated.deactivatedAt) {
+                const remainingMs = Math.max(0, deactivated.endDate.getTime() - deactivated.deactivatedAt.getTime());
+                const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+                return res.status(200).json({
+                    subscribed: false,
+                    adminDeactivated: true,
+                    deactivationReason: deactivated.deactivationReason || null,
+                    remainingDays,
+                    subscriptionPlan: deactivated.subscriptionPlan,
+                });
+            }
             res.status(200).json({ subscribed: false });
         }
     } catch (error) {

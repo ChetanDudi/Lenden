@@ -26,6 +26,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _sortBy = 'count';
+  String? _filterGender;
 
   @override
   void initState() {
@@ -217,14 +218,16 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   }
 
   List<Map<String, dynamic>> get _filteredCounterparties {
-    var list = _searchQuery.trim().isEmpty
-        ? List<Map<String, dynamic>>.from(_counterparties)
-        : _counterparties.where((cp) {
-            final q = _searchQuery.toLowerCase().trim();
-            return (cp['name'] ?? '').toString().toLowerCase().contains(q) ||
-                (cp['email'] ?? '').toString().toLowerCase().contains(q) ||
-                (cp['phone'] ?? '').toString().toLowerCase().contains(q);
-          }).toList();
+    var list = _counterparties.where((cp) {
+      final q = _searchQuery.toLowerCase().trim();
+      final matchesQuery = q.isEmpty ||
+          (cp['name'] ?? '').toString().toLowerCase().contains(q) ||
+          (cp['email'] ?? '').toString().toLowerCase().contains(q) ||
+          (cp['phone'] ?? '').toString().toLowerCase().contains(q);
+      final matchesGender = _filterGender == null ||
+          (cp['gender'] ?? '').toString() == _filterGender;
+      return matchesQuery && matchesGender;
+    }).toList();
 
     switch (_sortBy) {
       case 'name_asc':
@@ -238,6 +241,30 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
         list.sort((a, b) => ((b['count'] ?? 0) as num).compareTo((a['count'] ?? 0) as num));
     }
     return list;
+  }
+
+  Widget _genderChip(String label, String? value, {IconData? icon}) {
+    final selected = _filterGender == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filterGender = selected ? null : value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? Colors.deepPurple : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? Colors.deepPurple : Colors.grey.withValues(alpha: 0.35)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: selected ? Colors.white : AppThemeColors.secondaryText(context)),
+            const SizedBox(width: 4),
+          ],
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context))),
+        ]),
+      ),
+    );
   }
 
   Widget _sortChip(String label, String value) {
@@ -448,17 +475,40 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.sort_rounded, size: 15, color: AppThemeColors.secondaryText(context)),
-                      const SizedBox(width: 6),
-                      Text(t('sort_colon'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 8),
-                      _sortChip(t('most_label'), 'count'),
-                      const SizedBox(width: 6),
-                      _sortChip(t('a_z_label'), 'name_asc'),
-                      const SizedBox(width: 6),
-                      _sortChip(t('least_label'), 'count_asc'),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          Icon(Icons.sort_rounded, size: 15, color: AppThemeColors.secondaryText(context)),
+                          const SizedBox(width: 6),
+                          Text(t('sort_colon'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 8),
+                          _sortChip(t('most_label'), 'count'),
+                          const SizedBox(width: 6),
+                          _sortChip(t('a_z_label'), 'name_asc'),
+                          const SizedBox(width: 6),
+                          _sortChip(t('least_label'), 'count_asc'),
+                        ]),
+                      ),
+                      const SizedBox(height: 6),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          Icon(Icons.people_outline, size: 15, color: AppThemeColors.secondaryText(context)),
+                          const SizedBox(width: 6),
+                          Text(t('filter_label'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 8),
+                          _genderChip(t('all_genders_label'), null, icon: Icons.people),
+                          const SizedBox(width: 6),
+                          _genderChip(t('male_label'), 'Male', icon: Icons.male),
+                          const SizedBox(width: 6),
+                          _genderChip(t('female_label'), 'Female', icon: Icons.female),
+                          const SizedBox(width: 6),
+                          _genderChip(t('other_gender_label'), 'Other', icon: Icons.person_outline),
+                        ]),
+                      ),
                     ],
                   ),
                 ),

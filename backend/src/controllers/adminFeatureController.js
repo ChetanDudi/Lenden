@@ -297,13 +297,52 @@ exports.deactivateUserSubscription = async (req, res) => {
         const permitted = await ensureDigitisePermission(req, res);
         if (!permitted) return;
         const { id } = req.params;
-        const updatedSubscription = await Subscription.findByIdAndUpdate(id, { status: 'expired' }, { new: true });
-        if (!updatedSubscription) {
-            return res.status(404).json({ message: 'Subscription not found' });
-        }
+        const sub = await Subscription.findById(id);
+        if (!sub) return res.status(404).json({ message: 'Subscription not found' });
+        if (sub.adminDeactivated) return res.status(400).json({ message: 'Subscription is already deactivated' });
+        const reason = (req.body.reason || '').toString().trim() || null;
+        const now = new Date();
+        const updatedSubscription = await Subscription.findByIdAndUpdate(
+            id,
+            {
+                $set: { status: 'expired', adminDeactivated: true, deactivatedAt: now, deactivationReason: reason },
+                $push: { adminEvents: { type: 'deactivated', at: now, reason } },
+            },
+            { new: true }
+        );
         res.status(200).json({ message: 'Subscription deactivated successfully', subscription: updatedSubscription });
     } catch (error) {
         res.status(500).json({ message: 'Error deactivating subscription' });
+    }
+};
+
+exports.reactivateUserSubscription = async (req, res) => {
+    try {
+        const permitted = await ensureDigitisePermission(req, res);
+        if (!permitted) return;
+        const { id } = req.params;
+        const sub = await Subscription.findById(id);
+        if (!sub) return res.status(404).json({ message: 'Subscription not found' });
+        if (!sub.adminDeactivated) return res.status(400).json({ message: 'Subscription is not admin-deactivated' });
+
+        const deactivatedAt = sub.deactivatedAt || new Date();
+        const originalEndDate = sub.endDate || new Date();
+        const remainingMs = Math.max(0, originalEndDate.getTime() - deactivatedAt.getTime());
+        const newEndDate = new Date(Date.now() + remainingMs);
+
+        // Keep deactivatedAt/deactivationReason for audit; only clear the active-pause flag
+        const now = new Date();
+        const updatedSubscription = await Subscription.findByIdAndUpdate(
+            id,
+            {
+                $set: { status: 'active', adminDeactivated: false, reactivatedAt: now, endDate: newEndDate },
+                $push: { adminEvents: { type: 'reactivated', at: now, reason: null } },
+            },
+            { new: true }
+        );
+        res.status(200).json({ message: 'Subscription reactivated successfully', subscription: updatedSubscription });
+    } catch (error) {
+        res.status(500).json({ message: 'Error reactivating subscription' });
     }
 };
 

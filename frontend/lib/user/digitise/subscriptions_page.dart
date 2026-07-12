@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -119,6 +120,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   bool _showRenewalSection = false;
   double _walletBalance = 0;
 
+  // Tracks which subscription cards have their admin-event timeline expanded
+  final Set<String> _expandedHistoryIds = {};
+
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _planSearchController = TextEditingController();
 
@@ -126,8 +130,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-    Provider.of<SessionProvider>(context, listen: false)
-        .checkSubscriptionStatus();
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    session.checkSubscriptionStatus();
+    session.fetchSubscriptionHistory();
     _loadDisplayCurrencies();
     _fetchSubscriptionData();
   }
@@ -830,14 +835,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
       // Status filter
       bool matchesFilter = true;
+      final isAdminDeactivated = sub['adminDeactivated'] == true;
       if (_filterOption == 'Active') {
         final endDate = DateTime.parse(sub['endDate']);
-        matchesFilter =
-            sub['status'] == 'active' && endDate.isAfter(DateTime.now());
+        // Admin-paused subs count as "active" from the user's perspective — they
+        // still have remaining days, they're just temporarily paused by admin.
+        matchesFilter = isAdminDeactivated ||
+            (sub['status'] == 'active' && endDate.isAfter(DateTime.now()));
       } else if (_filterOption == 'Expired') {
         final endDate = DateTime.parse(sub['endDate']);
-        matchesFilter =
-            sub['status'] == 'expired' || endDate.isBefore(DateTime.now());
+        // Exclude admin-paused from 'Expired' — they are not expired, just paused.
+        matchesFilter = !isAdminDeactivated &&
+            (sub['status'] == 'expired' || endDate.isBefore(DateTime.now()));
       }
 
       return matchesSearch && matchesFilter;
@@ -957,6 +966,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
   bool _showAllHistory = false;
 
+  String _fmtEventTime(DateTime dt) =>
+      DateFormat('MMM d, yyyy h:mm a').format(dt.toLocal());
+
   Widget _buildSubscriptionHistory(List<Map<String, dynamic>> history) {
     final t = AppLocalizations.of(context).t;
     final isDark = AppThemeColors.isDark(context);
@@ -1056,9 +1068,56 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           )
         else
           ...itemsToShow.map((sub) {
+            final subId = sub['_id']?.toString() ?? '';
             final endDate = DateTime.parse(sub['endDate']);
+            final adminDeactivated = sub['adminDeactivated'] == true;
             final isActive =
-                sub['status'] == 'active' && endDate.isAfter(DateTime.now());
+                !adminDeactivated && sub['status'] == 'active' && endDate.isAfter(DateTime.now());
+            final isExpired = !adminDeactivated && !isActive;
+            final deactivationReason = sub['deactivationReason']?.toString();
+            // Build ordered event list merging all sources:
+            //  • adminEvents array  — set by new code, one entry per cycle
+            //  • deactivatedAt / reactivatedAt — old single fields; must be
+            //    included when they represent events that predate the array
+            final List<Map<String, dynamic>> adminEvents = () {
+              final raw = sub['adminEvents'];
+              final newEvents = (raw is List && raw.isNotEmpty)
+                  ? raw.map((e) => Map<String, dynamic>.from(e as Map)).toList()
+                  : <Map<String, dynamic>>[];
+
+              if (newEvents.isEmpty) {
+                // Pure old-code path: synthesize both old fields
+                final synth = <Map<String, dynamic>>[];
+                if (sub['deactivatedAt'] != null) {
+                  synth.add({'type': 'deactivated', 'at': sub['deactivatedAt'], 'reason': sub['deactivationReason']});
+                }
+                if (sub['reactivatedAt'] != null) {
+                  synth.add({'type': 'reactivated', 'at': sub['reactivatedAt'], 'reason': null});
+                }
+                synth.sort((a, b) => (a['at']?.toString() ?? '').compareTo(b['at']?.toString() ?? ''));
+                return synth;
+              }
+
+              // Mixed path: adminEvents has new entries, but reactivatedAt may
+              // hold an old-code reactivation that predates the array.
+              final combined = List<Map<String, dynamic>>.from(newEvents);
+              if (sub['reactivatedAt'] != null) {
+                final oldReact = DateTime.tryParse(sub['reactivatedAt'].toString());
+                final earliest = newEvents
+                    .map((e) => DateTime.tryParse(e['at']?.toString() ?? ''))
+                    .whereType<DateTime>()
+                    .fold<DateTime?>(null, (acc, dt) =>
+                        acc == null || dt.isBefore(acc) ? dt : acc);
+                if (oldReact != null &&
+                    (earliest == null || oldReact.isBefore(earliest))) {
+                  combined.add({'type': 'reactivated', 'at': sub['reactivatedAt'], 'reason': null});
+                }
+              }
+              combined.sort((a, b) => (a['at']?.toString() ?? '').compareTo(b['at']?.toString() ?? ''));
+              return combined;
+            }();
+            final hasTimeline = adminDeactivated || adminEvents.isNotEmpty;
+            final planName = (sub['subscriptionPlan'] ?? '').toString();
             final paymentMethod =
                 (sub['paymentMethod'] ?? 'razorpay').toString();
             final actualPrice =
@@ -1082,8 +1141,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               pmColor = const Color(0xFF528FF5);
             }
 
-            final statusColor =
-                isActive ? const Color(0xFF2E7D32) : AppThemeColors.mutedText(context);
+            final statusColor = adminDeactivated
+                ? Colors.orange
+                : isActive
+                    ? const Color(0xFF2E7D32)
+                    : AppThemeColors.mutedText(context);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -1107,8 +1169,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                     children: [
                       Container(
                         width: 5,
-                        color:
-                            isActive ? const Color(0xFF43A047) : AppThemeColors.divider(context),
+                        color: adminDeactivated
+                            ? Colors.orange
+                            : isActive
+                                ? const Color(0xFF43A047)
+                                : AppThemeColors.divider(context),
                       ),
                       Expanded(
                         child: Padding(
@@ -1118,9 +1183,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Icon(
-                                isActive
-                                    ? Icons.check_circle_rounded
-                                    : Icons.history_rounded,
+                                adminDeactivated
+                                    ? Icons.pause_circle_filled_rounded
+                                    : isActive
+                                        ? Icons.check_circle_rounded
+                                        : Icons.history_rounded,
                                 color: statusColor,
                                 size: 26,
                               ),
@@ -1149,9 +1216,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Text(
-                                              isActive
-                                                  ? t('active_caps_label')
-                                                  : t('expired_caps_label'),
+                                              adminDeactivated
+                                                  ? t('subscription_paused_label').toUpperCase()
+                                                  : isActive
+                                                      ? t('active_caps_label')
+                                                      : t('expired_caps_label'),
                                               style: TextStyle(
                                                   fontSize: 9.5,
                                                   fontWeight: FontWeight.bold,
@@ -1162,23 +1231,43 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        isActive
-                                            ? t('active_until_message').replaceFirst(
-                                                '{date}',
-                                                endDate
-                                                    .toLocal()
-                                                    .toString()
-                                                    .substring(0, 10))
-                                            : t('expired_on_message').replaceFirst(
-                                                '{date}',
-                                                endDate
-                                                    .toLocal()
-                                                    .toString()
-                                                    .substring(0, 10)),
+                                        adminDeactivated
+                                            ? t('subscription_admin_paused_days_label')
+                                                .replaceFirst('{days}',
+                                                    '${((sub['deactivatedAt'] != null && sub['endDate'] != null) ? (DateTime.tryParse(sub['endDate'].toString())?.difference(DateTime.tryParse(sub['deactivatedAt'].toString()) ?? DateTime.now()).inDays ?? 0).clamp(0, 99999) : 0)}')
+                                            : isActive
+                                                ? t('active_until_message').replaceFirst(
+                                                    '{date}',
+                                                    endDate.toLocal().toString().substring(0, 10))
+                                                : t('expired_on_message').replaceFirst(
+                                                    '{date}',
+                                                    endDate.toLocal().toString().substring(0, 10)),
                                         style: TextStyle(
                                             fontSize: 11.5,
-                                            color: AppThemeColors.secondaryText(context)),
+                                            color: adminDeactivated
+                                                ? Colors.orange[700]
+                                                : AppThemeColors.secondaryText(context)),
                                       ),
+                                      if (adminDeactivated && deactivationReason != null && deactivationReason.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.info_outline_rounded,
+                                                size: 11, color: Colors.orange[600]),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                '${t('subscription_admin_paused_reason_label')}: $deactivationReason',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.orange[700],
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                       if (isActive) ...[
                                         const SizedBox(height: 4),
                                         Builder(builder: (_) {
@@ -1263,6 +1352,165 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                                                         context))),
                                         ],
                                       ),
+                                      // Admin-event timeline — collapsed by default,
+                                      // expanded per-card when user taps the toggle.
+                                      if (hasTimeline) ...[
+                                        const SizedBox(height: 6),
+                                        Divider(
+                                            color: AppThemeColors.divider(context),
+                                            height: 1,
+                                            thickness: 0.8),
+                                        GestureDetector(
+                                          onTap: () => setState(() {
+                                            if (_expandedHistoryIds.contains(subId)) {
+                                              _expandedHistoryIds.remove(subId);
+                                            } else {
+                                              _expandedHistoryIds.add(subId);
+                                            }
+                                          }),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 6),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.history_rounded,
+                                                    size: 13,
+                                                    color: AppColors.cyan),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  _expandedHistoryIds.contains(subId)
+                                                      ? t('hide_admin_history_label')
+                                                      : '${t('view_admin_history_label')} (${adminEvents.isEmpty ? 1 : adminEvents.length})',
+                                                  style: const TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: AppColors.cyan),
+                                                ),
+                                                const Spacer(),
+                                                Icon(
+                                                  _expandedHistoryIds.contains(subId)
+                                                      ? Icons.keyboard_arrow_up_rounded
+                                                      : Icons.keyboard_arrow_down_rounded,
+                                                  size: 16,
+                                                  color: AppColors.cyan,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (_expandedHistoryIds.contains(subId)) ...[
+                                          if (adminEvents.isEmpty && adminDeactivated)
+                                            Row(
+                                              children: [
+                                                Icon(Icons.pause_circle_outline_rounded,
+                                                    size: 13, color: Colors.orange[600]),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  t('subscription_paused_label'),
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.orange[700]),
+                                                ),
+                                              ],
+                                            ),
+                                          ...adminEvents.asMap().entries.map((entry) {
+                                            final idx = entry.key;
+                                            final event = entry.value;
+                                            final isPause = event['type'] == 'deactivated';
+                                            final at = event['at'] != null
+                                                ? DateTime.tryParse(event['at'].toString())
+                                                : null;
+                                            final evReason = event['reason']?.toString();
+                                            return Padding(
+                                              padding: EdgeInsets.only(top: idx == 0 ? 0 : 5),
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Icon(
+                                                    isPause
+                                                        ? Icons.pause_circle_outline_rounded
+                                                        : Icons.play_circle_outline_rounded,
+                                                    size: 13,
+                                                    color: isPause
+                                                        ? Colors.orange[600]
+                                                        : Colors.green[600],
+                                                  ),
+                                                  const SizedBox(width: 5),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          '${t(isPause ? 'event_paused_on_label' : 'event_reactivated_on_label')}: ${at != null ? _fmtEventTime(at) : '—'}',
+                                                          style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: isPause
+                                                                  ? Colors.orange[700]
+                                                                  : Colors.green[700]),
+                                                        ),
+                                                        if (isPause &&
+                                                            evReason != null &&
+                                                            evReason.isNotEmpty)
+                                                          Text(
+                                                            evReason,
+                                                            style: TextStyle(
+                                                                fontSize: 10.5,
+                                                                fontStyle: FontStyle.italic,
+                                                                color: Colors.orange[600]),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }),
+                                          const SizedBox(height: 4),
+                                        ],
+                                      ],
+                                      // Renew button for expired plans
+                                      if (isExpired) ...[
+                                        const SizedBox(height: 10),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: OutlinedButton.icon(
+                                            icon: const Icon(
+                                                Icons.refresh_rounded,
+                                                size: 15),
+                                            label: Text(t('renew_this_plan_label'),
+                                                style: const TextStyle(
+                                                    fontSize: 12.5,
+                                                    fontWeight: FontWeight.bold)),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: AppColors.cyan,
+                                              side: const BorderSide(
+                                                  color: AppColors.cyan, width: 1.2),
+                                              padding: const EdgeInsets.symmetric(
+                                                  vertical: 8),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10)),
+                                            ),
+                                            onPressed: () {
+                                              final matchedPlan = _plans
+                                                  .where((p) => p.name == planName)
+                                                  .isNotEmpty
+                                                  ? _plans.firstWhere(
+                                                      (p) => p.name == planName)
+                                                  : null;
+                                              if (matchedPlan != null) {
+                                                setState(() =>
+                                                    _selectedPlan = matchedPlan.name);
+                                                _showManualPaymentSheet(matchedPlan);
+                                              } else {
+                                                _tabController.animateTo(0);
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ],
                                     ]),
                               ),
                             ],
@@ -1737,31 +1985,36 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
         children: [
           if (!session.isSubscribed)
             Padding(
-              padding: const EdgeInsets.only(top: 48),
+              padding: const EdgeInsets.only(top: 32),
               child: Column(
                 children: [
-                  Icon(Icons.workspace_premium_outlined,
-                      size: 72, color: AppThemeColors.divider(context)),
-                  const SizedBox(height: 16),
-                  Text(t('not_subscribed_yet_message'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 15,
-                          color: AppThemeColors.secondaryText(context))),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () => _tabController.animateTo(0),
-                    icon: const Icon(Icons.card_membership_rounded),
-                    label: Text(t('view_plans_label')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      foregroundColor: Colors.white,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                  if (session.subscriptionAdminDeactivated) ...[
+                    _buildAdminDeactivatedBanner(session, t),
+                    const SizedBox(height: 28),
+                  ],
+                  if (!session.subscriptionAdminDeactivated) ...[
+                    Icon(Icons.workspace_premium_outlined,
+                        size: 72, color: AppThemeColors.divider(context)),
+                    const SizedBox(height: 16),
+                    Text(t('not_subscribed_yet_message'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: AppThemeColors.secondaryText(context))),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => _tabController.animateTo(0),
+                      icon: const Icon(Icons.card_membership_rounded),
+                      label: Text(t('view_plans_label')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -1920,6 +2173,155 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     );
   }
 
+  Widget _buildAdminDeactivatedBanner(SessionProvider session, String Function(String) t) {
+    final isDark = AppThemeColors.isDark(context);
+    final reason = session.subscriptionDeactivationReason;
+    final days = session.subscriptionRemainingDays ?? 0;
+    final plan = session.subscriptionPlan;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF3A2000) : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.orange.withValues(alpha: isDark ? 0.6 : 1), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withValues(alpha: isDark ? 0.1 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pause_circle_filled_rounded,
+                  color: isDark ? Colors.orange[300] : Colors.orange[800], size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t('subscription_admin_paused_title'),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.orange[300] : Colors.orange[900],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            t('subscription_admin_paused_body'),
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.orange[200] : Colors.orange[900],
+            ),
+          ),
+          if (reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: isDark ? 0.15 : 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 15, color: isDark ? Colors.orange[300] : Colors.orange[800]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${t('subscription_admin_paused_reason_label')}: ',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.orange[300] : Colors.orange[900],
+                            ),
+                          ),
+                          TextSpan(
+                            text: reason,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: isDark ? Colors.orange[200] : Colors.orange[800],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (days > 0) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.timer_outlined,
+                    size: 14, color: isDark ? Colors.orange[300] : Colors.orange[800]),
+                const SizedBox(width: 6),
+                Text(
+                  t('subscription_admin_paused_days_label').replaceFirst('{days}', '$days'),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.orange[300] : Colors.orange[800],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (plan != null && plan.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.card_membership_rounded,
+                    size: 14, color: isDark ? Colors.orange[300] : Colors.orange[800]),
+                const SizedBox(width: 6),
+                Text(
+                  plan,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.orange[200] : Colors.orange[700],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Divider(color: Colors.orange.withValues(alpha: 0.3), height: 1),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(Icons.support_agent_rounded,
+                  size: 14, color: isDark ? Colors.orange[400] : Colors.orange[700]),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  t('subscription_admin_paused_contact'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.orange[400] : Colors.orange[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExpiringSoonBanner(SessionProvider session, int daysRemaining) {
     final t = AppLocalizations.of(context).t;
     final isDark = AppThemeColors.isDark(context);
@@ -2034,25 +2436,35 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   Widget _buildHistoryTab(SessionProvider session) {
     final t = AppLocalizations.of(context).t;
     final history = session.subscriptionHistory;
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
-      child: history != null && history.isNotEmpty
-          ? _buildSubscriptionHistory(history)
-          : Padding(
-              padding: const EdgeInsets.only(top: 48),
-              child: Column(
-                children: [
-                  Icon(Icons.history_rounded,
-                      size: 72, color: AppThemeColors.divider(context)),
-                  const SizedBox(height: 16),
-                  Text(t('no_subscription_history_yet_message'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 15,
-                          color: AppThemeColors.secondaryText(context))),
-                ],
+    return RefreshIndicator(
+      color: AppColors.cyan,
+      onRefresh: () async {
+        await Future.wait([
+          session.checkSubscriptionStatus(),
+          session.fetchSubscriptionHistory(),
+        ]);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, context.sh(16), 16, 20),
+        child: history != null && history.isNotEmpty
+            ? _buildSubscriptionHistory(history)
+            : Padding(
+                padding: const EdgeInsets.only(top: 48),
+                child: Column(
+                  children: [
+                    Icon(Icons.history_rounded,
+                        size: 72, color: AppThemeColors.divider(context)),
+                    const SizedBox(height: 16),
+                    Text(t('no_subscription_history_yet_message'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: AppThemeColors.secondaryText(context))),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 

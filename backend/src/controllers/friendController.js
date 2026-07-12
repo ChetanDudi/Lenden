@@ -61,15 +61,39 @@ exports.getFriends = async (req, res) => {
   try {
     const { search } = req.query;
     const user = await User.findById(req.user._id)
-      .populate('friends', 'name username email blockedUsers')
-      .populate('blockedUsers', 'name username email')
+      .populate('friends', 'name username email gender memberSince avgRating blockedUsers')
+      .populate('blockedUsers', 'name username email gender')
       .select('friends blockedUsers');
 
-    let friends = (user?.friends || []).map((f) => ({
+    const friendDocs = user?.friends || [];
+
+    // Look up accepted friend-request timestamps for "friend since" date
+    const FriendRequest = require('../models/friendRequest');
+    const myId = req.user._id.toString();
+    const friendIds = friendDocs.map((f) => f._id);
+    const acceptedReqs = await FriendRequest.find({
+      status: 'accepted',
+      $or: [
+        { from: req.user._id, to: { $in: friendIds } },
+        { to: req.user._id, from: { $in: friendIds } },
+      ],
+    }).select('from to updatedAt');
+
+    const friendSinceMap = {};
+    for (const ar of acceptedReqs) {
+      const otherId = ar.from.toString() === myId ? ar.to.toString() : ar.from.toString();
+      friendSinceMap[otherId] = ar.updatedAt;
+    }
+
+    let friends = friendDocs.map((f) => ({
       _id: f._id,
       name: f.name,
       username: f.username,
       email: f.email,
+      gender: f.gender || null,
+      memberSince: f.memberSince || null,
+      avgRating: f.avgRating || 0,
+      friendSince: friendSinceMap[f._id.toString()] || null,
       blockedByThem: (f.blockedUsers || []).some(
         (id) => id.toString() === req.user._id.toString()
       ),

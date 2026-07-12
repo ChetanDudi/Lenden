@@ -32,6 +32,9 @@ class SessionProvider extends ChangeNotifier {
   List<Map<String, dynamic>>? _subscriptionHistory;
   int? _free;
   bool _autoRenew = false;
+  bool _subscriptionAdminDeactivated = false;
+  String? _subscriptionDeactivationReason;
+  int? _subscriptionRemainingDays;
 
   int? _freeQuickTransactionsRemaining;
   int? _freeUserTransactionsRemaining;
@@ -42,6 +45,9 @@ class SessionProvider extends ChangeNotifier {
   String? get subscriptionPlan => _subscriptionPlan;
   DateTime? get subscriptionEndDate => _subscriptionEndDate;
   List<Map<String, dynamic>>? get subscriptionHistory => _subscriptionHistory;
+  bool get subscriptionAdminDeactivated => _subscriptionAdminDeactivated;
+  String? get subscriptionDeactivationReason => _subscriptionDeactivationReason;
+  int? get subscriptionRemainingDays => _subscriptionRemainingDays;
   int? get free => _free;
   bool get autoRenew => _autoRenew;
   int? get freeQuickTransactionsRemaining => _freeQuickTransactionsRemaining;
@@ -265,11 +271,19 @@ class SessionProvider extends ChangeNotifier {
           _subscriptionEndDate = DateTime.parse(data['endDate']);
           _free = data['free'];
           _autoRenew = data['autoRenew'] ?? false;
+          _subscriptionAdminDeactivated = false;
+          _subscriptionDeactivationReason = null;
+          _subscriptionRemainingDays = null;
         } else {
-          _subscriptionPlan = null;
+          _subscriptionPlan = data['subscriptionPlan'];
           _subscriptionEndDate = null;
           _free = null;
           _autoRenew = false;
+          _subscriptionAdminDeactivated = data['adminDeactivated'] == true;
+          _subscriptionDeactivationReason = data['deactivationReason']?.toString();
+          _subscriptionRemainingDays = data['remainingDays'] is int
+              ? data['remainingDays'] as int
+              : int.tryParse(data['remainingDays']?.toString() ?? '');
         }
         notifyListeners();
       }
@@ -471,6 +485,9 @@ class SessionProvider extends ChangeNotifier {
     _subscriptionHistory = null;
     _free = null;
     _autoRenew = false;
+    _subscriptionAdminDeactivated = false;
+    _subscriptionDeactivationReason = null;
+    _subscriptionRemainingDays = null;
     _freeQuickTransactionsRemaining = null;
     _freeUserTransactionsRemaining = null;
     _freeGroupsRemaining = null;

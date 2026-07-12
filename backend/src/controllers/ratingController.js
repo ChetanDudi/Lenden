@@ -145,9 +145,12 @@ exports.getMyRatings = async (req, res) => {
   }
 };
 
-// GET /api/ratings/top - Top 10 rated users (ties get same rank)
+// GET /api/ratings/top - Top 10 rated users (ties get same rank) — subscribers only
 exports.getTopRatedUsers = async (req, res) => {
   try {
+    if (!(await hasFeature(req.user._id, FEATURES.VIEW_RANKINGS))) {
+      return res.status(403).json({ error: 'Subscribe to view top rated users.' });
+    }
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
     const topAgg = await Rating.aggregate([

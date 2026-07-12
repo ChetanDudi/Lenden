@@ -569,6 +569,7 @@ module.exports = (io) => {
   router.post('/admin/subscriptions/grant', auth, isAdmin, adminFeatureController.grantSubscription);
   router.put('/admin/subscriptions/:id', auth, isAdmin, adminFeatureController.updateUserSubscription);
   router.put('/admin/subscriptions/:id/deactivate', auth, isAdmin, adminFeatureController.deactivateUserSubscription);
+  router.put('/admin/subscriptions/:id/reactivate', auth, isAdmin, adminFeatureController.reactivateUserSubscription);
 
   // Premium Benefits
   router.post('/admin/premium-benefits', auth, isAdmin, adminFeatureController.createPremiumBenefit);

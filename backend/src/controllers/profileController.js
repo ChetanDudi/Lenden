@@ -116,18 +116,18 @@ exports.getUserProfileByEmail = async (req, res) => {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;
     }
 
-    // The trust score / ranking is a premium feature: always visible on your
+    // Ratings and trust score are premium features: always visible on your
     // own profile or to admins, otherwise only if the requester's plan
-    // includes view_rankings. The rest of the profile (used for everyday
-    // counterparty lookups in transactions) stays open regardless.
+    // includes view_rankings.
     const isOwnProfile = requesterEmail && email.toLowerCase() === requesterEmail.toLowerCase();
     const isAdminRequester = req.user?.role === 'admin';
-    if (
-      isOwnProfile ||
-      isAdminRequester ||
-      (req.user?._id && (await hasFeature(req.user._id, FEATURES.VIEW_RANKINGS)))
-    ) {
+    const canViewRankings = isOwnProfile || isAdminRequester ||
+      (req.user?._id && (await hasFeature(req.user._id, FEATURES.VIEW_RANKINGS)));
+
+    if (canViewRankings) {
       userObj.trustScore = await computeTrustScore(user.email);
+    } else {
+      userObj.avgRating = undefined;
     }
     res.json(userObj);
   } catch (err) {
