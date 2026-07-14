@@ -332,14 +332,24 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   }
 
   Future<void> fetchTransactions() async {
+    if (!mounted) return;
     setState(() => loading = true);
-    final res = await ApiClient.get('/api/transactions/me');
-    setState(() {
-      transactions = res.statusCode == 200
-          ? List<Map<String, dynamic>>.from(jsonDecode(res.body))
-          : [];
-      loading = false;
-    });
+    try {
+      final res = await ApiClient.get('/api/transactions/user');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          transactions = List<Map<String, dynamic>>.from(
+              (data['lending'] ?? []) + (data['borrowing'] ?? []));
+          loading = false;
+        });
+      } else {
+        setState(() { transactions = []; loading = false; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { transactions = []; loading = false; });
+    }
   }
 
   Future<void> _fetchFriends() async {

@@ -107,7 +107,7 @@ class _GiftCardPageState extends State<GiftCardPage>
         });
       }
     } catch (e) {
-      print('Error fetching gift cards: $e');
+      debugPrint('Error fetching gift cards: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -251,7 +251,7 @@ class _GiftCardPageState extends State<GiftCardPage>
         _fetchGiftCards();
       }
     } catch (e) {
-      print('Error scratching card: $e');
+      debugPrint('Error scratching card: $e');
       showSnack(context, '${t('error_prefix')} ${e.toString()}', isError: true);
     } finally {
       setState(() {

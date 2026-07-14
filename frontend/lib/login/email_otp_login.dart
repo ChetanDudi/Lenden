@@ -91,11 +91,6 @@ class EmailOtpLogin {
         final accessToken = responseData['accessToken'];
         final refreshToken = responseData['refreshToken'];
 
-        print(
-            '🎫 Access Token: ${accessToken != null ? 'Present' : 'Missing'}');
-        print(
-            '🎫 Refresh Token: ${refreshToken != null ? 'Present' : 'Missing'}');
-
         // Check if userOrAdmin is null or empty
         if (userOrAdmin == null) {}
 

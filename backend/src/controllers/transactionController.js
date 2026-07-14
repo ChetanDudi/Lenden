@@ -1405,8 +1405,8 @@ exports.getTransactionDetails = async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    const email = req.user.email;
-    if (transaction.userEmail !== email && transaction.counterpartyEmail !== email) {
+    const email = (req.user.email || '').toLowerCase();
+    if (transaction.userEmail.toLowerCase() !== email && transaction.counterpartyEmail.toLowerCase() !== email) {
       return res.status(403).json({ error: 'You are not a party to this transaction' });
     }
 

@@ -47,6 +47,8 @@ exports.verifyResetOtp = async (req, res) => {
     if (entry.otp !== otp) {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
+    // Mark as verified so resetPassword can proceed
+    resetOtpStore[email].verified = true;
     res.status(200).json({ message: 'OTP verified', userType: entry.userType });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -59,6 +61,11 @@ exports.resetPassword = async (req, res) => {
     const { email, userType, newPassword } = req.body;
     if (!email || !userType || !newPassword) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+    // Enforce that OTP was verified before allowing the password change
+    const entry = resetOtpStore[email];
+    if (!entry || !entry.verified) {
+      return res.status(403).json({ error: 'OTP not verified. Please verify your OTP before resetting your password.' });
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     if (userType === 'user') {

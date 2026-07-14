@@ -28,18 +28,20 @@ exports.sendDualOtp = async (email1, email2) => {
   const expires = Date.now() + 2 * 60 * 1000; // 2 minutes
   otpStore[email1] = {otp: otp1, expires };
   otpStore[email2] = {otp: otp2, expires };
-  await sendEmail({
-    to: email1,
-    subject: 'Lending/Borrowing OTP Verification',
-    text: `Your OTP for transaction confirmation is: ${otp1}\nThis OTP will expire in 2 minutes.`,
-    html: getStylishOtpHtml(otp1),
-  });
-  await sendEmail({
-    to: email2,
-    subject: 'Lending/Borrowing OTP Verification',
-    text: `Your OTP for transaction confirmation is: ${otp2}\nThis OTP will expire in 2 minutes.`,
-    html: getStylishOtpHtml(otp2),
-  });
+  await Promise.all([
+    sendEmail({
+      to: email1,
+      subject: 'Lending/Borrowing OTP Verification',
+      text: `Your OTP for transaction confirmation is: ${otp1}\nThis OTP will expire in 2 minutes.`,
+      html: getStylishOtpHtml(otp1),
+    }),
+    sendEmail({
+      to: email2,
+      subject: 'Lending/Borrowing OTP Verification',
+      text: `Your OTP for transaction confirmation is: ${otp2}\nThis OTP will expire in 2 minutes.`,
+      html: getStylishOtpHtml(otp2),
+    }),
+  ]);
   return {otp1, otp2 };
 };
 
