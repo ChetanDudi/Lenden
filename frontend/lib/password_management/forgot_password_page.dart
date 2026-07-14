@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import 'dart:convert';
+import '../api_config.dart';
 import '../otp_input.dart';
 import '../utils/api_client.dart';
 import '../utils/responsive.dart';
@@ -173,8 +174,15 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
   Future<Map<String, dynamic>> _post(
       String path, Map<String, dynamic> body) async {
     try {
+      print('🌐 Making API call to: ${ApiConfig.baseUrl + path}');
+      print('📤 Request body: ${jsonEncode(body)}');
+
       final response = await ApiClient.post(path, body: body)
           .timeout(const Duration(minutes: 2));
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response headers: ${response.headers}');
+      print('📥 Response body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
@@ -194,7 +202,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
         return {'status': response.statusCode, 'data': data};
       }
     } catch (e) {
-      debugPrint('❌ API call error: $e');
+      print('❌ API call error: $e');
       if (e.toString().contains('SocketException')) {
         return {
           'status': 0,

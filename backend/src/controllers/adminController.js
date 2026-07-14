@@ -257,23 +257,10 @@ const toAdminNoteResponse = (note) => ({
 // Admin registration
 const register = async (req, res) => {
   try {
-    const { username, email, password, name, registrationSecret } = req.body;
-
-    // Allow first admin to register freely; all subsequent registrations
-    // require the ADMIN_REGISTRATION_SECRET environment variable.
-    const adminCount = await Admin.countDocuments();
-    if (adminCount > 0) {
-      const expectedSecret = process.env.ADMIN_REGISTRATION_SECRET;
-      if (!expectedSecret || registrationSecret !== expectedSecret) {
-        return res.status(403).json({
-          success: false,
-          message: 'Admin registration requires a valid registration secret.'
-        });
-      }
-    }
+    const { username, email, password, name } = req.body;
 
     // Check if admin already exists
-    const existingAdmin = await Admin.findOne({
+    const existingAdmin = await Admin.findOne({ 
       $or: [{ email }, { username }]
     });
 

@@ -56,8 +56,9 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabCategories.length, vsync: this);
-    _fetchNotifications().then((_) { if (mounted) _markNotificationsAsRead(); });
+    _fetchNotifications();
     _fetchFriendRequests();
+    _markNotificationsAsRead();
   }
 
   @override
@@ -140,7 +141,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   Future<void> _markNotificationsAsRead() async {
     await ApiClient.post('/api/notifications/mark-as-read');
     if (!mounted) return;
-    setState(() => _unreadCount = 0);
+    await _fetchNotifications(viewAll: _isShowingAll);
   }
 
   bool _isNotificationRead(dynamic notification, dynamic userId) {

@@ -2920,7 +2920,6 @@ class AppLocalizations {
       'status_failed_label': 'Failed',
       'status_pending_label': 'Pending',
       'status_processed_label': 'Processed',
-      'status_reversed_label': 'Reversed',
       'verify_and_pay_label': 'Verify & Pay',
       'verify_payment_id_label': 'Verify Payment ID',
       'waiting_for_payment_confirmation_message':
@@ -6872,7 +6871,6 @@ class AppLocalizations {
       'status_failed_label': 'विफल',
       'status_pending_label': 'लंबित',
       'status_processed_label': 'संसाधित',
-      'status_reversed_label': 'वापस किया गया',
       'verify_and_pay_label': 'सत्यापित करें और भुगतान करें',
       'verify_payment_id_label': 'पेमेंट आईडी सत्यापित करें',
       'waiting_for_payment_confirmation_message':

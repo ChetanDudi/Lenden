@@ -339,7 +339,7 @@ class SessionProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error fetching freebie counts: $e');
+      print('Error fetching freebie counts: $e');
     }
   }
 
@@ -370,7 +370,7 @@ class SessionProvider extends ChangeNotifier {
       notifyListeners();
       return reward;
     } catch (e) {
-      debugPrint('Error checking daily login reward on app open: $e');
+      print('Error checking daily login reward on app open: $e');
       return null;
     }
   }
@@ -408,7 +408,7 @@ class SessionProvider extends ChangeNotifier {
     try {
       await _storage.write(key: 'user_data', value: jsonEncode(user));
     } catch (e) {
-      debugPrint('Failed to persist user data: $e');
+      print('Failed to persist user data: $e');
     }
   }
 
@@ -428,7 +428,7 @@ class SessionProvider extends ChangeNotifier {
         await logout();
       }
     } catch (e) {
-      debugPrint('Error refreshing user profile: $e');
+      print('Error refreshing user profile: $e');
     }
   }
 
@@ -455,7 +455,7 @@ class SessionProvider extends ChangeNotifier {
         await logout();
       }
     } catch (e) {
-      debugPrint('Error force refreshing user profile: $e');
+      print('Error force refreshing user profile: $e');
     }
   }
 
@@ -474,7 +474,7 @@ class SessionProvider extends ChangeNotifier {
     try {
       await ChatEncryptionService.ensureIdentity(userId);
     } catch (e) {
-      debugPrint('Error initializing chat encryption: $e');
+      print('Error initializing chat encryption: $e');
     }
   }
 
@@ -501,7 +501,7 @@ class SessionProvider extends ChangeNotifier {
         await HttpInterceptor.post('/api/users/logout',
             body: {'refreshToken': _refreshToken});
       } catch (e) {
-        debugPrint('Error logging out on server: $e');
+        print('Error logging out on server: $e');
       }
     }
     await clearTokens();

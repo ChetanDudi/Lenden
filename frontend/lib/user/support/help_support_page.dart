@@ -65,10 +65,10 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
             .build(),
       );
       socket?.connect();
-      socket?.onConnect((_) => debugPrint('Socket Connected: ${socket?.id}'));
-      socket?.onDisconnect((_) => debugPrint('Socket Disconnected'));
-      socket?.onConnectError((err) => debugPrint('Socket Connect Error: $err'));
-      socket?.onError((err) => debugPrint('Socket Error: $err'));
+      socket?.onConnect((_) => print('Socket Connected: ${socket?.id}'));
+      socket?.onDisconnect((_) => print('Socket Disconnected'));
+      socket?.onConnectError((err) => print('Socket Connect Error: $err'));
+      socket?.onError((err) => print('Socket Error: $err'));
 
       socket?.on('support_query_created', (data) {
         if (data['user'] != null &&
@@ -98,7 +98,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
         _snack(AppLocalizations.of(context).t('query_deleted_message'), Colors.red);
       });
     } catch (e) {
-      debugPrint('Error connecting to socket: $e');
+      print('Error connecting to socket: $e');
     }
   }
 

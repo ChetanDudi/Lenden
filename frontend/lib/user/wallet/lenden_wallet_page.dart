@@ -57,7 +57,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
       case 'failed':
         return t('status_failed_label');
       case 'reversed':
-        return t('status_reversed_label');
+        return t('status_failed_label');
       default:
         return t('status_pending_label');
     }

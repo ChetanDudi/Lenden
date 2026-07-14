@@ -5,21 +5,20 @@ module.exports = async function sessionTimeout(req, res, next) {
     // Only check for authenticated user requests
     if (!req.user || req.user.role !== 'user') return next();
 
-    const user = await User.findById(req.user._id).select('privacySettings');
+    const user = await User.findById(req.user._id).select('sessionTimeout lastActivityAt');
     if (!user) return next();
 
     // sessionTimeout in minutes, 0 means "Never"
-    const timeout = user.privacySettings?.sessionTimeout ?? 30;
+    const timeout = user.sessionTimeout || 30;
     if (timeout === 0) {
       // Never timeout
-      await User.findByIdAndUpdate(req.user._id, { 'privacySettings.lastActivityAt': new Date() });
+      user.lastActivityAt = new Date();
+      await user.save();
       return next();
     }
 
     const now = Date.now();
-    const lastActivity = user.privacySettings?.lastActivityAt
-      ? new Date(user.privacySettings.lastActivityAt).getTime()
-      : now;
+    const lastActivity = user.lastActivityAt ? new Date(user.lastActivityAt).getTime() : now;
     const diffMinutes = (now - lastActivity) / 60000;
 
     if (diffMinutes > timeout) {
@@ -28,7 +27,8 @@ module.exports = async function sessionTimeout(req, res, next) {
     }
 
     // Update lastActivityAt
-    await User.findByIdAndUpdate(req.user._id, { 'privacySettings.lastActivityAt': new Date() });
+    user.lastActivityAt = new Date();
+    await user.save();
     next();
   } catch (e) {
     next();

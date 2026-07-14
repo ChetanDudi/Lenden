@@ -338,7 +338,7 @@ const getPrivacySettings = async (req, res) => {
       twoFactorAuth: user.privacySettings?.twoFactorAuth ?? false,
       loginNotifications: user.privacySettings?.loginNotifications ?? true,
       deviceManagement: user.privacySettings?.deviceManagement ?? true,
-      sessionTimeout: user.privacySettings?.sessionTimeout ?? 30,
+      sessionTimeout: user.sessionTimeout ?? 30,
     };
 
     res.json(settings);
@@ -378,7 +378,7 @@ const updatePrivacySettings = async (req, res) => {
       },
     };
     if (typeof sessionTimeout === 'number') {
-      updatePayload['privacySettings.sessionTimeout'] = sessionTimeout;
+      updatePayload.sessionTimeout = sessionTimeout;
     }
 
     const user = await User.findByIdAndUpdate(userId, updatePayload, { new: true });
