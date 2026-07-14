@@ -12,6 +12,7 @@ import '../../../utils/responsive.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import '../../../settings/set_wallet_pin_page.dart';
+import '../../../utils/display_currency_helper.dart';
 
 class PartialPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -153,9 +154,9 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       borrowerEmail = widget.transaction['userEmail'];
     }
 
-    if (userEmail == lenderEmail) {
+    if (userEmail?.toLowerCase() == lenderEmail?.toLowerCase()) {
       paidBy = 'lender';
-    } else if (userEmail == borrowerEmail) {
+    } else if (userEmail?.toLowerCase() == borrowerEmail?.toLowerCase()) {
       paidBy = 'borrower';
     }
   }
@@ -191,7 +192,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     } else if (transaction['isPartiallyPaid'] == true &&
         transaction['partialPayments'] != null) {
       List pp = transaction['partialPayments'] as List;
-      paid = pp.fold<double>(0, (s, p) => s + (p['amount'] as num).toDouble());
+      paid = pp.fold<double>(0, (s, p) => s + ((p['amount'] as num?)?.toDouble() ?? 0.0));
     }
     double remaining = original - paid;
     if (paid >= original) return '0.00';
@@ -391,6 +392,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                     ? 'Payment Successful!'
                     : 'Partial Payment Successful!',
                 amount: amount,
+                currency: currencySymbolFor(widget.transaction['currency'] as String?),
                 recipientName: recipient,
                 transactionType: widget.isFullPayment
                     ? 'Secure Transaction — Full Payment'
@@ -753,8 +755,8 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
           if (otpSent && !otpVerified) ...[
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: (!isVerifying)
-                  ? () => _verifyOtp(email!, otpController.text, isLender)
+              onPressed: (!isVerifying && email != null)
+                  ? () => _verifyOtp(email, otpController.text, isLender)
                   : null,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: isVerifying
@@ -903,7 +905,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '₹${_amountController.text.trim().isNotEmpty ? _amountController.text.trim() : _calculateRemainingAmount(widget.transaction)} will be deducted from your LenDen Wallet and credited to the other party once both OTPs are verified.',
+                            '${currencySymbolFor(widget.transaction['currency'] as String?)}${_amountController.text.trim().isNotEmpty ? _amountController.text.trim() : _calculateRemainingAmount(widget.transaction)} will be deducted from your LenDen Wallet and credited to the other party once both OTPs are verified.',
                             style: TextStyle(
                                 fontSize: 12.5,
                                 color: Colors.blueGrey[700],

@@ -1,6 +1,18 @@
 import 'dart:convert';
 import 'api_client.dart';
 
+/// Static symbol lookup that doesn't require a loaded DisplayCurrencyData.
+/// Covers all currencies supported by the app. Falls back to the currency code.
+String currencySymbolFor(String? code) {
+  const _symbols = {
+    'INR': '₹', 'USD': '\$', 'EUR': '€', 'GBP': '£',
+    'JPY': '¥', 'CNY': '¥', 'CAD': '\$', 'AUD': '\$',
+    'CHF': 'Fr', 'RUB': '₽',
+  };
+  final upper = (code ?? 'INR').toUpperCase();
+  return _symbols[upper] ?? upper;
+}
+
 class DisplayCurrencyHelper {
   static Future<DisplayCurrencyData> load() async {
     try {

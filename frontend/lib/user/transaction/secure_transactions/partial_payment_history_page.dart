@@ -17,11 +17,18 @@ class PartialPaymentHistoryPage extends StatelessWidget {
   }) : super(key: key);
 
   String _getPaidByEmail(Map payment, Map transaction) {
-    String paidBy = payment['paidBy'] ?? '';
-    if (paidBy == 'lender') return transaction['userEmail'] ?? 'Lender';
-    if (paidBy == 'borrower') {
-      return transaction['counterpartyEmail'] ?? 'Borrower';
-    }
+    final paidBy = (payment['paidBy'] ?? '').toString();
+    final role = (transaction['role'] ?? '').toString();
+    // userEmail is always the creator; counterpartyEmail is the other party.
+    // role is the creator's role. Derive lender/borrower emails accordingly.
+    final lenderEmail = role == 'lender'
+        ? transaction['userEmail']
+        : transaction['counterpartyEmail'];
+    final borrowerEmail = role == 'lender'
+        ? transaction['counterpartyEmail']
+        : transaction['userEmail'];
+    if (paidBy == 'lender') return (lenderEmail ?? 'Lender').toString();
+    if (paidBy == 'borrower') return (borrowerEmail ?? 'Borrower').toString();
     return paidBy;
   }
 

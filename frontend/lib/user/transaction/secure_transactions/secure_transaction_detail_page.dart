@@ -843,7 +843,7 @@ class _SecureTransactionDetailPageState
     final pp = t['partialPayments'];
     if (pp is! List || pp.length < 2) return '—';
     final dates = pp
-        .map((p) => DateTime.tryParse(p['date']?.toString() ?? ''))
+        .map((p) => DateTime.tryParse(p['paidAt']?.toString() ?? ''))
         .whereType<DateTime>()
         .toList();
     if (dates.length < 2) return '—';
@@ -947,11 +947,13 @@ class _SecureTransactionDetailPageState
     final email = user?['email'];
     final t = _t;
     final isLending = widget.isLending;
-
+    // userCleared = creator's status, counterpartyCleared = other party's status.
+    // Use creator identity — not isLending — to map cleared fields correctly.
+    final isCreator = (email != null && email == t['userEmail']);
     final youCleared =
-        (isLending ? t['userCleared'] : t['counterpartyCleared']) == true;
+        (isCreator ? t['userCleared'] : t['counterpartyCleared']) == true;
     final otherCleared =
-        (isLending ? t['counterpartyCleared'] : t['userCleared']) == true;
+        (isCreator ? t['counterpartyCleared'] : t['userCleared']) == true;
     final fullyCleared = youCleared && otherCleared;
     final hasPartialPayment = _hasPartialPayment(t);
     final isBorrower = !isLending;

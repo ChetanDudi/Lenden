@@ -751,7 +751,6 @@ exports.verifyUserOTP = async (req, res) => {
 exports.getUserTransactions = async (req, res) => {
   try {
     const {
-      email,
       filter = 'all',
       clearanceFilter = 'all',
       partialClearedType = 'my',
@@ -766,12 +765,12 @@ exports.getUserTransactions = async (req, res) => {
       favouritesOnly,
     } = req.query;
 
-    if (!email) return res.status(400).json({ error: 'Email is required' });
+    // Always use the authenticated user's email — never trust the query param.
+    const email = req.user.email;
 
-    // Base query: user is party to the transaction
-    const baseQuery = {
-      $or: [{ userEmail: email }, { counterpartyEmail: email }],
-    };
+    // Base query: user is party to the transaction (ownership clause, never overwritten)
+    const ownershipClause = [{ userEmail: email }, { counterpartyEmail: email }];
+    const baseQuery = { $or: ownershipClause };
 
     // Date range filter
     if (startDate || endDate) {
@@ -796,15 +795,20 @@ exports.getUserTransactions = async (req, res) => {
       }
     }
 
-    // Text search
+    // Text search — combine with ownership via $and so the search
+    // can never bypass the party-membership check.
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      baseQuery.$or = [
-        { description: searchRegex },
-        { place: searchRegex },
-        { transactionId: searchRegex },
-        { userEmail: searchRegex },
-        { counterpartyEmail: searchRegex },
+      delete baseQuery.$or; // move ownership into $and
+      baseQuery.$and = [
+        { $or: ownershipClause },
+        { $or: [
+          { description: searchRegex },
+          { place: searchRegex },
+          { transactionId: searchRegex },
+          { userEmail: searchRegex },
+          { counterpartyEmail: searchRegex },
+        ]},
       ];
     }
 
@@ -919,15 +923,17 @@ exports.clearTransaction = async (req, res) => {
     } else {
       return res.status(403).json({ error: 'You are not a party to this transaction' });
     }
-    // When a real payment was made, clear both sides at once
+    // When a real payment was made, clear both sides at once.
     if (bothSides && updated) {
       transaction.userCleared = true;
       transaction.counterpartyCleared = true;
 
-      // Record the wallet Pay Now payment in partialPayments so it appears in history.
-      // (Razorpay path already records this inside verifyP2PPayment before reaching here,
-      // so by the time Razorpay calls clear, userCleared is already true → updated=false → skipped.)
-      const paidAmount = req.body.amount ? Number(req.body.amount) : 0;
+      // Record the payment in partialPayments so it appears in history.
+      // Cap at server-known remainingAmount so callers cannot inject an
+      // arbitrary amount and create a fraudulent audit record.
+      const requestedAmount = req.body.amount ? Number(req.body.amount) : 0;
+      const serverRemaining = transaction.remainingAmount ?? transaction.amount;
+      const paidAmount = Math.min(requestedAmount, serverRemaining > 0 ? serverRemaining : requestedAmount);
       if (paidAmount > 0) {
         const lenderEmail = transaction.role === 'lender'
           ? transaction.userEmail
@@ -1233,25 +1239,26 @@ exports.processPartialPayment = async (req, res) => {
         if (transaction.interestType === 'simple') {
           totalAmountWithInterest = currentRemainingAmount + (currentRemainingAmount * transaction.interestRate * daysDiff / 365);
         } else if (transaction.interestType === 'compound') {
-          const periods = daysDiff / transaction.compoundingFrequency;
-          totalAmountWithInterest = currentRemainingAmount * Math.pow(1 + transaction.interestRate / 100, periods);
+          // Standard formula: P*(1+r/n)^(n*t) where r=annual rate fraction, n=periods/yr, t=years
+          const n = transaction.compoundingFrequency || 1;
+          totalAmountWithInterest = currentRemainingAmount * Math.pow(1 + transaction.interestRate / 100 / n, n * daysDiff / 365);
         }
       }
     }
-    
+
     // For display purposes, also calculate the total amount with interest from transaction date
     let displayTotalAmountWithInterest = transaction.amount;
     if (transaction.interestType && transaction.interestRate) {
       const transactionDate = new Date(transaction.date);
       const now = new Date();
       const daysDiff = Math.ceil((now - transactionDate) / (1000 * 60 * 60 * 24));
-      
+
       if (daysDiff > 0) {
         if (transaction.interestType === 'simple') {
           displayTotalAmountWithInterest = transaction.amount + (transaction.amount * transaction.interestRate * daysDiff / 365);
         } else if (transaction.interestType === 'compound') {
-          const periods = daysDiff / transaction.compoundingFrequency;
-          displayTotalAmountWithInterest = transaction.amount * Math.pow(1 + transaction.interestRate / 100, periods);
+          const n = transaction.compoundingFrequency || 1;
+          displayTotalAmountWithInterest = transaction.amount * Math.pow(1 + transaction.interestRate / 100 / n, n * daysDiff / 365);
         }
       }
     }
@@ -1330,7 +1337,8 @@ exports.processPartialPayment = async (req, res) => {
         amount: amount,
         paidBy: paidBy,
         paidAt: new Date(),
-        description: description || ''
+        description: description || '',
+        paymentMethod: 'wallet',
       });
 
       // If remaining amount is 0 or effectively 0 (< 1 cent), mark as cleared
@@ -1413,10 +1421,10 @@ exports.getTransactionDetails = async (req, res) => {
 exports.toggleFavourite = async (req, res) => {
   try {
     const { transactionId } = req.params;
-    const { email } = req.body;
+    const email = req.user.email; // always use authenticated identity
 
-    if (!transactionId || !email) {
-      return res.status(400).json({ error: 'Transaction ID and email are required' });
+    if (!transactionId) {
+      return res.status(400).json({ error: 'Transaction ID is required' });
     }
 
     const transaction = await Transaction.findOne({ transactionId });

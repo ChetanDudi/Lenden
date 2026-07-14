@@ -1,4 +1,4 @@
-//This file is to create Transactions.
+﻿//This file is to create Transactions.
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:intl/intl.dart';
@@ -83,6 +83,11 @@ class _TransactionPageState extends State<TransactionPage> {
   bool _restoringDraft = false;
   DateTime? _lastDraftSavedAt;
   String _draftStatusMessage = 'Auto-save ready';
+
+  int _currentStep = 0;
+  bool _showStepList = true;
+  final Set<int> _completedSteps = {};
+  String? _stepError;
 
   // Computed property to check if both users are verified
   bool get _bothUsersVerified => _counterpartyVerified && _userVerified;
@@ -499,112 +504,6 @@ class _TransactionPageState extends State<TransactionPage> {
     );
   }
 
-  Widget _buildProgressStepper() {
-    final t = AppLocalizations.of(context).t;
-    final step2Ready = _counterpartyVerified || _userVerified;
-    final step3Ready = _bothUsersVerified;
-
-    Widget step({
-      required int number,
-      required String title,
-      required bool active,
-      required bool complete,
-    }) {
-      final color = complete || active
-          ? AppColors.cyan
-          : AppThemeColors.mutedText(context);
-      return Expanded(
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 3,
-                    color: number == 1 ? Colors.transparent : color,
-                  ),
-                ),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: complete || active
-                        ? color
-                        : AppThemeColors.cardBg(context),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: color, width: 2),
-                  ),
-                  child: Center(
-                    child: complete
-                        ? const Icon(Icons.check, color: Colors.white, size: 16)
-                        : Text(
-                            '$number',
-                            style: TextStyle(
-                              color: active ? Colors.white : color,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    height: 3,
-                    color: number == 3 ? Colors.transparent : color,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: complete || active
-                    ? AppThemeColors.primaryText(context)
-                    : AppThemeColors.mutedText(context),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          step(
-              number: 1,
-              title: t('enter_details_label'),
-              active: !step2Ready,
-              complete: step2Ready),
-          step(
-              number: 2,
-              title: t('verify_emails_label'),
-              active: step2Ready && !step3Ready,
-              complete: step3Ready),
-          step(
-              number: 3,
-              title: t('create_txn_label'),
-              active: step3Ready,
-              complete: false),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTransactionPreviewCard() {
     final t = AppLocalizations.of(context).t;
@@ -2047,7 +1946,7 @@ class _TransactionPageState extends State<TransactionPage> {
         builder: (_) => PaymentSuccessPage(
           title: t('transaction_created_exclaim'),
           amount: amt,
-          currency: _currency == 'INR' ? '₹' : _currency,
+          currency: _currencySymbol(),
           recipientName: recipient.isNotEmpty ? recipient : null,
           transactionType: t('secure_transaction_label'),
           extraDetails: extraDetails,
@@ -2258,98 +2157,6 @@ class _TransactionPageState extends State<TransactionPage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildStickySummaryBar() {
-    final t = AppLocalizations.of(context).t;
-    final amount = _parsedPrincipalAmount();
-    final canSubmit = _counterpartyVerified && _userVerified && !_isLoading;
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        amount == null
-                            ? t('enter_amount_to_build_summary_label')
-                            : _formatPreviewAmount(amount),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppThemeColors.primaryText(context),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _counterpartyEmailController.text.trim().isEmpty
-                            ? t('counterparty_not_selected_label')
-                            : _counterpartyEmailController.text.trim(),
-                        style: TextStyle(
-                            color: AppThemeColors.secondaryText(context)),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _expectedReturnDate == null
-                            ? t('return_date_not_selected_label')
-                            : '${t('return_colon_label')} ${DateFormat('MMM d').format(_expectedReturnDate!)}',
-                        style: TextStyle(
-                          color: const Color(0xFF0077B6),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: canSubmit ? _showReviewSheetAndSubmit : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.cyan,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            canSubmit
-                                ? t('review_and_submit_short_label')
-                                : t('verify_to_submit_label'),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -3039,6 +2846,980 @@ class _TransactionPageState extends State<TransactionPage> {
     );
   }
 
+  // â”€â”€â”€ Wizard navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  static const List<String> _stepTitles = [
+    'Basic Details',
+    'Proofs',
+    'Interest',
+    'Return Date',
+    'Review',
+    'Verification',
+    'Final Review',
+  ];
+
+  static const List<IconData> _stepIcons = [
+    Icons.edit_note_rounded,
+    Icons.attach_file_rounded,
+    Icons.percent_rounded,
+    Icons.event_rounded,
+    Icons.preview_rounded,
+    Icons.verified_user_rounded,
+    Icons.check_circle_rounded,
+  ];
+
+  String? _validateStep(int step) {
+    switch (step) {
+      case 0:
+        if (_amountController.text.trim().isEmpty) return 'Amount is required';
+        if (double.tryParse(_amountController.text.trim()) == null) return 'Enter a valid amount';
+        if (_selectedDate == null) return 'Transaction date is required';
+        if (_selectedTime == null) return 'Transaction time is required';
+        if (_placeController.text.trim().isEmpty) return 'Place is required';
+        return null;
+      case 2:
+        if (_interestType != 'none') {
+          if (_interestRateController.text.trim().isEmpty) return 'Interest rate is required';
+          final rate = double.tryParse(_interestRateController.text.trim());
+          if (rate == null) return 'Enter a valid interest rate';
+          if (rate <= 0) return 'Interest rate must be greater than 0';
+          if (rate > 100) return 'Interest rate cannot exceed 100%';
+        }
+        return null;
+      case 3:
+        if (_interestType != 'none' && _expectedReturnDate == null) {
+          return 'Expected return date is required when interest is applied';
+        }
+        return null;
+      case 5:
+        if (!_bothUsersVerified) return 'Both parties must verify before you can proceed';
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  void _nextStep() {
+    final error = _validateStep(_currentStep);
+    if (error != null) {
+      setState(() => _stepError = error);
+      return;
+    }
+    setState(() {
+      _completedSteps.add(_currentStep);
+      _stepError = null;
+      if (_currentStep < 6) {
+        _currentStep++;
+        _showStepList = false;
+      } else {
+        _showStepList = true;
+      }
+    });
+  }
+
+  void _saveAndGoToList() {
+    final error = _validateStep(_currentStep);
+    if (error != null) {
+      setState(() => _stepError = error);
+      return;
+    }
+    setState(() {
+      _completedSteps.add(_currentStep);
+      _stepError = null;
+      _showStepList = true;
+    });
+  }
+
+  bool _isStepAccessible(int index) {
+    if (index == 0) return true;
+    return _completedSteps.containsAll(List.generate(index, (i) => i));
+  }
+
+  void _goToStep(int index) {
+    if (!_isStepAccessible(index)) return;
+    setState(() { _currentStep = index; _showStepList = false; _stepError = null; });
+  }
+
+  static const List<String> _stepSubtitleKeys = [
+    'step_basic_details_subtitle',
+    'step_proofs_subtitle',
+    'step_interest_subtitle',
+    'step_return_date_subtitle',
+    'step_review_subtitle',
+    'step_verification_subtitle',
+    'step_final_review_subtitle',
+  ];
+
+  static const List<Color> _stepColors = [
+    Color(0xFF0077B6),
+    Colors.purple,
+    Colors.orange,
+    Colors.teal,
+    Colors.indigo,
+    Colors.green,
+    Colors.deepOrange,
+  ];
+
+  Color _stepFillColor(int index) {
+    if (AppThemeColors.isDark(context)) {
+      const darkFills = [
+        Color(0xFF1A2E1A), // dark green tint
+        Color(0xFF2A1A2E), // dark purple tint
+        Color(0xFF2E2A1A), // dark amber tint
+        Color(0xFF1A2E2B), // dark teal tint
+        Color(0xFF1A1C2E), // dark indigo tint
+        Color(0xFF1A2E20), // dark green tint 2
+        Color(0xFF2E1A1E), // dark pink/orange tint
+      ];
+      return darkFills[index % darkFills.length];
+    }
+    const fills = [
+      Color(0xFFE8F5E9), // soft green
+      Color(0xFFF3E5F5), // soft purple
+      Color(0xFFFFF8E7), // soft cream/orange
+      Color(0xFFE0F2F1), // soft teal
+      Color(0xFFE8EAF6), // soft indigo
+      Color(0xFFE8F5E9), // soft green again
+      Color(0xFFFCE4EC), // soft pink/deep-orange
+    ];
+    return fills[index % fills.length];
+  }
+
+  Widget _buildStepList() {
+    final t = AppLocalizations.of(context).t;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      itemCount: 7,
+      itemBuilder: (_, i) => _buildStepCard(i, t),
+    );
+  }
+
+  Widget _buildStepCard(int index, String Function(String) t) {
+    final isDone = _completedSteps.contains(index);
+    final isLocked = !_isStepAccessible(index);
+    final color = isLocked ? Colors.grey : _stepColors[index];
+    // Steps 0–4 can be edited after completion, until both users verify
+    final canEdit = isDone && !_bothUsersVerified && index < 5;
+
+    final String statusLabel;
+    if (isDone) {
+      statusLabel = t('step_completed_label');
+    } else if (isLocked) {
+      statusLabel = t('step_locked_label');
+    } else {
+      statusLabel = t('tap_to_fill_label');
+    }
+
+    return GestureDetector(
+      onTap: isLocked ? null : () => _goToStep(index),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: isLocked
+              ? LinearGradient(colors: AppThemeColors.isDark(context)
+                  ? [Colors.grey.shade800, Colors.grey.shade700, Colors.grey.shade800]
+                  : [Colors.grey.shade300, Colors.grey.shade200, Colors.grey.shade300])
+              : const LinearGradient(
+                  colors: [Colors.orange, Colors.white, Colors.green],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, 10))],
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: _stepFillColor(index),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                height: 50,
+                width: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: AppThemeColors.cardBg(context).withValues(alpha: 0.92),
+                ),
+                child: isDone
+                    ? Icon(Icons.check_circle_rounded, color: Colors.green, size: 28)
+                    : isLocked
+                        ? Icon(Icons.lock_rounded, color: Colors.grey, size: 24)
+                        : Icon(_stepIcons[index], color: color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _stepTitles[index],
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isLocked ? Colors.grey : AppThemeColors.primaryText(context),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDone ? Colors.green : isLocked ? Colors.grey : color,
+                          ),
+                        ),
+                        if (canEdit) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: color.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.edit_rounded, size: 10, color: color),
+                              const SizedBox(width: 3),
+                              Text(t('edit'), style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+                            ]),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      t(_stepSubtitleKeys[index]),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isLocked ? Colors.grey.shade400 : AppThemeColors.secondaryText(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                canEdit
+                    ? Icons.edit_rounded
+                    : isDone
+                        ? Icons.chevron_right_rounded
+                        : isLocked
+                            ? Icons.lock_outline_rounded
+                            : Icons.chevron_right_rounded,
+                color: isLocked ? Colors.grey.shade400 : canEdit ? color : color,
+                size: canEdit ? 18 : 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepContent(String Function(String) t) {
+    switch (_currentStep) {
+      case 0: return _buildStep0(t);
+      case 1: return _buildStep1(t);
+      case 2: return _buildStep2(t);
+      case 3: return _buildStep3(t);
+      case 4: return _buildStep4(t);
+      case 5: return _buildStep5(t);
+      case 6: return _buildStep6(t);
+      default: return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildWizardBottomBar() {
+    final t = AppLocalizations.of(context).t;
+    final isLast = _currentStep == 6;
+    final canSubmit = _bothUsersVerified && !_isLoading;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(context),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, -4))],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_stepError != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_stepError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                ]),
+              ),
+            ],
+            if (isLast)
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saveAndGoToList,
+                    icon: const Icon(Icons.list_rounded, size: 15),
+                    label: Text(t('save_and_steps_label')),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      side: BorderSide(color: AppThemeColors.divider(context)),
+                      foregroundColor: AppThemeColors.primaryText(context),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: canSubmit ? _showReviewSheetAndSubmit : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cyan,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(canSubmit ? t('review_and_submit_short_label') : t('verify_to_submit_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ])
+            else
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saveAndGoToList,
+                    icon: const Icon(Icons.list_rounded, size: 15),
+                    label: Text(t('save_and_steps_label'), style: const TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      side: BorderSide(color: AppThemeColors.divider(context)),
+                      foregroundColor: AppThemeColors.primaryText(context),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: _nextStep,
+                    icon: const Icon(Icons.arrow_forward_ios, size: 13, color: Colors.white),
+                    label: Text(t('save_and_next_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cyan,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // â”€â”€â”€ Step builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildStep0(String Function(String) t) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Subscription/limit info banner
+          Consumer<SessionProvider>(builder: (context, session, _) {
+            if (session.isSubscribed) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(t('unlimited_transactions_message'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.cyan)),
+              );
+            }
+            final remaining = session.freeUserTransactionsRemaining;
+            if (remaining == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(t('free_transactions_remaining_message').replaceFirst('{count}', '$remaining'),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
+            );
+          }),
+          if (_bothUsersVerified)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF173238)),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.lock, color: AppColors.cyan, size: 16),
+                const SizedBox(width: 8),
+                Text(t('details_locked_label'), style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w500)),
+              ]),
+            ),
+          // Info card
+          Container(
+            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [
+                Icon(Icons.info_outline_rounded, color: AppColors.cyan, size: 16),
+                SizedBox(width: 8),
+                Text('What is a Secure Transaction?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.cyan)),
+              ]),
+              const SizedBox(height: 8),
+              Text('A Secure Transaction records a real-world money exchange between two people — a lender and a borrower — with dual verification, optional interest, and proofs for full accountability.',
+                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), height: 1.5)),
+            ]),
+          ),
+          _buildSectionHeader(title: t('basic_details_title'), subtitle: t('basic_details_subtitle_message'), icon: Icons.edit_note_rounded),
+          _buildStylishField(
+            child: DropdownButtonFormField<String>(
+              value: _role,
+              items: [
+                DropdownMenuItem(value: 'lender', child: Text(t('lender_giving_money_label'))),
+                DropdownMenuItem(value: 'borrower', child: Text(t('borrower_taking_money_label'))),
+              ],
+              onChanged: _bothUsersVerified ? null : (val) => setState(() { _role = val ?? 'lender'; _saveDraft(); }),
+              decoration: InputDecoration(labelText: t('your_role_label'), prefixIcon: Icon(Icons.people, color: AppColors.cyan), border: InputBorder.none,
+                helperText: _bothUsersVerified ? t('details_locked_label') : null),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildStylishField(
+            child: DropdownButtonFormField<String>(
+              value: _currency,
+              items: _currencies.map((c) => DropdownMenuItem(value: c['code'], child: Text('${c['symbol']} ${c['code']}'))) .toList(),
+              onChanged: _bothUsersVerified ? null : (val) => setState(() { _currency = val ?? 'INR'; _saveDraft(); }),
+              decoration: InputDecoration(labelText: t('currency_label'), prefixIcon: Icon(Icons.currency_exchange, color: AppColors.cyan), border: InputBorder.none),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildStylishField(
+            child: TextFormField(
+              controller: _amountController,
+              enabled: !_bothUsersVerified,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: t('amount_label'),
+                prefixIcon: Padding(padding: const EdgeInsets.all(14), child: Text(_currencySymbol(), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.cyan))),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildStylishField(child: _buildDatePickerField()),
+          const SizedBox(height: 16),
+          _buildStylishField(child: _buildTimePickerField()),
+          const SizedBox(height: 16),
+          _buildStylishField(
+            child: TextFormField(
+              controller: _placeController,
+              enabled: !_bothUsersVerified,
+              decoration: InputDecoration(
+                labelText: t('place_label'),
+                prefixIcon: Icon(Icons.location_on, color: AppColors.cyan),
+                border: InputBorder.none,
+                helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : null,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: _buildDraftActionCard(title: t('save_draft'), subtitle: t('pause_now_continue_later_label'), icon: Icons.save_outlined, accentColor: AppColors.cyan, onTap: _saveDraftWithFeedback)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildDraftActionCard(title: t('discard_draft_title'), subtitle: t('remove_saved_version_label'), icon: Icons.delete_outline, accentColor: const Color(0xFFFF6B6B), onTap: _discardDraftWithConfirmation)),
+          ]),
+          const SizedBox(height: 10),
+          _buildDraftStatusCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep1(String Function(String) t) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: t('proof_files_label'), subtitle: t('proof_files_subtitle_message'), icon: Icons.attach_file_rounded),
+          const SizedBox(height: 12),
+          _buildFilePicker(),
+          const SizedBox(height: 20),
+          _infoTile(Icons.image_outlined, 'Accepted formats', 'You can attach JPG, PNG, and PDF files as proof — receipts, agreements, screenshots.', Colors.blue),
+          const SizedBox(height: 12),
+          _infoTile(Icons.security_rounded, 'Why attach proofs?', 'Proofs add legal weight to your transaction record. In case of disputes, these documents serve as evidence.', Colors.green),
+          const SizedBox(height: 12),
+          _infoTile(Icons.cloud_upload_outlined, 'Storage', 'Files are encrypted and securely stored. Only transaction participants can access them.', Colors.purple),
+          const SizedBox(height: 12),
+          _infoTile(Icons.auto_awesome_rounded, 'OCR Support', 'LenDen can auto-read receipt amounts using OCR — tap the scan icon after attaching an image.', AppColors.cyan),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep2(String Function(String) t) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: t('interest_label'), subtitle: t('interest_subtitle_message'), icon: Icons.percent_rounded),
+          _buildStylishField(
+            child: DropdownButtonFormField<String>(
+              value: _interestType,
+              items: [
+                DropdownMenuItem(value: 'none', child: Text(t('no_interest_default_label'))),
+                DropdownMenuItem(value: 'simple', child: Text(t('simple_interest_label'))),
+                DropdownMenuItem(value: 'compound', child: Text(t('compound_interest_label'))),
+              ],
+              onChanged: _bothUsersVerified ? null : (val) { setState(() { _interestType = val ?? 'none'; if (_interestType == 'none') _interestRateController.clear(); _saveDraft(); }); },
+              decoration: InputDecoration(labelText: t('interest_type_optional_label'), border: InputBorder.none,
+                helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : t('leave_as_no_interest_message')),
+            ),
+          ),
+          if (_interestType != 'none') ...[
+            const SizedBox(height: 12),
+            _buildInterestGuidanceCard(),
+            const SizedBox(height: 12),
+            _buildStylishField(
+              child: TextFormField(
+                controller: _interestRateController,
+                enabled: !_bothUsersVerified,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(labelText: t('interest_rate_percent_label'), border: InputBorder.none,
+                  helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : null),
+              ),
+            ),
+          ],
+          if (_interestType == 'compound') ...[
+            const SizedBox(height: 12),
+            _buildStylishField(
+              child: DropdownButtonFormField<int>(
+                value: _compoundingFrequency,
+                items: [
+                  DropdownMenuItem(value: 1, child: Text(t('annually_label'))),
+                  DropdownMenuItem(value: 2, child: Text(t('semi_annually_label'))),
+                  DropdownMenuItem(value: 4, child: Text(t('quarterly_label'))),
+                  DropdownMenuItem(value: 12, child: Text(t('monthly_label'))),
+                ],
+                onChanged: _bothUsersVerified ? null : (val) => setState(() { _compoundingFrequency = val ?? 1; _saveDraft(); }),
+                decoration: InputDecoration(labelText: t('compounding_frequency_label'), border: InputBorder.none,
+                  helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : t('how_often_interest_compounded_label')),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          _infoTile(Icons.calculate_outlined, 'Simple Interest', 'Interest = Principal × Rate × Time.\nThe same interest amount is charged every period. Predictable and easy to understand.', Colors.blue),
+          const SizedBox(height: 12),
+          _infoTile(Icons.trending_up_rounded, 'Compound Interest', 'A = P × (1 + r/n)^(n×t)\nWhere P = principal, r = annual rate, n = times compounded per year, t = years.\nInterest earns on top of previously accumulated interest — grows faster over time.', Colors.orange),
+          const SizedBox(height: 12),
+          _infoTile(Icons.handshake_outlined, 'No Interest', 'Record a money exchange without any interest — useful for friendly loans or family transfers.', Colors.green),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3(String Function(String) t) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: t('expected_return_date_optional_label'), subtitle: 'When do you expect the money to be returned?', icon: Icons.event_rounded),
+          _buildStylishField(
+            child: InkWell(
+              onTap: _bothUsersVerified ? null : () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _expectedReturnDate ?? DateTime.now(),
+                  firstDate: DateTime(2000), lastDate: DateTime(2100),
+                  builder: (context, child) => Theme(
+                    data: Theme.of(context).copyWith(colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.cyan, onPrimary: Colors.white),
+                      textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: AppColors.cyan))),
+                    child: child!,
+                  ),
+                );
+                if (picked != null) { setState(() => _expectedReturnDate = picked); _saveDraft(); }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: _interestType == 'none' ? t('expected_return_date_optional_label') : t('expected_return_date_required_star_label'),
+                  border: InputBorder.none,
+                  helperText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : (_interestType == 'none' ? t('can_set_return_date_without_interest_message') : t('required_when_interest_applied_label')),
+                  prefixIcon: Icon(Icons.calendar_today, color: _bothUsersVerified ? AppThemeColors.mutedText(context) : (_interestType == 'none' ? AppColors.cyan : Colors.red.shade300)),
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text(_expectedReturnDate == null ? t('select_date_label') : DateFormat('yyyy-MM-dd').format(_expectedReturnDate!)),
+                  const Icon(Icons.calendar_today, color: Colors.teal),
+                ]),
+              ),
+            ),
+          ),
+          if (_amountController.text.trim().isNotEmpty && _expectedReturnDate != null) ...[
+            const SizedBox(height: 16),
+            _buildRepaymentPreviewCard(),
+            const SizedBox(height: 12),
+            _buildRepaymentTimelineCard(),
+          ],
+          const SizedBox(height: 20),
+          _infoTile(Icons.event_available_rounded, 'Why set a return date?', 'It creates a deadline for repayment and is required when interest is applied to calculate total due.', Colors.blue),
+          const SizedBox(height: 12),
+          _infoTile(Icons.notifications_active_outlined, 'Reminders', 'LenDen sends automated reminders to the borrower as the return date approaches, reducing disputes.', AppColors.cyan),
+          const SizedBox(height: 12),
+          _infoTile(Icons.update_rounded, 'Flexible', 'Both parties can agree to extend the return date later through the transaction details page.', Colors.green),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep4(String Function(String) t) {
+    final amount = _parsedPrincipalAmount();
+    final sym = _currencySymbol();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: 'Review Your Details', subtitle: 'Check everything before verification. You can go back to edit.', icon: Icons.preview_rounded),
+          _reviewCard([
+            _reviewRow(Icons.people, 'Your Role', _role == 'lender' ? t('lender_giving_money_label') : t('borrower_taking_money_label'), Colors.blue),
+            _reviewRow(Icons.currency_exchange, 'Currency', _currency, Colors.teal),
+            _reviewRow(Icons.payments_outlined, 'Amount', amount != null ? '$sym${amount.toStringAsFixed(2)}' : '—', Colors.green),
+            _reviewRow(Icons.calendar_today, 'Date', _selectedDate != null ? DateFormat('MMM d, yyyy').format(_selectedDate!) : '—', Colors.orange),
+            _reviewRow(Icons.access_time, 'Time', _selectedTime != null ? _selectedTime!.format(context) : '—', Colors.purple),
+            _reviewRow(Icons.location_on, 'Place', _placeController.text.trim().isNotEmpty ? _placeController.text.trim() : '—', Colors.red),
+          ]),
+          const SizedBox(height: 14),
+          _reviewCard([
+            _reviewRow(Icons.attach_file_rounded, 'Proofs Attached', '${_pickedFiles.length} file(s)', Colors.blue),
+          ]),
+          const SizedBox(height: 14),
+          _reviewCard([
+            _reviewRow(Icons.percent_rounded, 'Interest Type', _interestType == 'none' ? 'No Interest' : (_interestType == 'simple' ? 'Simple' : 'Compound'), Colors.orange),
+            if (_interestType != 'none')
+              _reviewRow(Icons.numbers_rounded, 'Rate', _interestRateController.text.trim().isNotEmpty ? '${_interestRateController.text.trim()}%' : '—', Colors.red),
+            if (_interestType == 'compound')
+              _reviewRow(Icons.repeat_rounded, 'Compounding', _compoundingFrequency == 1 ? 'Annual' : _compoundingFrequency == 2 ? 'Semi-Annual' : _compoundingFrequency == 4 ? 'Quarterly' : 'Monthly', Colors.purple),
+            _reviewRow(Icons.event_rounded, 'Return Date', _expectedReturnDate != null ? DateFormat('MMM d, yyyy').format(_expectedReturnDate!) : '—', Colors.green),
+          ]),
+          if (amount != null && _expectedReturnDate != null) ...[
+            const SizedBox(height: 14),
+            _buildTransactionPreviewCard(),
+          ],
+          const SizedBox(height: 14),
+          _infoTile(Icons.check_circle_outline_rounded, 'All good?', 'If everything looks correct, proceed to Verification where both parties will confirm via OTP or PIN.', AppColors.cyan),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewCard(List<Widget> rows) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(colors: [Colors.orange, Colors.white, Colors.green], begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(16)),
+        child: Column(children: rows),
+      ),
+    );
+  }
+
+  Widget _reviewRow(IconData icon, String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(children: [
+        Container(
+          width: 30, height: 30,
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: Icon(icon, size: 15, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Text(label, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)))),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+      ]),
+    );
+  }
+
+  Widget _infoTile(IconData icon, String title, String body, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+          const SizedBox(height: 4),
+          Text(body, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), height: 1.45)),
+        ])),
+      ]),
+    );
+  }
+
+  Widget _buildStep5(String Function(String) t) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: t('verification_title'), subtitle: t('verification_subtitle_message'), icon: Icons.verified_user_rounded),
+          const SizedBox(height: 8),
+          _buildStylishField(
+            child: TextFormField(
+              controller: _descriptionController,
+              enabled: !_bothUsersVerified,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: t('description_optional_label'),
+                border: InputBorder.none,
+                hintText: _bothUsersVerified ? t('transaction_details_locked_after_verification_label') : t('add_note_or_description_hint'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildOtpSection(
+            label: t('counterparty_email_label'),
+            emailController: _counterpartyEmailController,
+            verified: _counterpartyVerified,
+            otpError: _counterpartyOtpError,
+            otpSeconds: _counterpartyOtpSeconds,
+            onSendOtp: () async {
+              final email = _counterpartyEmailController.text;
+              if (_isBlockedEmail(email)) { showBlockedUserDialog(context); return; }
+              if (email.trim() == _userEmailController.text.trim()) {
+                setState(() => _counterpartyEmailError = t('emails_cannot_be_same_message'));
+                return;
+              }
+              if (!await _checkEmailExists(email)) {
+                setState(() => _counterpartyEmailError = t('email_not_registered_label'));
+                return;
+              }
+              setState(() => _counterpartyEmailError = null);
+              await _sendOtp(email, true);
+            },
+            onOtpChanged: (val) => _counterpartyOtp = val,
+            onVerifyOtp: () async {
+              if ((_counterpartyOtp ?? '').length != 6) {
+                setState(() => _counterpartyOtpError = t('enter_6_digit_otp_label'));
+                return;
+              }
+              await _verifyOtp(_counterpartyEmailController.text, _counterpartyOtp!, true);
+            },
+            enabled: !_counterpartyVerified,
+            emailError: _counterpartyEmailError,
+            onPickFriend: _counterpartyVerified ? null : _pickFriendForCounterparty,
+            friendSuggestions: _friendSuggestions,
+            onSelectFriend: (email) => setState(() => _counterpartyEmailController.text = email),
+          ),
+          const SizedBox(height: 12),
+          if (!_userVerified) ...[
+            Row(children: [
+              _creationPinTab(t('use_pin_label'), Icons.dialpad_rounded, true),
+              const SizedBox(width: 8),
+              _creationPinTab(t('use_email_otp_label'), Icons.email_outlined, false),
+            ]),
+            const SizedBox(height: 12),
+          ],
+          if (_userPinMode && !_userVerified) ...[
+            if (!_hasPinSet) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.withValues(alpha: 0.3))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Row(children: [
+                    Icon(Icons.info_outline_rounded, color: Colors.orange, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('You haven\'t set up a wallet PIN yet.', style: TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.w500))),
+                  ]),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                    icon: const Icon(Icons.dialpad_rounded, color: Colors.white, size: 15),
+                    label: const Text('Set Up PIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const SetWalletPinPage()));
+                      if (mounted) _loadPinStatus();
+                    },
+                  ),
+                ]),
+              ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1))],
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(Icons.dialpad_rounded, color: AppColors.cyan, size: 18),
+                    const SizedBox(width: 8),
+                    Text(t('enter_wallet_pin_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  ]),
+                  const SizedBox(height: 12),
+                  OtpInput(onChanged: (code) => setState(() => _userPinCode = code), enabled: !_verifyingUserPin, autoFocus: false, obscureText: true, showVisibilityToggle: true),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _verifyingUserPin ? null : _verifyUserPin,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    child: _verifyingUserPin
+                        ? const Row(mainAxisSize: MainAxisSize.min, children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)), SizedBox(width: 8), Text('Verifying…')])
+                        : const Text('Verify PIN'),
+                  ),
+                ]),
+              ),
+            ],
+          ] else if (!_userVerified) ...[
+            _buildOtpSection(
+              label: t('your_email_label'),
+              emailController: _userEmailController,
+              verified: _userVerified,
+              otpError: _userOtpError,
+              otpSeconds: _userOtpSeconds,
+              onSendOtp: () async {
+                final email = _userEmailController.text;
+                if (!await _checkEmailExists(email)) { setState(() => _userEmailError = t('email_not_registered_label')); return; }
+                setState(() => _userEmailError = null);
+                await _sendOtp(email, false);
+              },
+              onOtpChanged: (val) => _userOtp = val,
+              onVerifyOtp: () async {
+                if ((_userOtp ?? '').length != 6) { setState(() => _userOtpError = t('enter_6_digit_otp_label')); return; }
+                await _verifyOtp(_userEmailController.text, _userOtp!, false);
+              },
+              enabled: !_userVerified,
+              emailError: _userEmailError,
+              readOnlyEmail: true,
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.withValues(alpha: 0.3))),
+              child: Row(children: [
+                const Icon(Icons.verified_user_rounded, color: Colors.green, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Your identity is verified. Both parties must verify before submission.', style: TextStyle(fontSize: 13, color: Colors.green.shade700, fontWeight: FontWeight.w500))),
+              ]),
+            ),
+          ],
+          if (_sameEmailError != null) ...[
+            const SizedBox(height: 8),
+            Text(_sameEmailError!, style: const TextStyle(color: Colors.red)),
+          ],
+          const SizedBox(height: 16),
+          _infoTile(Icons.shield_outlined, 'Why verification?', 'Both parties verify their identity to prevent unauthorised transactions. Neither can deny the agreement once both verify.', AppColors.cyan),
+          const SizedBox(height: 12),
+          _infoTile(Icons.timer_outlined, 'OTP expiry', 'Email OTPs expire in 2 minutes. Request a new one if it expires. PINs work instantly without expiry.', Colors.orange),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep6(String Function(String) t) {
+    final amount = _parsedPrincipalAmount();
+    final sym = _currencySymbol();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: 'Final Review', subtitle: 'Your details are locked. Review and submit the transaction.', icon: Icons.check_circle_rounded),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF173238)),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.lock, color: AppColors.cyan, size: 18),
+              const SizedBox(width: 10),
+              Expanded(child: Text(t('details_locked_label'), style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600))),
+              const Icon(Icons.verified, color: Colors.green, size: 18),
+              const SizedBox(width: 6),
+              const Text('Verified', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+            ]),
+          ),
+          _reviewCard([
+            _reviewRow(Icons.people, 'Your Role', _role == 'lender' ? t('lender_giving_money_label') : t('borrower_taking_money_label'), Colors.blue),
+            _reviewRow(Icons.currency_exchange, 'Currency', _currency, Colors.teal),
+            _reviewRow(Icons.payments_outlined, 'Amount', amount != null ? '$sym${amount.toStringAsFixed(2)}' : '—', Colors.green),
+            _reviewRow(Icons.calendar_today, 'Date', _selectedDate != null ? DateFormat('MMM d, yyyy').format(_selectedDate!) : '—', Colors.orange),
+            _reviewRow(Icons.access_time, 'Time', _selectedTime != null ? _selectedTime!.format(context) : '—', Colors.purple),
+            _reviewRow(Icons.location_on, 'Place', _placeController.text.trim().isNotEmpty ? _placeController.text.trim() : '—', Colors.red),
+          ]),
+          const SizedBox(height: 14),
+          _reviewCard([
+            _reviewRow(Icons.percent_rounded, 'Interest', _interestType == 'none' ? 'None' : (_interestType == 'simple' ? 'Simple' : 'Compound'), Colors.orange),
+            if (_interestType != 'none')
+              _reviewRow(Icons.numbers_rounded, 'Rate', '${_interestRateController.text.trim()}%', Colors.red),
+            _reviewRow(Icons.event_rounded, 'Return Date', _expectedReturnDate != null ? DateFormat('MMM d, yyyy').format(_expectedReturnDate!) : '—', Colors.green),
+            _reviewRow(Icons.attach_file_rounded, 'Proofs', '${_pickedFiles.length} file(s)', Colors.blue),
+            _reviewRow(Icons.mail_outlined, 'Counterparty', _counterpartyEmailController.text.trim().isNotEmpty ? _counterpartyEmailController.text.trim() : '—', Colors.purple),
+          ]),
+          if (amount != null) ...[
+            const SizedBox(height: 14),
+            _buildTransactionPreviewCard(),
+            if (_expectedReturnDate != null) ...[
+              const SizedBox(height: 12),
+              _buildRepaymentPreviewCard(),
+            ],
+          ],
+          if (_transactionId != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.withValues(alpha: 0.3))),
+              child: Row(children: [
+                const Icon(Icons.task_alt, color: Colors.green, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text('${t('transaction_id_label')}: $_transactionId', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
+              ]),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Text(t('review_submit_from_sticky_bar_message'), style: TextStyle(color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStylishField({required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(2),
@@ -3065,7 +3846,7 @@ class _TransactionPageState extends State<TransactionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      bottomNavigationBar: _buildStickySummaryBar(),
+      bottomNavigationBar: _showStepList ? null : _buildWizardBottomBar(),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(context.sh(156)),
         child: AppBar(
@@ -3079,7 +3860,9 @@ class _TransactionPageState extends State<TransactionPage> {
                 icon: Icon(Icons.arrow_back,
                     color: AppThemeColors.primaryText(context)),
                 onPressed: () {
-                  if (Navigator.of(context).canPop()) {
+                  if (!_showStepList) {
+                    setState(() { _showStepList = true; _stepError = null; });
+                  } else if (Navigator.of(context).canPop()) {
                     Navigator.of(context).pop();
                   } else {
                     Navigator.pushReplacementNamed(context, '/user/dashboard');
@@ -3090,8 +3873,9 @@ class _TransactionPageState extends State<TransactionPage> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Text(
-                    AppLocalizations.of(context)
-                        .t('create_secure_transaction_title'),
+                    _showStepList
+                        ? AppLocalizations.of(context).t('create_secure_transaction_title')
+                        : _stepTitles[_currentStep],
                     maxLines: 1,
                     softWrap: false,
                     style: TextStyle(
@@ -3108,7 +3892,7 @@ class _TransactionPageState extends State<TransactionPage> {
             clipper: const TopWaveClipper(),
             child: Container(
               height: context.sh(156),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   begin: Alignment.topLeft,
@@ -3119,677 +3903,16 @@ class _TransactionPageState extends State<TransactionPage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-        child: Builder(builder: (context) {
-          final t = AppLocalizations.of(context).t;
-          return Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Consumer<SessionProvider>(
-                  builder: (context, session, child) {
-                    if (session.isSubscribed) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(t('unlimited_transactions_message'),
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.cyan)),
-                      );
-                    }
-                    final remaining = session.freeUserTransactionsRemaining;
-                    if (remaining == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                          t('free_transactions_remaining_message')
-                              .replaceFirst('{count}', '$remaining'),
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppThemeColors.secondaryText(context))),
-                    );
-                  },
-                ),
-                if (!Provider.of<SessionProvider>(context, listen: false)
-                        .isSubscribed &&
-                    _dailyUserTxRemaining != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      AppLocalizations.of(context)
-                          .t('daily_limit_colon_label')
-                          .replaceFirst('{count}', '$_dailyUserTxRemaining'),
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppThemeColors.secondaryText(context)),
-                    ),
-                  ),
-                if (_bothUsersVerified)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.tinted(context,
-                            light: const Color(0xFFE0F7FA),
-                            dark: const Color(0xFF173238)),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.cyan.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.lock,
-                              color: AppColors.cyan, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            AppLocalizations.of(context)
-                                .t('details_locked_label'),
-                            style: const TextStyle(
-                              color: AppColors.cyan,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                _buildProgressStepper(),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _buildDraftActionCard(
-                      title: t('save_draft'),
-                      subtitle: t('pause_now_continue_later_label'),
-                      icon: Icons.save_outlined,
-                      accentColor: AppColors.cyan,
-                      onTap: () {
-                        _saveDraftWithFeedback();
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    _buildDraftActionCard(
-                      title: t('discard_draft_title'),
-                      subtitle: t('remove_saved_version_label'),
-                      icon: Icons.delete_outline,
-                      accentColor: const Color(0xFFFF6B6B),
-                      onTap: () {
-                        _discardDraftWithConfirmation();
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildDraftStatusCard(),
-                const SizedBox(height: 18),
-                _buildSectionHeader(
-                  title: t('basic_details_title'),
-                  subtitle: t('basic_details_subtitle_message'),
-                  icon: Icons.edit_note_rounded,
-                ),
-                _buildStylishField(
-                  child: DropdownButtonFormField<String>(
-                    value: _role,
-                    items: [
-                      DropdownMenuItem(
-                        value: 'lender',
-                        child: Text(t('lender_giving_money_label')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'borrower',
-                        child: Text(t('borrower_taking_money_label')),
-                      ),
-                    ],
-                    onChanged: _bothUsersVerified
-                        ? null
-                        : (val) => setState(() {
-                              _role = val ?? 'lender';
-                              _saveDraft();
-                            }),
-                    decoration: InputDecoration(
-                      labelText: t('your_role_label'),
-                      prefixIcon: Icon(Icons.people, color: AppColors.cyan),
-                      border: InputBorder.none,
-                      helperText:
-                          _bothUsersVerified ? t('details_locked_label') : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildStylishField(
-                  child: DropdownButtonFormField<String>(
-                    value: _currency,
-                    items: _currencies
-                        .map((c) => DropdownMenuItem(
-                              value: c['code'],
-                              child: Text('${c['symbol']} ${c['code']}'),
-                            ))
-                        .toList(),
-                    onChanged: _bothUsersVerified
-                        ? null
-                        : (val) => setState(() {
-                              _currency = val ?? 'INR';
-                              _saveDraft();
-                            }),
-                    decoration: InputDecoration(
-                      labelText: t('currency_label'),
-                      prefixIcon:
-                          Icon(Icons.currency_exchange, color: AppColors.cyan),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildStylishField(
-                  child: TextFormField(
-                    controller: _amountController,
-                    enabled: !_bothUsersVerified,
-                    keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                      labelText: t('amount_label'),
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Text(
-                          _currencySymbol(),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.cyan,
-                          ),
-                        ),
-                      ),
-                      border: InputBorder.none,
-                    ),
-                    validator: (val) => val == null || val.isEmpty
-                        ? t('amount_required_label')
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildStylishField(
-                  child: _buildDatePickerField(),
-                ),
-                const SizedBox(height: 16),
-                _buildStylishField(
-                  child: _buildTimePickerField(),
-                ),
-                const SizedBox(height: 16),
-                _buildStylishField(
-                  child: TextFormField(
-                    controller: _placeController,
-                    enabled: !_bothUsersVerified,
-                    decoration: InputDecoration(
-                      labelText: t('place_label'),
-                      prefixIcon:
-                          Icon(Icons.location_on, color: AppColors.cyan),
-                      border: InputBorder.none,
-                      helperText: _bothUsersVerified
-                          ? t('transaction_details_locked_after_verification_label')
-                          : null,
-                    ),
-                    validator: (val) => val == null || val.isEmpty
-                        ? t('place_required_label')
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildSectionHeader(
-                  title: t('proof_files_label'),
-                  subtitle: t('proof_files_subtitle_message'),
-                  icon: Icons.attach_file_rounded,
-                ),
-                const SizedBox(height: 12),
-                _buildFilePicker(),
-                const SizedBox(height: 12),
-                _buildSectionHeader(
-                  title: t('interest_label'),
-                  subtitle: t('interest_subtitle_message'),
-                  icon: Icons.percent_rounded,
-                ),
-                _buildStylishField(
-                  child: DropdownButtonFormField<String>(
-                    value: _interestType,
-                    items: [
-                      DropdownMenuItem(
-                          value: 'none',
-                          child: Text(t('no_interest_default_label'))),
-                      DropdownMenuItem(
-                          value: 'simple',
-                          child: Text(t('simple_interest_label'))),
-                      DropdownMenuItem(
-                          value: 'compound',
-                          child: Text(t('compound_interest_label'))),
-                    ],
-                    onChanged: _bothUsersVerified
-                        ? null
-                        : (val) {
-                            setState(() {
-                              _interestType = val ?? 'none';
-                              if (_interestType == 'none') {
-                                _interestRateController.clear();
-                              }
-                              _saveDraft();
-                            });
-                          },
-                    decoration: InputDecoration(
-                        labelText: t('interest_type_optional_label'),
-                        border: InputBorder.none,
-                        helperText: _bothUsersVerified
-                            ? t('transaction_details_locked_after_verification_label')
-                            : t('leave_as_no_interest_message')),
-                  ),
-                ),
-                if (_interestType != 'none') ...[
-                  const SizedBox(height: 12),
-                  _buildInterestGuidanceCard(),
-                  const SizedBox(height: 12),
-                  _buildStylishField(
-                    child: TextFormField(
-                      controller: _interestRateController,
-                      enabled: !_bothUsersVerified,
-                      keyboardType:
-                          TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        labelText: t('interest_rate_percent_label'),
-                        border: InputBorder.none,
-                        helperText: _bothUsersVerified
-                            ? t('transaction_details_locked_after_verification_label')
-                            : null,
-                      ),
-                      validator: (val) {
-                        // Only validate if interest type is selected
-                        if (_interestType == 'none') return null;
-
-                        if (val == null || val.isEmpty)
-                          return t('interest_rate_required_message');
-                        if (double.tryParse(val) == null)
-                          return t('enter_valid_number_message');
-                        if (double.tryParse(val)! <= 0)
-                          return t(
-                              'interest_rate_must_be_greater_than_zero_message');
-                        if (double.tryParse(val)! > 100)
-                          return t('interest_rate_cannot_exceed_100_message');
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-                if (_interestType == 'compound') ...[
-                  const SizedBox(height: 12),
-                  _buildStylishField(
-                    child: DropdownButtonFormField<int>(
-                      value: _compoundingFrequency,
-                      items: [
-                        DropdownMenuItem(
-                            value: 1, child: Text(t('annually_label'))),
-                        DropdownMenuItem(
-                            value: 2, child: Text(t('semi_annually_label'))),
-                        DropdownMenuItem(
-                            value: 4, child: Text(t('quarterly_label'))),
-                        DropdownMenuItem(
-                            value: 12, child: Text(t('monthly_label'))),
-                      ],
-                      onChanged: _bothUsersVerified
-                          ? null
-                          : (val) => setState(() {
-                                _compoundingFrequency = val ?? 1;
-                                _saveDraft();
-                              }),
-                      decoration: InputDecoration(
-                          labelText: t('compounding_frequency_label'),
-                          border: InputBorder.none,
-                          helperText: _bothUsersVerified
-                              ? t('transaction_details_locked_after_verification_label')
-                              : t('how_often_interest_compounded_label')),
-                      validator: (val) {
-                        // Only validate if compound interest is selected
-                        if (_interestType != 'compound') return null;
-
-                        if (val == null || val <= 0)
-                          return t('select_frequency_label');
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _buildStylishField(
-                  child: InkWell(
-                    onTap: _bothUsersVerified
-                        ? null
-                        : () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate:
-                                  _expectedReturnDate ?? DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme:
-                                        Theme.of(context).colorScheme.copyWith(
-                                              primary: AppColors.cyan,
-                                              onPrimary: Colors.white,
-                                            ),
-                                    textButtonTheme: TextButtonThemeData(
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppColors.cyan,
-                                      ),
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              setState(() => _expectedReturnDate = picked);
-                              _saveDraft();
-                            }
-                          },
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: _interestType == 'none'
-                            ? t('expected_return_date_optional_label')
-                            : t('expected_return_date_required_star_label'),
-                        border: InputBorder.none,
-                        helperText: _bothUsersVerified
-                            ? t('transaction_details_locked_after_verification_label')
-                            : _interestType == 'none'
-                                ? t('can_set_return_date_without_interest_message')
-                                : t('required_when_interest_applied_label'),
-                        prefixIcon: Icon(
-                          Icons.calendar_today,
-                          color: _bothUsersVerified
-                              ? AppThemeColors.mutedText(context)
-                              : (_interestType == 'none'
-                                  ? AppColors.cyan
-                                  : Colors.red.shade300),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(_expectedReturnDate == null
-                              ? t('select_date_label')
-                              : DateFormat('yyyy-MM-dd')
-                                  .format(_expectedReturnDate!)),
-                          const Icon(Icons.calendar_today, color: Colors.teal),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (_amountController.text.trim().isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _buildTransactionPreviewCard(),
-                  const SizedBox(height: 12),
-                  _buildRepaymentPreviewCard(),
-                  const SizedBox(height: 12),
-                  _buildRepaymentTimelineCard(),
-                ],
-                const SizedBox(height: 12),
-                _buildSectionHeader(
-                  title: t('verification_title'),
-                  subtitle: t('verification_subtitle_message'),
-                  icon: Icons.verified_user_rounded,
-                ),
-                const SizedBox(height: 12),
-                _buildStylishField(
-                  child: TextFormField(
-                    controller: _descriptionController,
-                    enabled: !_bothUsersVerified,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: t('description_optional_label'),
-                      border: InputBorder.none,
-                      hintText: _bothUsersVerified
-                          ? t('transaction_details_locked_after_verification_label')
-                          : t('add_note_or_description_hint'),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildOtpSection(
-                  label: t('counterparty_email_label'),
-                  emailController: _counterpartyEmailController,
-                  verified: _counterpartyVerified,
-                  otpError: _counterpartyOtpError,
-                  otpSeconds: _counterpartyOtpSeconds,
-                  onSendOtp: () async {
-                    final email = _counterpartyEmailController.text;
-                    if (_isBlockedEmail(email)) {
-                      showBlockedUserDialog(context);
-                      return;
-                    }
-                    if (email.trim() == _userEmailController.text.trim()) {
-                      setState(() => _counterpartyEmailError =
-                          t('emails_cannot_be_same_message'));
-                      return;
-                    }
-                    if (!await _checkEmailExists(email)) {
-                      setState(() => _counterpartyEmailError =
-                          t('email_not_registered_label'));
-                      return;
-                    }
-                    setState(() => _counterpartyEmailError = null);
-                    await _sendOtp(email, true);
-                  },
-                  onOtpChanged: (val) => _counterpartyOtp = val,
-                  onVerifyOtp: () async {
-                    if ((_counterpartyOtp ?? '').length != 6) {
-                      setState(() =>
-                          _counterpartyOtpError = t('enter_6_digit_otp_label'));
-                      return;
-                    }
-                    await _verifyOtp(_counterpartyEmailController.text,
-                        _counterpartyOtp!, true);
-                  },
-                  enabled: !_counterpartyVerified,
-                  emailError: _counterpartyEmailError,
-                  onPickFriend:
-                      _counterpartyVerified ? null : _pickFriendForCounterparty,
-                  friendSuggestions: _friendSuggestions,
-                  onSelectFriend: (email) {
-                    setState(() {
-                      _counterpartyEmailController.text = email;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                // User self-verification — always shows PIN/OTP tabs
-                if (!_userVerified) ...[
-                  Row(children: [
-                    _creationPinTab(
-                        t('use_pin_label'), Icons.dialpad_rounded, true),
-                    const SizedBox(width: 8),
-                    _creationPinTab(
-                        t('use_email_otp_label'), Icons.email_outlined, false),
-                  ]),
-                  const SizedBox(height: 12),
-                ],
-                if (_userPinMode && !_userVerified) ...[
-                  if (!_hasPinSet) ...[
-                    // PIN not configured — redirect prompt
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.orange.withValues(alpha: 0.3)),
-                      ),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(children: [
-                              Icon(Icons.info_outline_rounded,
-                                  color: Colors.orange, size: 16),
-                              SizedBox(width: 8),
-                              Expanded(
-                                  child: Text(
-                                      'You haven\'t set up a wallet PIN yet.',
-                                      style: TextStyle(
-                                          color: Colors.orange,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500))),
-                            ]),
-                            const SizedBox(height: 10),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.cyan,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10))),
-                              icon: const Icon(Icons.dialpad_rounded,
-                                  color: Colors.white, size: 15),
-                              label: const Text('Set Up PIN',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold)),
-                              onPressed: () async {
-                                await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const SetWalletPinPage()));
-                                if (mounted) _loadPinStatus();
-                              },
-                            ),
-                          ]),
-                    ),
-                  ] else ...[
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.grey.withValues(alpha: 0.2)),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.grey.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1))
-                        ],
-                      ),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              const Icon(Icons.dialpad_rounded,
-                                  color: AppColors.cyan, size: 18),
-                              const SizedBox(width: 8),
-                              Text(t('enter_wallet_pin_label'),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
-                            ]),
-                            const SizedBox(height: 12),
-                            OtpInput(
-                                onChanged: (code) =>
-                                    setState(() => _userPinCode = code),
-                                enabled: !_verifyingUserPin,
-                                autoFocus: false,
-                                obscureText: true,
-                                showVisibilityToggle: true),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed:
-                                  _verifyingUserPin ? null : _verifyUserPin,
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green),
-                              child: _verifyingUserPin
-                                  ? const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                          SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white)),
-                                          SizedBox(width: 8),
-                                          Text('Verifying…'),
-                                        ])
-                                  : const Text('Verify PIN'),
-                            ),
-                          ]),
-                    ),
-                  ],
-                ] else ...[
-                  _buildOtpSection(
-                    label: t('your_email_label'),
-                    emailController: _userEmailController,
-                    verified: _userVerified,
-                    otpError: _userOtpError,
-                    otpSeconds: _userOtpSeconds,
-                    onSendOtp: () async {
-                      final email = _userEmailController.text;
-                      if (!await _checkEmailExists(email)) {
-                        setState(() =>
-                            _userEmailError = t('email_not_registered_label'));
-                        return;
-                      }
-                      setState(() => _userEmailError = null);
-                      await _sendOtp(email, false);
-                    },
-                    onOtpChanged: (val) => _userOtp = val,
-                    onVerifyOtp: () async {
-                      if ((_userOtp ?? '').length != 6) {
-                        setState(
-                            () => _userOtpError = t('enter_6_digit_otp_label'));
-                        return;
-                      }
-                      await _verifyOtp(
-                          _userEmailController.text, _userOtp!, false);
-                    },
-                    enabled: !_userVerified,
-                    emailError: _userEmailError,
-                    readOnlyEmail: true,
-                  ),
-                ],
-                if (_sameEmailError != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_sameEmailError!,
-                      style: const TextStyle(color: Colors.red)),
-                ],
-                const SizedBox(height: 20),
-                Text(
-                  t('review_submit_from_sticky_bar_message'),
-                  style: TextStyle(
-                    color: AppThemeColors.secondaryText(context),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (_transactionId != null) ...[
-                  const SizedBox(height: 20),
-                  Center(
-                      child: Text(
-                          '${t('transaction_id_label')}: $_transactionId',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal))),
-                ],
-              ],
-            ),
-          );
-        }),
-      ),
+      body: Builder(builder: (ctx) {
+        final t = AppLocalizations.of(ctx).t;
+        if (_showStepList) {
+          return Form(key: _formKey, child: _buildStepList());
+        }
+        return Form(
+          key: _formKey,
+          child: _buildStepContent(t),
+        );
+      }),
     );
   }
 }

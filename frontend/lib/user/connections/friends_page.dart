@@ -604,6 +604,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final mutualCount = _mutualCounts[friendId] ?? 0;
     final displayName = name.isNotEmpty ? name : username;
     final color = _avatarColor(displayName);
+    final avgRating = friend['avgRating'] as num?;
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final canSeeRatings = session.isSubscribed && !session.subscriptionAdminDeactivated;
 
     return _tricolorBorder(
       child: Container(
@@ -682,13 +685,17 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
             ),
 
             // Chips row — horizontal scroll, single line
-            if (mutualCount > 0 || interactions > 0 || isBlocked || isBlockedByThem)
+            if (mutualCount > 0 || interactions > 0 || isBlocked || isBlockedByThem || (canSeeRatings && avgRating != null && avgRating > 0))
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
+                      if (canSeeRatings && avgRating != null && avgRating > 0) ...[
+                        _ratingChip(avgRating),
+                        const SizedBox(width: 6),
+                      ],
                       if (mutualCount > 0) ...[
                         GestureDetector(
                           onTap: () => _showMutualFriendsSheet(friendId, displayName),
@@ -745,6 +752,22 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textColor)),
+    );
+  }
+
+  Widget _ratingChip(num avg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.star_rounded, size: 12, color: Colors.amber),
+        const SizedBox(width: 3),
+        Text(avg.toStringAsFixed(1), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
+      ]),
     );
   }
 
@@ -851,6 +874,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final email = (person['email'] ?? '').toString();
     final username = (person['username'] ?? '').toString();
     final personId = (person['_id'] ?? '').toString();
+    final avgRating = person['avgRating'] as num?;
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final canSeeRatings = session.isSubscribed && !session.subscriptionAdminDeactivated;
 
     return _tricolorBorder(
       child: Container(
@@ -866,6 +892,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 children: [
                   Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(email, style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (canSeeRatings && avgRating != null && avgRating > 0) ...[
+                    const SizedBox(height: 4),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.star_rounded, size: 13, color: Colors.amber),
+                      const SizedBox(width: 2),
+                      Text(avgRating.toStringAsFixed(1), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
+                    ]),
+                  ],
                 ],
               ),
             ),
@@ -1238,6 +1272,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     final email = (to['email'] ?? '').toString();
                                     final username = (to['username'] ?? '').toString();
                                     final toId = (to['_id'] ?? '').toString();
+                                    final toRating = to['avgRating'] as num?;
+                                    final outSession = Provider.of<SessionProvider>(context, listen: false);
+                                    final outCanSeeRatings = outSession.isSubscribed && !outSession.subscriptionAdminDeactivated;
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 8),
                                       child: Container(
@@ -1257,6 +1294,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                                               Text(email, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
                                                 maxLines: 1, overflow: TextOverflow.ellipsis),
+                                              if (outCanSeeRatings && toRating != null && toRating > 0) ...[
+                                                const SizedBox(height: 3),
+                                                Row(mainAxisSize: MainAxisSize.min, children: [
+                                                  const Icon(Icons.star_rounded, size: 12, color: Colors.amber),
+                                                  const SizedBox(width: 2),
+                                                  Text(toRating.toStringAsFixed(1), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                                ]),
+                                              ],
                                             ],
                                           )),
                                           const SizedBox(width: 8),

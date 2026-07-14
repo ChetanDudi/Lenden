@@ -62,7 +62,7 @@ exports.getFriends = async (req, res) => {
     const { search } = req.query;
     const user = await User.findById(req.user._id)
       .populate('friends', 'name username email gender memberSince avgRating blockedUsers')
-      .populate('blockedUsers', 'name username email gender')
+      .populate('blockedUsers', 'name username email gender avgRating')
       .select('friends blockedUsers');
 
     const friendDocs = user?.friends || [];
@@ -129,11 +129,11 @@ exports.getFriendRequests = async (req, res) => {
     const incoming = await FriendRequest.find({
       to: req.user._id,
       status: 'pending',
-    }).populate('from', 'name username email');
+    }).populate('from', 'name username email avgRating');
     const outgoing = await FriendRequest.find({
       from: req.user._id,
       status: 'pending',
-    }).populate('to', 'name username email');
+    }).populate('to', 'name username email avgRating');
 
     res.status(200).json({ incoming, outgoing });
   } catch (error) {

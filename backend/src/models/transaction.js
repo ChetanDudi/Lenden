@@ -103,6 +103,10 @@ const transactionSchema = new mongoose.Schema({
     description: {
       type: String,
       default: ''
+    },
+    paymentMethod: {
+      type: String,
+      default: ''
     }
   }],
   isPartiallyPaid: {

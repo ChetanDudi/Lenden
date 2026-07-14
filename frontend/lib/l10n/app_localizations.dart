@@ -3969,6 +3969,21 @@ class AppLocalizations {
       'percent_50_played_label': '50% played',
       'percent_75_played_label': '75% played',
       'end_of_video_label': 'End of video',
+
+      // Create secure transaction wizard step list
+      'tap_to_fill_label': 'Tap to fill',
+      'step_completed_label': 'Completed',
+      'step_locked_label': 'Locked',
+      'all_steps_label': 'All Steps',
+      'save_and_next_label': 'Save & Next',
+      'save_and_steps_label': 'Save & Steps',
+      'step_basic_details_subtitle': 'Role, currency, amount, date, time, place',
+      'step_proofs_subtitle': 'Attach receipts and agreements',
+      'step_interest_subtitle': 'Set interest type and rate',
+      'step_return_date_subtitle': 'Expected repayment deadline',
+      'step_review_subtitle': 'Confirm all details before verifying',
+      'step_verification_subtitle': 'Verify both parties via OTP or PIN',
+      'step_final_review_subtitle': 'Locked summary — ready to submit',
     },
     'hi': {
       'settings': 'सेटिंग्स',
@@ -7939,6 +7954,21 @@ class AppLocalizations {
       'percent_50_played_label': '50% चला',
       'percent_75_played_label': '75% चला',
       'end_of_video_label': 'वीडियो का अंत',
+
+      // Create secure transaction wizard step list
+      'tap_to_fill_label': 'टैप करके भरें',
+      'step_completed_label': 'पूर्ण',
+      'step_locked_label': 'लॉक्ड',
+      'all_steps_label': 'सभी चरण',
+      'save_and_next_label': 'सहेजें और आगे',
+      'save_and_steps_label': 'सहेजें और चरण',
+      'step_basic_details_subtitle': 'भूमिका, मुद्रा, राशि, तारीख, समय, स्थान',
+      'step_proofs_subtitle': 'रसीदें और समझौते संलग्न करें',
+      'step_interest_subtitle': 'ब्याज प्रकार और दर निर्धारित करें',
+      'step_return_date_subtitle': 'अनुमानित वापसी की अंतिम तारीख',
+      'step_review_subtitle': 'सत्यापन से पहले सभी विवरण जांचें',
+      'step_verification_subtitle': 'OTP या PIN से दोनों पक्षों को सत्यापित करें',
+      'step_final_review_subtitle': 'लॉक्ड सारांश — सबमिट के लिए तैयार',
     },
   };
 

@@ -321,7 +321,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   Widget _buildCurrencySelector() {
     final currencies = _displayCurrencyData?.currencies ??
         const <Map<String, String>>[
-          {'code': 'INR', 'symbol': 'â‚¹', 'label': ''},
+          {'code': 'INR', 'symbol': '₹', 'label': ''},
         ];
     return Container(
       padding: const EdgeInsets.all(2),
@@ -485,10 +485,13 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     // Determine the counterparty email based on current user's role
     final counterpartyEmail =
         (email == userEmail) ? t['counterpartyEmail'] : userEmail;
+    // Use creator identity — not isLending — to map cleared fields correctly.
+    // userCleared = creator's status, counterpartyCleared = other party's status.
+    final isCreator = (email != null && email == userEmail);
     bool youCleared =
-        (isLending ? t['userCleared'] : t['counterpartyCleared']) == true;
+        (isCreator ? t['userCleared'] : t['counterpartyCleared']) == true;
     bool otherCleared =
-        (isLending ? t['counterpartyCleared'] : t['userCleared']) == true;
+        (isCreator ? t['counterpartyCleared'] : t['userCleared']) == true;
     bool fullyCleared = youCleared && otherCleared;
     final hasPartialPayment = _hasPartialPayment(Map<String, dynamic>.from(t));
     final expectedReturnDate =
@@ -766,6 +769,9 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       Builder(builder: (context) {
                         final double dueAmt = _calculateRemainingWithInterest(t);
                         final bool hasInterest = t['interestType'] != null && t['interestRate'] != null;
+                        final String txSymbol = _displayCurrencyData?.symbolFor(
+                              (t['currency'] ?? 'INR').toString(),
+                            ) ?? currencySymbolFor(t['currency'] as String?);
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -775,7 +781,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                     color: hasInterest ? Colors.deepOrange : Colors.teal),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${tr('amount_due_label')}: ₹${dueAmt.toStringAsFixed(2)}',
+                                  '${tr('amount_due_label')}: $txSymbol${dueAmt.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -797,7 +803,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Colors.white),
                                 label: Text(
-                                  '${tr('pay_now_label')}  •  ₹${dueAmt.toStringAsFixed(2)}',
+                                  '${tr('pay_now_label')}  •  $txSymbol${dueAmt.toStringAsFixed(2)}',
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                 ),
                                 style: ElevatedButton.styleFrom(

@@ -629,6 +629,7 @@ class _CounterpartyGridCard extends StatelessWidget {
     final name = (counterparty['name'] ?? 'Unknown').toString();
     final isPrivate = counterparty['profileIsPrivate'] == true;
     final isDeactivated = counterparty['deactivatedAccount'] == true;
+    final avgRating = counterparty['avgRating'] as num?;
 
     return GestureDetector(
       onTap: onTap,
@@ -710,6 +711,14 @@ class _CounterpartyGridCard extends StatelessWidget {
                         color: AppThemeColors.primaryText(context),
                       ),
                     ),
+                    if (avgRating != null && avgRating > 0) ...[
+                      const SizedBox(height: 4),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.star_rounded, size: 13, color: Colors.amber),
+                        const SizedBox(width: 3),
+                        Text(avgRating.toStringAsFixed(1), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber)),
+                      ]),
+                    ],
                     const SizedBox(height: 8),
                     if (isDeactivated || isPrivate)
                       Container(
