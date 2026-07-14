@@ -180,6 +180,27 @@ class _SecureTransactionDetailPageState
     return remaining.toStringAsFixed(2);
   }
 
+  Future<void> _refreshTransaction() async {
+    final tid = _t['transactionId'];
+    if (tid == null) return;
+    try {
+      final res = await ApiClient.get('/api/transactions/${Uri.encodeComponent(tid.toString())}');
+      if (res.statusCode == 200 && mounted) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        final fresh = (body['transaction'] ?? body) as Map<String, dynamic>;
+        setState(() {
+          _t = Map<String, dynamic>.from(fresh);
+          if (_t['favourite'] is List) {
+            _t['favourite'] = List<dynamic>.from(_t['favourite']);
+          } else {
+            _t['favourite'] = <dynamic>[];
+          }
+          _needsRefresh = true;
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<Map<String, dynamic>?> _fetchCounterpartyProfile(String email) async {
     if (email.isEmpty) return null;
     try {
@@ -214,8 +235,7 @@ class _SecureTransactionDetailPageState
       ),
     );
     if (result == true && mounted) {
-      _needsRefresh = true;
-      Navigator.of(context).pop(true);
+      await _refreshTransaction();
     }
   }
 
@@ -542,8 +562,7 @@ class _SecureTransactionDetailPageState
       ),
     );
     if (result == true && mounted) {
-      _needsRefresh = true;
-      Navigator.of(context).pop(true);
+      await _refreshTransaction();
     }
   }
 

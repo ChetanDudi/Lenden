@@ -862,7 +862,7 @@ class AppLocalizations {
       'account_info_updated_successfully':
           'Account information updated successfully!',
       'failed_update_account_info': 'Failed to update account information',
-      'set_a_pin_title': 'Set a 4-6 digit PIN',
+      'set_a_pin_title': 'Set a 6-digit PIN',
       'confirm_your_pin_title': 'Confirm your PIN',
       'pins_did_not_match': 'PINs did not match.',
       'app_lock_enabled_msg': 'App lock enabled.',
@@ -877,7 +877,7 @@ class AppLocalizations {
       'change_pin': 'Change PIN',
       'biometric_unlock_title': 'Biometric Unlock',
       'biometric_unlock_subtitle': 'Use fingerprint/face unlock as a shortcut',
-      'pin_hint_4_6_digit': '4-6 digit PIN',
+      'pin_hint_4_6_digit': '6-digit PIN',
       'notification_preferences_title': 'Notification Preferences',
       'customize_notifications_subtitle':
           'Customize how and when you receive notifications',
@@ -4875,7 +4875,7 @@ class AppLocalizations {
       'account_info_updated_successfully':
           'खाता जानकारी सफलतापूर्वक अपडेट की गई!',
       'failed_update_account_info': 'खाता जानकारी अपडेट करने में विफल',
-      'set_a_pin_title': '4-6 अंकों का पिन सेट करें',
+      'set_a_pin_title': '6 अंकों का पिन सेट करें',
       'confirm_your_pin_title': 'अपने पिन की पुष्टि करें',
       'pins_did_not_match': 'पिन मेल नहीं खाए।',
       'app_lock_enabled_msg': 'ऐप लॉक सक्षम किया गया।',
@@ -4891,7 +4891,7 @@ class AppLocalizations {
       'biometric_unlock_title': 'बायोमेट्रिक अनलॉक',
       'biometric_unlock_subtitle':
           'शॉर्टकट के रूप में फिंगरप्रिंट/फेस अनलॉक का उपयोग करें',
-      'pin_hint_4_6_digit': '4-6 अंकों का पिन',
+      'pin_hint_4_6_digit': '6 अंकों का पिन',
       'notification_preferences_title': 'सूचना प्राथमिकताएं',
       'customize_notifications_subtitle':
           'अपनी सूचनाएं कैसे और कब प्राप्त करें, इसे अनुकूलित करें',

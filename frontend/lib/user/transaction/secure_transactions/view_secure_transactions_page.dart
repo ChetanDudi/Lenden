@@ -519,7 +519,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     // Tap card to open detail page
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => SecureTransactionDetailPage(
@@ -528,7 +528,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
             ),
           ),
         );
-        if (result == true) fetchTransactions();
+        if (mounted) fetchTransactions();
       },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 10, horizontal: 0),

@@ -226,7 +226,7 @@ class _AppInitializerState extends State<AppInitializer>
         final session = Provider.of<SessionProvider>(context, listen: false);
         if (session.token != null) {
           AppLockService.isEnabled().then((enabled) {
-            if (enabled && mounted) setState(() => _locked = true);
+            if (enabled && mounted && !_locked) setState(() => _locked = true);
           });
         }
       }
