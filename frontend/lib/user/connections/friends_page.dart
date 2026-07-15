@@ -35,6 +35,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   List<Map<String, dynamic>> _searchResults = [];
   List<Map<String, dynamic>> _suggestions = [];
   List<Map<String, dynamic>> _topRatedUsers = [];
+  List<Map<String, dynamic>> _birthdayFriends = [];
+  final Set<String> _wishedFriendIds = {};
+  bool _suggestionsLoading = true;
   final Set<String> _pendingOutgoingIds = {};
   final Set<String> _selectedForGroup = {};
   String _friendsQuery = '';
@@ -163,6 +166,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       _loadMutualCounts();
       _loadSuggestions();
       _loadTopRated();
+      _loadBirthdayFriends();
     } finally {
       setState(() => _loading = false);
     }
@@ -180,13 +184,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   }
 
   Future<void> _loadSuggestions() async {
+    setState(() => _suggestionsLoading = true);
     try {
       final res = await ApiClient.get('/api/friends/suggestions?limit=10');
       if (!mounted) return;
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final raw = List<Map<String, dynamic>>.from(data['suggestions'] ?? data['users'] ?? []);
-        // Exclude existing friends, blocked, and pending
         final friendIds = _friends.map((f) => f['_id']?.toString()).toSet();
         final outgoingIds = _outgoing.map((r) {
           final to = r['to'];
@@ -203,7 +207,157 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
           }).toList();
         });
       }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _suggestionsLoading = false);
+    }
+  }
+
+  Future<void> _loadBirthdayFriends() async {
+    try {
+      final res = await ApiClient.get('/api/friends/birthdays?days=7');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final list = List<Map<String, dynamic>>.from(data['birthdays'] ?? []);
+        final alreadyWished = list
+            .where((f) => f['hasWished'] == true)
+            .map((f) => f['_id']?.toString() ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        setState(() {
+          _birthdayFriends = list;
+          _wishedFriendIds.addAll(alreadyWished);
+        });
+      }
     } catch (_) {}
+  }
+
+  void _showBirthdayWishDialog(Map<String, dynamic> friend) {
+    final name = (friend['name'] ?? friend['username'] ?? 'your friend').toString();
+    final friendId = friend['_id']?.toString() ?? '';
+    final controller = TextEditingController(
+      text: 'Happy Birthday $name! Wishing you a wonderful day filled with joy and happiness!',
+    );
+    bool _sending = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFF8C00), Color(0xFFFF6B6B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(context),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Birthday cake icon
+                  Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.cake_rounded, size: 36, color: Colors.amber),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Wish $name",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Today is their birthday! Send a heartfelt wish.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.tinted(context,
+                          light: const Color(0xFFFFFBF0), dark: const Color(0xFF2A2416)),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    ),
+                    child: TextField(
+                      controller: controller,
+                      maxLines: 3,
+                      style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(12),
+                        hintText: 'Write your wish...',
+                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppThemeColors.divider(context)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(t('cancel'),
+                            style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _sending ? null : () async {
+                          setS(() => _sending = true);
+                          final res = await ApiClient.post(
+                            '/api/friends/$friendId/wish',
+                            body: {'message': controller.text.trim()},
+                          );
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          if (res.statusCode == 201) {
+                            if (mounted) setState(() => _wishedFriendIds.add(friendId));
+                            showSnack(context, 'Birthday wish sent!');
+                          } else {
+                            showSnack(context, 'Failed to send wish.', isError: true);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: _sending
+                            ? const SizedBox(width: 18, height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Send Wish', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadInteractionCounts() async {
@@ -685,6 +839,60 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
             ),
 
             // Chips row — horizontal scroll, single line
+            Builder(builder: (_) {
+                final bInfo = _birthdayFriends.where((b) => b['_id']?.toString() == friendId).firstOrNull;
+                if (bInfo != null) {
+                  final isToday = bInfo['daysUntil'] == 0;
+                  final daysUntil = bInfo['daysUntil'] as int? ?? 0;
+                  final hasWished = _wishedFriendIds.contains(friendId);
+                  // Already wished — show green badge, no tap
+                  if (isToday && hasWished) {
+                    return Container(
+                      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade400,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.check_circle_outline, size: 14, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text('You wished', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                      ]),
+                    );
+                  }
+                  return GestureDetector(
+                    onTap: isToday ? () => _showBirthdayWishDialog(bInfo) : null,
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isToday
+                              ? [const Color(0xFFFFE082), const Color(0xFFFFB300)]
+                              : [const Color(0xFFFFF9E6), const Color(0xFFFFF3CD)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.6)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.cake_rounded, size: 14, color: Colors.amber),
+                        const SizedBox(width: 6),
+                        Text(
+                          isToday ? 'Birthday today! Tap to wish' : 'Birthday in $daysUntil day${daysUntil == 1 ? '' : 's'}',
+                          style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600,
+                            color: isToday ? const Color(0xFF7B4F00) : const Color(0xFF997A00),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
             if (mutualCount > 0 || interactions > 0 || isBlocked || isBlockedByThem || (canSeeRatings && avgRating != null && avgRating > 0))
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
@@ -1253,6 +1461,107 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                       Flexible(child: Text(_searchError!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500))),
                                     ]),
                                   ),
+                                // ── Birthday banner ─────────────────────────
+                                if (_birthdayFriends.isNotEmpty) ...[
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 14),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFFF3CD), Color(0xFFFFE082)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                                          child: Row(children: [
+                                            const Icon(Icons.cake_rounded, color: Colors.amber, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Birthdays this week',
+                                              style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.bold,
+                                                color: Color(0xFF7B5800),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber,
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text('${_birthdayFriends.length}',
+                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                            ),
+                                          ]),
+                                        ),
+                                        ..._birthdayFriends.map((b) {
+                                          final bName = (b['name'] ?? b['username'] ?? 'Friend').toString();
+                                          final daysUntil = b['daysUntil'] as int? ?? 0;
+                                          final isToday = daysUntil == 0;
+                                          return Padding(
+                                            padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+                                            child: Row(children: [
+                                              _profileAvatar(
+                                                b['_id']?.toString() ?? '',
+                                                bName,
+                                                b['username']?.toString() ?? '',
+                                                radius: 18,
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                                  Text(bName,
+                                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF4A3500))),
+                                                  Text(
+                                                    isToday ? 'Birthday today!' : 'Birthday in $daysUntil day${daysUntil == 1 ? '' : 's'}',
+                                                    style: TextStyle(fontSize: 11,
+                                                      color: isToday ? Colors.deepOrange : const Color(0xFF7B5800),
+                                                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                                    ),
+                                                  ),
+                                                ]),
+                                              ),
+                                              if (isToday)
+                                                _wishedFriendIds.contains(b['_id']?.toString())
+                                                  ? Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.green.shade400,
+                                                        borderRadius: BorderRadius.circular(20),
+                                                      ),
+                                                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                                        Icon(Icons.check, size: 13, color: Colors.white),
+                                                        SizedBox(width: 4),
+                                                        Text('You wished', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                      ]),
+                                                    )
+                                                  : GestureDetector(
+                                                      onTap: () => _showBirthdayWishDialog(b),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.amber,
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                        child: const Text('Wish',
+                                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                      ),
+                                                    ),
+                                            ]),
+                                          );
+                                        }),
+                                        const SizedBox(height: 8),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                                 if (_searchResults.isNotEmpty) ...[
                                   _sectionHeader(t('search_results_label'), _searchResults.length, badgeColor: Colors.purple),
                                   const SizedBox(height: 10),
@@ -1631,7 +1940,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     Text(t('based_on_friends_transactions'),
                                       style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
                                     const SizedBox(height: 12),
-                                    if (_suggestions.isEmpty)
+                                    if (_suggestionsLoading)
+                                      const Center(
+                                        child: Padding(
+                                          padding: EdgeInsets.only(top: 64),
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      )
+                                    else if (_suggestions.isEmpty)
                                       Center(
                                         child: Padding(
                                           padding: const EdgeInsets.only(top: 48),

@@ -564,8 +564,10 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     required int index,
   }) {
     final category = _categoryForNotification(notification);
-    final accent = _accentForCategory(category);
-    final icon = _iconForCategory(category);
+    final isBirthday = _isBirthdayWish(notification);
+    final accent = _accentForCategory(category, isBirthday: isBirthday);
+    final icon = _iconForCategory(category, isBirthday: isBirthday);
+    final title = (notification['title'] ?? '').toString().trim();
     final message = _prettifyMessage((notification['message'] ?? '').toString());
 
     return InkWell(
@@ -577,7 +579,13 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppThemeColors.isDark(context) ? AppThemeColors.surfaceBg(context) : _getNoteColor(index),
+            color: isBirthday
+                ? (AppThemeColors.isDark(context)
+                    ? const Color(0xFF2A2000)
+                    : const Color(0xFFFFFDE7))
+                : (AppThemeColors.isDark(context)
+                    ? AppThemeColors.surfaceBg(context)
+                    : _getNoteColor(index)),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -600,9 +608,9 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                       children: [
                         Expanded(
                           child: Text(
-                            _labelForCategory(category),
+                            title.isNotEmpty ? title : _labelForCategory(category),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: title.isNotEmpty ? 14 : 12,
                               fontWeight: FontWeight.w700,
                               color: accent,
                               letterSpacing: 0.2,
@@ -624,8 +632,8 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                     Text(
                       message,
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                         height: 1.35,
                         color: AppThemeColors.primaryText(context),
                       ),
@@ -649,7 +657,13 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     );
   }
 
-  Color _accentForCategory(String category) {
+  bool _isBirthdayWish(dynamic notification) {
+    final title = (notification['title'] ?? '').toString().toLowerCase();
+    return title.startsWith('birthday wish');
+  }
+
+  Color _accentForCategory(String category, {bool isBirthday = false}) {
+    if (isBirthday) return Colors.amber;
     switch (category) {
       case 'friend':
         return Colors.orange;
@@ -664,7 +678,8 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     }
   }
 
-  IconData _iconForCategory(String category) {
+  IconData _iconForCategory(String category, {bool isBirthday = false}) {
+    if (isBirthday) return Icons.cake_rounded;
     switch (category) {
       case 'friend':
         return Icons.people_alt_outlined;

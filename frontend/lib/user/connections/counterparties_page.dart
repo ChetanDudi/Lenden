@@ -27,12 +27,15 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   String _searchQuery = '';
   String _sortBy = 'count';
   String? _filterGender;
+  Map<String, Map<String, dynamic>> _birthdayByEmail = {};
+  final Set<String> _wishedFriendIds = {};
 
   @override
   void initState() {
     super.initState();
     _fetchCounterparties();
     _fetchFriends();
+    _loadBirthdayFriends();
   }
 
   @override
@@ -150,6 +153,137 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     } catch (_) {
       // Ignore friend lookup failures and keep counterparties usable.
     }
+  }
+
+  Future<void> _loadBirthdayFriends() async {
+    try {
+      final res = await ApiClient.get('/api/friends/birthdays?days=7');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final list = List<Map<String, dynamic>>.from(data['birthdays'] ?? []);
+        final map = <String, Map<String, dynamic>>{};
+        final alreadyWished = <String>{};
+        for (final b in list) {
+          final email = (b['email'] ?? '').toString().toLowerCase().trim();
+          if (email.isNotEmpty) map[email] = b;
+          if (b['hasWished'] == true) {
+            final id = b['_id']?.toString() ?? '';
+            if (id.isNotEmpty) alreadyWished.add(id);
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _birthdayByEmail = map;
+            _wishedFriendIds.addAll(alreadyWished);
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _showBirthdayWishDialog(Map<String, dynamic> friend) {
+    final t = AppLocalizations.of(context).t;
+    final name = (friend['name'] ?? 'Friend').toString();
+    final controller = TextEditingController(
+      text: 'Happy Birthday $name! Wishing you a wonderful day filled with joy and happiness. Many happy returns!',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFB300), Color(0xFFFFF176), Color(0xFFFFB300)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppThemeColors.cardBg(ctx),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.cake_rounded, color: Colors.amber, size: 30),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Send Birthday Wish',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'to $name',
+                  style: const TextStyle(fontSize: 13, color: Colors.amber, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppThemeColors.surfaceBg(ctx),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    hintText: 'Write your wish...',
+                  ),
+                  style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(ctx)),
+                ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        side: const BorderSide(color: Colors.grey),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final message = controller.text.trim();
+                        Navigator.pop(ctx);
+                        try {
+                          await ApiClient.post('/api/friends/${friend['_id']}/wish', body: {'message': message});
+                          if (mounted) {
+                            setState(() => _wishedFriendIds.add(friend['_id']?.toString() ?? ''));
+                            ElegantNotification.success(
+                              title: Text(t('success')),
+                              description: Text('Birthday wish sent to $name!'),
+                            ).show(context);
+                          }
+                        } catch (_) {}
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Send Wish', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ]),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    ).then((_) => controller.dispose());
   }
 
   Future<Map<String, dynamic>?> _fetchCounterpartyProfile(String email) async {
@@ -575,31 +709,149 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                             ? 3
                                             : 2;
 
-                                return GridView.builder(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: crossAxisCount,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: width < 420 ? 26 : 18,
-                                    childAspectRatio: width < 420 ? 0.82 : 0.8,
-                                  ),
-                                  itemCount: filtered.length,
-                                  itemBuilder: (context, index) {
-                                    return _CounterpartyGridCard(
-                                      counterparty: filtered[index],
-                                      avatarProvider:
-                                          _buildAvatarProvider(filtered[index]),
-                                      accentColor: _getBoxColor(index),
-                                      onTap: () =>
-                                          _openCounterparty(filtered[index]),
-                                    );
-                                  },
+                                // Counterparties who also have birthdays soon
+                                final birthdayCounterparties = filtered.where((cp) {
+                                  final email = (cp['email'] ?? '').toString().toLowerCase().trim();
+                                  return _birthdayByEmail.containsKey(email);
+                                }).toList();
+                                final todayBirthdays = birthdayCounterparties
+                                    .where((cp) {
+                                      final email = (cp['email'] ?? '').toString().toLowerCase().trim();
+                                      return (_birthdayByEmail[email]?['daysUntil'] ?? 1) == 0;
+                                    })
+                                    .toList();
+
+                                return CustomScrollView(
+                                  slivers: [
+                                    if (birthdayCounterparties.isNotEmpty)
+                                      SliverToBoxAdapter(
+                                        child: Container(
+                                          margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [Color(0xFFFFF3CD), Color(0xFFFFE082)],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(14),
+                                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                              Row(children: [
+                                                const Icon(Icons.cake_rounded, size: 16, color: Colors.amber),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Birthdays this week',
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF7B4F00)),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                  decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)),
+                                                  child: Text('${birthdayCounterparties.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                ),
+                                              ]),
+                                              const SizedBox(height: 10),
+                                              ...birthdayCounterparties.map((cp) {
+                                                final email = (cp['email'] ?? '').toString().toLowerCase().trim();
+                                                final bInfo = _birthdayByEmail[email]!;
+                                                final isToday = (bInfo['daysUntil'] ?? 1) == 0;
+                                                final days = bInfo['daysUntil'] as int? ?? 0;
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(bottom: 6),
+                                                  child: Row(children: [
+                                                    CircleAvatar(
+                                                      radius: 14,
+                                                      backgroundImage: _buildAvatarProvider(cp),
+                                                      backgroundColor: Colors.amber.withValues(alpha: 0.3),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: Text(
+                                                        (cp['name'] ?? 'Unknown').toString(),
+                                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF7B4F00)),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    if (isToday)
+                                                      _wishedFriendIds.contains(bInfo['_id']?.toString())
+                                                        ? Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.green.shade400,
+                                                              borderRadius: BorderRadius.circular(8),
+                                                            ),
+                                                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                                              Icon(Icons.check, size: 12, color: Colors.white),
+                                                              SizedBox(width: 3),
+                                                              Text('You wished', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                            ]),
+                                                          )
+                                                        : TextButton(
+                                                            onPressed: () => _showBirthdayWishDialog(bInfo),
+                                                            style: TextButton.styleFrom(
+                                                              backgroundColor: Colors.amber,
+                                                              foregroundColor: Colors.white,
+                                                              minimumSize: const Size(60, 28),
+                                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                            ),
+                                                            child: const Text('Wish', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                                          )
+                                                    else
+                                                      Text(
+                                                        'in $days day${days == 1 ? '' : 's'}',
+                                                        style: const TextStyle(fontSize: 11, color: Color(0xFF997A00)),
+                                                      ),
+                                                  ]),
+                                                );
+                                              }),
+                                              if (todayBirthdays.isEmpty)
+                                                const Padding(
+                                                  padding: EdgeInsets.only(top: 2),
+                                                  child: Text('Tap their card to wish them!', style: TextStyle(fontSize: 11, color: Color(0xFF997A00))),
+                                                ),
+                                            ]),
+                                          ),
+                                        ),
+                                      ),
+                                    SliverPadding(
+                                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                                      sliver: SliverGrid(
+                                        delegate: SliverChildBuilderDelegate(
+                                          (context, index) {
+                                            final cp = filtered[index];
+                                            final email = (cp['email'] ?? '').toString().toLowerCase().trim();
+                                            final bInfo = _birthdayByEmail[email];
+                                            final hasWished = bInfo != null &&
+                                                _wishedFriendIds.contains(bInfo['_id']?.toString());
+                                            return _CounterpartyGridCard(
+                                              counterparty: cp,
+                                              avatarProvider: _buildAvatarProvider(cp),
+                                              accentColor: _getBoxColor(index),
+                                              birthdayInfo: bInfo,
+                                              hasWished: hasWished,
+                                              onTap: () => _openCounterparty(cp),
+                                            );
+                                          },
+                                          childCount: filtered.length,
+                                        ),
+                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: crossAxisCount,
+                                          crossAxisSpacing: 14,
+                                          mainAxisSpacing: width < 420 ? 26 : 18,
+                                          childAspectRatio: width < 420 ? 0.82 : 0.8,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 );
                               },
                             ),
-                  ), // closes RefreshIndicator
+                  ),
                 ),
               ],
             ),
@@ -615,12 +867,16 @@ class _CounterpartyGridCard extends StatelessWidget {
   final ImageProvider avatarProvider;
   final Color accentColor;
   final VoidCallback onTap;
+  final Map<String, dynamic>? birthdayInfo;
+  final bool hasWished;
 
   const _CounterpartyGridCard({
     required this.counterparty,
     required this.avatarProvider,
     required this.accentColor,
     required this.onTap,
+    this.birthdayInfo,
+    this.hasWished = false,
   });
 
   @override
@@ -692,6 +948,34 @@ class _CounterpartyGridCard extends StatelessWidget {
                           '${counterparty['count']}×',
                           style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
+                      ),
+                    ),
+                  if (birthdayInfo != null)
+                    Positioned(
+                      top: 8, left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: hasWished
+                              ? Colors.green.shade400
+                              : (birthdayInfo!['daysUntil'] == 0
+                                  ? Colors.amber
+                                  : Colors.amber.withValues(alpha: 0.80)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(
+                            hasWished ? Icons.check : Icons.cake_rounded,
+                            size: 11, color: Colors.white,
+                          ),
+                          if (hasWished || birthdayInfo!['daysUntil'] == 0) ...[
+                            const SizedBox(width: 3),
+                            Text(
+                              hasWished ? 'Wished' : 'Today!',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ]),
                       ),
                     ),
                 ],

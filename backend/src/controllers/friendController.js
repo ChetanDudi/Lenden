@@ -670,3 +670,115 @@ exports.getFriendSuggestions = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+exports.getBirthdayFriends = async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days, 10) || 7, 30);
+    const user = await User.findById(req.user._id)
+      .populate('friends', 'name username email birthday')
+      .select('friends');
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const upcoming = [];
+    for (const friend of user.friends || []) {
+      if (!friend.birthday) continue;
+      const bday = new Date(friend.birthday);
+      const bMonth = bday.getMonth();
+      const bDate = bday.getDate();
+
+      // Next birthday this year or next
+      let nextBirthday = new Date(now.getFullYear(), bMonth, bDate);
+      if (nextBirthday < todayStart) {
+        nextBirthday = new Date(now.getFullYear() + 1, bMonth, bDate);
+      }
+      const daysUntil = Math.round((nextBirthday - todayStart) / 86400000);
+
+      if (daysUntil <= days) {
+        upcoming.push({
+          _id: friend._id,
+          name: friend.name,
+          username: friend.username,
+          email: friend.email,
+          birthday: friend.birthday,
+          daysUntil,
+          isToday: daysUntil === 0,
+        });
+      }
+    }
+
+    upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+
+    // Find which birthday-today friends the current user has already wished today
+    const todayIds = upcoming.filter(f => f.isToday).map(f => f._id);
+    const wishedSet = new Set();
+    if (todayIds.length > 0) {
+      const todayWishes = await Notification.find({
+        sender: req.user._id,
+        'recipients': { $in: todayIds },
+        title: /^Birthday wish/i,
+        createdAt: { $gte: todayStart },
+      }).select('recipients');
+      for (const n of todayWishes) {
+        for (const r of n.recipients) {
+          wishedSet.add(r.toString());
+        }
+      }
+    }
+
+    const result = upcoming.map(f => ({
+      ...f,
+      hasWished: wishedSet.has(f._id.toString()),
+    }));
+
+    res.status(200).json({ birthdays: result });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.sendBirthdayWish = async (req, res) => {
+  try {
+    const { message } = req.body;
+    const targetUserId = req.params.userId;
+
+    const [sender, target] = await Promise.all([
+      User.findById(req.user._id).select('name username'),
+      User.findById(targetUserId).select('_id'),
+    ]);
+    if (!target) return res.status(404).json({ error: 'User not found' });
+
+    // Prevent duplicate wishes on the same calendar day
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const alreadyWished = await Notification.exists({
+      sender: req.user._id,
+      recipients: target._id,
+      title: /^Birthday wish/i,
+      createdAt: { $gte: todayStart },
+    });
+    if (alreadyWished) {
+      return res.status(409).json({ error: 'You have already wished this person today.' });
+    }
+
+    const senderName = sender.name || sender.username || 'Someone';
+    const wishText = (message || '').toString().trim() ||
+      'Wishing you a wonderful birthday filled with joy and happiness!';
+
+    await Notification.create({
+      sender: req.user._id,
+      senderModel: 'User',
+      recipientType: 'specific-users',
+      recipients: [target._id],
+      recipientModel: 'User',
+      title: `Birthday wish from ${senderName}`,
+      message: wishText,
+      category: 'general',
+    });
+
+    res.status(201).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};

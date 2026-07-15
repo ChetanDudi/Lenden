@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/api_client.dart';
 
@@ -58,6 +59,9 @@ class GoogleAuthService {
         'error': responseData['error'] ?? 'Google sign-in failed'
       };
     } catch (e) {
+      if (e is PlatformException && e.code == 'network_error') {
+        return {'success': false, 'error': 'network_error'};
+      }
       return {'success': false, 'error': e.toString()};
     }
   }

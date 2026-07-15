@@ -315,7 +315,11 @@ class _UserLoginPageState extends State<UserLoginPage> {
           Navigator.pushReplacementNamed(context, '/user/dashboard');
         }
       } else if (result['cancelled'] != true) {
-        _showErrorDialog(result['error'] ?? 'Google sign-in failed.');
+        if (result['error'] == 'network_error') {
+          _showGoogleNetworkErrorDialog();
+        } else {
+          _showErrorDialog(result['error'] ?? 'Google sign-in failed.');
+        }
       }
     } catch (e) {
       _showErrorDialog('Google sign-in failed. Please try again.');
@@ -938,6 +942,74 @@ class _UserLoginPageState extends State<UserLoginPage> {
         ),
       );
     }
+  }
+
+  void _showGoogleNetworkErrorDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.wifi_off_rounded, size: 34, color: Colors.orange),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No Internet Connection',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Google Sign-In requires an active internet connection.\nPlease check your Wi-Fi or mobile data and try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00B4D8),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showDailyLoginRewardNotification(int coins) {
