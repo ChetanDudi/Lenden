@@ -246,8 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   }),
                   if (address.isNotEmpty)
                     _profileField(Icons.home, t('address'), address),
-                  if (phone.isNotEmpty)
-                    _profileField(Icons.phone, t('phone'), phone),
+                  if (phone.isNotEmpty) _buildPhoneDisplay(phone, user?['phoneCountryCode']?.toString() ?? '+91'),
                   if (memberSince.isNotEmpty)
                     _profileField(Icons.calendar_today, t('member_since'),
                         memberSinceDisplay),
@@ -329,6 +328,125 @@ class _ProfilePageState extends State<ProfilePage> {
           if (_error != null)
             Center(child: Text(_error!, style: TextStyle(color: Colors.red))),
         ],
+      ),
+    );
+  }
+
+  String _flagEmoji(String isoCode) => isoCode.toUpperCase().split('').map(
+      (c) => String.fromCharCode(c.codeUnitAt(0) + 0x1F1A5)).join();
+
+  Widget _buildPhoneDisplay(String phone, String countryCode) {
+    const codeToMeta = {
+      '+93': ('AF', 9),  '+355': ('AL', 9),  '+213': ('DZ', 9),
+      '+54': ('AR', 10), '+374': ('AM', 8),  '+61': ('AU', 9),
+      '+43': ('AT', 10), '+994': ('AZ', 9),  '+973': ('BH', 8),
+      '+880': ('BD', 10),'+375': ('BY', 9),  '+32': ('BE', 9),
+      '+591': ('BO', 8), '+387': ('BA', 8),  '+55': ('BR', 11),
+      '+1': ('US', 10),  '+56': ('CL', 9),   '+86': ('CN', 11),
+      '+57': ('CO', 10), '+385': ('HR', 9),  '+53': ('CU', 8),
+      '+420': ('CZ', 9), '+45': ('DK', 8),   '+593': ('EC', 9),
+      '+20': ('EG', 10), '+251': ('ET', 9),  '+358': ('FI', 9),
+      '+33': ('FR', 9),  '+995': ('GE', 9),  '+49': ('DE', 11),
+      '+233': ('GH', 9), '+30': ('GR', 10),  '+502': ('GT', 8),
+      '+36': ('HU', 9),  '+91': ('IN', 10),  '+62': ('ID', 11),
+      '+98': ('IR', 10), '+964': ('IQ', 10), '+353': ('IE', 9),
+      '+972': ('IL', 9), '+39': ('IT', 10),  '+81': ('JP', 10),
+      '+962': ('JO', 9), '+77': ('KZ', 10),  '+254': ('KE', 9),
+      '+965': ('KW', 8), '+961': ('LB', 8),  '+218': ('LY', 9),
+      '+60': ('MY', 9),  '+52': ('MX', 10),  '+212': ('MA', 9),
+      '+95': ('MM', 9),  '+977': ('NP', 10), '+31': ('NL', 9),
+      '+64': ('NZ', 9),  '+234': ('NG', 10), '+47': ('NO', 8),
+      '+968': ('OM', 8), '+92': ('PK', 10),  '+595': ('PY', 9),
+      '+51': ('PE', 9),  '+63': ('PH', 10),  '+48': ('PL', 9),
+      '+351': ('PT', 9), '+974': ('QA', 8),  '+40': ('RO', 9),
+      '+7': ('RU', 10),  '+966': ('SA', 9),  '+221': ('SN', 9),
+      '+381': ('RS', 9), '+65': ('SG', 8),   '+27': ('ZA', 9),
+      '+82': ('KR', 10), '+34': ('ES', 9),   '+94': ('LK', 9),
+      '+249': ('SD', 9), '+46': ('SE', 9),   '+41': ('CH', 9),
+      '+963': ('SY', 9), '+886': ('TW', 9),  '+255': ('TZ', 9),
+      '+66': ('TH', 9),  '+216': ('TN', 8),  '+90': ('TR', 10),
+      '+256': ('UG', 9), '+380': ('UA', 9),  '+971': ('AE', 9),
+      '+44': ('GB', 10), '+598': ('UY', 9),  '+998': ('UZ', 9),
+      '+58': ('VE', 10), '+84': ('VN', 9),   '+967': ('YE', 9),
+      '+260': ('ZM', 9), '+263': ('ZW', 9),
+    };
+    final meta = codeToMeta[countryCode] ?? ('IN', 10);
+    final isoCode = meta.$1;
+    final digitCount = meta.$2;
+    final flag = _flagEmoji(isoCode);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          color: AppThemeColors.cardBg(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(Icons.phone, color: AppColors.cyan),
+                const SizedBox(width: 10),
+                Text('Phone', style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: context.sp(13),
+                  color: AppThemeColors.primaryText(context),
+                )),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.cyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+                  ),
+                  child: Text('$flag $countryCode',
+                    style: TextStyle(fontSize: context.sp(12), color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(digitCount, (i) {
+                    final d = i < phone.length ? phone[i] : '';
+                    return Container(
+                      width: 30,
+                      height: 36,
+                      margin: const EdgeInsets.only(right: 5),
+                      decoration: BoxDecoration(
+                        color: d.isNotEmpty
+                            ? AppColors.cyan.withValues(alpha: 0.1)
+                            : AppThemeColors.divider(context).withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: d.isNotEmpty ? AppColors.cyan.withValues(alpha: 0.5) : AppThemeColors.divider(context),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(d, style: TextStyle(
+                          fontSize: context.sp(15),
+                          fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context),
+                        )),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

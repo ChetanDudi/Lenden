@@ -7,10 +7,17 @@ exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user._id;
     const update = {};
-    const allowedFields = ['name', 'birthday', 'address', 'phone', 'gender', 'email'];
+    const allowedFields = ['name', 'birthday', 'address', 'phone', 'phoneCountryCode', 'gender', 'email'];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) update[field] = req.body[field];
     });
+
+    if (update.phone !== undefined && update.phone !== '') {
+      if (!/^\d{7,15}$/.test(update.phone)) {
+        return res.status(400).json({ error: 'Phone number must be 7–15 digits' });
+      }
+    }
+
     if (req.body.password) {
       update.password = await bcrypt.hash(req.body.password, 10);
     }
@@ -19,7 +26,7 @@ exports.updateUserProfile = async (req, res) => {
     } else if (req.file) {
       update.profileImage = req.file.buffer;
     }
-    
+
     const user = await User.findByIdAndUpdate(userId, update, { new: true, runValidators: true }).select('-password');
     // Return user object with profileImage as URL if exists
     const userObj = user.toObject();

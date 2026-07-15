@@ -30,7 +30,14 @@ const userSchema = new mongoose.Schema({
   },
   birthday: { type: Date },
   address: { type: String },
-  phone: { type: String },
+  phone: {
+    type: String,
+    validate: {
+      validator: v => !v || /^\d{7,15}$/.test(v),
+      message: 'Phone number must be 7–15 digits',
+    },
+  },
+  phoneCountryCode: { type: String, default: '+91' },
   walletBalance: { type: Number, default: 0 },
   altEmail: { type: String },
   altEmailOTP: {
