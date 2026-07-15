@@ -710,19 +710,33 @@ exports.getBirthdayFriends = async (req, res) => {
 
     upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
 
-    // Find which birthday-today friends the current user has already wished today
+    // Find wished + gifted status for today-birthday friends
     const todayIds = upcoming.filter(f => f.isToday).map(f => f._id);
     const wishedSet = new Set();
+    const giftedMap = {}; // _id.toString() → coins gifted
     if (todayIds.length > 0) {
-      const todayWishes = await Notification.find({
-        sender: req.user._id,
-        'recipients': { $in: todayIds },
-        title: /^Birthday wish/i,
-        createdAt: { $gte: todayStart },
-      }).select('recipients');
+      const [todayWishes, todayGiftNotifs] = await Promise.all([
+        Notification.find({
+          sender: req.user._id,
+          recipients: { $in: todayIds },
+          title: /^Birthday wish/i,
+          createdAt: { $gte: todayStart },
+        }).select('recipients'),
+        Notification.find({
+          sender: req.user._id,
+          recipients: { $in: todayIds },
+          title: /^Birthday gift/i,
+          createdAt: { $gte: todayStart },
+        }).select('recipients metadata'),
+      ]);
       for (const n of todayWishes) {
+        for (const r of n.recipients) wishedSet.add(r.toString());
+      }
+      for (const n of todayGiftNotifs) {
+        const coins = n.metadata?.coins || 0;
         for (const r of n.recipients) {
-          wishedSet.add(r.toString());
+          const key = r.toString();
+          giftedMap[key] = (giftedMap[key] || 0) + coins;
         }
       }
     }
@@ -730,6 +744,8 @@ exports.getBirthdayFriends = async (req, res) => {
     const result = upcoming.map(f => ({
       ...f,
       hasWished: wishedSet.has(f._id.toString()),
+      hasGifted: !!giftedMap[f._id.toString()],
+      giftedAmount: giftedMap[f._id.toString()] || 0,
     }));
 
     res.status(200).json({ birthdays: result });
@@ -778,6 +794,83 @@ exports.sendBirthdayWish = async (req, res) => {
     });
 
     res.status(201).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.sendBirthdayGift = async (req, res) => {
+  try {
+    const ALLOWED_AMOUNTS = [5, 10, 25, 50];
+    const coins = parseInt(req.body.coins, 10);
+    if (!ALLOWED_AMOUNTS.includes(coins)) {
+      return res.status(400).json({ error: 'Invalid gift amount. Choose 5, 10, 25, or 50 coins.' });
+    }
+
+    const targetUserId = req.params.userId;
+    const [sender, target] = await Promise.all([
+      User.findById(req.user._id).select('name username lenDenCoins'),
+      User.findById(targetUserId).select('_id name username'),
+    ]);
+    if (!target) return res.status(404).json({ error: 'User not found' });
+    if (!sender || sender.lenDenCoins < coins) {
+      return res.status(400).json({ error: 'Insufficient LenDen coins.' });
+    }
+
+    // Block duplicate gift same day
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const alreadyGifted = await Notification.exists({
+      sender: req.user._id,
+      recipients: target._id,
+      title: /^Birthday gift/i,
+      createdAt: { $gte: todayStart },
+    });
+    if (alreadyGifted) {
+      return res.status(409).json({ error: 'You have already sent a birthday gift to this person today.' });
+    }
+
+    const senderName = sender.name || sender.username || 'Someone';
+    const targetName = target.name || target.username || 'Friend';
+
+    const CoinLedger = require('../models/coinLedger');
+    await Promise.all([
+      User.updateOne({ _id: sender._id }, { $inc: { lenDenCoins: -coins } }),
+      User.updateOne({ _id: target._id }, { $inc: { lenDenCoins: coins } }),
+      CoinLedger.create({
+        user: sender._id,
+        direction: 'spent',
+        coins,
+        source: 'birthday_gift_sent',
+        title: `Birthday gift to ${targetName}`,
+        description: `Sent ${coins} LenDen coins as a birthday gift to ${targetName}.`,
+        metadata: { recipientId: target._id.toString(), coins },
+        occurredAt: new Date(),
+      }),
+      CoinLedger.create({
+        user: target._id,
+        direction: 'earned',
+        coins,
+        source: 'birthday_gift_received',
+        title: `Birthday gift from ${senderName}`,
+        description: `Received ${coins} LenDen coins as a birthday gift from ${senderName}.`,
+        metadata: { senderId: sender._id.toString(), coins },
+        occurredAt: new Date(),
+      }),
+      Notification.create({
+        sender: req.user._id,
+        senderModel: 'User',
+        recipientType: 'specific-users',
+        recipients: [target._id],
+        recipientModel: 'User',
+        title: `Birthday gift from ${senderName}`,
+        message: `${senderName} sent you ${coins} LenDen coins as a birthday gift! 🎁`,
+        category: 'general',
+        metadata: { coins },
+      }),
+    ]);
+
+    res.status(201).json({ success: true, remainingCoins: sender.lenDenCoins - coins });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

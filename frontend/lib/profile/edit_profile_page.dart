@@ -323,6 +323,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       _editGenderField(),
                       _editField(Icons.cake, t('birthday'), _birthdayController,
                           isBirthday: true),
+                      Builder(builder: (bCtx) {
+                        final bday = DateTime.tryParse(_birthdayController.text);
+                        if (bday == null) return const SizedBox.shrink();
+                        final now = DateTime.now();
+                        if (bday.month != now.month || bday.day != now.day) return const SizedBox.shrink();
+                        final age = now.year - bday.year;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFF6B6B), Color(0xFFFFB300), Color(0xFF6BCB77)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [BoxShadow(color: Colors.amber.withValues(alpha: 0.35), blurRadius: 12, spreadRadius: 1)],
+                          ),
+                          child: Row(children: [
+                            const Text('🎂', style: TextStyle(fontSize: 26)),
+                            const SizedBox(width: 10),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Text('Happy Birthday!', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                              Text(
+                                age > 0 ? 'You\'re turning $age today 🎉' : 'Wishing you a wonderful day!',
+                                style: const TextStyle(fontSize: 11, color: Colors.white70),
+                              ),
+                            ])),
+                            const Icon(Icons.celebration_rounded, color: Colors.white70, size: 22),
+                          ]),
+                        );
+                      }),
                       _editField(Icons.home, t('address'), _addressController,
                           isOptional: true),
                       _editField(Icons.phone, t('phone'), _phoneController,
@@ -483,20 +515,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 border: InputBorder.none,
                 suffixIcon: isBirthday
                     ? IconButton(
-                        icon: const Icon(Icons.calendar_today),
+                        icon: Icon(Icons.calendar_today, color: AppColors.cyan),
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: controller.text.isNotEmpty
-                                ? DateTime.tryParse(controller.text) ??
-                                    DateTime(2000)
+                                ? DateTime.tryParse(controller.text) ?? DateTime(2000)
                                 : DateTime(2000),
                             firstDate: DateTime(1900),
                             lastDate: DateTime.now(),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: Theme.of(context).colorScheme.copyWith(
+                                    primary: AppColors.cyan,
+                                    onPrimary: Colors.white,
+                                  ),
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.cyan,
+                                    ),
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
                           );
                           if (picked != null) {
-                            controller.text =
-                                picked.toIso8601String().split('T').first;
+                            controller.text = picked.toIso8601String().split('T').first;
                           }
                         },
                       )
@@ -513,15 +559,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       final picked = await showDatePicker(
                         context: context,
                         initialDate: controller.text.isNotEmpty
-                            ? DateTime.tryParse(controller.text) ??
-                                DateTime(2000)
+                            ? DateTime.tryParse(controller.text) ?? DateTime(2000)
                             : DateTime(2000),
                         firstDate: DateTime(1900),
                         lastDate: DateTime.now(),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: Theme.of(context).colorScheme.copyWith(
+                                primary: AppColors.cyan,
+                                onPrimary: Colors.white,
+                              ),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.cyan,
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
                       if (picked != null) {
-                        controller.text =
-                            picked.toIso8601String().split('T').first;
+                        controller.text = picked.toIso8601String().split('T').first;
                       }
                     }
                   : null,

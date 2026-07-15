@@ -169,6 +169,7 @@ module.exports = (io) => {
   router.delete('/friends/:friendId', auth, friendController.removeFriend);
   router.get('/friends/birthdays', auth, friendController.getBirthdayFriends);
   router.post('/friends/:userId/wish', auth, friendController.sendBirthdayWish);
+  router.post('/friends/:userId/gift', auth, friendController.sendBirthdayGift);
 
   // Quick Transaction routes
   router.get('/quick-transactions', auth, quickTransactionController.getQuickTransactions);

@@ -335,7 +335,10 @@ class SessionProvider extends ChangeNotifier {
             data['freeQuickTransactionsRemaining'];
         _freeUserTransactionsRemaining = data['freeUserTransactionsRemaining'];
         _freeGroupsRemaining = data['freeGroupsRemaining'];
-        _lenDenCoins = data['lenDenCoins'];
+        _lenDenCoins = (data['lenDenCoins'] as num?)?.toInt();
+        if (_user != null && _lenDenCoins != null) {
+          _user!['lenDenCoins'] = _lenDenCoins;
+        }
         notifyListeners();
       }
     } catch (e) {

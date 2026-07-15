@@ -59,6 +59,10 @@ const notificationSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
   readBy: [{
     type: mongoose.Schema.Types.ObjectId,
     refPath: 'recipientModel'

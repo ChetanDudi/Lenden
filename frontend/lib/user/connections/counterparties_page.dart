@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
@@ -29,6 +30,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   String? _filterGender;
   Map<String, Map<String, dynamic>> _birthdayByEmail = {};
   final Set<String> _wishedFriendIds = {};
+  final Map<String, int> _giftedCoins = {};
 
   @override
   void initState() {
@@ -164,6 +166,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
         final list = List<Map<String, dynamic>>.from(data['birthdays'] ?? []);
         final map = <String, Map<String, dynamic>>{};
         final alreadyWished = <String>{};
+        final gifted = <String, int>{};
         for (final b in list) {
           final email = (b['email'] ?? '').toString().toLowerCase().trim();
           if (email.isNotEmpty) map[email] = b;
@@ -171,11 +174,17 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
             final id = b['_id']?.toString() ?? '';
             if (id.isNotEmpty) alreadyWished.add(id);
           }
+          final amt = (b['giftedAmount'] as num? ?? 0).toInt();
+          if (amt > 0) {
+            final id = b['_id']?.toString() ?? '';
+            if (id.isNotEmpty) gifted[id] = amt;
+          }
         }
         if (mounted) {
           setState(() {
             _birthdayByEmail = map;
             _wishedFriendIds.addAll(alreadyWished);
+            _giftedCoins.addAll(gifted);
           });
         }
       }
@@ -185,103 +194,302 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   void _showBirthdayWishDialog(Map<String, dynamic> friend) {
     final t = AppLocalizations.of(context).t;
     final name = (friend['name'] ?? 'Friend').toString();
-    final controller = TextEditingController(
-      text: 'Happy Birthday $name! Wishing you a wonderful day filled with joy and happiness. Many happy returns!',
-    );
+    final friendId = friend['_id']?.toString() ?? '';
+
+    final templates = [
+      'Happy Birthday $name! Wishing you a wonderful day filled with joy and happiness!',
+      'Many happy returns of the day, $name! May this year bring you health, wealth, and success!',
+      'Wishing you a very Happy Birthday, $name! Hope your day is as amazing as you are!',
+      'Happy Birthday $name! Sending you warmest wishes and lots of love on your special day!',
+    ];
+    final controller = TextEditingController(text: templates[0]);
+    int selectedTemplate = 0;
+    int selectedGift = 0;
+    const giftAmounts = [5, 10, 25, 50];
+    bool sending = false;
+
+    // Refresh coins in background so dialog always shows current balance
+    Provider.of<SessionProvider>(context, listen: false).loadFreebieCounts();
+
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFB300), Color(0xFFFFF176), Color(0xFFFFB300)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(ctx),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 56, height: 56,
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.cake_rounded, color: Colors.amber, size: 30),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final session = Provider.of<SessionProvider>(ctx, listen: false);
+          final myCoins = session.lenDenCoins ??
+              (session.user?['lenDenCoins'] as num?)?.toInt() ?? 0;
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: Container(
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFF8C00), Color(0xFFFF6B6B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Send Birthday Wish',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(ctx),
+                  borderRadius: BorderRadius.circular(22),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'to $name',
-                  style: const TextStyle(fontSize: 13, color: Colors.amber, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: AppThemeColors.surfaceBg(ctx),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    hintText: 'Write your wish...',
-                  ),
-                  style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(ctx)),
-                ),
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        side: const BorderSide(color: Colors.grey),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(child: Column(children: [
+                        Container(
+                          width: 60, height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.cake_rounded, size: 32, color: Colors.amber),
+                        ),
+                        const SizedBox(height: 10),
+                        Text('Happy Birthday, $name!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold,
+                              color: AppThemeColors.primaryText(ctx))),
+                        const SizedBox(height: 4),
+                        Text('Today is their special day',
+                          style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx))),
+                      ])),
+                      const SizedBox(height: 18),
+                      Text('Quick message', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                          color: AppThemeColors.secondaryText(ctx))),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: List.generate(templates.length, (i) {
+                            final labels = ['Cheerful', 'Inspiring', 'Warm', 'Classic'];
+                            final sel = selectedTemplate == i;
+                            return GestureDetector(
+                              onTap: () => setS(() {
+                                selectedTemplate = i;
+                                controller.text = templates[i];
+                              }),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: sel ? Colors.amber : Colors.amber.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: sel ? Colors.amber : Colors.amber.withValues(alpha: 0.4)),
+                                ),
+                                child: Text(labels[i],
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                      color: sel ? Colors.white : const Color(0xFF7B4F00))),
+                              ),
+                            );
+                          }),
+                        ),
                       ),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final message = controller.text.trim();
-                        Navigator.pop(ctx);
-                        try {
-                          await ApiClient.post('/api/friends/${friend['_id']}/wish', body: {'message': message});
-                          if (mounted) {
-                            setState(() => _wishedFriendIds.add(friend['_id']?.toString() ?? ''));
-                            ElegantNotification.success(
-                              title: Text(t('success')),
-                              description: Text('Birthday wish sent to $name!'),
-                            ).show(context);
-                          }
-                        } catch (_) {}
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: controller,
+                        maxLines: 3,
+                        onChanged: (_) => setS(() => selectedTemplate = -1),
+                        style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(ctx)),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: AppThemeColors.surfaceBg(ctx),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          hintText: 'Write your wish...',
+                        ),
                       ),
-                      child: const Text('Send Wish', style: TextStyle(fontWeight: FontWeight.w700)),
-                    ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.tinted(ctx,
+                              light: const Color(0xFFFFF8E1), dark: const Color(0xFF252010)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.redeem_rounded, size: 16, color: Color(0xFFFF8C00)),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text('Send Coin Gift (optional)',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF7B4F00)),
+                                  overflow: TextOverflow.ellipsis),
+                              ),
+                              const SizedBox(width: 6),
+                              Text('· $myCoins coins',
+                                style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
+                            ]),
+                            const SizedBox(height: 10),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(children: [
+                                GestureDetector(
+                                  onTap: () => setS(() => selectedGift = 0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    margin: const EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: selectedGift == 0
+                                          ? AppThemeColors.secondaryText(ctx).withValues(alpha: 0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: selectedGift == 0
+                                              ? AppThemeColors.secondaryText(ctx)
+                                              : AppThemeColors.divider(ctx)),
+                                    ),
+                                    child: Text('None',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                          color: AppThemeColors.secondaryText(ctx))),
+                                  ),
+                                ),
+                                ...giftAmounts.map((amt) {
+                                  final sel = selectedGift == amt;
+                                  final canAfford = myCoins >= amt;
+                                  return GestureDetector(
+                                    onTap: canAfford ? () => setS(() => selectedGift = amt) : null,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        color: sel ? const Color(0xFFFFB300) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                            color: sel ? const Color(0xFFFFB300)
+                                                : canAfford ? Colors.amber.withValues(alpha: 0.5)
+                                                : AppThemeColors.divider(ctx)),
+                                      ),
+                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                        Icon(Icons.monetization_on_rounded, size: 13,
+                                          color: sel ? Colors.white
+                                              : canAfford ? Colors.amber
+                                              : AppThemeColors.mutedText(ctx)),
+                                        const SizedBox(width: 3),
+                                        Text('$amt',
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                                              color: sel ? Colors.white
+                                                  : canAfford ? const Color(0xFF7B4F00)
+                                                  : AppThemeColors.mutedText(ctx))),
+                                      ]),
+                                    ),
+                                  );
+                                }),
+                                GestureDetector(
+                                  onTap: () {
+                                    final affordable = giftAmounts.where((a) => myCoins >= a).toList();
+                                    if (affordable.isEmpty) return;
+                                    setS(() => selectedGift = affordable[Random().nextInt(affordable.length)]);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    margin: const EdgeInsets.only(left: 4),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.5)),
+                                    ),
+                                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                      const Text('🎲', style: TextStyle(fontSize: 13)),
+                                      const SizedBox(width: 3),
+                                      Text('Surprise',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                                            color: Colors.deepPurple.shade400)),
+                                    ]),
+                                  ),
+                                ),
+                              ]),
+                            ),
+                            if (selectedGift > 0) ...[
+                              const SizedBox(height: 8),
+                              Text('$selectedGift coins will be deducted from your balance',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF997000))),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              side: BorderSide(color: AppThemeColors.divider(ctx)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(t('cancel')),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: sending ? null : () async {
+                              setS(() => sending = true);
+                              final wishRes = await ApiClient.post(
+                                '/api/friends/$friendId/wish',
+                                body: {'message': controller.text.trim()},
+                              );
+                              bool giftOk = true;
+                              if (wishRes.statusCode == 201 && selectedGift > 0) {
+                                final giftRes = await ApiClient.post(
+                                  '/api/friends/$friendId/gift',
+                                  body: {'coins': selectedGift},
+                                );
+                                giftOk = giftRes.statusCode == 201;
+                                if (giftOk && ctx.mounted) {
+                                  final giftData = jsonDecode(giftRes.body);
+                                  final remaining = (giftData['remainingCoins'] as num?)?.toInt();
+                                  if (remaining != null) {
+                                    Provider.of<SessionProvider>(ctx, listen: false).updateUserCoins(remaining);
+                                  }
+                                }
+                              }
+                              if (!ctx.mounted) return;
+                              Navigator.pop(ctx);
+                              if (wishRes.statusCode == 201 && mounted) {
+                                setState(() {
+                                  _wishedFriendIds.add(friendId);
+                                  if (selectedGift > 0 && giftOk) _giftedCoins[friendId] = selectedGift;
+                                });
+                                final msg = selectedGift > 0 && giftOk
+                                    ? 'Wish sent + $selectedGift coins gifted to $name!'
+                                    : 'Birthday wish sent to $name!';
+                                ElegantNotification.success(
+                                  title: Text(t('success')),
+                                  description: Text(msg),
+                                ).show(context);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: sending
+                                ? const SizedBox(width: 18, height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : Text(
+                                    selectedGift > 0 ? 'Send Wish + Gift 🎁' : 'Send Wish',
+                                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ]),
+                    ],
                   ),
-                ]),
-              ]),
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     ).then((_) => controller.dispose());
   }
@@ -723,7 +931,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
 
                                 return CustomScrollView(
                                   slivers: [
-                                    if (birthdayCounterparties.isNotEmpty)
+                                                    if (birthdayCounterparties.isNotEmpty)
                                       SliverToBoxAdapter(
                                         child: Container(
                                           margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -759,6 +967,8 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                                 final bInfo = _birthdayByEmail[email]!;
                                                 final isToday = (bInfo['daysUntil'] ?? 1) == 0;
                                                 final days = bInfo['daysUntil'] as int? ?? 0;
+                                                final bdayDate = DateTime.tryParse(bInfo['birthday']?.toString() ?? '');
+                                                final age = bdayDate != null ? DateTime.now().year - bdayDate.year : 0;
                                                 return Padding(
                                                   padding: const EdgeInsets.only(bottom: 6),
                                                   child: Row(children: [
@@ -769,38 +979,61 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                                     ),
                                                     const SizedBox(width: 10),
                                                     Expanded(
-                                                      child: Text(
-                                                        (cp['name'] ?? 'Unknown').toString(),
-                                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF7B4F00)),
-                                                        overflow: TextOverflow.ellipsis,
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            (cp['name'] ?? 'Unknown').toString(),
+                                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4A3500)),
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                          Text(
+                                                            isToday
+                                                                ? (age > 0 ? 'Turning $age today! 🎉' : 'Birthday today!')
+                                                                : 'in $days day${days == 1 ? '' : 's'}${age > 0 ? ' · Turning $age' : ''}',
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              color: isToday ? Colors.deepOrange : const Color(0xFF7B5800),
+                                                              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                    if (isToday)
-                                                      _wishedFriendIds.contains(bInfo['_id']?.toString())
-                                                        ? Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.green.shade400,
-                                                              borderRadius: BorderRadius.circular(8),
+                                                    if (isToday) Builder(builder: (_) {
+                                                      final bid = bInfo['_id']?.toString() ?? '';
+                                                      final wished = _wishedFriendIds.contains(bid);
+                                                      final gifted = _giftedCoins[bid] ?? 0;
+                                                      if (wished || gifted > 0) {
+                                                        return Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.green.shade500,
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                                            const Icon(Icons.check, size: 12, color: Colors.white),
+                                                            const SizedBox(width: 3),
+                                                            Text(
+                                                              gifted > 0 ? '+$gifted coins' : 'Wished',
+                                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                                                             ),
-                                                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                                              Icon(Icons.check, size: 12, color: Colors.white),
-                                                              SizedBox(width: 3),
-                                                              Text('You wished', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
-                                                            ]),
-                                                          )
-                                                        : TextButton(
-                                                            onPressed: () => _showBirthdayWishDialog(bInfo),
-                                                            style: TextButton.styleFrom(
-                                                              backgroundColor: Colors.amber,
-                                                              foregroundColor: Colors.white,
-                                                              minimumSize: const Size(60, 28),
-                                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                            ),
-                                                            child: const Text('Wish', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                                                          )
+                                                          ]),
+                                                        );
+                                                      }
+                                                      return TextButton(
+                                                        onPressed: () => _showBirthdayWishDialog(bInfo),
+                                                        style: TextButton.styleFrom(
+                                                          backgroundColor: Colors.amber,
+                                                          foregroundColor: Colors.white,
+                                                          minimumSize: const Size(80, 28),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                        ),
+                                                        child: const Text('Wish + Gift 🎁', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                                      );
+                                                    })
                                                     else
                                                       Text(
                                                         'in $days day${days == 1 ? '' : 's'}',
@@ -826,14 +1059,16 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                             final cp = filtered[index];
                                             final email = (cp['email'] ?? '').toString().toLowerCase().trim();
                                             final bInfo = _birthdayByEmail[email];
-                                            final hasWished = bInfo != null &&
-                                                _wishedFriendIds.contains(bInfo['_id']?.toString());
+                                            final bid = bInfo?['_id']?.toString() ?? '';
+                                            final hasWished = bInfo != null && _wishedFriendIds.contains(bid);
+                                            final giftedAmt = bid.isNotEmpty ? (_giftedCoins[bid] ?? 0) : 0;
                                             return _CounterpartyGridCard(
                                               counterparty: cp,
                                               avatarProvider: _buildAvatarProvider(cp),
                                               accentColor: _getBoxColor(index),
                                               birthdayInfo: bInfo,
                                               hasWished: hasWished,
+                                              giftedAmount: giftedAmt,
                                               onTap: () => _openCounterparty(cp),
                                             );
                                           },
@@ -869,6 +1104,7 @@ class _CounterpartyGridCard extends StatelessWidget {
   final VoidCallback onTap;
   final Map<String, dynamic>? birthdayInfo;
   final bool hasWished;
+  final int giftedAmount;
 
   const _CounterpartyGridCard({
     required this.counterparty,
@@ -877,6 +1113,7 @@ class _CounterpartyGridCard extends StatelessWidget {
     required this.onTap,
     this.birthdayInfo,
     this.hasWished = false,
+    this.giftedAmount = 0,
   });
 
   @override
@@ -956,8 +1193,8 @@ class _CounterpartyGridCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: hasWished
-                              ? Colors.green.shade400
+                          color: (hasWished || giftedAmount > 0)
+                              ? Colors.green.shade500
                               : (birthdayInfo!['daysUntil'] == 0
                                   ? Colors.amber
                                   : Colors.amber.withValues(alpha: 0.80)),
@@ -965,13 +1202,13 @@ class _CounterpartyGridCard extends StatelessWidget {
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           Icon(
-                            hasWished ? Icons.check : Icons.cake_rounded,
+                            (hasWished || giftedAmount > 0) ? Icons.check : Icons.cake_rounded,
                             size: 11, color: Colors.white,
                           ),
-                          if (hasWished || birthdayInfo!['daysUntil'] == 0) ...[
+                          if (hasWished || giftedAmount > 0 || birthdayInfo!['daysUntil'] == 0) ...[
                             const SizedBox(width: 3),
                             Text(
-                              hasWished ? 'Wished' : 'Today!',
+                              giftedAmount > 0 ? '+$giftedAmount coins' : hasWished ? 'Wished' : 'Today!',
                               style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                             ),
                           ],

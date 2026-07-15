@@ -212,6 +212,38 @@ class _ProfilePageState extends State<ProfilePage> {
                     _profileField(Icons.transgender, t('gender'), gender),
                   if (birthday.isNotEmpty)
                     _profileField(Icons.cake, t('birthday'), birthdayDisplay),
+                  Builder(builder: (bCtx) {
+                    final bday = DateTime.tryParse(birthday);
+                    if (bday == null) return const SizedBox.shrink();
+                    final now = DateTime.now();
+                    if (bday.month != now.month || bday.day != now.day) return const SizedBox.shrink();
+                    final age = now.year - bday.year;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B6B), Color(0xFFFFB300), Color(0xFF6BCB77)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [BoxShadow(color: Colors.amber.withValues(alpha: 0.35), blurRadius: 12, spreadRadius: 1)],
+                      ),
+                      child: Row(children: [
+                        const Text('🎂', style: TextStyle(fontSize: 26)),
+                        const SizedBox(width: 10),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('Happy Birthday!', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(
+                            age > 0 ? 'You\'re turning $age today 🎉' : 'Wishing you a wonderful day!',
+                            style: const TextStyle(fontSize: 11, color: Colors.white70),
+                          ),
+                        ])),
+                        const Icon(Icons.celebration_rounded, color: Colors.white70, size: 22),
+                      ]),
+                    );
+                  }),
                   if (address.isNotEmpty)
                     _profileField(Icons.home, t('address'), address),
                   if (phone.isNotEmpty)
