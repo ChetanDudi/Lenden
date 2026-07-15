@@ -3,109 +3,67 @@ const { sendEmail } = require('./sendEmailApi');
 exports.sendWalletPinSetupOTP = async (to, otp, username) => {
   return sendEmail({
     to,
-    subject: 'LenDen Wallet PIN Setup – Verify Your Email',
+    subject: 'LenDen – Wallet PIN Setup Verification',
     text: `Your OTP to set up your LenDen Wallet PIN is: ${otp}\nThis code expires in 2 minutes. If you did not request this, please ignore this email.`,
     html: `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; min-height: 100vh; margin: 0;">
-        <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-          <div style="background: linear-gradient(135deg, #00B4D8 0%, #0077B6 100%); padding: 30px; text-align: center;">
-            <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 40px; color: white;">🔐</span>
-            </div>
-            <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Set Your Wallet PIN</h1>
-            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">Verify your email to create a 6-digit PIN</p>
-          </div>
-          <div style="padding: 40px 30px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h2 style="color: #333; margin: 0 0 10px; font-size: 20px; font-weight: 600;">Hello ${username}!</h2>
-              <p style="color: #666; margin: 0; font-size: 16px; line-height: 1.6;">
-                Enter this code in the LenDen app to confirm your email and set your wallet transaction PIN.
-              </p>
-            </div>
-            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; padding: 30px; text-align: center; margin-bottom: 30px;">
-              <p style="color: #555; margin: 0 0 20px; font-size: 16px; font-weight: 500;">Your verification code:</p>
-              <div style="background: white; border: 2px solid #00B4D8; border-radius: 12px; padding: 20px; margin: 0 auto; display: inline-block; min-width: 200px;">
-                <span style="font-size: 32px; font-weight: bold; color: #00B4D8; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</span>
-              </div>
-            </div>
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin-bottom: 25px;">
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span style="color: #856404; font-size: 16px;">⏰</span>
-                <p style="color: #856404; margin: 0; font-size: 14px; font-weight: 500;">This code expires in <strong>2 minutes</strong></p>
-              </div>
-            </div>
-            <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 10px; padding: 15px;">
-              <div style="display: flex; align-items: flex-start; gap: 10px;">
-                <span style="color: #0c5460; font-size: 18px; margin-top: 2px;">🔒</span>
-                <div>
-                  <p style="color: #0c5460; margin: 0 0 5px; font-size: 14px; font-weight: 600;">Security Notice</p>
-                  <p style="color: #0c5460; margin: 0; font-size: 13px; line-height: 1.5;">
-                    If you didn't request a wallet PIN setup, please ignore this email and your account remains unchanged.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="color: #6c757d; margin: 0; font-size: 12px;">&copy; LenDen App. All rights reserved.</p>
-          </div>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">
+        <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Wallet PIN Setup</p>
+        <p style="margin:0 0 16px;">Dear ${username},</p>
+        <p style="margin:0 0 16px;">You have initiated a Wallet PIN setup on your LenDen account. Enter the verification code below to proceed. Your PIN will be used to authorise wallet transactions.</p>
+        <div style="background:#f7f7f7;border:1px solid #dddddd;border-left:4px solid #003d75;margin:24px 0;padding:18px 24px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;">One-Time Password (OTP)</p>
+          <span style="font-family:'Courier New',Courier,monospace;font-size:30px;font-weight:bold;letter-spacing:8px;color:#111111;">${otp}</span>
+          <p style="margin:8px 0 0;font-size:12px;color:#999999;">This code expires in 2 minutes.</p>
         </div>
-      </div>
-    `,
+        <p style="margin:0 0 8px;">Do not share this code with anyone. LenDen will never ask for your OTP or PIN.</p>
+        <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not request this, please ignore this email. No changes will be made to your account.</p>
+      </td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
   });
 };
 
 exports.sendWalletPayOTP = async (to, otp, username) => {
   return sendEmail({
     to,
-    subject: 'Confirm Your LenDen Wallet Payment',
-    text: `Your OTP to confirm this LenDen Wallet payment is: ${otp}\nIf you did not request this, please ignore this email.`,
+    subject: 'LenDen – Wallet Payment Authorisation',
+    text: `Your OTP to authorise this wallet payment is: ${otp}\nThis code expires in 2 minutes. If you did not initiate this payment, please contact support immediately.`,
     html: `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; min-height: 100vh; margin: 0;">
-        <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-          <div style="background: linear-gradient(135deg, #FF8000 0%, #00B4D8 100%); padding: 30px; text-align: center;">
-            <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 40px; color: white;">💸</span>
-            </div>
-            <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Confirm Wallet Payment</h1>
-            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">Verify it's really you before we send the money</p>
-          </div>
-          <div style="padding: 40px 30px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h2 style="color: #333; margin: 0 0 10px; font-size: 20px; font-weight: 600;">Hello ${username}!</h2>
-              <p style="color: #666; margin: 0; font-size: 16px; line-height: 1.6;">
-                Enter this code in the LenDen app to authorize your wallet payment.
-              </p>
-            </div>
-            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; padding: 30px; text-align: center; margin-bottom: 30px;">
-              <p style="color: #555; margin: 0 0 20px; font-size: 16px; font-weight: 500;">Your verification code:</p>
-              <div style="background: white; border: 2px solid #FF8000; border-radius: 12px; padding: 20px; margin: 0 auto; display: inline-block; min-width: 200px;">
-                <span style="font-size: 32px; font-weight: bold; color: #FF8000; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</span>
-              </div>
-            </div>
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 15px; margin-bottom: 25px;">
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span style="color: #856404; font-size: 16px;">⏰</span>
-                <p style="color: #856404; margin: 0; font-size: 14px; font-weight: 500;">This code expires in <strong>2 minutes</strong></p>
-              </div>
-            </div>
-            <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 10px; padding: 15px;">
-              <div style="display: flex; align-items: flex-start; gap: 10px;">
-                <span style="color: #0c5460; font-size: 18px; margin-top: 2px;">🔒</span>
-                <div>
-                  <p style="color: #0c5460; margin: 0 0 5px; font-size: 14px; font-weight: 600;">Security Notice</p>
-                  <p style="color: #0c5460; margin: 0; font-size: 13px; line-height: 1.5;">
-                    If you didn't try to send a wallet payment, please ignore this email and consider reviewing your account security.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
-            <p style="color: #6c757d; margin: 0; font-size: 12px;">&copy; LenDen App. All rights reserved.</p>
-          </div>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">
+        <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Wallet Payment Authorisation</p>
+        <p style="margin:0 0 16px;">Dear ${username},</p>
+        <p style="margin:0 0 16px;">A wallet payment has been initiated from your LenDen account. Enter the code below in the app to authorise and complete the transaction.</p>
+        <div style="background:#f7f7f7;border:1px solid #dddddd;border-left:4px solid #003d75;margin:24px 0;padding:18px 24px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;">One-Time Password (OTP)</p>
+          <span style="font-family:'Courier New',Courier,monospace;font-size:30px;font-weight:bold;letter-spacing:8px;color:#111111;">${otp}</span>
+          <p style="margin:8px 0 0;font-size:12px;color:#999999;">This code expires in 2 minutes.</p>
         </div>
-      </div>
-    `,
+        <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
+        <p style="margin:16px 0 0;background:#fce8e8;border-left:4px solid #cc0000;padding:12px 16px;color:#555555;font-size:13px;">If you did not initiate this payment, do not share this code and contact LenDen support immediately.</p>
+      </td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
   });
 };

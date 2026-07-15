@@ -3,18 +3,32 @@ const { sendEmail } = require('./sendEmailApi');
 exports.sendRegistrationOTP = async (to, otp) => {
   await sendEmail({
     to,
-    subject: 'Welcome to Lenden! Your Registration OTP',
-    text: `Your OTP for registration is: ${otp}`,
+    subject: 'LenDen – Verify Your Email Address',
+    text: `Your registration OTP is: ${otp}\nThis code expires in 2 minutes. Do not share it with anyone.`,
     html: `
-      <div style="font-family: Arial, sans-serif; background: #f8f6fa; padding: 24px; border-radius: 12px; max-width: 480px; margin: auto;">
-        <h2 style="color: #00B4D8; text-align: center;">Welcome to <span style='color:#0077B5;'>Lenden</span>!</h2>
-        <p style="font-size: 16px; color: #333; text-align: center;">Thank you for registering. Your OTP is:</p>
-        <div style="font-size: 32px; font-weight: bold; color: #00B4D8; text-align: center; margin: 24px 0; letter-spacing: 4px;">${otp}</div>
-        <p style="font-size: 14px; color: #888; text-align: center;">This OTP is valid for 2 minutes. If you did not request this, please ignore this email.</p>
-        <div style="text-align: center; margin-top: 24px;">
-          <span style="font-size: 12px; color: #aaa;">&copy; Lenden App</span>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">
+        <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Verify your email address</p>
+        <p style="margin:0 0 16px;">Thank you for registering with LenDen. To complete your account setup, please enter the one-time password below in the app.</p>
+        <div style="background:#f7f7f7;border:1px solid #dddddd;border-left:4px solid #003d75;margin:24px 0;padding:18px 24px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;">One-Time Password (OTP)</p>
+          <span style="font-family:'Courier New',Courier,monospace;font-size:30px;font-weight:bold;letter-spacing:8px;color:#111111;">${otp}</span>
+          <p style="margin:8px 0 0;font-size:12px;color:#999999;">This code expires in 2 minutes.</p>
         </div>
-      </div>
-    `,
+        <p style="margin:0 0 8px;">For your security, do not share this code with anyone. LenDen will never ask for your OTP over a call or message.</p>
+        <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not request this, you can safely ignore this email.</p>
+      </td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
   });
 };

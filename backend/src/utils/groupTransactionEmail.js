@@ -1,106 +1,117 @@
 const { sendEmail } = require('./sendEmailApi');
 const User = require('../models/user');
 
-const getStylishEmailHtml = (title, body) => `
-  <div style="font-family: Arial, sans-serif; background: #f8f6fa; padding: 24px; border-radius: 12px; max-width: 480px; margin: auto;">
-    <h2 style="color: #00B4D8; text-align: center;">${title}</h2>
-    <div style="font-size: 16px; color: #333; text-align: center;">${body}</div>
-    <div style="text-align: center; margin-top: 24px;">
-      <span style="font-size: 12px; color: #aaa;">&copy; Lenden App</span>
-    </div>
-  </div>
-`;
+const _shell = (content) => `
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">${content}</td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`;
 
 const sendEmailToGroupMembers = async (group, subject, getBody, actorEmail) => {
   for (const member of group.members) {
     const user = await User.findById(member.user);
     if (user && user.notificationSettings.emailNotifications && user.notificationSettings.groupNotifications) {
       const isActor = user.email === actorEmail;
-      const html = getStylishEmailHtml(subject, getBody(isActor));
-      await sendEmail({ to: user.email, subject, html });
+      await sendEmail({ to: user.email, subject, html: _shell(getBody(isActor)) });
     }
   }
 };
 
 exports.sendGroupCreatedEmail = (group, creator) => {
-  const subject = `New Group Created: ${group.title}`;
+  const subject = `LenDen – Group Created: ${group.title}`;
   sendEmailToGroupMembers(group, subject, (isActor) =>
     isActor
-      ? `<p>You have created a new group "${group.title}".</p>`
-      : `<p>A new group "${group.title}" has been created by ${creator.email}.</p><p>You have been added as a member.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Group Created</p><p style="margin:0 0 16px;">You have successfully created the group <strong>${group.title}</strong>. You can now start adding expenses and managing balances.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">You Have Been Added to a Group</p><p style="margin:0 0 16px;">You have been added to the group <strong>${group.title}</strong> by ${creator.email}. Open the LenDen app to view the group details.</p>`,
     creator.email
   ).catch(e => console.error('sendGroupCreatedEmail error:', e.message));
 };
 
 exports.sendMemberAddedEmail = (group, addedMemberEmail, addedByEmail) => {
-  const subject = `Member Added to ${group.title}`;
+  const subject = `LenDen – Member Added: ${group.title}`;
   sendEmailToGroupMembers(group, subject, (isActor) =>
     isActor
-      ? `<p>You have added ${addedMemberEmail} to the group "${group.title}".</p>`
-      : `<p>${addedMemberEmail} has been added to the group "${group.title}" by ${addedByEmail}.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Member Added</p><p style="margin:0;">You have added <strong>${addedMemberEmail}</strong> to the group <strong>${group.title}</strong>.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">New Member in ${group.title}</p><p style="margin:0;"><strong>${addedMemberEmail}</strong> has been added to your group <strong>${group.title}</strong> by ${addedByEmail}.</p>`,
     addedByEmail
   ).catch(e => console.error('sendMemberAddedEmail error:', e.message));
 };
 
 exports.sendMemberRemovedEmail = (group, removedMemberEmail, removedByEmail) => {
-  const subject = `Member Removed from ${group.title}`;
+  const subject = `LenDen – Member Removed: ${group.title}`;
   const groupForNotification = { ...group, members: group.members.filter(m => m.user.email !== removedMemberEmail) };
   sendEmailToGroupMembers(groupForNotification, subject, (isActor) =>
     isActor
-      ? `<p>You have removed ${removedMemberEmail} from the group "${group.title}".</p>`
-      : `<p>${removedMemberEmail} has been removed from the group "${group.title}" by ${removedByEmail}.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Member Removed</p><p style="margin:0;">You have removed <strong>${removedMemberEmail}</strong> from the group <strong>${group.title}</strong>.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Member Removed from ${group.title}</p><p style="margin:0;"><strong>${removedMemberEmail}</strong> has been removed from the group <strong>${group.title}</strong> by ${removedByEmail}.</p>`,
     removedByEmail
   ).catch(e => console.error('sendMemberRemovedEmail error:', e.message));
 };
 
 exports.sendYouHaveBeenRemovedEmail = (group, removedMemberEmail, removedByEmail) => {
-  const subject = `You have been removed from ${group.title}`;
-  const html = getStylishEmailHtml(subject, `<p>You have been removed from the group "${group.title}" by ${removedByEmail}.</p>`);
+  const subject = `LenDen – Removed from ${group.title}`;
+  const html = _shell(`
+    <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">You Have Been Removed from a Group</p>
+    <p style="margin:0 0 16px;">You have been removed from the group <strong>${group.title}</strong> by ${removedByEmail}.</p>
+    <p style="margin:0;color:#555555;">If you believe this is an error, please contact the group administrator.</p>
+  `);
   sendEmail({ to: removedMemberEmail, subject, html }).catch(e => console.error('sendYouHaveBeenRemovedEmail error:', e.message));
 };
 
 exports.sendExpenseAddedEmail = (group, expense, addedByEmail) => {
-  const subject = `New Expense in ${group.title}: ${expense.description}`;
+  const subject = `LenDen – New Expense in ${group.title}`;
   sendEmailToGroupMembers(group, subject, (isActor) =>
     isActor
-      ? `<p>You have added a new expense "${expense.description}" of ${expense.amount} to the group "${group.title}".</p>`
-      : `<p>A new expense "${expense.description}" of ${expense.amount} has been added to the group "${group.title}" by ${addedByEmail}.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Added</p><p style="margin:0;">You have added a new expense <strong>${expense.description}</strong> of <strong>${expense.amount}</strong> to the group <strong>${group.title}</strong>.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">New Expense in ${group.title}</p><p style="margin:0;">A new expense <strong>${expense.description}</strong> of <strong>${expense.amount}</strong> has been added to your group <strong>${group.title}</strong> by ${addedByEmail}.</p>`,
     addedByEmail
   ).catch(e => console.error('sendExpenseAddedEmail error:', e.message));
 };
 
 exports.sendExpenseEditedEmail = (group, expense, editedByEmail) => {
-  const subject = `Expense Edited in ${group.title}: ${expense.description}`;
+  const subject = `LenDen – Expense Updated in ${group.title}`;
   sendEmailToGroupMembers(group, subject, (isActor) =>
     isActor
-      ? `<p>You have edited the expense "${expense.description}" in group "${group.title}".</p>`
-      : `<p>The expense "${expense.description}" in group "${group.title}" has been edited by ${editedByEmail}.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Updated</p><p style="margin:0;">You have updated the expense <strong>${expense.description}</strong> in the group <strong>${group.title}</strong>.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Updated in ${group.title}</p><p style="margin:0;">The expense <strong>${expense.description}</strong> in the group <strong>${group.title}</strong> has been updated by ${editedByEmail}.</p>`,
     editedByEmail
   ).catch(e => console.error('sendExpenseEditedEmail error:', e.message));
 };
 
 exports.sendExpenseDeletedEmail = (group, expense, deletedByEmail) => {
-  const subject = `Expense Deleted in ${group.title}`;
+  const subject = `LenDen – Expense Deleted in ${group.title}`;
   sendEmailToGroupMembers(group, subject, (isActor) =>
     isActor
-      ? `<p>You have deleted the expense "${expense.description}" in group "${group.title}".</p>`
-      : `<p>The expense "${expense.description}" in group "${group.title}" has been deleted by ${deletedByEmail}.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Deleted</p><p style="margin:0;">You have deleted the expense <strong>${expense.description}</strong> from the group <strong>${group.title}</strong>.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Deleted in ${group.title}</p><p style="margin:0;">The expense <strong>${expense.description}</strong> has been deleted from the group <strong>${group.title}</strong> by ${deletedByEmail}.</p>`,
     deletedByEmail
   ).catch(e => console.error('sendExpenseDeletedEmail error:', e.message));
 };
 
 exports.sendExpenseSettledEmail = (group, expense, settledByEmail) => {
-  const subject = `Expense Settled in ${group.title}`;
+  const subject = `LenDen – Expense Settled in ${group.title}`;
   sendEmailToGroupMembers(group, subject, (isActor) =>
     isActor
-      ? `<p>You have settled an expense in group "${group.title}".</p>`
-      : `<p>An expense in group "${group.title}" has been settled by ${settledByEmail}.</p>`,
+      ? `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Settled</p><p style="margin:0;">You have settled an expense in the group <strong>${group.title}</strong>.</p>`
+      : `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Expense Settled in ${group.title}</p><p style="margin:0;">An expense in the group <strong>${group.title}</strong> has been settled by ${settledByEmail}.</p>`,
     settledByEmail
   ).catch(e => console.error('sendExpenseSettledEmail error:', e.message));
 };
 
 exports.sendMemberLeftEmail = (group, memberEmail) => {
-  const subject = `Member Left ${group.title}`;
-  sendEmailToGroupMembers(group, subject, () => `<p>${memberEmail} has left the group "${group.title}".</p>`, null)
-    .catch(e => console.error('sendMemberLeftEmail error:', e.message));
+  const subject = `LenDen – Member Left ${group.title}`;
+  sendEmailToGroupMembers(group, subject, () =>
+    `<p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Member Left the Group</p><p style="margin:0;"><strong>${memberEmail}</strong> has left the group <strong>${group.title}</strong>.</p>`,
+    null
+  ).catch(e => console.error('sendMemberLeftEmail error:', e.message));
 };

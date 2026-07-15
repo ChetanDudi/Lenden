@@ -8,39 +8,60 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function getStylishOtpHtml(otp) {
-  return `
-    <div style="font-family: Arial, sans-serif; background: #f8f6fa; padding: 24px; border-radius: 12px; max-width: 480px; margin: auto;">
-      <h2 style="color: #00B4D8; text-align: center;">Lenden Transaction OTP</h2>
-      <p style="font-size: 16px; color: #333; text-align: center;">Your OTP for transaction confirmation is:</p>
-      <div style="font-size: 32px; font-weight: bold; color: #00B4D8; text-align: center; margin: 24px 0; letter-spacing: 4px;">${otp}</div>
-      <p style="font-size: 14px; color: #888; text-align: center;">This OTP is valid for 2 minutes. If you did not request this, please ignore this email.</p>
-      <div style="text-align: center; margin-top: 24px;">
-        <span style="font-size: 12px; color: #aaa;">&copy; Lenden App</span>
-      </div>
-    </div>
-  `;
-}
+const _shell = (content) => `
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">${content}</td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`;
+
+const _otpBlock = (otp) => `
+<div style="background:#f7f7f7;border:1px solid #dddddd;border-left:4px solid #003d75;margin:24px 0;padding:18px 24px;text-align:center;">
+  <p style="margin:0 0 8px;font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;">One-Time Password (OTP)</p>
+  <span style="font-family:'Courier New',Courier,monospace;font-size:30px;font-weight:bold;letter-spacing:8px;color:#111111;">${otp}</span>
+  <p style="margin:8px 0 0;font-size:12px;color:#999999;">This code expires in 2 minutes.</p>
+</div>`;
 
 exports.sendDualOtp = async (email1, email2) => {
   const otp1 = generateOtp();
   const otp2 = generateOtp();
-  const expires = Date.now() + 2 * 60 * 1000; // 2 minutes
-  otpStore[email1] = {otp: otp1, expires };
-  otpStore[email2] = {otp: otp2, expires };
+  const expires = Date.now() + 2 * 60 * 1000;
+  otpStore[email1] = { otp: otp1, expires };
+  otpStore[email2] = { otp: otp2, expires };
   await sendEmail({
     to: email1,
-    subject: 'Lending/Borrowing OTP Verification',
+    subject: 'LenDen – Transaction Verification',
     text: `Your OTP for transaction confirmation is: ${otp1}\nThis OTP will expire in 2 minutes.`,
-    html: getStylishOtpHtml(otp1),
+    html: _shell(`
+      <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Verification</p>
+      <p style="margin:0 0 16px;">A secure transaction requires your verification. Enter the code below in the app to confirm your participation.</p>
+      ${_otpBlock(otp1)}
+      <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
+      <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not initiate this transaction, please ignore this email.</p>
+    `),
   });
   await sendEmail({
     to: email2,
-    subject: 'Lending/Borrowing OTP Verification',
+    subject: 'LenDen – Transaction Verification',
     text: `Your OTP for transaction confirmation is: ${otp2}\nThis OTP will expire in 2 minutes.`,
-    html: getStylishOtpHtml(otp2),
+    html: _shell(`
+      <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Verification</p>
+      <p style="margin:0 0 16px;">A secure transaction requires your verification. Enter the code below in the app to confirm your participation.</p>
+      ${_otpBlock(otp2)}
+      <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
+      <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not initiate this transaction, please ignore this email.</p>
+    `),
   });
-  return {otp1, otp2 };
+  return { otp1, otp2 };
 };
 
 exports.verifyDualOtp = (email1, otp1, email2, otp2) => {
@@ -60,12 +81,18 @@ exports.verifyDualOtp = (email1, otp1, email2, otp2) => {
 exports.resendOtp = async (email) => {
   const otp = generateOtp();
   const expires = Date.now() + 2 * 60 * 1000;
-  otpStore[email] = {otp, expires };
+  otpStore[email] = { otp, expires };
   await sendEmail({
     to: email,
-    subject: 'Lending/Borrowing OTP Verification (Resend)',
+    subject: 'LenDen – Transaction Verification (Resend)',
     text: `Your OTP for transaction confirmation is: ${otp}\nThis OTP will expire in 2 minutes.`,
-    html: getStylishOtpHtml(otp),
+    html: _shell(`
+      <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Verification</p>
+      <p style="margin:0 0 16px;">A new verification code has been sent as requested.</p>
+      ${_otpBlock(otp)}
+      <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
+      <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not initiate this transaction, please ignore this email.</p>
+    `),
   });
   return otp;
 };
@@ -112,11 +139,11 @@ exports.consumePartialPaymentVerified = (transactionId) => {
 exports.sendTransactionReceipt = async (email, transaction, counterpartyNameOrEmail) => {
   const user = await User.findOne({ email });
   if (!user || !user.notificationSettings.emailNotifications || !user.notificationSettings.transactionNotifications || !shouldSendNotification(user)) {
-    return; // Do not send email if notifications are disabled or in quiet hours
+    return;
   }
 
   const {
-    amount, currency, date, time, place, counterpartyEmail, userEmail, role, interestType, interestRate, expectedReturnDate, compoundingFrequency, transactionId
+    amount, currency, date, time, place, role, interestType, interestRate, expectedReturnDate, compoundingFrequency, transactionId
   } = transaction;
   let interestInfo = '';
   let expectedAmount = amount;
@@ -141,82 +168,103 @@ exports.sendTransactionReceipt = async (email, transaction, counterpartyNameOrEm
       interestInfo = `Compound Interest @ ${rate}% (${freqLabel})`;
     }
   }
-  const html = `
-    <div style="font-family: Arial, sans-serif; background: #f8f6fa; padding: 24px; border-radius: 12px; max-width: 520px; margin: auto;">
-      <h2 style="color: #00B4D8; text-align: center;">Lenden Transaction Receipt</h2>
-      <div style="background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px #00B4D820;">
-        <p style="font-size: 18px; color: #333; margin-bottom: 8px;"><b>Amount:</b> ${amount} ${currency}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Date:</b> ${date ? new Date(date).toLocaleDateString() : ''} <b>Time:</b> ${time || ''}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Place:</b> ${place || ''}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Counterparty:</b> ${counterpartyNameOrEmail}</p>
-        ${interestInfo ? `<p style='font-size: 16px; color: #333; margin-bottom: 8px;'><b>Interest:</b> ${interestInfo}</p>` : ''}
-        ${expectedReturnDate ? `<p style='font-size: 16px; color: #333; margin-bottom: 8px;'><b>Expected Return Date:</b> ${new Date(expectedReturnDate).toLocaleDateString()}</p>` : ''}
-        ${(interestInfo && expectedReturnDate) ? `<p style='font-size: 16px; color: #333; margin-bottom: 8px;'><b>Expected Amount to be Paid:</b> ${expectedAmount.toFixed(2)} ${currency}</p>` : ''}
-        <p style="font-size: 14px; color: #888; margin-bottom: 8px;"><b>Transaction ID:</b> ${transactionId}</p>
-      </div>
-      <div style="text-align: center; margin-top: 24px;">
-        <span style="font-size: 12px; color: #aaa;">&copy; Lenden App</span>
-      </div>
-    </div>
-  `;
-  await sendEmail({ to: email, subject: 'Lenden Transaction Receipt', html });
+
+  const _row = (label, value, shaded) =>
+    `<tr${shaded ? ' style="background:#f7f7f7;"' : ''}>
+      <td style="padding:10px 16px;font-weight:bold;color:#555555;width:45%;border-bottom:1px solid #e0e0e0;">${label}</td>
+      <td style="padding:10px 16px;color:#222222;border-bottom:1px solid #e0e0e0;">${value}</td>
+    </tr>`;
+
+  const rows = [
+    ['Amount', `${amount} ${currency}`],
+    ['Date', date ? new Date(date).toLocaleDateString('en-IN') : ''],
+    ['Time', time || ''],
+    ['Place', place || ''],
+    ['Counterparty', counterpartyNameOrEmail],
+    ...(interestInfo ? [['Interest', interestInfo]] : []),
+    ...(expectedReturnDate ? [['Expected Return Date', new Date(expectedReturnDate).toLocaleDateString('en-IN')]] : []),
+    ...(interestInfo && expectedReturnDate ? [['Expected Amount', `${expectedAmount.toFixed(2)} ${currency}`]] : []),
+    ['Transaction ID', transactionId],
+  ];
+
+  await sendEmail({
+    to: email,
+    subject: `LenDen – Transaction Receipt (${transactionId})`,
+    html: _shell(`
+      <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Receipt</p>
+      <p style="margin:0 0 24px;">Your transaction has been recorded. Below is a summary for your reference.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:16px;">
+        ${rows.map(([l, v], i) => _row(l, v, i % 2 === 0)).join('')}
+      </table>
+    `),
+  });
 };
 
 exports.sendTransactionClearedNotification = async (email, transaction, clearedByEmail) => {
   const user = await User.findOne({ email });
   if (!user || !user.notificationSettings.emailNotifications || !user.notificationSettings.transactionNotifications || !shouldSendNotification(user)) {
-    return; // Do not send email if notifications are disabled or in quiet hours
+    return;
   }
 
-  const {
-    amount, currency, date, time, place, counterpartyEmail, userEmail, role, transactionId, userCleared, counterpartyCleared
-  } = transaction;
+  const { amount, currency, date, time, place, transactionId, userCleared, counterpartyCleared } = transaction;
   const fullyCleared = userCleared && counterpartyCleared;
-  const html = `
-    <div style="font-family: Arial, sans-serif; background: #f8f6fa; padding: 24px; border-radius: 12px; max-width: 520px; margin: auto;">
-      <h2 style="color: #00B4D8; text-align: center;">Lenden Transaction Clearance Update</h2>
-      <div style="background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px #00B4D820;">
-        <p style="font-size: 18px; color: #333; margin-bottom: 8px;"><b>Amount:</b> ${amount} ${currency}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Date:</b> ${date ? new Date(date).toLocaleDateString() : ''} <b>Time:</b> ${time || ''}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Place:</b> ${place || ''}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Transaction ID:</b> ${transactionId}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Cleared by:</b> ${clearedByEmail}</p>
-        <p style="font-size: 16px; color: #333; margin-bottom: 8px;"><b>Status:</b> ${fullyCleared ? '<span style=\'color:green\'>Fully Cleared (Both parties have cleared)</span>' : 'Pending clearance from the your side'}</p>
-      </div>
-      <div style="text-align: center; margin-top: 24px;">
-        <span style="font-size: 12px; color: #aaa;">&copy; Lenden App</span>
-      </div>
-    </div>
-  `;
-  await sendEmail({ to: email, subject: 'Lenden Transaction Clearance Update', html });
+
+  const _row = (label, value, shaded) =>
+    `<tr${shaded ? ' style="background:#f7f7f7;"' : ''}>
+      <td style="padding:10px 16px;font-weight:bold;color:#555555;width:45%;border-bottom:1px solid #e0e0e0;">${label}</td>
+      <td style="padding:10px 16px;color:#222222;border-bottom:1px solid #e0e0e0;">${value}</td>
+    </tr>`;
+
+  await sendEmail({
+    to: email,
+    subject: `LenDen – Transaction Clearance Update (${transactionId})`,
+    html: _shell(`
+      <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Clearance Update</p>
+      <p style="margin:0 0 24px;">The clearance status of your transaction has been updated.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:24px;">
+        ${_row('Amount', `${amount} ${currency}`, true)}
+        ${_row('Date', date ? new Date(date).toLocaleDateString('en-IN') : '', false)}
+        ${_row('Place', place || '', true)}
+        ${_row('Transaction ID', transactionId, false)}
+        ${_row('Cleared by', clearedByEmail, true)}
+        ${_row('Status', fullyCleared ? 'Fully Cleared — both parties have confirmed.' : 'Partially cleared — pending confirmation from your side.', false)}
+      </table>
+      ${!fullyCleared ? '<p style="margin:0;color:#555555;">Please open the app and confirm clearance on your side to fully close this transaction.</p>' : ''}
+    `),
+  });
 };
 
 exports.sendReminderEmail = async (email, transaction, daysLeft) => {
   const user = await User.findOne({ email });
   if (!user || !user.notificationSettings.emailNotifications || !user.notificationSettings.paymentReminders || !shouldSendNotification(user)) {
-    return; // Do not send email if notifications are disabled or in quiet hours
+    return;
   }
 
   const subject = daysLeft === 0
-    ? `Lenden: Today is the due date for your transaction!`
-    : `Lenden: Your transaction is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
-  const html = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; background: #f8f6fa; padding: 32px; border-radius: 16px; max-width: 500px; margin: auto;">
-      <h2 style="color: #00b4d8;">Lenden Reminder</h2>
-      <p style="font-size: 18px; color: #333;">Hi <b>${transaction.counterpartyName || 'User'}</b>,</p>
-      <p style="font-size: 16px;">This is a friendly reminder that your transaction of <b>₹${transaction.amount}</b> (${transaction.type}) is due <b>${daysLeft === 0 ? 'today' : `in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`}</b>.</p>
-      <ul style="font-size: 15px; color: #444;">
-        <li><b>Transaction ID:</b> ${transaction._id}</li>
-        <li><b>Counterparty:</b> ${transaction.counterpartyEmail}</li>
-        <li><b>Place:</b> ${transaction.place}</li>
-        <li><b>Expected Return Date:</b> ${transaction.expectedReturnDate ? new Date(transaction.expectedReturnDate).toLocaleDateString() : 'N/A'}</li>
-      </ul>
-      <p style="margin-top: 24px; font-size: 15px; color: #555;">Please ensure timely settlement to maintain a good record.</p>
-      <div style="margin-top: 32px; text-align: center;">
-        <a href="https://lenden.app" style="background: #00b4d8; color: #fff; padding: 12px 32px; border-radius: 24px; text-decoration: none; font-weight: bold;">Go to Lenden</a>
-      </div>
-      <p style="margin-top: 32px; font-size: 13px; color: #aaa;">This is an automated reminder from Lenden. Please do not reply to this email.</p>
-    </div>
-  `;
-  await sendEmail({ to: email, subject, html });
+    ? 'LenDen – Payment Due Today'
+    : `LenDen – Payment Due in ${daysLeft} Day${daysLeft === 1 ? '' : 's'}`;
+
+  const dueLabel = daysLeft === 0 ? 'today' : `in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+
+  const _row = (label, value, shaded) =>
+    `<tr${shaded ? ' style="background:#f7f7f7;"' : ''}>
+      <td style="padding:10px 16px;font-weight:bold;color:#555555;width:45%;border-bottom:1px solid #e0e0e0;">${label}</td>
+      <td style="padding:10px 16px;color:#222222;border-bottom:1px solid #e0e0e0;">${value}</td>
+    </tr>`;
+
+  await sendEmail({
+    to: email,
+    subject,
+    html: _shell(`
+      <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Payment Reminder</p>
+      <p style="margin:0 0 16px;">This is a reminder that your transaction of <strong>&#8377;${transaction.amount}</strong> (${transaction.type}) is due <strong>${dueLabel}</strong>.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:24px;">
+        ${_row('Transaction ID', transaction._id, true)}
+        ${_row('Counterparty', transaction.counterpartyEmail, false)}
+        ${_row('Place', transaction.place || '', true)}
+        ${_row('Due Date', transaction.expectedReturnDate ? new Date(transaction.expectedReturnDate).toLocaleDateString('en-IN') : 'N/A', false)}
+      </table>
+      <p style="margin:0;color:#555555;">Please ensure timely settlement to maintain a good record on LenDen.</p>
+    `),
+  });
 };

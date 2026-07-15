@@ -4,28 +4,42 @@ async function sendLoginNotificationEmail({ to, name, ipAddress, userAgent, logi
   const formattedTime = loginTime.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
   await sendEmail({
     to,
-    subject: 'LenDen: New Login Notification',
+    subject: 'LenDen – New Sign-In to Your Account',
+    text: `Hi ${name || 'User'},\n\nA new sign-in was detected on your LenDen account.\n\nTime: ${formattedTime}\nIP Address: ${ipAddress || 'Unknown'}\nDevice: ${userAgent || 'Unknown'}\n\nIf this was you, no action is needed. If you did not sign in, please reset your password immediately.`,
     html: `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; background: #f8f6fa; padding: 32px;">
-        <div style="max-width: 480px; margin: auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 12px #0001; padding: 32px;">
-          <div style="text-align: center;">
-            <img src="https://img.icons8.com/color/96/lock--v1.png" alt="Login" style="width: 64px; margin-bottom: 16px;" />
-            <h2 style="color: #00b4d8; margin-bottom: 8px;">New Login Detected</h2>
-          </div>
-          <p style="font-size: 16px; color: #222;">Hi <b>${name || 'User'}</b>,</p>
-          <p style="font-size: 15px; color: #444;">We noticed a new login to your account on <b>LenDen</b>.</p>
-          <table style="width: 100%; margin: 24px 0; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #888;">Login Time:</td><td style="padding: 8px 0; color: #222;"><b>${formattedTime}</b></td></tr>
-            <tr><td style="padding: 8px 0; color: #888;">IP Address:</td><td style="padding: 8px 0; color: #222;">${ipAddress || 'Unknown'}</td></tr>
-            <tr><td style="padding: 8px 0; color: #888;">Device:</td><td style="padding: 8px 0; color: #222;">${userAgent || 'Unknown'}</td></tr>
-          </table>
-          <div style="background: #e0f7fa; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-            <span style="color: #0077b6; font-weight: 500;">If this was you, you can safely ignore this email.<br>If you did <b>not</b> perform this login, please reset your password immediately.</span>
-          </div>
-          <p style="font-size: 13px; color: #888; text-align: center;">Stay secure,<br><b>LenDen Team</b></p>
-        </div>
-      </div>
-    `,
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">
+        <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">New Sign-In Detected</p>
+        <p style="margin:0 0 16px;">Dear ${name || 'User'},</p>
+        <p style="margin:0 0 24px;">A sign-in to your LenDen account was recorded. If this was you, no further action is required.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:24px;">
+          <tr style="background:#f7f7f7;">
+            <td style="padding:10px 16px;font-weight:bold;color:#555555;width:40%;border-bottom:1px solid #e0e0e0;">Date &amp; Time</td>
+            <td style="padding:10px 16px;color:#222222;border-bottom:1px solid #e0e0e0;">${formattedTime}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 16px;font-weight:bold;color:#555555;border-bottom:1px solid #e0e0e0;">IP Address</td>
+            <td style="padding:10px 16px;color:#222222;border-bottom:1px solid #e0e0e0;">${ipAddress || 'Unknown'}</td>
+          </tr>
+          <tr style="background:#f7f7f7;">
+            <td style="padding:10px 16px;font-weight:bold;color:#555555;">Device / Browser</td>
+            <td style="padding:10px 16px;color:#222222;">${userAgent || 'Unknown'}</td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0;background:#fce8e8;border-left:4px solid #cc0000;padding:12px 16px;color:#555555;font-size:13px;">If you did not sign in, please reset your password immediately and contact LenDen support.</p>
+      </td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated security notification. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
   });
 }
 

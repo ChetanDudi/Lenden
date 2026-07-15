@@ -10,44 +10,43 @@ const sendGroupLeaveRequestEmail = async (creatorEmail, groupDetails, requesting
     }
 
     const balanceSection = userBalance !== 0
-      ? `<div style="background: linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%); border: 2px solid #ff6b6b; border-radius: 15px; padding: 25px; margin-bottom: 30px; text-align: center;">
-           <h3 style="color: #d63031;">Pending Balance</h3>
-           <p style="color: #d63031;">This member has pending expenses that need to be settled.</p>
-           <div style="font-size: 24px; font-weight: bold; color: #d63031; margin: 10px 0;">$${userBalance.toFixed(2)}</div>
-         </div>`
-      : `<div style="background: #d4edda; border: 2px solid #28a745; border-radius: 15px; padding: 25px; margin-bottom: 30px; text-align: center;">
-           <h3 style="color: #155724;">No Pending Balance</h3>
-           <p style="color: #155724;">This member has no pending expenses and can safely leave the group.</p>
-         </div>`;
+      ? `<p style="margin:16px 0 0;background:#fce8e8;border-left:4px solid #cc0000;padding:12px 16px;color:#555555;font-size:13px;">This member has a pending balance of <strong>&#8377;${Math.abs(userBalance).toFixed(2)}</strong> that must be settled before they can leave the group.</p>`
+      : `<p style="margin:16px 0 0;background:#e8f5e9;border-left:4px solid #388e3c;padding:12px 16px;color:#555555;font-size:13px;">This member has no pending balance and can safely leave the group.</p>`;
+
+    const _row = (label, value, shaded) =>
+      `<tr${shaded ? ' style="background:#f7f7f7;"' : ''}>
+        <td style="padding:10px 16px;font-weight:bold;color:#555555;width:45%;border-bottom:1px solid #e0e0e0;">${label}</td>
+        <td style="padding:10px 16px;color:#222222;border-bottom:1px solid #e0e0e0;">${value}</td>
+      </tr>`;
 
     await sendEmail({
       to: creatorEmail,
-      subject: `Group Leave Request: ${requestingUserEmail} wants to leave "${groupDetails.title}"`,
+      subject: `LenDen – Leave Request: ${requestingUserEmail} wants to leave "${groupDetails.title}"`,
       html: `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
-            <h1 style="margin: 0;">Group Leave Request</h1>
-            <p style="opacity: 0.9;">A member wants to leave your group</p>
-          </div>
-          <div style="padding: 40px 30px;">
-            <div style="background: #fff3cd; border: 2px solid #fdcb6e; border-radius: 15px; padding: 25px; margin-bottom: 30px; text-align: center;">
-              <h2 style="color: #856404;">Action Required</h2>
-              <p style="color: #856404;"><strong>${requestingUserEmail}</strong> has requested to leave your group "${groupDetails.title}".</p>
-            </div>
-            <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-              <h3 style="color: #495057;">Group Details</h3>
-              <p><strong>Group:</strong> ${groupDetails.title}</p>
-              <p><strong>Requesting Member:</strong> ${requestingUserEmail}</p>
-              <p><strong>Total Members:</strong> ${groupDetails.members ? groupDetails.members.length : 0}</p>
-              <p><strong>Total Expenses:</strong> ${groupDetails.expenses ? groupDetails.expenses.length : 0}</p>
-            </div>
-            ${balanceSection}
-          </div>
-          <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 14px;">
-            <p>&copy; Lenden App. This is an automated message.</p>
-          </div>
-        </div>
-      `,
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
+      <tr><td style="background:#003d75;padding:20px 32px;">
+        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
+      </td></tr>
+      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">
+        <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Group Leave Request</p>
+        <p style="margin:0 0 24px;"><strong>${requestingUserEmail}</strong> has requested to leave your group <strong>${groupDetails.title}</strong>. Please review the details below and approve or deny the request in the app.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:16px;">
+          ${_row('Group', groupDetails.title, true)}
+          ${_row('Requesting Member', requestingUserEmail, false)}
+          ${_row('Total Members', groupDetails.members ? groupDetails.members.length : 0, true)}
+          ${_row('Total Expenses', groupDetails.expenses ? groupDetails.expenses.length : 0, false)}
+        </table>
+        ${balanceSection}
+      </td></tr>
+      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
+        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
+        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`,
     });
     return true;
   } catch (error) {
