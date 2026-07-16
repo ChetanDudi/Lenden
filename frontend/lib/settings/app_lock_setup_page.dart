@@ -15,8 +15,6 @@ class AppLockSetupPage extends StatefulWidget {
 class _AppLockSetupPageState extends State<AppLockSetupPage> {
   bool _loading = true;
   bool _enabled = false;
-  bool _biometricAvailable = false;
-  bool _biometricEnabled = false;
 
   @override
   void initState() {
@@ -26,13 +24,9 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
 
   Future<void> _load() async {
     final enabled = await AppLockService.isEnabled();
-    final bioAvailable = await AppLockService.isBiometricAvailable();
-    final bioEnabled = await AppLockService.isBiometricEnabled();
     if (!mounted) return;
     setState(() {
       _enabled = enabled;
-      _biometricAvailable = bioAvailable;
-      _biometricEnabled = bioEnabled;
       _loading = false;
     });
   }
@@ -172,37 +166,11 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
                   tricolorBorder(
                     child: Container(
                       color: AppThemeColors.cardBg(context),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            title: Text(t('change_pin'),
-                                style: TextStyle(color: AppThemeColors.primaryText(context))),
-                            leading: const Icon(Icons.pin_outlined, color: AppColors.cyan),
-                            onTap: _setupPin,
-                          ),
-                          if (_biometricAvailable)
-                            SwitchListTile(
-                              title: Text(t('biometric_unlock_title'),
-                                  style: TextStyle(color: AppThemeColors.primaryText(context))),
-                              subtitle: Text(t('biometric_unlock_subtitle'),
-                                  style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                              value: _biometricEnabled,
-                              activeColor: AppColors.cyan,
-                              onChanged: (v) async {
-                                if (v) {
-                                  // Verify biometric works before enabling
-                                  final ok = await AppLockService.authenticateWithBiometrics();
-                                  if (!mounted) return;
-                                  if (!ok) {
-                                    showSnack(context, t('biometric_auth_failed'), isError: true);
-                                    return;
-                                  }
-                                }
-                                await AppLockService.setBiometricEnabled(v);
-                                if (mounted) setState(() => _biometricEnabled = v);
-                              },
-                            ),
-                        ],
+                      child: ListTile(
+                        title: Text(t('change_pin'),
+                            style: TextStyle(color: AppThemeColors.primaryText(context))),
+                        leading: const Icon(Icons.pin_outlined, color: AppColors.cyan),
+                        onTap: _setupPin,
                       ),
                     ),
                   ),

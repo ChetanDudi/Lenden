@@ -16,37 +16,6 @@ class AppLockScreen extends StatefulWidget {
 class _AppLockScreenState extends State<AppLockScreen> {
   String _pin = '';
   String? _error;
-  bool _biometricAvailable = false;
-  bool _biometricEnabled = false;
-  bool _checkingBiometric = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initBiometric();
-  }
-
-  Future<void> _initBiometric() async {
-    final available = await AppLockService.isBiometricAvailable();
-    final enabled = await AppLockService.isBiometricEnabled();
-    if (!mounted) return;
-    setState(() {
-      _biometricAvailable = available;
-      _biometricEnabled = enabled;
-    });
-    if (available && enabled) {
-      _tryBiometric();
-    }
-  }
-
-  Future<void> _tryBiometric() async {
-    if (_checkingBiometric) return;
-    setState(() => _checkingBiometric = true);
-    final ok = await AppLockService.authenticateWithBiometrics();
-    if (!mounted) return;
-    setState(() => _checkingBiometric = false);
-    if (ok) widget.onUnlocked();
-  }
 
   void _onDigit(String digit) {
     if (_pin.length >= 6) return;
@@ -126,15 +95,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             ),
             const Spacer(),
             _buildKeypad(context),
-            const SizedBox(height: 12),
-            if (_biometricAvailable && _biometricEnabled)
-              TextButton.icon(
-                onPressed: _checkingBiometric ? null : _tryBiometric,
-                icon: const Icon(Icons.fingerprint_rounded, color: AppColors.cyan),
-                label: Text(t('use_biometric_unlock'),
-                    style: const TextStyle(color: AppColors.cyan)),
-              ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 36),
           ],
         ),
       ),

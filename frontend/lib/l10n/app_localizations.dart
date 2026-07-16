@@ -271,7 +271,6 @@ class AppLocalizations {
       'enter_pin': 'Enter PIN',
       'enter_pin_subtitle': 'Enter your PIN to unlock LenDen',
       'incorrect_pin': 'Incorrect PIN',
-      'use_biometric_unlock': 'Use biometric unlock',
       'account_deactivated': 'Account Deactivated',
       'account_deactivated_message':
           'This account has been deactivated. Would you like to recover it and log in?',
@@ -506,7 +505,6 @@ class AppLocalizations {
       'friends_ratings_header_label': "Friends' Ratings",
       'pin_must_be_6_digits': 'PIN must be exactly 6 digits',
       'pin_hint_6_digit': 'Enter 6-digit PIN',
-      'biometric_auth_failed': 'Biometric authentication failed. Please try again.',
       'ratings_loading_label': 'Loading ratings...',
       'no_ratings_yet_label': 'No ratings yet',
 
@@ -869,14 +867,12 @@ class AppLocalizations {
       'app_lock_disabled_msg': 'App lock disabled.',
       'disable_app_lock_title': 'Disable App Lock',
       'disable_app_lock_confirm':
-          'Are you sure you want to disable PIN and biometric app lock?',
+          'Are you sure you want to disable PIN app lock?',
       'disable': 'Disable',
       'pin_app_lock': 'PIN App Lock',
       'app_lock_enabled_subtitle': 'Enabled — PIN required to open the app',
       'require_pin_subtitle': 'Require a PIN to open the app',
       'change_pin': 'Change PIN',
-      'biometric_unlock_title': 'Biometric Unlock',
-      'biometric_unlock_subtitle': 'Use fingerprint/face unlock as a shortcut',
       'pin_hint_4_6_digit': '6-digit PIN',
       'notification_preferences_title': 'Notification Preferences',
       'customize_notifications_subtitle':
@@ -4234,7 +4230,6 @@ class AppLocalizations {
       'enter_pin': 'पिन दर्ज करें',
       'enter_pin_subtitle': 'LenDen अनलॉक करने के लिए अपना पिन दर्ज करें',
       'incorrect_pin': 'गलत पिन',
-      'use_biometric_unlock': 'बायोमेट्रिक अनलॉक का उपयोग करें',
       'account_deactivated': 'खाता निष्क्रिय किया गया',
       'account_deactivated_message':
           'यह खाता निष्क्रिय कर दिया गया है। क्या आप इसे पुनर्स्थापित करके लॉगिन करना चाहेंगे?',
@@ -4527,7 +4522,6 @@ class AppLocalizations {
       'friends_ratings_header_label': 'मित्रों की रेटिंग',
       'pin_must_be_6_digits': 'PIN ठीक 6 अंकों का होना चाहिए',
       'pin_hint_6_digit': '6 अंकों का PIN डालें',
-      'biometric_auth_failed': 'बायोमेट्रिक प्रमाणीकरण विफल। कृपया पुनः प्रयास करें।',
       'ratings_loading_label': 'रेटिंग लोड हो रही है...',
       'no_ratings_yet_label': 'अभी तक कोई रेटिंग नहीं',
 
@@ -4882,15 +4876,12 @@ class AppLocalizations {
       'app_lock_disabled_msg': 'ऐप लॉक अक्षम किया गया।',
       'disable_app_lock_title': 'ऐप लॉक अक्षम करें',
       'disable_app_lock_confirm':
-          'क्या आप वाकई पिन और बायोमेट्रिक ऐप लॉक अक्षम करना चाहते हैं?',
+          'क्या आप वाकई पिन ऐप लॉक अक्षम करना चाहते हैं?',
       'disable': 'अक्षम करें',
       'pin_app_lock': 'पिन ऐप लॉक',
       'app_lock_enabled_subtitle': 'सक्षम — ऐप खोलने के लिए पिन आवश्यक है',
       'require_pin_subtitle': 'ऐप खोलने के लिए पिन आवश्यक करें',
       'change_pin': 'पिन बदलें',
-      'biometric_unlock_title': 'बायोमेट्रिक अनलॉक',
-      'biometric_unlock_subtitle':
-          'शॉर्टकट के रूप में फिंगरप्रिंट/फेस अनलॉक का उपयोग करें',
       'pin_hint_4_6_digit': '6 अंकों का पिन',
       'notification_preferences_title': 'सूचना प्राथमिकताएं',
       'customize_notifications_subtitle':

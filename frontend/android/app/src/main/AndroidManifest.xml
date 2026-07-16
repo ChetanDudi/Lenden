@@ -8,9 +8,6 @@
     <!-- Gallery access for scanning QR codes from images -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <!-- Biometric app-lock -->
-    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
-
     <application
     android:label="LenDen"
         android:name="${applicationName}"
