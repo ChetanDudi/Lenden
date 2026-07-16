@@ -36,8 +36,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? _gender;
   Uint8List? _newImageBytes;
   bool _removeImage = false;
-  int _imageRefreshKey = 0; // Key to force avatar rebuild
-  bool _isUpdating = false; // Loading state for profile update
+  int _imageRefreshKey = 0;
+  ImageProvider? _cachedNetworkAvatar;
+  int _lastAvatarKey = -1;
+  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -458,12 +460,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  void _removeProfileImage() {
-    setState(() {
-      _newImageBytes = null;
-      _removeImage = true;
-      _imageRefreshKey++; // Force avatar rebuild
-    });
+  Future<void> _removeProfileImage() async {
+    final t = AppLocalizations.of(context).t;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('remove_photo_confirm_title')),
+        content: Text(t('remove_photo_confirm_body')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('remove'), style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      setState(() {
+        _newImageBytes = null;
+        _removeImage = true;
+        _imageRefreshKey++;
+      });
+    }
   }
 
   void _saveProfile() async {
@@ -567,18 +586,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
     }
     else {
-      // Show network image with cache busting for real-time updates
-      final cacheBustingUrl =
-          '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-      avatarProvider = NetworkImage(cacheBustingUrl);
+      if (_imageRefreshKey != _lastAvatarKey || _cachedNetworkAvatar == null) {
+        _cachedNetworkAvatar = NetworkImage('$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}');
+        _lastAvatarKey = _imageRefreshKey;
+      }
+      avatarProvider = _cachedNetworkAvatar!;
       avatar = CircleAvatar(
         key: ValueKey(_imageRefreshKey),
         radius: 54,
         backgroundImage: avatarProvider,
         backgroundColor: AppColors.cyan,
-        onBackgroundImageError: (exception, stackTrace) {
-          // Fallback to default avatar if network image fails
-        },
+        onBackgroundImageError: (exception, stackTrace) {},
       );
     }
     return Scaffold(
@@ -927,37 +945,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 }
                 return val == null || val.isEmpty ? t('required') : null;
               },
-              onTap: isBirthday
-                  ? () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: controller.text.isNotEmpty
-                            ? DateTime.tryParse(controller.text) ?? DateTime(2000)
-                            : DateTime(2000),
-                        firstDate: DateTime(1900),
-                        lastDate: DateTime.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: Theme.of(context).colorScheme.copyWith(
-                                primary: AppColors.cyan,
-                                onPrimary: Colors.white,
-                              ),
-                              textButtonTheme: TextButtonThemeData(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.cyan,
-                                ),
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) {
-                        controller.text = picked.toIso8601String().split('T').first;
-                      }
-                    }
-                  : null,
+              onTap: null,
             ),
           ),
         ],

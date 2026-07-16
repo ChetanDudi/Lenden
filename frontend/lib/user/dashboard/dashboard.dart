@@ -62,6 +62,8 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     with TickerProviderStateMixin {
   bool _friendToastShown = false;
   int _imageRefreshKey = 0;
+  ImageProvider? _cachedAvatarImage;
+  int _lastAvatarKey = -1;
   final ScrollController _scrollController = ScrollController();
   final Random _adRandom = Random();
   Timer? _adTimer;
@@ -401,20 +403,22 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   }
 
   ImageProvider _getUserAvatar() {
+    if (_imageRefreshKey == _lastAvatarKey && _cachedAvatarImage != null) {
+      return _cachedAvatarImage!;
+    }
     final session = Provider.of<SessionProvider>(context, listen: false);
     final user = session.user;
     final gender = user?['gender'] ?? 'Other';
     final imageUrl = user?['profileImage'];
 
+    ImageProvider provider;
     if (imageUrl != null &&
         imageUrl is String &&
         imageUrl.trim().isNotEmpty &&
         imageUrl != 'null') {
-      final cacheBustingUrl =
-          '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-      return NetworkImage(cacheBustingUrl);
+      provider = NetworkImage('$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}');
     } else {
-      return AssetImage(
+      provider = AssetImage(
         gender == 'Male'
             ? 'assets/Male.png'
             : gender == 'Female'
@@ -422,6 +426,9 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 : 'assets/Other.png',
       );
     }
+    _cachedAvatarImage = provider;
+    _lastAvatarKey = _imageRefreshKey;
+    return provider;
   }
 
   Future<void> _checkAndShowRatingDialog() async {
@@ -1046,10 +1053,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             // Main content
             SafeArea(
               child: RefreshIndicator(
-                onRefresh: () => Future.wait([
-                  _fetchFriends(),
-                  _fetchUnreadUpdatesCount(),
-                ]),
+                onRefresh: () {
+                  final session = Provider.of<SessionProvider>(context, listen: false);
+                  return Future.wait([
+                    _fetchFriends(),
+                    _fetchUnreadUpdatesCount(),
+                    session.refreshUserProfile(),
+                  ]);
+                },
                 color: AppColors.cyan,
                 child: SingleChildScrollView(
                 controller: _scrollController,

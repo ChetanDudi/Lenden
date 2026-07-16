@@ -231,5 +231,6 @@ userSchema.index({ username: 1 });
 userSchema.index({ phone: 1 });
 userSchema.index({ referralCode: 1 });
 userSchema.index({ googleId: 1 });
+userSchema.index({ walletBalance: 1 });
 
 module.exports = mongoose.model('User', userSchema);

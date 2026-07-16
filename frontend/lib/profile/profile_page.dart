@@ -24,7 +24,9 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
   String? _error;
-  int _imageRefreshKey = 0; // Key to force avatar rebuild
+  int _imageRefreshKey = 0;
+  ImageProvider? _cachedAvatarImage;
+  int _lastAvatarKey = -1;
 
   @override
   void initState() {
@@ -87,14 +89,14 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       } else {
         setState(() {
-          _error = null;
+          _error = AppLocalizations.of(context).t('error_loading_profile');
           _profile = null;
           _loading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = null;
+        _error = AppLocalizations.of(context).t('error_loading_profile');
         _profile = null;
         _loading = false;
       });
@@ -129,25 +131,26 @@ class _ProfilePageState extends State<ProfilePage> {
         : double.tryParse(user?['avgRating']?.toString() ?? '') ?? 0.0;
     final avgRating = avgRatingNum > 0 ? avgRatingNum.toStringAsFixed(2) : '';
 
-    // Choose the correct avatar provider based on imageUrl
-    ImageProvider avatarProvider;
-    if (imageUrl != null &&
-        imageUrl is String &&
-        imageUrl.trim().isNotEmpty &&
-        imageUrl != 'null') {
-      // Add cache busting parameter for real-time updates
-      final cacheBustingUrl =
-          '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-      avatarProvider = NetworkImage(cacheBustingUrl);
-    } else {
-      avatarProvider = AssetImage(
-        gender == 'Male'
-            ? 'assets/Male.png'
-            : gender == 'Female'
-                ? 'assets/Female.png'
-                : 'assets/Other.png',
-      );
+    // Choose the correct avatar provider based on imageUrl. Cache per refresh
+    // key so repeated builds don't generate a new URL (and re-download) each time.
+    if (_imageRefreshKey != _lastAvatarKey || _cachedAvatarImage == null) {
+      if (imageUrl != null &&
+          imageUrl is String &&
+          imageUrl.trim().isNotEmpty &&
+          imageUrl != 'null') {
+        _cachedAvatarImage = NetworkImage('$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}');
+      } else {
+        _cachedAvatarImage = AssetImage(
+          gender == 'Male'
+              ? 'assets/Male.png'
+              : gender == 'Female'
+                  ? 'assets/Female.png'
+                  : 'assets/Other.png',
+        );
+      }
+      _lastAvatarKey = _imageRefreshKey;
     }
+    final avatarProvider = _cachedAvatarImage!;
     final isViewingOwnProfile = widget.email == null || widget.email!.isEmpty;
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
@@ -326,7 +329,28 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           if (_loading) const Center(child: CircularProgressIndicator()),
           if (_error != null)
-            Center(child: Text(_error!, style: TextStyle(color: Colors.red))),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red, size: 40),
+                    const SizedBox(height: 12),
+                    Text(_error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() { _loading = true; _error = null; });
+                        _fetchProfile();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: Text(AppLocalizations.of(context).t('retry')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
@@ -902,6 +903,17 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                                 fontSize: 12,
                                                 color: AppThemeColors.mutedText(
                                                     context))),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton.icon(
+                                          onPressed: _showAddMoneySheet,
+                                          icon: const Icon(Icons.add_card_rounded, size: 18),
+                                          label: Text(t('add_money_label')),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.cyan,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                        ),
                                       ]),
                                 )
                               else
@@ -1219,6 +1231,25 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                                             fontWeight:
                                                                 FontWeight
                                                                     .w500),
+                                                      ),
+                                                    ],
+                                                    if (hasRazorpay) ...[
+                                                      const SizedBox(height: 4),
+                                                      GestureDetector(
+                                                        onTap: () {
+                                                          Clipboard.setData(ClipboardData(
+                                                            text: tx['razorpayPaymentId'].toString(),
+                                                          ));
+                                                          showSnack(context, t('payment_id_copied_label'));
+                                                        },
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            Icon(Icons.copy_rounded, size: 10, color: AppThemeColors.mutedText(context)),
+                                                            const SizedBox(width: 3),
+                                                            Text(t('copy_id_label'), style: TextStyle(fontSize: 9, color: AppThemeColors.mutedText(context))),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ],
                                                   ]),
