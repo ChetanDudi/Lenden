@@ -257,10 +257,14 @@ const toAdminNoteResponse = (note) => ({
 // Admin registration
 const register = async (req, res) => {
   try {
-    const { username, email, password, name } = req.body;
+    const { username, email, password, name, adminSecret } = req.body;
+    const expectedSecret = process.env.ADMIN_REGISTER_SECRET;
+    if (!expectedSecret || adminSecret !== expectedSecret) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
 
     // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ 
+    const existingAdmin = await Admin.findOne({
       $or: [{ email }, { username }]
     });
 

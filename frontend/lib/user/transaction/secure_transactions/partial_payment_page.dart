@@ -144,19 +144,24 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
 
   void _initializeEmails() {
     final user = Provider.of<SessionProvider>(context, listen: false).user;
-    final userEmail = user?['email'];
+    final userEmail = user?['email']?.toString();
+    final role = widget.transaction['role']?.toString() ?? '';
+    final txUserEmail = widget.transaction['userEmail']?.toString();
+    final txCounterpartyEmail = widget.transaction['counterpartyEmail']?.toString();
 
-    if (widget.transaction['role'] == 'lender') {
-      lenderEmail = widget.transaction['userEmail'];
-      borrowerEmail = widget.transaction['counterpartyEmail'];
+    if (role == 'lender') {
+      lenderEmail = txUserEmail;
+      borrowerEmail = txCounterpartyEmail;
     } else {
-      lenderEmail = widget.transaction['counterpartyEmail'];
-      borrowerEmail = widget.transaction['userEmail'];
+      lenderEmail = txCounterpartyEmail;
+      borrowerEmail = txUserEmail;
     }
 
-    if (userEmail?.toLowerCase() == lenderEmail?.toLowerCase()) {
+    if (userEmail != null && lenderEmail != null &&
+        userEmail.toLowerCase() == lenderEmail!.toLowerCase()) {
       paidBy = 'lender';
-    } else if (userEmail?.toLowerCase() == borrowerEmail?.toLowerCase()) {
+    } else if (userEmail != null && borrowerEmail != null &&
+        userEmail.toLowerCase() == borrowerEmail!.toLowerCase()) {
       paidBy = 'borrower';
     }
   }

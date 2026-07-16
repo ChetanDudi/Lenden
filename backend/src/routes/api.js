@@ -205,10 +205,10 @@ module.exports = (io) => {
   router.post('/transactions/create', auth, handleUsage('userTransaction'), upload.array('files'), transactionController.createTransaction);
   router.post('/transactions/with-coins', auth, upload.array('files'), transactionController.createTransactionWithCoins);
   router.post('/transactions/check-email', auth, transactionController.checkEmailExists);
-  router.post('/transactions/send-counterparty-otp', auth, transactionController.sendCounterpartyOTP);
-  router.post('/transactions/verify-counterparty-otp', auth, transactionController.verifyCounterpartyOTP);
-  router.post('/transactions/send-user-otp', auth, transactionController.sendUserOTP);
-  router.post('/transactions/verify-user-otp', auth, transactionController.verifyUserOTP);
+  router.post('/transactions/send-counterparty-otp', auth, otpSendLimiter, transactionController.sendCounterpartyOTP);
+  router.post('/transactions/verify-counterparty-otp', auth, otpVerifyLimiter, transactionController.verifyCounterpartyOTP);
+  router.post('/transactions/send-user-otp', auth, otpSendLimiter, transactionController.sendUserOTP);
+  router.post('/transactions/verify-user-otp', auth, otpVerifyLimiter, transactionController.verifyUserOTP);
   router.post('/transactions/clear', auth, transactionController.clearTransaction);
   router.delete('/transactions/delete', auth, transactionController.deleteTransaction);
   router.post('/transactions/:transactionId/receipt', auth, transactionController.generateReceipt);

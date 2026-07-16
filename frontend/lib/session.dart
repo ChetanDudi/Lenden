@@ -82,8 +82,13 @@ class SessionProvider extends ChangeNotifier {
   }
 
   Future<void> saveToken(String token) async {
-    // For backward compatibility - treat as access token
-    await saveTokens(token, _refreshToken ?? '');
+    if (_refreshToken != null) {
+      await saveTokens(token, _refreshToken!);
+    } else {
+      _accessToken = token;
+      await _storage.write(key: 'access_token', value: token);
+      notifyListeners();
+    }
   }
 
   Future<void> clearTokens() async {
@@ -192,8 +197,9 @@ class SessionProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {
-      // Timeout or no network: clear stale tokens and show login.
-      await clearTokens();
+      // Network error: keep tokens intact so the user doesn't get logged out
+      // on a transient connection failure. Show the app as-is (user = null →
+      // the root widget will present a retry screen rather than login).
       notifyListeners();
     }
   }

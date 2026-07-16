@@ -353,10 +353,10 @@ exports.getQuickTransactions = async (req, res) => {
 exports.toggleQuickTransactionFavourite = async (req, res) => {
   try {
     const { id } = req.params;
-    const { email } = req.body;
+    const email = req.user.email;
 
-    if (!id || !email) {
-      return res.status(400).json({ error: 'Quick transaction ID and email are required' });
+    if (!id) {
+      return res.status(400).json({ error: 'Quick transaction ID is required' });
     }
 
     const quickTransaction = await QuickTransaction.findById(id);
@@ -622,7 +622,6 @@ exports.respondQuickTransactionSettlement = async (req, res) => {
     if (normalizedAction === 'accept') {
       quickTransaction.settlementStatus = 'accepted';
       quickTransaction.cleared = true;
-      quickTransaction.settledViaPayment = true;
       await quickTransaction.save();
       await logQuickTransactionActivity(
         req.user._id,

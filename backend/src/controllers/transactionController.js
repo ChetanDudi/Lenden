@@ -356,10 +356,14 @@ exports.createTransactionWithCoins = async (req, res) => {
     if (!amount || !currency || !date || !time || !place || !counterpartyEmail || !userEmail || !role) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
+      return res.status(400).json({ error: 'Amount must be a positive number' });
+    }
     if (!['lender', 'borrower'].includes(role)) {
       return res.status(400).json({ error: 'Role must be lender or borrower' });
     }
-    
+
     // Handle interest validation - make it optional
     if (interestType && !['simple', 'compound', 'none'].includes(interestType)) {
       return res.status(400).json({ error: 'Interest type must be simple, compound, or none' });
@@ -553,10 +557,14 @@ exports.createTransaction = async (req, res) => {
     if (!amount || !currency || !date || !time || !place || !counterpartyEmail || !userEmail || !role) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
+      return res.status(400).json({ error: 'Amount must be a positive number' });
+    }
     if (!['lender', 'borrower'].includes(role)) {
       return res.status(400).json({ error: 'Role must be lender or borrower' });
     }
-    
+
     // Handle interest validation - make it optional
     if (interestType && !['simple', 'compound', 'none'].includes(interestType)) {
       return res.status(400).json({ error: 'Interest type must be simple, compound, or none' });
@@ -698,11 +706,15 @@ exports.createTransaction = async (req, res) => {
 
 // Check if email exists in user schema
 exports.checkEmailExists = async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required' });
-  const user = await User.findOne({ email });
-  if (user) return res.json({ exists: true });
-  return res.json({ exists: false });
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    const user = await User.findOne({ email });
+    if (user) return res.json({ exists: true });
+    return res.json({ exists: false });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 };
 
 // Send OTP to counterparty email

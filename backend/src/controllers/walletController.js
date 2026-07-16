@@ -66,31 +66,31 @@ exports.verifyManualTopUp = async (req, res) => {
   }
   const expectedAmountInPaise = Math.round(Number(amount) * 100);
 
-  // The Payment Handle link (razorpay.me/@...) has no API/notes support, so we
-  // can't call payments.fetch (it also needs Live API keys). Instead we rely on
-  // the Razorpay webhook having already cached this payment as captured — see
-  // razorpayWebhook in paymentController.js, which upserts every payment.captured event.
-  const payment = await RazorpayCapturedPayment.findOne({ paymentId: paymentId.trim() });
-  if (!payment) {
-    return res.status(404).json({ error: 'We have not received confirmation of this payment from Razorpay yet. Please wait a few seconds after paying and try again.' });
-  }
-  if (payment.currency !== 'INR') {
-    return res.status(400).json({ error: 'Unexpected payment currency.' });
-  }
-  if (payment.amount !== expectedAmountInPaise) {
-    return res.status(400).json({ error: `Payment amount does not match ₹${amount}.` });
-  }
-  // The Payment Handle link has no notes tying a payment to a user, so a
-  // captured ID is redeemable by whoever submits it first. Cap how long it stays
-  // claimable after capture to shrink the window for someone else's ID being reused.
-  const paymentAgeSeconds = (Date.now() - payment.capturedAt.getTime()) / 1000;
-  if (paymentAgeSeconds > MANUAL_TOPUP_MAX_AGE_SECONDS) {
-    return res.status(400).json({ error: 'This payment is too old to verify. Please make a new payment and submit its ID right away.' });
-  }
-
   const session = await mongoose.startSession();
   let addedAmount, newBalance;
   try {
+    // The Payment Handle link (razorpay.me/@...) has no API/notes support, so we
+    // can't call payments.fetch (it also needs Live API keys). Instead we rely on
+    // the Razorpay webhook having already cached this payment as captured — see
+    // razorpayWebhook in paymentController.js, which upserts every payment.captured event.
+    const payment = await RazorpayCapturedPayment.findOne({ paymentId: paymentId.trim() });
+    if (!payment) {
+      return res.status(404).json({ error: 'We have not received confirmation of this payment from Razorpay yet. Please wait a few seconds after paying and try again.' });
+    }
+    if (payment.currency !== 'INR') {
+      return res.status(400).json({ error: 'Unexpected payment currency.' });
+    }
+    if (payment.amount !== expectedAmountInPaise) {
+      return res.status(400).json({ error: `Payment amount does not match ₹${amount}.` });
+    }
+    // The Payment Handle link has no notes tying a payment to a user, so a
+    // captured ID is redeemable by whoever submits it first. Cap how long it stays
+    // claimable after capture to shrink the window for someone else's ID being reused.
+    const paymentAgeSeconds = (Date.now() - payment.capturedAt.getTime()) / 1000;
+    if (paymentAgeSeconds > MANUAL_TOPUP_MAX_AGE_SECONDS) {
+      return res.status(400).json({ error: 'This payment is too old to verify. Please make a new payment and submit its ID right away.' });
+    }
+
     await session.withTransaction(async () => {
       // Fast-path check for the common case; the atomic claimed:false filter
       // below is what actually closes the race if two requests for the same
