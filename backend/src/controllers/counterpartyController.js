@@ -5,7 +5,7 @@ const User = require('../models/user');
 
 exports.getUserCounterparties = async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email, search, sortBy, gender } = req.query;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     // Only allow requesting own counterparties
@@ -16,49 +16,72 @@ exports.getUserCounterparties = async (req, res) => {
     const user = await User.findOne({ email }).select('_id');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const transactions = await Transaction.find({
-      $or: [{ userEmail: email }, { counterpartyEmail: email }],
-    }).lean();
+    const [transactions, quickTransactions, groups] = await Promise.all([
+      Transaction.find({ $or: [{ userEmail: email }, { counterpartyEmail: email }] })
+        .select('counterpartyEmail userEmail').lean(),
+      QuickTransaction.find({ users: email }).select('users').lean(),
+      GroupTransaction.find({ 'members.user': user._id })
+        .populate('members.user', 'email').select('members').lean(),
+    ]);
 
-    const quickTransactions = await QuickTransaction.find({
-      users: email,
-    }).lean();
+    const counts = {};
+    transactions.forEach((t) => {
+      const cp = t.userEmail === email ? t.counterpartyEmail : t.userEmail;
+      if (cp && cp !== email) counts[cp] = (counts[cp] || 0) + 1;
+    });
+    quickTransactions.forEach((t) => {
+      (t.users || []).filter((u) => u && u !== email).forEach((cp) => {
+        counts[cp] = (counts[cp] || 0) + 1;
+      });
+    });
+    groups.forEach((g) => {
+      (g.members || []).map((m) => m.user?.email)
+        .filter((e) => e && e !== email)
+        .forEach((cp) => { counts[cp] = (counts[cp] || 0) + 1; });
+    });
 
-    const groups = await GroupTransaction.find({
-      'members.user': user._id,
-    })
-      .populate('members.user', 'email')
+    const cpEmails = Object.keys(counts);
+    if (cpEmails.length === 0) return res.json({ counterparties: [] });
+
+    // Populate all profiles in one query
+    const profileFilter = { email: { $in: cpEmails } };
+    if (gender) profileFilter.gender = gender;
+    if (search && search.trim()) {
+      const re = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      profileFilter.$or = [{ name: re }, { email: re }, { phone: re }];
+    }
+
+    const profiles = await User.find(profileFilter)
+      .select('name email gender phone birthday profileImage avgRating memberSince')
       .lean();
 
-    let counterparties = {};
+    let counterpartiesList = profiles.map((p) => ({
+      email: p.email,
+      name: p.name,
+      gender: p.gender || null,
+      phone: p.phone || null,
+      birthday: p.birthday || null,
+      avgRating: p.avgRating || 0,
+      memberSince: p.memberSince || null,
+      profileImage: p.profileImage
+        ? `${req.protocol}://${req.get('host')}/api/users/${p._id}/profile-image`
+        : null,
+      count: counts[p.email] || 0,
+    }));
 
-    transactions.forEach((t) => {
-      const cp = t.counterpartyEmail;
-      if (cp) counterparties[cp] = (counterparties[cp] || 0) + 1;
-    });
+    // Sort
+    switch (sortBy) {
+      case 'name_asc':
+        counterpartiesList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        break;
+      case 'count_asc':
+        counterpartiesList.sort((a, b) => a.count - b.count);
+        break;
+      default: // count_desc (default)
+        counterpartiesList.sort((a, b) => b.count - a.count);
+    }
 
-    quickTransactions.forEach((t) => {
-      const others = (t.users || []).filter((u) => u && u !== email);
-      others.forEach((cp) => {
-        counterparties[cp] = (counterparties[cp] || 0) + 1;
-      });
-    });
-
-    groups.forEach((g) => {
-      const members = (g.members || [])
-        .map((m) => m.user?.email)
-        .filter((e) => e && e !== email);
-      members.forEach((cp) => {
-        counterparties[cp] = (counterparties[cp] || 0) + 1;
-      });
-    });
-
-    const counterpartiesList = Object.entries(counterparties)
-      .map(([k, v]) => ({ email: k, count: v }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 100);
-
-    res.json({ counterparties: counterpartiesList });
+    res.json({ counterparties: counterpartiesList.slice(0, 100) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

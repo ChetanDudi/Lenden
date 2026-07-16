@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:elegant_notification/elegant_notification.dart';
@@ -26,8 +27,9 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   List<Map<String, dynamic>> _counterparties = [];
   bool _isLoading = true;
   String _searchQuery = '';
-  String _sortBy = 'count';
+  String _sortBy = 'count_desc';
   String? _filterGender;
+  Timer? _searchDebounce;
   Map<String, Map<String, dynamic>> _birthdayByEmail = {};
   final Set<String> _wishedFriendIds = {};
   final Map<String, int> _giftedCoins = {};
@@ -42,24 +44,28 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchCounterparties({bool forceRefresh = false}) async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final now = DateTime.now();
-    final lastFetched = session.counterpartiesLastFetched;
 
-    if (!forceRefresh &&
-        lastFetched != null &&
-        now.difference(lastFetched).inMinutes < 5 &&
-        session.counterparties != null) {
-      setState(() {
-        _counterparties = session.counterparties!;
-        _isLoading = false;
-      });
-      return;
+    // Use cache only when no active filters are set and cache is fresh
+    final hasFilters = _searchQuery.isNotEmpty || _filterGender != null || _sortBy != 'count_desc';
+    if (!forceRefresh && !hasFilters) {
+      final lastFetched = session.counterpartiesLastFetched;
+      final now = DateTime.now();
+      if (lastFetched != null &&
+          now.difference(lastFetched).inMinutes < 5 &&
+          session.counterparties != null) {
+        setState(() {
+          _counterparties = session.counterparties!;
+          _isLoading = false;
+        });
+        return;
+      }
     }
 
     final email = session.user?['email'];
@@ -70,52 +76,23 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
 
     setState(() => _isLoading = true);
     try {
-      final res = await ApiClient.get('/api/counterparties/user?email=$email');
+      final params = StringBuffer('/api/counterparties/user?email=${Uri.encodeComponent(email)}');
+      if (_searchQuery.isNotEmpty) params.write('&search=${Uri.encodeComponent(_searchQuery)}');
+      if (_filterGender != null) params.write('&gender=${Uri.encodeComponent(_filterGender!)}');
+      if (_sortBy.isNotEmpty) params.write('&sortBy=${Uri.encodeComponent(_sortBy)}');
+
+      final res = await ApiClient.get(params.toString());
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        final rawCounterparties =
-            List<Map<String, dynamic>>.from(data['counterparties'] ?? []);
-
-        final profiles = await Future.wait(
-          rawCounterparties.map(
-              (cp) => _fetchCounterpartyProfile(cp['email']?.toString() ?? '')),
-        );
-
-        final merged = <Map<String, dynamic>>[];
-        for (int i = 0; i < rawCounterparties.length; i++) {
-          final base = rawCounterparties[i];
-          final profile = profiles[i];
-          if (profile != null) {
-            merged.add({...base, ...profile});
-          } else {
-            merged.add({
-              ...base,
-              'name': 'Unknown',
-              'email': base['email'],
-            });
-          }
-        }
-
-        // Filter out the logged-in user from counterparties
-        final filtered = merged.where((cp) {
-          final cpEmail = (cp['email'] ?? '').toString().toLowerCase().trim();
-          final currentUserEmail = email.toLowerCase().trim();
-          return cpEmail != currentUserEmail;
-        }).toList();
-
-        if (mounted) {
-          setState(() {
-            _counterparties = filtered;
-          });
-        }
-        session.setCounterparties(filtered);
+        final list = List<Map<String, dynamic>>.from(data['counterparties'] ?? []);
+        if (mounted) setState(() => _counterparties = list);
+        // Only cache unfiltered results
+        if (!hasFilters) session.setCounterparties(list);
       }
     } catch (_) {
       // Keep the page resilient if the request fails.
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -494,18 +471,6 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     ).then((_) => controller.dispose());
   }
 
-  Future<Map<String, dynamic>?> _fetchCounterpartyProfile(String email) async {
-    if (email.isEmpty) return null;
-    try {
-      final res =
-          await ApiClient.get('/api/users/profile-by-email?email=$email');
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body);
-      }
-    } catch (_) {}
-    return null;
-  }
-
   Future<Map<String, dynamic>?> _fetchCounterpartyStats(String email) async {
     try {
       final session = Provider.of<SessionProvider>(context, listen: false);
@@ -559,36 +524,13 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     }
   }
 
-  List<Map<String, dynamic>> get _filteredCounterparties {
-    var list = _counterparties.where((cp) {
-      final q = _searchQuery.toLowerCase().trim();
-      final matchesQuery = q.isEmpty ||
-          (cp['name'] ?? '').toString().toLowerCase().contains(q) ||
-          (cp['email'] ?? '').toString().toLowerCase().contains(q) ||
-          (cp['phone'] ?? '').toString().toLowerCase().contains(q);
-      final matchesGender = _filterGender == null ||
-          (cp['gender'] ?? '').toString() == _filterGender;
-      return matchesQuery && matchesGender;
-    }).toList();
-
-    switch (_sortBy) {
-      case 'name_asc':
-        list.sort((a, b) => (a['name'] ?? '').toString().toLowerCase()
-            .compareTo((b['name'] ?? '').toString().toLowerCase()));
-        break;
-      case 'count_asc':
-        list.sort((a, b) => ((a['count'] ?? 0) as num).compareTo((b['count'] ?? 0) as num));
-        break;
-      default:
-        list.sort((a, b) => ((b['count'] ?? 0) as num).compareTo((a['count'] ?? 0) as num));
-    }
-    return list;
-  }
-
   Widget _genderChip(String label, String? value, {IconData? icon}) {
     final selected = _filterGender == value;
     return GestureDetector(
-      onTap: () => setState(() => _filterGender = selected ? null : value),
+      onTap: () {
+        setState(() => _filterGender = selected ? null : value);
+        _fetchCounterparties(forceRefresh: true);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -612,7 +554,12 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   Widget _sortChip(String label, String value) {
     final selected = _sortBy == value;
     return GestureDetector(
-      onTap: () => setState(() => _sortBy = value),
+      onTap: () {
+        if (_sortBy != value) {
+          setState(() => _sortBy = value);
+          _fetchCounterparties(forceRefresh: true);
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -705,7 +652,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
-    final filtered = _filteredCounterparties;
+    final filtered = _counterparties;
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
@@ -783,6 +730,10 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                         style: TextStyle(color: AppThemeColors.primaryText(context)),
                         onChanged: (value) {
                           setState(() => _searchQuery = value);
+                          _searchDebounce?.cancel();
+                          _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+                            _fetchCounterparties(forceRefresh: true);
+                          });
                         },
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -796,6 +747,8 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                   onPressed: () {
                                     _searchController.clear();
                                     setState(() => _searchQuery = '');
+                                    _searchDebounce?.cancel();
+                                    _fetchCounterparties(forceRefresh: true);
                                   },
                                 ),
                         ),
@@ -827,7 +780,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                           const SizedBox(width: 6),
                           Text(t('sort_colon'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
                           const SizedBox(width: 8),
-                          _sortChip(t('most_label'), 'count'),
+                          _sortChip(t('most_label'), 'count_desc'),
                           const SizedBox(width: 6),
                           _sortChip(t('a_z_label'), 'name_asc'),
                           const SizedBox(width: 6),

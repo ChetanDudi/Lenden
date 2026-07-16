@@ -34,6 +34,11 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   double _walletBalance = 0;
   List<Map<String, dynamic>> _transactions = [];
   String? _razorpayPaymentLink;
+  String _historyType = 'all';
+  int _historyPage = 1;
+  int _historyTotal = 0;
+  bool _historyLoadingMore = false;
+  static const _historyLimit = 20;
 
   String t(String key) => AppLocalizations.of(context).t(key);
 
@@ -88,27 +93,58 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
     } catch (_) {}
   }
 
-  Future<void> _fetchWalletData() async {
-    setState(() => _loading = true);
+  Future<void> _fetchWalletData({bool resetPage = true}) async {
+    if (resetPage) {
+      setState(() { _loading = true; _historyPage = 1; _transactions = []; });
+    } else {
+      setState(() => _historyLoadingMore = true);
+    }
     try {
-      final results = await Future.wait([
-        ApiClient.get('/api/wallet/balance'),
-        ApiClient.get('/api/wallet/history'),
-      ]);
-      final balRes = results[0];
-      final histRes = results[1];
-      if (balRes.statusCode == 200) {
-        final data = jsonDecode(balRes.body);
-        setState(() => _walletBalance = (data['balance'] ?? 0).toDouble());
-      }
-      if (histRes.statusCode == 200) {
-        final data = jsonDecode(histRes.body);
-        setState(() => _transactions =
-            List<Map<String, dynamic>>.from(data['transactions'] ?? []));
+      final page = resetPage ? 1 : _historyPage;
+      final histPath = '/api/wallet/history?page=$page&limit=$_historyLimit'
+          '${_historyType != 'all' ? '&type=$_historyType' : ''}';
+      final futures = resetPage
+          ? [ApiClient.get('/api/wallet/balance'), ApiClient.get(histPath)]
+          : [ApiClient.get(histPath)];
+      final results = await Future.wait(futures);
+
+      if (!mounted) return;
+      if (resetPage) {
+        final balRes = results[0];
+        final histRes = results[1];
+        if (balRes.statusCode == 200) {
+          final data = jsonDecode(balRes.body);
+          _walletBalance = (data['balance'] ?? 0).toDouble();
+        }
+        if (histRes.statusCode == 200) {
+          final data = jsonDecode(histRes.body);
+          _transactions = List<Map<String, dynamic>>.from(data['transactions'] ?? []);
+          _historyTotal = (data['total'] ?? 0) as int;
+          _historyPage = 1;
+        }
+      } else {
+        final histRes = results[0];
+        if (histRes.statusCode == 200) {
+          final data = jsonDecode(histRes.body);
+          _transactions = [
+            ..._transactions,
+            ...List<Map<String, dynamic>>.from(data['transactions'] ?? []),
+          ];
+          _historyTotal = (data['total'] ?? 0) as int;
+        }
       }
     } catch (_) {}
     if (!mounted) return;
-    setState(() => _loading = false);
+    setState(() {
+      _loading = false;
+      _historyLoadingMore = false;
+    });
+  }
+
+  Future<void> _loadMoreHistory() async {
+    if (_historyLoadingMore || _transactions.length >= _historyTotal) return;
+    _historyPage++;
+    await _fetchWalletData(resetPage: false);
   }
 
   void _showAddMoneySheet() {
@@ -777,13 +813,62 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                           color: AppThemeColors.primaryText(
                                               context))),
                                   const Spacer(),
-                                  if (!_loading && _transactions.isNotEmpty)
+                                  if (!_loading && _historyTotal > 0)
                                     Text(
-                                        '${_transactions.length} ${t('records_label').toLowerCase()}',
+                                        '${_transactions.length}/$_historyTotal ${t('records_label').toLowerCase()}',
                                         style: TextStyle(
                                             fontSize: 12,
                                             color: AppThemeColors.mutedText(
                                                 context))),
+                                ]),
+                              ),
+                              const SizedBox(height: 8),
+                              // Type filter chips
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(children: [
+                                  for (final entry in const {
+                                    'all': 'All',
+                                    'credit': 'Received',
+                                    'debit': 'Sent',
+                                    'topup': 'Top-up',
+                                    'withdrawal': 'Withdrawal',
+                                  }.entries)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          if (_historyType != entry.key) {
+                                            setState(() => _historyType = entry.key);
+                                            _fetchWalletData();
+                                          }
+                                        },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 160),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: _historyType == entry.key
+                                                ? AppColors.cyan
+                                                : AppThemeColors.cardBg(context),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: _historyType == entry.key
+                                                  ? AppColors.cyan
+                                                  : Colors.grey.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Text(entry.value,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: _historyType == entry.key
+                                                    ? Colors.white
+                                                    : AppThemeColors.secondaryText(context),
+                                              )),
+                                        ),
+                                      ),
+                                    ),
                                 ]),
                               ),
                               const SizedBox(height: 10),
@@ -1141,6 +1226,26 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                       ),
                                     );
                                   },
+                                ),
+                              if (!_loading && _transactions.length < _historyTotal)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                                  child: _historyLoadingMore
+                                      ? const Center(child: Padding(
+                                          padding: EdgeInsets.symmetric(vertical: 12),
+                                          child: CircularProgressIndicator(color: AppColors.cyan, strokeWidth: 2),
+                                        ))
+                                      : OutlinedButton.icon(
+                                          onPressed: _loadMoreHistory,
+                                          icon: const Icon(Icons.expand_more_rounded, size: 18),
+                                          label: Text(t('load_more_label')),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.cyan,
+                                            side: const BorderSide(color: AppColors.cyan),
+                                            minimumSize: const Size(double.infinity, 40),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                        ),
                                 ),
                               const SizedBox(height: 24),
                             ])))) // closes Column.children + Column + SCView + RefreshIndicator + Expanded

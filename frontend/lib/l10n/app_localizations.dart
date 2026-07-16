@@ -3421,6 +3421,7 @@ class AppLocalizations {
       'rate_too_slow_to_estimate_message':
           'Clearing rate is too slow to estimate a forecast.',
       'records_label': 'Records',
+      'load_more_label': 'Load more',
       'repayment_speed_label': 'Repayment Speed',
       'risk_attention_label': 'Risk / Attention',
       'secure_analytics_subtitle_message':
@@ -7382,6 +7383,7 @@ class AppLocalizations {
       'rate_too_slow_to_estimate_message':
           'क्लियरिंग दर पूर्वानुमान लगाने के लिए बहुत धीमी है।',
       'records_label': 'रिकॉर्ड्स',
+      'load_more_label': 'और लोड करें',
       'repayment_speed_label': 'रीपेमेंट स्पीड',
       'risk_attention_label': 'जोखिम / ध्यान दें',
       'secure_analytics_subtitle_message':

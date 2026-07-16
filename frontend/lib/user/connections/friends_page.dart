@@ -92,59 +92,19 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     return '?';
   }
 
-  // Filtered + sorted view — pure client-side
-  List<Map<String, dynamic>> get _filteredFriends {
-    var list = _friends.where((f) {
-      final name = (f['name'] ?? '').toString().toLowerCase();
-      final username = (f['username'] ?? '').toString().toLowerCase();
-      final email = (f['email'] ?? '').toString().toLowerCase();
-      final q = _friendsQuery.toLowerCase();
-      final matchesQuery = q.isEmpty || name.contains(q) || username.contains(q) || email.contains(q);
-      final matchesGender = _filterGender == null || (f['gender'] ?? '') == _filterGender;
-      return matchesQuery && matchesGender;
-    }).toList();
-
-    switch (_sortFriends) {
-      case 'name_za':
-        list.sort((a, b) => (b['name'] ?? b['username'] ?? '').toString().toLowerCase()
-            .compareTo((a['name'] ?? a['username'] ?? '').toString().toLowerCase()));
-        break;
-      case 'friend_since':
-        list.sort((a, b) {
-          final ad = a['friendSince'] != null ? DateTime.tryParse(a['friendSince'].toString()) : null;
-          final bd = b['friendSince'] != null ? DateTime.tryParse(b['friendSince'].toString()) : null;
-          if (bd == null && ad == null) return 0;
-          if (bd == null) return -1;
-          if (ad == null) return 1;
-          return bd.compareTo(ad); // newest first
-        });
-        break;
-      case 'member_since':
-        list.sort((a, b) {
-          final ad = a['memberSince'] != null ? DateTime.tryParse(a['memberSince'].toString()) : null;
-          final bd = b['memberSince'] != null ? DateTime.tryParse(b['memberSince'].toString()) : null;
-          if (bd == null && ad == null) return 0;
-          if (bd == null) return -1;
-          if (ad == null) return 1;
-          return bd.compareTo(ad); // newest first
-        });
-        break;
-      case 'rating':
-        list.sort((a, b) => ((b['avgRating'] as num?) ?? 0).compareTo((a['avgRating'] as num?) ?? 0));
-        break;
-      default: // name_az
-        list.sort((a, b) => (a['name'] ?? a['username'] ?? '').toString().toLowerCase()
-            .compareTo((b['name'] ?? b['username'] ?? '').toString().toLowerCase()));
-    }
-    return list;
-  }
-
   Future<void> _fetchFriends() async {
     setState(() => _loading = true);
     try {
+      final params = StringBuffer('/api/friends');
+      final qp = <String>[];
+      if (_friendsQuery.isNotEmpty) qp.add('search=${Uri.encodeComponent(_friendsQuery)}');
+      if (_filterGender != null) qp.add('gender=${Uri.encodeComponent(_filterGender!)}');
+      if (_sortFriends.isNotEmpty) qp.add('sortBy=${Uri.encodeComponent(_sortFriends)}');
+      if (qp.isNotEmpty) params.write('?${qp.join('&')}');
+
       // Run both API calls in parallel — cuts wait time in half
       final results = await Future.wait([
-        ApiClient.get('/api/friends'),
+        ApiClient.get(params.toString()),
         ApiClient.get('/api/friends/requests'),
       ]).timeout(const Duration(seconds: 15));
       final res = results[0];
@@ -1278,7 +1238,12 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   Widget _sortChipF(String label, String value) {
     final selected = _sortFriends == value;
     return GestureDetector(
-      onTap: () => setState(() { _sortFriends = value; _friendsVisibleCount = 10; }),
+      onTap: () {
+        if (_sortFriends != value) {
+          setState(() { _sortFriends = value; _friendsVisibleCount = 10; });
+          _fetchFriends();
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1896,7 +1861,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 ],
 
                                 // ── Friends list ─────────────────────────────
-                                _sectionHeader(t('your_friends_label'), _filteredFriends.length),
+                                _sectionHeader(t('your_friends_label'), _friends.length),
                                 const SizedBox(height: 10),
                                 // Search box
                                 Container(
@@ -1918,6 +1883,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     ),
                                     onChanged: (val) {
                                       setState(() { _friendsQuery = val.trim(); _friendsVisibleCount = 10; });
+                                      _friendsDebounceTimer?.cancel();
+                                      _friendsDebounceTimer = Timer(const Duration(milliseconds: 350), _fetchFriends);
                                     },
                                   ),
                                 ),
@@ -1925,13 +1892,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(children: [
-                                    _filterChip(t('all_genders_label'), null, _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.people),
+                                    _filterChip(t('all_genders_label'), null, _filterGender, (v) { setState(() { _filterGender = v; _friendsVisibleCount = 10; }); _fetchFriends(); }, icon: Icons.people),
                                     const SizedBox(width: 6),
-                                    _filterChip(t('male_label'), 'Male', _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.male),
+                                    _filterChip(t('male_label'), 'Male', _filterGender, (v) { setState(() { _filterGender = v; _friendsVisibleCount = 10; }); _fetchFriends(); }, icon: Icons.male),
                                     const SizedBox(width: 6),
-                                    _filterChip(t('female_label'), 'Female', _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.female),
+                                    _filterChip(t('female_label'), 'Female', _filterGender, (v) { setState(() { _filterGender = v; _friendsVisibleCount = 10; }); _fetchFriends(); }, icon: Icons.female),
                                     const SizedBox(width: 6),
-                                    _filterChip(t('other_gender_label'), 'Other', _filterGender, (v) => setState(() { _filterGender = v; _friendsVisibleCount = 10; }), icon: Icons.person_outline),
+                                    _filterChip(t('other_gender_label'), 'Other', _filterGender, (v) { setState(() { _filterGender = v; _friendsVisibleCount = 10; }); _fetchFriends(); }, icon: Icons.person_outline),
                                   ]),
                                 ),
                                 const SizedBox(height: 6),
@@ -1953,7 +1920,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                   ]),
                                 ),
                                 const SizedBox(height: 10),
-                                if (_filteredFriends.isEmpty)
+                                if (_friends.isEmpty)
                                   Center(
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 32),
@@ -1972,14 +1939,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     ),
                                   )
                                 else
-                                  ..._filteredFriends.take(_friendsVisibleCount).toList().asMap().entries.map(
+                                  ..._friends.take(_friendsVisibleCount).toList().asMap().entries.map(
                                     (e) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _buildFriendCard(e.value, e.key)),
                                   ),
-                                if (_filteredFriends.length > _friendsVisibleCount)
+                                if (_friends.length > _friendsVisibleCount)
                                   Center(
                                     child: TextButton.icon(
                                       icon: const Icon(Icons.expand_more),
-                                      label: Text('${t('show_label')} ${_filteredFriends.length - _friendsVisibleCount} ${t('more_label')}'),
+                                      label: Text('${t('show_label')} ${_friends.length - _friendsVisibleCount} ${t('more_label')}'),
                                       onPressed: () => setState(() => _friendsVisibleCount += 10),
                                     ),
                                   ),

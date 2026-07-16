@@ -19,29 +19,63 @@ exports.getBalance = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
   try {
-    const [txns, user] = await Promise.all([
-      WalletTransaction.find({ user: req.user._id })
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+    const { type, startDate, endDate } = req.query;
+
+    const filter = { user: req.user._id };
+    if (type && type !== 'all') filter.type = type;
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const [txns, total, user] = await Promise.all([
+      WalletTransaction.find(filter)
         .sort({ createdAt: -1 })
-        .limit(50)
+        .skip(skip)
+        .limit(limit)
         .lean(),
+      WalletTransaction.countDocuments(filter),
       User.findById(req.user._id).select('walletBalance'),
     ]);
 
-    // Compute running balance working backwards from current balance.
-    // txns is newest-first, so txns[0] is the most recent transaction.
-    // balanceAfter for txns[0] = current wallet balance.
-    let runningBalance = user?.walletBalance ?? 0;
+    // Compute running balance for this page. txns is newest-first.
+    // balanceAfter for txns[0] = wallet balance minus net change of ALL
+    // transactions newer than txns[0] (regardless of type filter so the
+    // balance is always the true wallet state at that moment).
+    const currentBalance = user?.walletBalance ?? 0;
+    let startingBalance = currentBalance;
+    if (txns.length > 0) {
+      const newerAgg = await WalletTransaction.aggregate([
+        { $match: { user: req.user._id, createdAt: { $gt: txns[0].createdAt } } },
+        { $group: { _id: null, net: { $sum: {
+          $cond: [{ $in: ['$type', ['credit', 'topup']] }, '$amount', { $multiply: ['$amount', -1] }]
+        } } } },
+      ]);
+      startingBalance = currentBalance - (newerAgg[0]?.net ?? 0);
+    }
+
+    let runningBalance = startingBalance;
     const withBalance = txns.map(txn => {
       const balanceAfter = runningBalance;
       if (txn.type === 'credit' || txn.type === 'topup') {
         runningBalance -= txn.amount;
-      } else { // debit, withdrawal
+      } else {
         runningBalance += txn.amount;
       }
       return { ...txn, balanceAfter };
     });
 
-    res.json({ transactions: withBalance });
+    res.json({
+      transactions: withBalance,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

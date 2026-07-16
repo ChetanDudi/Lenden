@@ -281,6 +281,16 @@ exports.getQuickTransactions = async (req, res) => {
       query.users = { $all: [userEmail, counterparty.trim()] };
     }
 
+    // Text search pushed to MongoDB
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const searchConditions = [
+        { description: searchRegex },
+        { users: searchRegex },
+      ];
+      query.$and = query.$and ? [...query.$and, { $or: searchConditions }] : [{ $or: searchConditions }];
+    }
+
     // Date filter
     if (dateFilter && dateFilter !== 'all') {
       const now = new Date();
@@ -321,22 +331,7 @@ exports.getQuickTransactions = async (req, res) => {
       default: sortObj = { createdAt: -1 };
     }
 
-    let quickTransactions = await QuickTransaction.find(query).sort(sortObj).lean();
-
-    // Text search (post-populate, across description, amount, counterparty name/email)
-    if (search && search.trim()) {
-      const searchLower = search.trim().toLowerCase();
-      quickTransactions = quickTransactions.filter((t) => {
-        const desc = (t.description || '').toLowerCase();
-        const amountStr = String(t.amount || '');
-        const usersStr = (t.users || []).join(' ').toLowerCase();
-        return (
-          desc.includes(searchLower) ||
-          amountStr.includes(searchLower) ||
-          usersStr.includes(searchLower)
-        );
-      });
-    }
+    const quickTransactions = await QuickTransaction.find(query).sort(sortObj).lean();
 
     const populatedTransactions = await Promise.all(quickTransactions.map(async (t) => {
       const users = await User.find({ email: { $in: t.users } }).select('name email phone');

@@ -59,7 +59,7 @@ exports.searchUsers = async (req, res) => {
 
 exports.getFriends = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, sortBy, gender } = req.query;
     const user = await User.findById(req.user._id)
       .populate('friends', 'name username email gender memberSince avgRating blockedUsers')
       .populate('blockedUsers', 'name username email gender avgRating')
@@ -116,6 +116,41 @@ exports.getFriends = async (req, res) => {
           (u.email || '').toLowerCase().includes(q) ||
           (u.username || '').toLowerCase().includes(q)
       );
+    }
+
+    // Apply gender filter
+    if (gender) {
+      friends = friends.filter((f) => f.gender === gender);
+    }
+
+    // Apply sort
+    switch (sortBy) {
+      case 'name_za':
+        friends.sort((a, b) => (b.name || b.username || '').localeCompare(a.name || a.username || ''));
+        break;
+      case 'friend_since':
+        friends.sort((a, b) => {
+          const ad = friendSinceMap[a._id.toString()];
+          const bd = friendSinceMap[b._id.toString()];
+          if (!bd && !ad) return 0;
+          if (!bd) return -1;
+          if (!ad) return 1;
+          return new Date(bd) - new Date(ad);
+        });
+        break;
+      case 'member_since':
+        friends.sort((a, b) => {
+          if (!b.memberSince && !a.memberSince) return 0;
+          if (!b.memberSince) return -1;
+          if (!a.memberSince) return 1;
+          return new Date(b.memberSince) - new Date(a.memberSince);
+        });
+        break;
+      case 'rating':
+        friends.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
+        break;
+      default: // name_az
+        friends.sort((a, b) => (a.name || a.username || '').localeCompare(b.name || b.username || ''));
     }
 
     res.status(200).json({ friends, blockedUsers });

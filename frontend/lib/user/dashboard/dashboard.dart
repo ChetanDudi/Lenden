@@ -60,9 +60,7 @@ class UserDashboardPage extends StatefulWidget {
 
 class _UserDashboardPageState extends State<UserDashboardPage>
     with TickerProviderStateMixin {
-  List<Map<String, dynamic>> transactions = [];
   bool _friendToastShown = false;
-  bool loading = true;
   int _imageRefreshKey = 0;
   final ScrollController _scrollController = ScrollController();
   final Random _adRandom = Random();
@@ -192,7 +190,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   @override
   void initState() {
     super.initState();
-    fetchTransactions();
     _fetchFriends();
     _fetchUnreadUpdatesCount();
     _checkAndShowRatingDialog();
@@ -329,17 +326,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         curve: Curves.easeInOut,
       );
     }
-  }
-
-  Future<void> fetchTransactions() async {
-    setState(() => loading = true);
-    final res = await ApiClient.get('/api/transactions/me');
-    setState(() {
-      transactions = res.statusCode == 200
-          ? List<Map<String, dynamic>>.from(jsonDecode(res.body))
-          : [];
-      loading = false;
-    });
   }
 
   Future<void> _fetchFriends() async {
@@ -1061,7 +1047,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             SafeArea(
               child: RefreshIndicator(
                 onRefresh: () => Future.wait([
-                  fetchTransactions(),
                   _fetchFriends(),
                   _fetchUnreadUpdatesCount(),
                 ]),
