@@ -1,5 +1,6 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
+const PendingRegistration = require('../models/pendingRegistration');
 const bcrypt = require('bcrypt');
 const { sendRegistrationOTP } = require('../utils/registrationemailotp');
 const { sendLoginOTP } = require('../utils/loginsendotp');
@@ -13,8 +14,6 @@ const {
 } = require('../utils/referralService');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 
-// In-memory OTP store (for demo; use DB or cache in production)
-const otpStore = {};
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
 const DAILY_LOGIN_COINS = 1;
 
@@ -116,12 +115,16 @@ exports.register = async (req, res) => {
         return res.status(400).json({ error: 'Invalid referral code.' });
       }
     }
-  otpStore[email] = { otp, data: { name, username, password, email, gender, referralCode }, created: Date.now() };
+    await PendingRegistration.findOneAndUpdate(
+      { email },
+      { otp, data: { name, username, password, email, gender, referralCode }, createdAt: new Date() },
+      { upsert: true, new: true },
+    );
     try {
       await sendRegistrationOTP(email, otp);
     } catch (emailErr) {
       console.error('[register] Email send failed after retries:', emailErr.message);
-      delete otpStore[email];
+      await PendingRegistration.deleteOne({ email });
       return res.status(503).json({ error: 'Could not send OTP email. Please check your email address and try again.' });
     }
     res.status(200).json({ message: 'OTP sent to email' });
@@ -138,13 +141,14 @@ exports.register = async (req, res) => {
 exports.resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    const entry = otpStore[email];
+    const entry = await PendingRegistration.findOne({ email });
     if (!entry) {
       return res.status(400).json({ error: 'No registration in progress for this email.' });
     }
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[email].otp = otp;
-    otpStore[email].created = Date.now();
+    entry.otp = otp;
+    entry.createdAt = new Date();
+    await entry.save();
     try {
       await sendRegistrationOTP(email, otp);
     } catch (emailErr) {
@@ -161,20 +165,20 @@ exports.resendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const entry = otpStore[email];
+    const entry = await PendingRegistration.findOne({ email });
     if (!entry) {
       return res.status(400).json({ error: 'No OTP found for this email' });
     }
     const now = Date.now();
-    if (now - entry.created > OTP_EXPIRY_MS) {
-      delete otpStore[email];
+    if (now - entry.createdAt.getTime() > OTP_EXPIRY_MS) {
+      await PendingRegistration.deleteOne({ email });
       return res.status(400).json({ error: 'OTP expired. Please request a new OTP.' });
     }
     if (entry.otp !== otp) {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
     // Register user
-  const { name, username, password, gender, referralCode } = entry.data;
+    const { name, username, password, gender, referralCode } = entry.data;
     const hashedPassword = await bcrypt.hash(password, 10);
     let referredByUser = null;
     if (referralCode) {
@@ -195,7 +199,7 @@ exports.verifyOtp = async (req, res) => {
       memberSince: new Date(), // Set member since date
     });
     await newUser.save();
-    delete otpStore[email];
+    await PendingRegistration.deleteOne({ email });
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
     res.status(400).json({ error: err.message });

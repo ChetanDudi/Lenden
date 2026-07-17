@@ -40,6 +40,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   final _searchController = TextEditingController();
   String? _searchError;
   double? _searchedAvgRating;
+  String? _searchedUserId;
   String? _searchedName;
   String? _searchedUsername;
   String? _searchedEmail;
@@ -171,6 +172,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         }
         setState(() {
           _searchedAvgRating = (data['avgRating'] ?? 0).toDouble();
+          _searchedUserId = data['_id']?.toString() ?? '';
           _searchedName = data['name'] ?? '';
           _searchedUsername = data['username'] ?? '';
           _searchedEmail = data['email'] ?? '';
@@ -942,10 +944,18 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                             CircleAvatar(
                                               radius: 32,
                                               backgroundColor: AppColors.cyan.withValues(alpha: 0.12),
-                                              child: Text(
-                                                (_searchedName?.isNotEmpty == true ? _searchedName![0] : _searchedUsername?[0] ?? '?').toUpperCase(),
-                                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.cyan),
-                                              ),
+                                              child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                                                Center(child: Text(
+                                                  (_searchedName?.isNotEmpty == true ? _searchedName![0] : _searchedUsername?[0] ?? '?').toUpperCase(),
+                                                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.cyan),
+                                                )),
+                                                if ((_searchedUserId ?? '').isNotEmpty)
+                                                  Image.network(
+                                                    '${ApiConfig.baseUrl}/api/users/$_searchedUserId/profile-image',
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                                  ),
+                                              ])),
                                             ),
                                             const SizedBox(height: 12),
                                             if (_searchedName?.isNotEmpty == true)

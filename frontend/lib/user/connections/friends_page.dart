@@ -2425,8 +2425,16 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: widget.avatarColor,
-                  child: Text(widget.initials,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                    Center(child: Text(widget.initials,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
+                    if (widget.userId.isNotEmpty)
+                      Image.network(
+                        '${ApiConfig.baseUrl}/api/users/${widget.userId}/profile-image',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                  ])),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -2489,8 +2497,16 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                         CircleAvatar(
                           radius: 22,
                           backgroundColor: col,
-                          child: Text(_initials(mName, mUsername),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                            Center(child: Text(_initials(mName, mUsername),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
+                            if ((m['_id']?.toString() ?? '').isNotEmpty)
+                              Image.network(
+                                '${ApiConfig.baseUrl}/api/users/${m['_id']}/profile-image',
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              ),
+                          ])),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

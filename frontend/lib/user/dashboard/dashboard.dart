@@ -37,6 +37,7 @@ import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
 import '../../widgets/avatar_action_sheet.dart';
+import '../../widgets/birthday_banner.dart';
 
 enum _QuickActionsViewStyle {
   grid,
@@ -1077,44 +1078,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     // ── Own birthday celebration banner ──────────────────
                     Builder(builder: (bCtx) {
                       final sess = Provider.of<SessionProvider>(bCtx, listen: false);
-                      final bdayRaw = sess.user?['birthday']?.toString();
-                      if (bdayRaw == null) return const SizedBox.shrink();
-                      final bday = DateTime.tryParse(bdayRaw);
-                      if (bday == null) return const SizedBox.shrink();
-                      final now = DateTime.now();
-                      if (bday.month != now.month || bday.day != now.day) return const SizedBox.shrink();
-                      final age = now.year - bday.year;
-                      return Container(
-                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFF6B6B), Color(0xFFFFB300), Color(0xFF6BCB77)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(color: Colors.amber.withValues(alpha: 0.45), blurRadius: 18, spreadRadius: 2),
-                          ],
-                        ),
-                        child: Row(children: [
-                          const Text('🎂', style: TextStyle(fontSize: 38)),
-                          const SizedBox(width: 14),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            const Text(
-                              'Happy Birthday to you!',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              age > 0 ? 'Celebrating your ${age}th birthday 🎉' : 'Wishing you a wonderful day!',
-                              style: const TextStyle(fontSize: 12, color: Colors.white70),
-                            ),
-                          ])),
-                          const Icon(Icons.celebration_rounded, color: Colors.white70, size: 28),
-                        ]),
-                      );
+                      return BirthdayBanner(birthdayRaw: sess.user?['birthday']?.toString());
                     }),
                     // Search Bar with tricolor border + view menu
                     Padding(
@@ -2484,7 +2448,10 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       {Color? accent}) {
     final Color base = accent ?? AppColors.cyan;
     final Color dark = Color.lerp(base, const Color(0xFF001A2E), 0.4)!;
-    return Tooltip(
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
       message: label,
       // Outer tricolor ring — identical to profile pic border
       child: Container(
@@ -2524,7 +2491,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
       ),
-    );
+    ));
   }
 
   Future<void> _confirmLogout(BuildContext context) async {

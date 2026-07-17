@@ -22,7 +22,7 @@ exports.getHistory = async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
-    const { type, startDate, endDate } = req.query;
+    const { type, startDate, endDate, search } = req.query;
 
     const filter = { user: req.user._id };
     if (type && type !== 'all') filter.type = type;
@@ -30,6 +30,10 @@ exports.getHistory = async (req, res) => {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
       if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+    if (search && search.trim()) {
+      const sr = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ note: sr }, { description: sr }, { fromEmail: sr }, { toEmail: sr }];
     }
 
     const [txns, total, user] = await Promise.all([

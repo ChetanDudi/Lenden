@@ -25,6 +25,10 @@ class ApiClient {
   static final http.Client _client = http.Client();
   static String get _baseUrl => ApiConfig.baseUrl;
 
+  // Called when tokens are cleared due to auth failure so the SessionProvider
+  // can wipe its in-memory state without ApiClient needing a direct reference.
+  static void Function()? onAuthFailed;
+
   // Secure storage keys
   static const _storage = FlutterSecureStorage();
   static const String _kAccessToken = 'access_token';
@@ -108,6 +112,7 @@ class ApiClient {
 
     if (resp.statusCode == 440) {
       await clearTokens();
+      onAuthFailed?.call();
       AuthNavigation.redirectToLogin();
       return resp;
     }
@@ -187,6 +192,7 @@ class ApiClient {
         }
       } else {
         await clearTokens();
+        onAuthFailed?.call();
         AuthNavigation.redirectToLogin();
       }
     } catch (_) {

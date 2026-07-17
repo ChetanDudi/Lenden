@@ -36,6 +36,9 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   List<Map<String, dynamic>> _transactions = [];
   String? _razorpayPaymentLink;
   String _historyType = 'all';
+  String _historySearch = '';
+  Timer? _historySearchDebounce;
+  final TextEditingController _historySearchCtrl = TextEditingController();
   int _historyPage = 1;
   int _historyTotal = 0;
   bool _historyLoadingMore = false;
@@ -72,15 +75,18 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   @override
   void initState() {
     super.initState();
-    // Wait for both fetches to resolve before auto-opening anything — _PayToUserSheet
-    // receives walletBalance as a one-time constructor value (opening before the
-    // fetch completes would lock it to the initial 0), and _showAddMoneySheet
-    // needs _razorpayPaymentLink to already be populated.
     Future.wait([_fetchPaymentConfig(), _fetchWalletData()]).then((_) {
       if (!mounted) return;
       if (widget.autoOpenPayUser) _showPayToUserSheet();
       if (widget.autoOpenAddMoney) _showAddMoneySheet();
     });
+  }
+
+  @override
+  void dispose() {
+    _historySearchDebounce?.cancel();
+    _historySearchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchPaymentConfig() async {
@@ -103,7 +109,8 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
     try {
       final page = resetPage ? 1 : _historyPage;
       final histPath = '/api/wallet/history?page=$page&limit=$_historyLimit'
-          '${_historyType != 'all' ? '&type=$_historyType' : ''}';
+          '${_historyType != 'all' ? '&type=$_historyType' : ''}'
+          '${_historySearch.isNotEmpty ? '&search=${Uri.encodeComponent(_historySearch)}' : ''}';
       final futures = resetPage
           ? [ApiClient.get('/api/wallet/balance'), ApiClient.get(histPath)]
           : [ApiClient.get(histPath)];
@@ -822,6 +829,43 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                             color: AppThemeColors.mutedText(
                                                 context))),
                                 ]),
+                              ),
+                              const SizedBox(height: 8),
+                              // History search bar
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: TextField(
+                                  controller: _historySearchCtrl,
+                                  style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 13),
+                                  decoration: InputDecoration(
+                                    hintText: t('search_wallet_history_hint'),
+                                    hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.cyan),
+                                    suffixIcon: _historySearch.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear_rounded, size: 16),
+                                            onPressed: () {
+                                              _historySearchDebounce?.cancel();
+                                              _historySearchCtrl.clear();
+                                              setState(() => _historySearch = '');
+                                              _fetchWalletData();
+                                            },
+                                          )
+                                        : null,
+                                    filled: true,
+                                    fillColor: AppThemeColors.surfaceBg(context),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cyan, width: 1.2)),
+                                  ),
+                                  onChanged: (val) {
+                                    _historySearchDebounce?.cancel();
+                                    _historySearchDebounce = Timer(const Duration(milliseconds: 350), () {
+                                      setState(() => _historySearch = val.trim());
+                                      _fetchWalletData();
+                                    });
+                                  },
+                                ),
                               ),
                               const SizedBox(height: 8),
                               // Type filter chips
