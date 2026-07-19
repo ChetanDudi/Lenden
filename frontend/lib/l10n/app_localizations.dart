@@ -3994,6 +3994,49 @@ class AppLocalizations {
       'step_review_subtitle': 'Confirm all details before verifying',
       'step_verification_subtitle': 'Verify both parties via OTP or PIN',
       'step_final_review_subtitle': 'Locked summary — ready to submit',
+
+      // ── Category (all transaction types) ──
+      'category_picker_label': 'Category',
+
+      // ── Scheduled payments ──
+      'schedule_for_later_label': 'Schedule for Later',
+      'pick_scheduled_date_label': 'Pick Scheduled Date',
+      'scheduled_transactions_title': 'Scheduled Payments',
+      'no_scheduled_transactions': 'No scheduled payments yet',
+      'cancel_scheduled_title': 'Cancel Scheduled Payment',
+      'cancel_scheduled_confirm': 'Are you sure you want to cancel this scheduled payment?',
+      'scheduled_cancelled_success': 'Scheduled payment cancelled',
+      'cancel_label': 'Cancel',
+
+      // ── Request Money ──
+      'request_money_title': 'Request Money',
+      'request_money_subtitle': 'Record money you are owed',
+      'request_money_info': 'This creates a quick transaction where you are the lender — you gave money or are owed repayment.',
+      'request_money_default_desc': 'Money request',
+      'request_from_email_label': 'Request From (Email)',
+      'send_request_label': 'Send Request',
+      'request_sent_success': 'Request recorded successfully',
+
+      // ── Group invite / join code ──
+      'invite_label': 'Invite',
+      'join_code_label': 'Join Code',
+      'join_code_copied_label': 'Join code copied!',
+      'share_join_code_info': 'Share this code with anyone you want to invite. They can join from the Groups screen.',
+      'generate_code_label': 'Generate Invite Code',
+      'regenerate_label': 'Regenerate',
+      'disable_label': 'Disable',
+      'no_join_code_yet': 'No invite code active. Generate one to share.',
+      'join_group_by_code_title': 'Join a Group',
+      'enter_join_code_hint': 'Enter invite code',
+      'join_group_button': 'Join Group',
+      'join_group_success': 'You have joined the group!',
+
+      // ── Group stats ──
+      'group_stats_title': 'Group Statistics',
+      'total_expenses_label': 'Total Expenses',
+      'category_breakdown_label': 'Spending by Category',
+      'monthly_trend_label': 'Monthly Trend',
+      'member_balances_label': 'Member Balances',
     },
     'hi': {
       'settings': 'सेटिंग्स',
@@ -7988,6 +8031,49 @@ class AppLocalizations {
       'step_review_subtitle': 'सत्यापन से पहले सभी विवरण जांचें',
       'step_verification_subtitle': 'OTP या PIN से दोनों पक्षों को सत्यापित करें',
       'step_final_review_subtitle': 'लॉक्ड सारांश — सबमिट के लिए तैयार',
+
+      // ── Category ──
+      'category_picker_label': 'श्रेणी',
+
+      // ── Scheduled payments ──
+      'schedule_for_later_label': 'बाद के लिए शेड्यूल करें',
+      'pick_scheduled_date_label': 'तारीख चुनें',
+      'scheduled_transactions_title': 'शेड्यूल भुगतान',
+      'no_scheduled_transactions': 'कोई शेड्यूल भुगतान नहीं',
+      'cancel_scheduled_title': 'शेड्यूल भुगतान रद्द करें',
+      'cancel_scheduled_confirm': 'क्या आप इस शेड्यूल भुगतान को रद्द करना चाहते हैं?',
+      'scheduled_cancelled_success': 'शेड्यूल भुगतान रद्द हुआ',
+      'cancel_label': 'रद्द करें',
+
+      // ── Request Money ──
+      'request_money_title': 'पैसे माँगें',
+      'request_money_subtitle': 'जो पैसे आपको मिलने हैं उन्हें रिकॉर्ड करें',
+      'request_money_info': 'यह एक क्विक ट्रांज़ैक्शन बनाता है जहाँ आप ऋणदाता हैं।',
+      'request_money_default_desc': 'पैसे की माँग',
+      'request_from_email_label': 'किससे माँगें (ईमेल)',
+      'send_request_label': 'अनुरोध भेजें',
+      'request_sent_success': 'अनुरोध सफलतापूर्वक दर्ज हुआ',
+
+      // ── Group invite / join code ──
+      'invite_label': 'आमंत्रित करें',
+      'join_code_label': 'जॉइन कोड',
+      'join_code_copied_label': 'जॉइन कोड कॉपी हुआ!',
+      'share_join_code_info': 'यह कोड उन लोगों के साथ शेयर करें जिन्हें आप आमंत्रित करना चाहते हैं।',
+      'generate_code_label': 'आमंत्रण कोड बनाएं',
+      'regenerate_label': 'दोबारा बनाएं',
+      'disable_label': 'बंद करें',
+      'no_join_code_yet': 'कोई आमंत्रण कोड नहीं। एक बनाएं।',
+      'join_group_by_code_title': 'ग्रुप में शामिल हों',
+      'enter_join_code_hint': 'आमंत्रण कोड दर्ज करें',
+      'join_group_button': 'ग्रुप जॉइन करें',
+      'join_group_success': 'आप ग्रुप में शामिल हो गए!',
+
+      // ── Group stats ──
+      'group_stats_title': 'ग्रुप सांख्यिकी',
+      'total_expenses_label': 'कुल खर्च',
+      'category_breakdown_label': 'श्रेणी अनुसार खर्च',
+      'monthly_trend_label': 'मासिक रुझान',
+      'member_balances_label': 'सदस्य बकाया',
     },
   };
 

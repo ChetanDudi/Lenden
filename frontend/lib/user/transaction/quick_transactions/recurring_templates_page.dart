@@ -15,11 +15,173 @@ class RecurringTemplatesPage extends StatefulWidget {
 class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
   List<Map<String, dynamic>> _templates = [];
   bool _loading = true;
+  List<Map<String, dynamic>> _friends = [];
 
   @override
   void initState() {
     super.initState();
     _fetchTemplates();
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    try {
+      final res = await ApiClient.get('/api/friends');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _friends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Color _avatarColor(String name) {
+    const colors = [
+      Color(0xFF00BCD4), Color(0xFF4CAF50), Color(0xFFFF9800),
+      Color(0xFF9C27B0), Color(0xFFE91E63), Color(0xFF2196F3),
+    ];
+    if (name.isEmpty) return colors[0];
+    return colors[name.codeUnitAt(0) % colors.length];
+  }
+
+  String _initials(String name, String email) {
+    final src = name.isNotEmpty ? name : email;
+    final parts = src.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return src.isNotEmpty ? src[0].toUpperCase() : '?';
+  }
+
+  Future<void> _pickFriend(TextEditingController ctrl, StateSetter setDialogState) async {
+    if (_friends.isEmpty) return;
+    String q = '';
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final filtered = _friends.where((f) {
+            final email = (f['email'] ?? '').toString().toLowerCase();
+            final name = (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
+            return q.isEmpty || email.contains(q) || name.contains(q);
+          }).toList();
+          return DraggableScrollableSheet(
+            initialChildSize: 0.65,
+            minChildSize: 0.4,
+            maxChildSize: 0.92,
+            builder: (_, scrollController) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(width: 40, height: 4,
+                    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.cyan.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.people_rounded, color: AppColors.cyan, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Select Friend',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[900])),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: Icon(Icons.close, color: Colors.grey[600], size: 22),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      autofocus: false,
+                      onChanged: (v) => setSheetState(() => q = v.toLowerCase()),
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or email',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(child: Text('No friends found', style: TextStyle(color: Colors.grey[500])))
+                        : ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (_, idx) {
+                              final f = filtered[idx];
+                              final email = (f['email'] ?? '').toString();
+                              final name = (f['name'] ?? f['username'] ?? '').toString();
+                              final color = _avatarColor(name.isNotEmpty ? name : email);
+                              return GestureDetector(
+                                onTap: () {
+                                  setDialogState(() => ctrl.text = email);
+                                  Navigator.pop(ctx);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey[200]!),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: color.withValues(alpha: 0.18),
+                                        child: Text(_initials(name, email),
+                                            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 15)),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(name.isNotEmpty ? name : email,
+                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                                            if (name.isNotEmpty)
+                                              Text(email,
+                                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _fetchTemplates() async {
@@ -98,6 +260,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
     String role = 'lender';
     String frequency = 'weekly';
     DateTime startDate = DateTime.now();
+    List<Map<String, dynamic>> suggestions = [];
 
     showDialog(
       context: context,
@@ -118,11 +281,61 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: emailController,
+                    onChanged: (val) {
+                      final q = val.trim().toLowerCase();
+                      final matches = _friends.where((f) {
+                        final email = (f['email'] ?? '').toString().toLowerCase();
+                        final name = (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
+                        return q.isNotEmpty && (email.contains(q) || name.contains(q));
+                      }).take(5).toList();
+                      setDialogState(() => suggestions = matches);
+                    },
                     decoration: InputDecoration(
                       labelText: 'Counterparty Email',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.people_rounded, color: AppColors.cyan),
+                        tooltip: 'Pick from friends',
+                        onPressed: () => _pickFriend(emailController, setDialogState),
+                      ),
                     ),
                   ),
+                  if (suggestions.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: suggestions.map((f) {
+                          final email = (f['email'] ?? '').toString();
+                          final name = (f['name'] ?? f['username'] ?? '').toString();
+                          final color = _avatarColor(name.isNotEmpty ? name : email);
+                          return ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: color.withValues(alpha: 0.18),
+                              child: Text(_initials(name, email),
+                                  style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                            title: Text(name.isNotEmpty ? name : email,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            subtitle: name.isNotEmpty
+                                ? Text(email, style: const TextStyle(fontSize: 11))
+                                : null,
+                            onTap: () => setDialogState(() {
+                              emailController.text = email;
+                              suggestions = [];
+                            }),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextField(
                     controller: amountController,

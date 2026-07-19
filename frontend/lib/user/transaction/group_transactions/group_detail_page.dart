@@ -5,8 +5,11 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:share_plus/share_plus.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
+import 'group_stats_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
@@ -438,6 +441,194 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
         ),
       ],
+    );
+  }
+
+  Future<void> _showInviteSheet(BuildContext context, String Function(String) t) async {
+    String? currentCode = _group['joinCode']?.toString();
+    bool generating = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(context), borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00796B).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.link_rounded, color: Color(0xFF00796B), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(t('invite_label'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (currentCode != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00796B).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF00796B).withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t('join_code_label'), style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+                            const SizedBox(height: 4),
+                            Text(currentCode ?? '', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
+                                letterSpacing: 4, color: Color(0xFF00796B))),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy_rounded, color: Color(0xFF00796B)),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: currentCode!));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t('join_code_copied_label')), duration: const Duration(seconds: 2)),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+                    label: const Text('Share Invite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00796B),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      final groupTitle = (_group['title'] ?? 'Our Group').toString();
+                      final memberCount = (_group['members'] as List?)?.length ?? 0;
+                      final msg = '''🎉 You're invited to join *$groupTitle* on LenDen!
+
+👥 Group: $groupTitle
+👤 Members: $memberCount
+
+🔑 Your Invite Code:
+*${currentCode!}*
+
+📱 How to join:
+1. Open the LenDen app
+2. Go to Groups → tap the 🔗 link icon
+3. Enter the code: ${currentCode!}
+
+──────────────────
+LenDen – Split expenses effortlessly with friends & family. Track debts, settle instantly, and manage group expenses with ease.
+
+Don't have LenDen yet? Download it from the Play Store / App Store! 🚀''';
+                      Share.share(msg, subject: 'Join $groupTitle on LenDen');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(t('share_join_code_info'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: Text(t('regenerate_label')),
+                        onPressed: generating ? null : () async {
+                          setSheet(() => generating = true);
+                          final res = await ApiClient.post('/api/group-transactions/${widget.groupId}/join-code', body: {});
+                          if (res.statusCode == 200) {
+                            final code = jsonDecode(res.body)['joinCode']?.toString();
+                            setSheet(() { currentCode = code; generating = false; });
+                            setState(() => _group['joinCode'] = code);
+                          } else {
+                            setSheet(() => generating = false);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.link_off_rounded, size: 18, color: Colors.red),
+                        label: Text(t('disable_label'), style: const TextStyle(color: Colors.red)),
+                        onPressed: generating ? null : () async {
+                          setSheet(() => generating = true);
+                          final res = await ApiClient.delete('/api/group-transactions/${widget.groupId}/join-code');
+                          if (res.statusCode == 200) {
+                            setSheet(() { currentCode = null; generating = false; });
+                            setState(() => _group['joinCode'] = null);
+                          } else {
+                            setSheet(() => generating = false);
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Text(t('no_join_code_yet'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: generating
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.add_link_rounded, color: Colors.white),
+                    label: Text(t('generate_code_label'), style: const TextStyle(color: Colors.white)),
+                    onPressed: generating ? null : () async {
+                      setSheet(() => generating = true);
+                      final res = await ApiClient.post('/api/group-transactions/${widget.groupId}/join-code', body: {});
+                      if (res.statusCode == 200) {
+                        final code = jsonDecode(res.body)['joinCode']?.toString();
+                        setSheet(() { currentCode = code; generating = false; });
+                        setState(() => _group['joinCode'] = code);
+                      } else {
+                        setSheet(() => generating = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00796B),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -929,6 +1120,29 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           _refresh();
                         },
                       ),
+                      _serviceChip(
+                        icon: Icons.bar_chart_rounded,
+                        label: t('stats_label'),
+                        color: const Color(0xFF1565C0),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GroupStatsPage(
+                                groupId: widget.groupId,
+                                groupTitle: title,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      if (_isCreator)
+                        _serviceChip(
+                          icon: Icons.link_rounded,
+                          label: t('invite_label'),
+                          color: const Color(0xFF00796B),
+                          onTap: () => _showInviteSheet(context, t),
+                        ),
                       if (_isCreator)
                         _serviceChip(
                           icon: Icons.color_lens_rounded,

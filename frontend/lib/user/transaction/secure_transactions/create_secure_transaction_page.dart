@@ -71,6 +71,7 @@ class _TransactionPageState extends State<TransactionPage> {
   bool _userPinMode = false;
   String _userPinCode = '';
   bool _verifyingUserPin = false;
+  String _category = 'other';
   String _interestType = 'none';
   final TextEditingController _interestRateController = TextEditingController();
   DateTime? _expectedReturnDate;
@@ -737,6 +738,7 @@ class _TransactionPageState extends State<TransactionPage> {
       'expectedReturnDate': _expectedReturnDate?.toIso8601String(),
       'compoundingFrequency': _compoundingFrequency,
       'description': _descriptionController.text,
+      'category': _category,
     };
     await _storage.write(key: _draftStorageKey(), value: jsonEncode(payload));
     _lastDraftSavedAt = DateTime.now();
@@ -827,6 +829,7 @@ class _TransactionPageState extends State<TransactionPage> {
         _interestType = (data['interestType'] ?? 'none').toString();
         _interestRateController.text = (data['interestRate'] ?? '').toString();
         _descriptionController.text = (data['description'] ?? '').toString();
+        _category = (data['category'] ?? 'other').toString();
         _compoundingFrequency =
             int.tryParse('${data['compoundingFrequency']}') ?? 1;
         _selectedDate = data['selectedDate'] == null
@@ -2331,6 +2334,7 @@ class _TransactionPageState extends State<TransactionPage> {
         'role': _role,
         'interestType': _interestType,
         'description': _descriptionController.text,
+        'category': _category,
       };
 
       if (_expectedReturnDate != null) {
@@ -2448,6 +2452,7 @@ class _TransactionPageState extends State<TransactionPage> {
         'role': _role,
         'interestType': _interestType,
         'description': _descriptionController.text,
+        'category': _category,
       };
 
       if (_expectedReturnDate != null) {
@@ -3597,6 +3602,32 @@ class _TransactionPageState extends State<TransactionPage> {
         children: [
           _buildSectionHeader(title: t('verification_title'), subtitle: t('verification_subtitle_message'), icon: Icons.verified_user_rounded),
           const SizedBox(height: 8),
+          _buildStylishField(
+            child: DropdownButtonFormField<String>(
+              value: _category,
+              items: const [
+                DropdownMenuItem(value: 'other', child: Text('Other')),
+                DropdownMenuItem(value: 'personal', child: Text('Personal')),
+                DropdownMenuItem(value: 'food', child: Text('Food & Dining')),
+                DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
+                DropdownMenuItem(value: 'transport', child: Text('Transport')),
+                DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
+                DropdownMenuItem(value: 'healthcare', child: Text('Healthcare')),
+                DropdownMenuItem(value: 'education', child: Text('Education')),
+                DropdownMenuItem(value: 'utilities', child: Text('Utilities')),
+                DropdownMenuItem(value: 'rent', child: Text('Rent')),
+                DropdownMenuItem(value: 'business', child: Text('Business')),
+                DropdownMenuItem(value: 'travel', child: Text('Travel')),
+              ],
+              onChanged: _bothUsersVerified ? null : (v) => setState(() => _category = v ?? 'other'),
+              decoration: InputDecoration(
+                labelText: t('category'),
+                prefixIcon: const Icon(Icons.label_outline_rounded),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           _buildStylishField(
             child: TextFormField(
               controller: _descriptionController,

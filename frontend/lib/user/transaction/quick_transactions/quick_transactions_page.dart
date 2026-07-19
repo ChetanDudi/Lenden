@@ -19,6 +19,7 @@ import '../../wallet/lenden_wallet_page.dart';
 import './create_edit_quick_transaction_page.dart';
 import './quick_transaction_detail_page.dart';
 import './recurring_templates_page.dart';
+import './scheduled_transactions_page.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
@@ -1775,6 +1776,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           ),
           iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
           actions: [
+            IconButton(
+              icon: Icon(Icons.schedule_rounded, color: AppThemeColors.primaryText(context)),
+              tooltip: t('scheduled_transactions_title'),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduledTransactionsPage()));
+              },
+            ),
             IconButton(
               icon: Icon(Icons.repeat_rounded, color: AppThemeColors.primaryText(context)),
               tooltip: t('recurring_templates_title'),

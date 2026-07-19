@@ -85,6 +85,9 @@ class UsernamePasswordLogin {
       }
       return {'success': false, 'error': responseData['error']};
     } catch (e) {
+      if (e is SocketException) {
+        return {'success': false, 'error': 'network_error'};
+      }
       return {'success': false, 'error': e.toString()};
     }
   }

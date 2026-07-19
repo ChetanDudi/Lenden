@@ -340,7 +340,8 @@ exports.createTransactionWithCoins = async (req, res) => {
       interestRate,
       expectedReturnDate,
       compoundingFrequency,
-      description
+      description,
+      category
     } = req.body;
 
     const user = await User.findById(req.user._id).select(
@@ -479,22 +480,23 @@ exports.createTransactionWithCoins = async (req, res) => {
       expectedReturnDate: finalExpectedReturnDate,
       compoundingFrequency: finalCompoundingFrequency,
       description: description || '',
+      category: category || 'other',
       remainingAmount: totalAmountWithInterest,
       totalAmountWithInterest: totalAmountWithInterest
     });
     const referralReward = await processReferralRewardOnFirstCreation(req.user._id);
-    
+
     // Log activity for both users with creator context
     try {
       const user = await User.findOne({ email: userEmail });
       const counterparty = await User.findOne({ email: counterpartyEmail });
-      
+
       // Determine who created the transaction (the user making the request)
       const creatorInfo = {
         creatorId: user._id,
         creatorEmail: userEmail
       };
-      
+
       if (user) {
         await logTransactionActivity(user._id, 'transaction_created_with_coins', transaction, {}, creatorInfo);
       }
@@ -543,7 +545,8 @@ exports.createTransaction = async (req, res) => {
       interestRate,
       expectedReturnDate,
       compoundingFrequency,
-      description
+      description,
+      category
     } = req.body;
 
     const user = await User.findById(req.user._id).select('email blockedUsers');
@@ -647,6 +650,7 @@ exports.createTransaction = async (req, res) => {
       expectedReturnDate: finalExpectedReturnDate,
       compoundingFrequency: finalCompoundingFrequency,
       description: description || '',
+      category: category || 'other',
       remainingAmount: totalAmountWithInterest,
       totalAmountWithInterest: totalAmountWithInterest
     });

@@ -37,6 +37,23 @@ const quickTransactionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  category: {
+    type: String,
+    default: 'other',
+  },
+  isScheduled: {
+    type: Boolean,
+    default: false,
+  },
+  scheduledAt: {
+    type: Date,
+    default: null,
+  },
+  scheduledStatus: {
+    type: String,
+    enum: ['pending', 'active', 'cancelled', null],
+    default: null,
+  },
   cleared: {
     type: Boolean,
     default: false,

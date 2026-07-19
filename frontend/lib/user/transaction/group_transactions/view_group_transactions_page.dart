@@ -67,6 +67,154 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     super.dispose();
   }
 
+  Future<void> _showJoinGroupDialog() async {
+    final t = AppLocalizations.of(context).t;
+    final codeController = TextEditingController();
+    bool joining = false;
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0077B6), AppColors.cyan],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cyan.withValues(alpha: 0.35),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.group_add_rounded, color: Colors.white, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    t('join_group_by_code_title'),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(ctx),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Enter the invite code shared by your group creator',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppThemeColors.secondaryText(ctx),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.45), width: 1.5),
+                      color: AppColors.cyan.withValues(alpha: 0.05),
+                    ),
+                    child: TextField(
+                      controller: codeController,
+                      textCapitalization: TextCapitalization.characters,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 6,
+                        color: AppColors.cyan,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: t('enter_join_code_hint'),
+                        hintStyle: TextStyle(
+                          fontSize: 14,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.normal,
+                          color: AppThemeColors.mutedText(ctx),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: joining
+                          ? null
+                          : () async {
+                              final code = codeController.text.trim();
+                              if (code.isEmpty) return;
+                              setDialog(() => joining = true);
+                              final res = await ApiClient.post('/api/group-transactions/join', body: {'joinCode': code});
+                              if (!mounted) return;
+                              Navigator.pop(ctx);
+                              if (res.statusCode == 200) {
+                                showSnack(context, t('join_group_success'));
+                                _fetchUserGroups();
+                              } else {
+                                final err = jsonDecode(res.body)['error'] ?? t('something_went_wrong');
+                                showSnack(context, err.toString(), isError: true);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: joining
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(t('join_group_button'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    codeController.dispose();
+  }
+
   Future<void> _toggleFavourite(String groupId) async {
     final session = Provider.of<SessionProvider>(context, listen: false);
     final email = session.user?['email'];
@@ -1201,6 +1349,11 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
             ),
           ),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.link_rounded),
+              tooltip: 'Join Group',
+              onPressed: _showJoinGroupDialog,
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(

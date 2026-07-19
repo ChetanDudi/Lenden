@@ -48,6 +48,9 @@ class _CreateEditQuickTransactionPageState
   final TextEditingController _counterpartyEmailController =
       TextEditingController();
   String _role = 'lender';
+  String _category = 'other';
+  bool _isScheduled = false;
+  DateTime? _scheduledAt;
   bool _isLoading = false;
   String? _userEmail;
   List<Map<String, dynamic>> _friends = [];
@@ -113,6 +116,7 @@ class _CreateEditQuickTransactionPageState
             counterparty.isNotEmpty ? (counterparty['email'] ?? '') : '';
       }
       _role = widget.initialRole ?? widget.transaction!['role'] ?? 'lender';
+      _category = widget.transaction!['category'] ?? 'other';
     } else if ((widget.prefillCounterpartyEmail ?? '').isNotEmpty) {
       _counterpartyEmailController.text =
           widget.prefillCounterpartyEmail!.trim();
@@ -562,6 +566,10 @@ class _CreateEditQuickTransactionPageState
       showSnack(context, t('this_user_is_blocked'), isError: true);
       return;
     }
+    if (!isEditing && _isScheduled && _scheduledAt == null) {
+      showSnack(context, t('pick_scheduled_date_label'), isError: true);
+      return;
+    }
     setState(() => _isLoading = true);
 
     final body = {
@@ -570,8 +578,13 @@ class _CreateEditQuickTransactionPageState
       'description': _descriptionController.text,
       'counterpartyEmail': _counterpartyEmailController.text,
       'role': _storedRoleForSubmission(_role),
+      'category': _category,
       'date': DateTime.now().toIso8601String(),
       'time': TimeOfDay.now().format(context),
+      if (!isEditing && _isScheduled && _scheduledAt != null) ...{
+        'isScheduled': true,
+        'scheduledAt': _scheduledAt!.toIso8601String(),
+      },
     };
 
     try {
@@ -931,7 +944,88 @@ class _CreateEditQuickTransactionPageState
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+
+                      // Category
+                      _buildStylishField(
+                        child: DropdownButtonFormField<String>(
+                          value: _category,
+                          items: const [
+                            DropdownMenuItem(value: 'other', child: Text('Other')),
+                            DropdownMenuItem(value: 'personal', child: Text('Personal')),
+                            DropdownMenuItem(value: 'food', child: Text('Food & Dining')),
+                            DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
+                            DropdownMenuItem(value: 'transport', child: Text('Transport')),
+                            DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
+                            DropdownMenuItem(value: 'healthcare', child: Text('Healthcare')),
+                            DropdownMenuItem(value: 'education', child: Text('Education')),
+                            DropdownMenuItem(value: 'utilities', child: Text('Utilities')),
+                            DropdownMenuItem(value: 'rent', child: Text('Rent')),
+                            DropdownMenuItem(value: 'business', child: Text('Business')),
+                            DropdownMenuItem(value: 'travel', child: Text('Travel')),
+                          ],
+                          onChanged: (val) => setState(() => _category = val ?? 'other'),
+                          decoration: InputDecoration(
+                            labelText: t('category'),
+                            prefixIcon: const Icon(Icons.label_outline_rounded, color: AppColors.cyan),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Schedule for later (only on create)
+                      if (!isEditing) ...[
+                        _buildStylishField(
+                          child: SwitchListTile(
+                            value: _isScheduled,
+                            onChanged: (v) => setState(() {
+                              _isScheduled = v;
+                              if (!v) _scheduledAt = null;
+                            }),
+                            title: Text(t('schedule_for_later_label'),
+                                style: TextStyle(color: AppThemeColors.primaryText(context))),
+                            subtitle: _scheduledAt != null
+                                ? Text(
+                                    '${_scheduledAt!.year}-${_scheduledAt!.month.toString().padLeft(2, '0')}-${_scheduledAt!.day.toString().padLeft(2, '0')}',
+                                    style: TextStyle(color: AppColors.cyan, fontSize: 13),
+                                  )
+                                : null,
+                            secondary: const Icon(Icons.schedule_rounded, color: AppColors.cyan),
+                            activeColor: AppColors.cyan,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          ),
+                        ),
+                        if (_isScheduled) ...[
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.calendar_today_rounded, color: AppColors.cyan, size: 18),
+                            label: Text(
+                              _scheduledAt == null
+                                  ? t('pick_scheduled_date_label')
+                                  : '${_scheduledAt!.year}-${_scheduledAt!.month.toString().padLeft(2, '0')}-${_scheduledAt!.day.toString().padLeft(2, '0')}',
+                              style: const TextStyle(color: AppColors.cyan),
+                            ),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now().add(const Duration(days: 1)),
+                                firstDate: DateTime.now().add(const Duration(minutes: 1)),
+                                lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                              );
+                              if (picked != null) setState(() => _scheduledAt = picked);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.cyan),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
+
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),

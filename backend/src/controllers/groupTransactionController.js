@@ -2321,3 +2321,169 @@ exports.generateGroupReceipt = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate group receipt' });
   }
 };
+
+// ─── Join Code ────────────────────────────────────────────────────────────────
+
+const crypto = require('crypto');
+
+const _generateCode = () => crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 chars
+
+exports.generateJoinCode = async (req, res) => {
+  try {
+    const group = await GroupTransaction.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const user = await User.findById(req.user._id).select('email');
+    if (_emailOf(group.creator) !== user.email && group.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Only the group creator can generate an invite code' });
+    }
+
+    let code;
+    let attempts = 0;
+    do {
+      code = _generateCode();
+      if (++attempts > 10) return res.status(500).json({ error: 'Failed to generate a unique join code, please try again' });
+    } while (await GroupTransaction.exists({ joinCode: code }));
+
+    group.joinCode = code;
+    await group.save();
+    res.json({ joinCode: group.joinCode });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate join code' });
+  }
+};
+
+exports.disableJoinCode = async (req, res) => {
+  try {
+    const group = await GroupTransaction.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const user = await User.findById(req.user._id).select('email');
+    if (group.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Only the group creator can disable the invite code' });
+    }
+
+    group.joinCode = null;
+    await group.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to disable join code' });
+  }
+};
+
+exports.joinByCode = async (req, res) => {
+  try {
+    const { joinCode } = req.body;
+    if (!joinCode) return res.status(400).json({ error: 'joinCode is required' });
+
+    const group = await GroupTransaction.findOne({ joinCode: joinCode.toUpperCase() });
+    if (!group) return res.status(404).json({ error: 'Invalid or expired invite code' });
+    if (!group.isActive) return res.status(400).json({ error: 'This group is no longer active' });
+
+    const user = await User.findById(req.user._id).select('email');
+    const userEmail = user.email;
+
+    const alreadyMember = group.members.some(
+      m => m.leftAt == null && (m.user.toString() === req.user._id.toString())
+    );
+    if (alreadyMember) return res.status(400).json({ error: 'You are already a member of this group' });
+
+    // Re-add if previously left
+    const prevEntry = group.members.find(m => m.user.toString() === req.user._id.toString() && m.leftAt != null);
+    if (prevEntry) {
+      prevEntry.leftAt = null;
+      prevEntry.joinedAt = new Date();
+    } else {
+      group.members.push({ user: req.user._id, joinedAt: new Date() });
+    }
+
+    if (!group.balances.find(b => b.user.toString() === req.user._id.toString())) {
+      group.balances.push({ user: req.user._id, balance: 0 });
+    }
+
+    await group.save();
+    res.json({ success: true, group });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to join group' });
+  }
+};
+
+// ─── Group Statistics ─────────────────────────────────────────────────────────
+
+exports.getGroupStats = async (req, res) => {
+  try {
+    const group = await GroupTransaction.findById(req.params.groupId).populate('members.user', 'email name username');
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const user = await User.findById(req.user._id).select('email');
+    const isMember = group.members.some(
+      m => m.leftAt == null && m.user._id.toString() === req.user._id.toString()
+    );
+    if (!isMember) return res.status(403).json({ error: 'Not a member of this group' });
+
+    const expenses = group.expenses || [];
+
+    // Totals
+    const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const settledExpenses = expenses.reduce((s, e) => {
+      const allSettled = e.split.length > 0 && e.split.every(sp => sp.settled);
+      return s + (allSettled ? (e.amount || 0) : 0);
+    }, 0);
+    const pendingExpenses = totalExpenses - settledExpenses;
+
+    // Category breakdown
+    const categoryMap = {};
+    for (const e of expenses) {
+      const cat = e.category || 'other';
+      categoryMap[cat] = (categoryMap[cat] || 0) + (e.amount || 0);
+    }
+    const categoryBreakdown = Object.entries(categoryMap).map(([cat, amt]) => ({ category: cat, amount: amt }));
+
+    // Monthly trend (last 12 months)
+    const now = new Date();
+    const monthlyCounts = Array(12).fill(0);
+    const monthlyAmounts = Array(12).fill(0);
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`);
+    }
+    for (const e of expenses) {
+      const d = new Date(e.date || e.createdAt || Date.now());
+      const monthsAgo = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+      if (monthsAgo >= 0 && monthsAgo < 12) {
+        monthlyCounts[11 - monthsAgo]++;
+        monthlyAmounts[11 - monthsAgo] += e.amount || 0;
+      }
+    }
+
+    // Member balance summary
+    const memberBalances = group.balances.map(b => {
+      const memberDoc = group.members.find(m => m.user._id.toString() === b.user.toString());
+      const email = memberDoc?.user?.email || '';
+      const name = memberDoc?.user?.name || memberDoc?.user?.username || email;
+      return { email, name, balance: b.balance };
+    });
+
+    res.json({
+      totalExpenses,
+      settledExpenses,
+      pendingExpenses,
+      totalExpenseCount: expenses.length,
+      categoryBreakdown,
+      monthlyCounts,
+      monthlyAmounts,
+      months,
+      memberBalances,
+    });
+  } catch (err) {
+    console.error('getGroupStats error:', err);
+    res.status(500).json({ error: 'Failed to fetch group stats' });
+  }
+};
+
+function _emailOf(field) {
+  if (!field) return '';
+  if (typeof field === 'object' && field.email) return field.email;
+  return field.toString();
+}

@@ -38,10 +38,11 @@ class EmailOtpLogin {
         return {'success': false, 'error': errorMsg};
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': AppLocalizations.of(context).t('failed_to_send_otp_retry')
-      };
+      final t = AppLocalizations.of(context).t;
+      if (e is SocketException) {
+        return {'success': false, 'error': 'No internet connection. Please check your network and try again.'};
+      }
+      return {'success': false, 'error': t('failed_to_send_otp_retry')};
     }
   }
 

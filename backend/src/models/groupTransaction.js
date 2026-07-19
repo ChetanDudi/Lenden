@@ -47,6 +47,7 @@ const groupTransactionSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     paidAt: { type: Date, default: Date.now },
   }],
+  joinCode: { type: String, default: null },
   favourite: [{ type: String }], // Array of user emails
   messageCounts: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -59,6 +60,7 @@ groupTransactionSchema.index({ creator: 1, createdAt: -1 });
 groupTransactionSchema.index({ 'members.user': 1 });
 groupTransactionSchema.index({ isActive: 1, 'members.user': 1 });
 groupTransactionSchema.index({ favourite: 1 });
+groupTransactionSchema.index({ joinCode: 1 }, { sparse: true, unique: true });
 
 groupTransactionSchema.methods.canRemoveMember = function(userId) {
   const bal = this.balances.find(b => b.user.toString() === userId.toString());

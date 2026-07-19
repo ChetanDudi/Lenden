@@ -183,6 +183,8 @@ module.exports = (io) => {
   router.post('/quick-transactions/:id/request-settlement', auth, quickTransactionController.requestQuickTransactionSettlement);
   router.post('/quick-transactions/:id/respond-settlement', auth, quickTransactionController.respondQuickTransactionSettlement);
   router.delete('/quick-transactions', auth, quickTransactionController.clearAllQuickTransactions);
+  router.get('/quick-transactions/scheduled', auth, quickTransactionController.getScheduledQuickTransactions);
+  router.delete('/quick-transactions/:id/cancel-scheduled', auth, quickTransactionController.cancelScheduledQuickTransaction);
 
   // Support routes (User)
   router.get('/contact-info', contactConfigController.getPublicContactConfig);
@@ -350,6 +352,14 @@ module.exports = (io) => {
 
   // New: Generate group receipt
   router.post('/group-transactions/:groupId/receipt', auth, groupTransactionController.generateGroupReceipt);
+
+  // Group join code routes
+  router.post('/group-transactions/join', auth, groupTransactionController.joinByCode);
+  router.post('/group-transactions/:groupId/join-code', auth, groupTransactionController.generateJoinCode);
+  router.delete('/group-transactions/:groupId/join-code', auth, groupTransactionController.disableJoinCode);
+
+  // Group statistics
+  router.get('/group-transactions/:groupId/stats', auth, groupTransactionController.getGroupStats);
 
   // Activity routes
   router.get('/activities', auth, activityController.getUserActivities);

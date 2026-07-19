@@ -73,6 +73,10 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  category: {
+    type: String,
+    default: 'other'
+  },
   // New fields for partial payments
   remainingAmount: {
     type: Number,

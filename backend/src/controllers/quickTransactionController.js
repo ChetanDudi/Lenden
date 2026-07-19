@@ -34,7 +34,7 @@ const resetSettlementState = (quickTransaction) => {
 
 exports.createQuickTransaction = async (req, res) => {
   try {
-    const { amount, currency, date, time, description, counterpartyEmail, role } = req.body;
+    const { amount, currency, date, time, description, counterpartyEmail, role, category, isScheduled, scheduledAt } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
@@ -82,6 +82,7 @@ exports.createQuickTransaction = async (req, res) => {
       }
     }
 
+    const scheduledDate = isScheduled && scheduledAt ? new Date(scheduledAt) : null;
     const quickTransaction = new QuickTransaction({
       amount,
       currency,
@@ -91,6 +92,10 @@ exports.createQuickTransaction = async (req, res) => {
       users: [userEmail, counterpartyEmail],
       creatorEmail: userEmail,
       role,
+      category: category || 'other',
+      isScheduled: !!(isScheduled && scheduledDate),
+      scheduledAt: scheduledDate,
+      scheduledStatus: (isScheduled && scheduledDate) ? 'pending' : null,
     });
 
     await quickTransaction.save();
@@ -122,7 +127,7 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
   const QUICK_TRANSACTION_COST = 5;
   const QUICK_TRANSACTION_DAILY_LIMIT = 3;
   try {
-    const { amount, currency, date, time, description, counterpartyEmail, role } = req.body;
+    const { amount, currency, date, time, description, counterpartyEmail, role, category, isScheduled, scheduledAt } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
@@ -204,6 +209,7 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
       },
     });
 
+    const scheduledDate2 = isScheduled && scheduledAt ? new Date(scheduledAt) : null;
     const quickTransaction = new QuickTransaction({
       amount,
       currency,
@@ -213,6 +219,10 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
       users: [userEmail, counterpartyEmail],
       creatorEmail: userEmail,
       role,
+      category: category || 'other',
+      isScheduled: !!(isScheduled && scheduledDate2),
+      scheduledAt: scheduledDate2,
+      scheduledStatus: (isScheduled && scheduledDate2) ? 'pending' : null,
     });
 
     await quickTransaction.save();
@@ -652,6 +662,32 @@ exports.clearAllQuickTransactions = async (req, res) => {
     await QuickTransaction.deleteMany({ users: userEmail });
     await logQuickTransactionActivity(req.user._id, 'quick_transaction_cleared_all', {});
     res.status(200).json({ message: 'All quick transactions cleared successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.getScheduledQuickTransactions = async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    const scheduled = await QuickTransaction.find({
+      users: userEmail,
+      isScheduled: true,
+    }).sort({ scheduledAt: 1 });
+    res.json({ scheduled });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.cancelScheduledQuickTransaction = async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    const qt = await QuickTransaction.findOne({ _id: req.params.id, users: userEmail, isScheduled: true });
+    if (!qt) return res.status(404).json({ error: 'Scheduled transaction not found' });
+    qt.scheduledStatus = 'cancelled';
+    await qt.save();
+    res.json({ success: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

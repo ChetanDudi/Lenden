@@ -256,7 +256,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
         //   SnackBar(content: Text(error ?? 'This account is deactivated.')),
         // );
       } else if (error != null) {
-        if (error == 'Incorrect password') {
+        if (error == 'network_error') {
+          _showGoogleNetworkErrorDialog();
+        } else if (error == 'Incorrect password') {
           _showIncorrectPasswordDialog();
         } else {
           _showUserNotFoundDialog();
@@ -1012,7 +1014,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Google Sign-In requires an active internet connection.\nPlease check your Wi-Fi or mobile data and try again.',
+                  'Login requires an active internet connection.\nPlease check your Wi-Fi or mobile data and try again.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
                 ),
