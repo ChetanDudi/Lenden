@@ -57,10 +57,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChange);
     _loadDisplayCurrencies();
-    _ensureTabLoaded(0);
+    _ensureTabLoaded(0); // Overview — loads everything
   }
 
   @override
@@ -92,7 +92,31 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       return;
     }
 
+    // Tab 0 = Overview: load everything at once
     if (index == 0) {
+      await Future.wait([
+        if (force || !_secureTabLoaded || !_secureDetailsLoaded) ...[
+          _fetchSecureAnalytics(email),
+          _fetchSecureTransactions(email: email),
+        ],
+        if (force || !_quickTabLoaded || !_quickDetailsLoaded) ...[
+          _fetchQuickAnalytics(email),
+          _fetchQuickTransactions(),
+        ],
+        if (force || !_groupTabLoaded) ...[
+          _fetchGroupAnalytics(email),
+          _fetchUserGroups(),
+        ],
+      ]);
+      _secureTabLoaded = true;
+      _secureDetailsLoaded = true;
+      _quickTabLoaded = true;
+      _quickDetailsLoaded = true;
+      _groupTabLoaded = true;
+      return;
+    }
+
+    if (index == 1) { // Secure
       if (!force && _secureTabLoaded && _secureDetailsLoaded) return;
       await Future.wait([
         _fetchSecureAnalytics(email),
@@ -103,7 +127,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       return;
     }
 
-    if (index == 1) {
+    if (index == 2) { // Quick
       if (!force && _quickTabLoaded && _quickDetailsLoaded) return;
       await Future.wait([
         _fetchQuickAnalytics(email),
@@ -114,6 +138,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       return;
     }
 
+    // Tab 3 = Group
     if (!force && _groupTabLoaded) return;
     await Future.wait([
       _fetchGroupAnalytics(email),
@@ -1445,7 +1470,730 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     );
   }
 
-  @override
+  // ── Overview helpers ──────────────────────────────────────────────────────
+
+  Map<String, double> _computeOverviewStats() {
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final monthStart = DateTime(now.year, now.month, 1);
+    final todayStart = DateTime(now.year, now.month, now.day);
+
+    double totalIncome = 0, totalExpense = 0;
+    double pendingAmount = 0;
+    double monthlySpending = 0, weeklySpending = 0, dailySpending = 0;
+
+    // Quick transactions
+    for (final t in _quickTransactions) {
+      final amt = _displayAmountForTransaction(t);
+      final role = _roleForViewer(t);
+      final cleared = t['cleared'] == true;
+      if (role == 'lender') {
+        totalExpense += amt;
+      } else {
+        totalIncome += amt;
+      }
+      if (!cleared) pendingAmount += amt;
+
+      final dateStr = (t['date'] ?? t['createdAt'] ?? '').toString();
+      final date = DateTime.tryParse(dateStr)?.toLocal();
+      if (date != null) {
+        final spending = role == 'lender' ? amt : 0.0;
+        if (!date.isBefore(monthStart)) monthlySpending += spending;
+        if (!date.isBefore(weekStart)) weeklySpending += spending;
+        if (!date.isBefore(todayStart)) dailySpending += spending;
+      }
+    }
+
+    // Secure transactions
+    for (final t in _secureTransactions) {
+      final amt = _secureDisplayAmount(t);
+      final role = _secureViewerRole(t);
+      final cleared = t['userCleared'] == true && t['counterpartyCleared'] == true;
+      if (role == 'lender') {
+        totalExpense += amt;
+      } else {
+        totalIncome += amt;
+      }
+      if (!cleared) pendingAmount += amt;
+
+      final dateStr = (t['date'] ?? t['createdAt'] ?? '').toString();
+      final date = DateTime.tryParse(dateStr)?.toLocal();
+      if (date != null) {
+        final spending = role == 'lender' ? amt : 0.0;
+        if (!date.isBefore(monthStart)) monthlySpending += spending;
+        if (!date.isBefore(weekStart)) weeklySpending += spending;
+        if (!date.isBefore(todayStart)) dailySpending += spending;
+      }
+    }
+
+    // Group expenses
+    final userEmail = _currentUserEmail();
+    for (final g in _userGroups) {
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        final addedBy = (e['addedBy'] ?? '').toString().toLowerCase();
+        if (addedBy != userEmail) continue;
+        final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        final target = _selectedDisplayCurrency.toUpperCase();
+        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
+            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+            : raw;
+        totalExpense += amt;
+        pendingAmount += amt;
+
+        final dateStr = (e['date'] ?? '').toString();
+        final date = DateTime.tryParse(dateStr)?.toLocal();
+        if (date != null) {
+          if (!date.isBefore(monthStart)) monthlySpending += amt;
+          if (!date.isBefore(weekStart)) weeklySpending += amt;
+          if (!date.isBefore(todayStart)) dailySpending += amt;
+        }
+      }
+    }
+
+    return {
+      'totalBalance': totalIncome - totalExpense,
+      'totalIncome': totalIncome,
+      'totalExpense': totalExpense,
+      'pendingAmount': pendingAmount,
+      'monthlySpending': monthlySpending,
+      'weeklySpending': weeklySpending,
+      'dailySpending': dailySpending,
+    };
+  }
+
+  Map<String, double> _computeCombinedCategoryTotals() {
+    final cats = <String, double>{};
+    final userEmail = _currentUserEmail();
+
+    for (final t in _quickTransactions) {
+      if (_roleForViewer(t) != 'lender') continue;
+      final cat = (t['category'] ?? 'other').toString();
+      cats[cat] = (cats[cat] ?? 0) + _displayAmountForTransaction(t);
+    }
+    for (final t in _secureTransactions) {
+      if (_secureViewerRole(t) != 'lender') continue;
+      final cat = (t['category'] ?? 'other').toString();
+      cats[cat] = (cats[cat] ?? 0) + _secureDisplayAmount(t);
+    }
+    for (final g in _userGroups) {
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
+        final cat = (e['category'] ?? 'other').toString();
+        final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        final target = _selectedDisplayCurrency.toUpperCase();
+        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
+            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+            : raw;
+        cats[cat] = (cats[cat] ?? 0) + amt;
+      }
+    }
+    return cats;
+  }
+
+  List<Map<String, dynamic>> _buildUpcomingPayments() {
+    final now = DateTime.now();
+    final cutoff = now.add(const Duration(days: 30));
+    final upcoming = <Map<String, dynamic>>[];
+    for (final t in _secureTransactions) {
+      final cleared = t['userCleared'] == true && t['counterpartyCleared'] == true;
+      if (cleared) continue;
+      final expectedDate = DateTime.tryParse((t['expectedReturnDate'] ?? '').toString());
+      if (expectedDate == null) continue;
+      if (expectedDate.isAfter(now) && expectedDate.isBefore(cutoff)) {
+        upcoming.add({
+          'label': _secureCounterpartyLabel(t),
+          'amount': _secureDisplayAmount(t),
+          'date': expectedDate,
+          'role': _secureViewerRole(t),
+        });
+      }
+    }
+    upcoming.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+    return upcoming.take(5).toList();
+  }
+
+  List<Map<String, dynamic>> _buildRecentTransactions() {
+    final all = <Map<String, dynamic>>[];
+    for (final t in _quickTransactions) {
+      final dateStr = (t['date'] ?? t['createdAt'] ?? '').toString();
+      final date = DateTime.tryParse(dateStr);
+      if (date == null) continue;
+      all.add({
+        'date': date,
+        'amount': _displayAmountForTransaction(t),
+        'label': (() {
+          final users = List<Map<String, dynamic>>.from(t['users'] ?? []);
+          final cp = users.firstWhere(
+            (u) => (u['email'] ?? '').toString().toLowerCase() != _currentUserEmail(),
+            orElse: () => {},
+          );
+          return (cp['name'] ?? cp['email'] ?? 'Unknown').toString();
+        })(),
+        'role': _roleForViewer(t),
+        'type': 'quick',
+        'category': (t['category'] ?? 'other').toString(),
+      });
+    }
+    for (final t in _secureTransactions) {
+      final dateStr = (t['date'] ?? t['createdAt'] ?? '').toString();
+      final date = DateTime.tryParse(dateStr);
+      if (date == null) continue;
+      all.add({
+        'date': date,
+        'amount': _secureDisplayAmount(t),
+        'label': _secureCounterpartyLabel(t),
+        'role': _secureViewerRole(t),
+        'type': 'secure',
+        'category': (t['category'] ?? 'other').toString(),
+      });
+    }
+    final userEmail = _currentUserEmail();
+    for (final g in _userGroups) {
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
+        final dateStr = (e['date'] ?? '').toString();
+        final date = DateTime.tryParse(dateStr);
+        if (date == null) continue;
+        final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        final target = _selectedDisplayCurrency.toUpperCase();
+        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
+            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+            : raw;
+        all.add({
+          'date': date,
+          'amount': amt,
+          'label': (g['title'] ?? 'Group').toString(),
+          'role': 'lender',
+          'type': 'group',
+          'category': (e['category'] ?? 'other').toString(),
+        });
+      }
+    }
+    all.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+    return all.take(5).toList();
+  }
+
+  Widget _buildOverviewStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    bool isNegative = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const Spacer(),
+            if (isNegative) Icon(Icons.arrow_downward_rounded, size: 14, color: Colors.red[400]),
+          ]),
+          const SizedBox(height: 10),
+          Text(value,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                  color: isNegative ? Colors.red[600] : AppThemeColors.primaryText(context)),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(title,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab() {
+    final allLoading = (_quickTransactionsLoading && _quickTransactions.isEmpty) ||
+        (_secureTransactionsLoading && _secureTransactions.isEmpty) ||
+        (_groupDetailsLoading && _userGroups.isEmpty);
+    if (allLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.cyan));
+    }
+
+    final t = AppLocalizations.of(context).t;
+    final sym = _displayCurrencyData?.symbolFor(_selectedDisplayCurrency.toUpperCase()) ??
+        (_selectedDisplayCurrency.toUpperCase() == 'INR' ? '₹' : _selectedDisplayCurrency);
+    final stats = _computeOverviewStats();
+    final balance = stats['totalBalance'] ?? 0;
+    final upcoming = _buildUpcomingPayments();
+    final recent = _buildRecentTransactions();
+    final catTotals = _computeCombinedCategoryTotals();
+    final sortedCats = catTotals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final totalCatAmt = sortedCats.fold(0.0, (s, e) => s + e.value);
+
+    String fmt(double v) => '$sym${v.toStringAsFixed(2)}';
+
+    return RefreshIndicator(
+      onRefresh: _refreshActiveTab,
+      color: AppColors.cyan,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Currency selector + subtitle
+            Row(
+              children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Financial Overview',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context))),
+                    Text('All transaction types combined',
+                        style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                  ]),
+                ),
+                _buildCurrencySelector(),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── Key Stats Grid ───────────────────────────────────────────────
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.4,
+              children: [
+                _buildOverviewStatCard(
+                  title: 'Total Balance',
+                  value: fmt(balance.abs()),
+                  icon: balance >= 0 ? Icons.account_balance_rounded : Icons.account_balance_outlined,
+                  color: balance >= 0 ? const Color(0xFF26C6A6) : Colors.red[400]!,
+                  isNegative: balance < 0,
+                ),
+                _buildOverviewStatCard(
+                  title: 'Pending Amount',
+                  value: fmt(stats['pendingAmount'] ?? 0),
+                  icon: Icons.pending_actions_rounded,
+                  color: Colors.orange,
+                ),
+                _buildOverviewStatCard(
+                  title: 'Total Income',
+                  value: fmt(stats['totalIncome'] ?? 0),
+                  icon: Icons.arrow_downward_rounded,
+                  color: const Color(0xFF42A5F5),
+                ),
+                _buildOverviewStatCard(
+                  title: 'Total Expense',
+                  value: fmt(stats['totalExpense'] ?? 0),
+                  icon: Icons.arrow_upward_rounded,
+                  color: Colors.deepPurple,
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // ── Spending Periods ─────────────────────────────────────────────
+            Text('Spending Periods',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _buildPeriodCard('Daily', fmt(stats['dailySpending'] ?? 0),
+                    Icons.today_rounded, const Color(0xFF66BB6A))),
+                const SizedBox(width: 10),
+                Expanded(child: _buildPeriodCard('Weekly', fmt(stats['weeklySpending'] ?? 0),
+                    Icons.date_range_rounded, const Color(0xFF42A5F5))),
+                const SizedBox(width: 10),
+                Expanded(child: _buildPeriodCard('Monthly', fmt(stats['monthlySpending'] ?? 0),
+                    Icons.calendar_month_rounded, Colors.deepPurple)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // ── Upcoming Payments ────────────────────────────────────────────
+            Text('Upcoming Payments',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Secure transactions due in next 30 days',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 12),
+            if (upcoming.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppThemeColors.border(context)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.check_circle_outline, color: Color(0xFF26C6A6)),
+                  const SizedBox(width: 10),
+                  Text('No upcoming payments in the next 30 days',
+                      style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                ]),
+              )
+            else
+              ...upcoming.map((up) {
+                final date = up['date'] as DateTime;
+                final daysLeft = date.difference(DateTime.now()).inDays;
+                final isLender = up['role'] == 'lender';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border(left: BorderSide(
+                      color: daysLeft <= 7 ? Colors.red[400]! : Colors.orange,
+                      width: 4,
+                    )),
+                  ),
+                  child: Row(children: [
+                    Icon(isLender ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                        color: isLender ? Colors.red[400] : Colors.green, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(up['label'].toString(),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      Text('Due in $daysLeft day${daysLeft == 1 ? '' : 's'} · '
+                          '${date.day}/${date.month}/${date.year}',
+                          style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                    ])),
+                    Text(fmt((up['amount'] as num).toDouble()),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: daysLeft <= 7 ? Colors.red[600] : AppThemeColors.primaryText(context))),
+                  ]),
+                );
+              }),
+            const SizedBox(height: 24),
+
+            // ── Recent Transactions ──────────────────────────────────────────
+            Text('Recent Transactions',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Latest activity across all types',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 12),
+            if (recent.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppThemeColors.border(context)),
+                ),
+                child: Text('No transactions yet.',
+                    style: TextStyle(color: AppThemeColors.secondaryText(context))),
+              )
+            else
+              ...recent.map((r) {
+                final isLender = r['role'] == 'lender';
+                final typeLabel = r['type'] == 'quick' ? 'Quick' : r['type'] == 'secure' ? 'Secure' : 'Group';
+                final typeColor = r['type'] == 'quick'
+                    ? AppColors.cyan
+                    : r['type'] == 'secure'
+                        ? Colors.deepPurple
+                        : Colors.teal;
+                final date = r['date'] as DateTime;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppThemeColors.border(context)),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: typeColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isLender ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                        size: 16, color: isLender ? Colors.red[400] : Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(r['label'].toString(),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: typeColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(typeLabel,
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: typeColor)),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('${date.day}/${date.month}/${date.year}',
+                            style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
+                      ]),
+                    ])),
+                    Text(fmt((r['amount'] as num).toDouble()),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isLender ? Colors.red[600] : Colors.green[700])),
+                  ]),
+                );
+              }),
+            const SizedBox(height: 24),
+
+            // ── Category Wise Spending (Pie + Bars) ──────────────────────────
+            Text('Category Wise Spending',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Your expenses broken down by category',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 16),
+            if (sortedCats.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppThemeColors.border(context)),
+                ),
+                child: Text('No expense data yet.',
+                    style: TextStyle(color: AppThemeColors.secondaryText(context))),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                child: Column(children: [
+                  // Pie Chart
+                  SizedBox(
+                    height: 200,
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 48,
+                        sections: sortedCats.asMap().entries.map((entry) {
+                          final meta = _kCategoryMeta[entry.value.key] ?? _kCategoryMeta['other']!;
+                          final pct = totalCatAmt > 0 ? entry.value.value / totalCatAmt * 100 : 0.0;
+                          return PieChartSectionData(
+                            color: meta['color'] as Color,
+                            value: entry.value.value,
+                            title: '${pct.toStringAsFixed(0)}%',
+                            radius: 52,
+                            titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                            badgeWidget: null,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Legend + bars
+                  ...sortedCats.map((entry) {
+                    final meta = _kCategoryMeta[entry.key] ?? _kCategoryMeta['other']!;
+                    final pct = totalCatAmt > 0 ? entry.value / totalCatAmt : 0.0;
+                    final catColor = meta['color'] as Color;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(color: catColor, shape: BoxShape.circle)),
+                          Expanded(child: Text(_categoryDisplayLabel(entry.key, t),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                          Text(fmt(entry.value),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ]),
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            minHeight: 7,
+                            backgroundColor: AppThemeColors.border(context),
+                            valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                          ),
+                        ),
+                      ]),
+                    );
+                  }),
+                ]),
+              ),
+            const SizedBox(height: 24),
+
+            // ── Spending Trend ───────────────────────────────────────────────
+            Text('Spending Trend (Monthly)',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Monthly transaction activity across all types',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 12),
+            _buildCombinedSpendingTrendChart(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 8),
+        Text(value,
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(context)),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 2),
+        Text(label,
+            style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
+  Widget _buildCombinedSpendingTrendChart() {
+    // Build monthly buckets for last 6 months
+    final now = DateTime.now();
+    final buckets = List.generate(6, (i) {
+      final month = DateTime(now.year, now.month - 5 + i, 1);
+      return {'month': month, 'amount': 0.0};
+    });
+
+    void addToMonthBucket(DateTime date, double amount) {
+      for (final bucket in buckets) {
+        final m = bucket['month'] as DateTime;
+        if (date.year == m.year && date.month == m.month) {
+          bucket['amount'] = (bucket['amount'] as double) + amount;
+          break;
+        }
+      }
+    }
+
+    final userEmail = _currentUserEmail();
+    for (final t in _quickTransactions) {
+      if (_roleForViewer(t) != 'lender') continue;
+      final dateStr = (t['date'] ?? t['createdAt'] ?? '').toString();
+      final date = DateTime.tryParse(dateStr)?.toLocal();
+      if (date != null) addToMonthBucket(date, _displayAmountForTransaction(t));
+    }
+    for (final t in _secureTransactions) {
+      if (_secureViewerRole(t) != 'lender') continue;
+      final dateStr = (t['date'] ?? t['createdAt'] ?? '').toString();
+      final date = DateTime.tryParse(dateStr)?.toLocal();
+      if (date != null) addToMonthBucket(date, _secureDisplayAmount(t));
+    }
+    for (final g in _userGroups) {
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
+        final dateStr = (e['date'] ?? '').toString();
+        final date = DateTime.tryParse(dateStr)?.toLocal();
+        if (date == null) continue;
+        final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        final target = _selectedDisplayCurrency.toUpperCase();
+        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
+            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+            : raw;
+        addToMonthBucket(date, amt);
+      }
+    }
+
+    final spots = buckets.asMap().entries.map((e) =>
+        FlSpot(e.key.toDouble(), (e.value['amount'] as double))).toList();
+    final labels = buckets.map((b) {
+      final m = b['month'] as DateTime;
+      const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return names[m.month - 1];
+    }).toList();
+
+    final maxY = spots.isEmpty ? 1.0 : spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+
+    return Container(
+      height: 240,
+      padding: const EdgeInsets.fromLTRB(4, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: maxY > 0 ? maxY / 4 : 1,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.grey.withValues(alpha: 0.14),
+              strokeWidth: 1,
+            ),
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  final i = value.toInt();
+                  if (i < 0 || i >= labels.length) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(labels[i],
+                        style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+                  );
+                },
+              ),
+            ),
+          ),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              gradient: const LinearGradient(colors: [Color(0xFF26C6A6), Color(0xFF42A5F5)]),
+              barWidth: 3,
+              dotData: FlDotData(show: true),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(colors: [
+                  const Color(0xFF26C6A6).withValues(alpha: 0.22),
+                  const Color(0xFF42A5F5).withValues(alpha: 0.04),
+                ], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+              ),
+            ),
+          ],
+          borderData: FlBorderData(show: false),
+          minY: 0,
+        ),
+      ),
+    );
+  }
+
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
     return Scaffold(
@@ -1582,6 +2330,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 unselectedLabelColor: AppColors.cyan,
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 tabs: [
+                  const Tab(text: 'Overview'),
                   Tab(text: t('secure_trxns_tab_label')),
                   Tab(text: t('quick_trxns_tab_label')),
                   Tab(text: t('groups_trxns_tab_label')),
@@ -1595,6 +2344,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           child: TabBarView(
             controller: _tabController,
             children: [
+              _buildOverviewTab(),
               _buildTabContent(
                 analytics: _secureAnalytics,
                 loading: _secureLoading,
