@@ -19,7 +19,17 @@ const adminSchema = new mongoose.Schema({
   address: { type: String },
   phone: { type: String },
   altEmail: { type: String },
-  profileImage: { type: Buffer }, // Store image as binary
+  profileImage: { type: Buffer },
+  loginOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+  },
+  resetOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+  },
   isSuperAdmin: { 
     type: Boolean, 
     default: false 

@@ -573,36 +573,26 @@ exports.listUsers = async (req, res) => {
 exports.sendLoginOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    
-    let userType = null;
-    let name = null;
+
     const user = await User.findOne({ email });
-    const admin = await Admin.findOne({ email });
-    
-    
-    if (user) {
-      userType = 'user';
-      name = user.name;
-    } else if (admin) {
-      userType = 'admin';
-      name = admin.name;
-    } else {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Generate OTP
+    const admin = !user ? await Admin.findOne({ email }) : null;
+    const record = user || admin;
+    if (!record) return res.status(404).json({ error: 'User not found' });
+    const userType = user ? 'user' : 'admin';
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[email] = { otp, userType, created: Date.now() };
+    const expiry = new Date(Date.now() + OTP_EXPIRY_MS);
+    record.loginOTP = { code: otp, expiry, sentAt: new Date() };
 
     try {
       await sendLoginOTP(email, otp);
     } catch (emailErr) {
       console.error('[sendLoginOtp] Email send failed:', emailErr.message);
-      delete otpStore[email];
       return res.status(503).json({ error: 'Could not send OTP email. Please check your email address and try again.' });
     }
 
-    res.status(200).json({ message: 'OTP sent to email', userType, name });
+    await record.save();
+    res.status(200).json({ message: 'OTP sent to email', userType, name: record.name });
   } catch (err) {
     console.error('❌ Error in sendLoginOtp:', err.message);
     res.status(503).json({ error: 'Server is temporarily unavailable. Please try again in a moment.' });
@@ -613,69 +603,47 @@ exports.sendLoginOtp = async (req, res) => {
 exports.verifyLoginOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    
-    const entry = otpStore[email];
-    if (!entry) {
-      return res.status(400).json({ error: 'No OTP found for this email' });
-    }
-    
-    const now = Date.now();
-    if (now - entry.created > OTP_EXPIRY_MS) {
-      delete otpStore[email];
+
+    const user = await User.findOne({ email });
+    const admin = !user ? await Admin.findOne({ email }) : null;
+    const record = user || admin;
+    if (!record) return res.status(404).json({ error: 'User not found' });
+    const userType = user ? 'user' : 'admin';
+
+    const stored = record.loginOTP;
+    if (!stored || !stored.code) return res.status(400).json({ error: 'No OTP found for this email' });
+    if (new Date() > stored.expiry) {
+      record.loginOTP = undefined;
+      await record.save();
       return res.status(400).json({ error: 'OTP expired. Please request a new OTP.' });
     }
-    
-    if (entry.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-    
-    
-    // Find user or admin
-    let user = null;
-    let admin = null;
-    if (entry.userType === 'user') {
-      user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+    if (stored.code !== otp) return res.status(400).json({ error: 'Invalid OTP' });
+
+    // Clear OTP
+    record.loginOTP = undefined;
+
+    if (userType === 'user') {
       if (user.deactivatedAccount) {
+        await user.save();
         return res.status(403).json({
           error: 'This account has been deactivated. Would you like to recover it?',
           canRecover: true,
           email: user.email,
-          username: user.username
+          username: user.username,
         });
       }
-      
-      
-      // Generate tokens for user
+
       const deviceId = req.body.deviceId || uuidv4();
       const deviceName = req.body.deviceName || req.get('User-Agent');
       const ipAddress = req.ip;
-      
-      // Generate access token (short-lived)
-      const accessToken = TokenService.generateAccessToken({
-        _id: user._id,
-        email: user.email,
-        role: 'user',
-        deviceId
-      });
 
-      // Generate refresh token (long-lived)
+      const accessToken = TokenService.generateAccessToken({ _id: user._id, email: user.email, role: 'user', deviceId });
       const refreshToken = TokenService.generateRefreshToken();
-      
-      // Save refresh token to database
       await TokenService.saveRefreshToken({
-        token: refreshToken,
-        userId: user._id,
-        userType: 'user',
-        deviceId,
-        deviceName,
-        ipAddress,
-        userAgent: req.get('User-Agent'),
-        expiresAt: TokenService.calculateTokenExpiry()
+        token: refreshToken, userId: user._id, userType: 'user',
+        deviceId, deviceName, ipAddress, userAgent: req.get('User-Agent'),
+        expiresAt: TokenService.calculateTokenExpiry(),
       });
-
 
       const dailyReward = applyDailyLoginReward(user);
       await user.save();
@@ -683,70 +651,25 @@ exports.verifyLoginOtp = async (req, res) => {
 
       const userResponse = user.toObject();
       delete userResponse.password;
-
-      delete otpStore[email];
-      return res.status(200).json({
-        message: 'Login successful',
-        userType: 'user',
-        user: userResponse,
-        accessToken,
-        refreshToken,
-        deviceId,
-        dailyLoginReward: dailyReward,
-      });
-    } else if (entry.userType === 'admin') {
-      admin = await Admin.findOne({ email });
-      if (!admin) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      
-      // Generate tokens for admin
+      return res.status(200).json({ message: 'Login successful', userType: 'user', user: userResponse, accessToken, refreshToken, deviceId, dailyLoginReward: dailyReward });
+    } else {
       const deviceId = req.body.deviceId || uuidv4();
       const deviceName = req.body.deviceName || req.get('User-Agent');
       const ipAddress = req.ip;
-      
-      // Generate access token (short-lived)
-      const accessToken = TokenService.generateAccessToken({
-        _id: admin._id,
-        userId: admin._id,
-        email: admin.email,
-        role: 'admin',
-        deviceId,
-        isSuperAdmin: admin.isSuperAdmin === true,
-      });
 
-      // Generate refresh token (long-lived)
+      const accessToken = TokenService.generateAccessToken({ _id: admin._id, userId: admin._id, email: admin.email, role: 'admin', deviceId, isSuperAdmin: admin.isSuperAdmin === true });
       const refreshToken = TokenService.generateRefreshToken();
-      
-      // Save refresh token to database
       await TokenService.saveRefreshToken({
-        token: refreshToken,
-        userId: admin._id,
-        userType: 'admin',
-        deviceId,
-        deviceName,
-        ipAddress,
-        userAgent: req.get('User-Agent'),
-        expiresAt: TokenService.calculateTokenExpiry()
+        token: refreshToken, userId: admin._id, userType: 'admin',
+        deviceId, deviceName, ipAddress, userAgent: req.get('User-Agent'),
+        expiresAt: TokenService.calculateTokenExpiry(),
       });
 
-
+      await admin.save();
       const adminResponse = admin.toObject();
       delete adminResponse.password;
-
-      delete otpStore[email];
-      return res.status(200).json({
-        message: 'Login successful',
-        userType: 'admin',
-        admin: adminResponse,
-        accessToken,
-        refreshToken,
-        deviceId,
-      });
+      return res.status(200).json({ message: 'Login successful', userType: 'admin', admin: adminResponse, accessToken, refreshToken, deviceId });
     }
-    
-    return res.status(404).json({ error: 'User not found' });
   } catch (err) {
     console.error('❌ Error in verifyLoginOtp:', err);
     res.status(400).json({ error: err.message });

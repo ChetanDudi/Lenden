@@ -36,11 +36,6 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   // Login method selection
   String _loginMethod = 'Email + Password';
-  final List<String> _loginMethods = [
-    'Email + Password',
-    'Email + OTP',
-    'Username + Password',
-  ];
 
   // Controllers for input fields
   final TextEditingController _emailController = TextEditingController();
@@ -328,6 +323,60 @@ class _UserLoginPageState extends State<UserLoginPage> {
     }
   }
 
+  Widget _buildLoginMethodSelector(BuildContext context) {
+    return Row(
+      children: [
+        for (int i = 0; i < 3; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(child: _methodChip(context, i)),
+        ],
+      ],
+    );
+  }
+
+  Widget _methodChip(BuildContext context, int i) {
+    final keys = ['Email + Password', 'Email + OTP', 'Username + Password'];
+    final labels = ['Email\n& Password', 'Email\n& OTP', 'Username\n& Pass'];
+    final icons = [Icons.email_outlined, Icons.mark_email_read_outlined, Icons.person_outline_rounded];
+    final key = keys[i];
+    final selected = _loginMethod == key;
+    return GestureDetector(
+      onTap: _isSubmitting ? null : () => setState(() => _loginMethod = key),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? AppColors.cyan : AppThemeColors.divider(context),
+            width: selected ? 0 : 1.5,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3))]
+              : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icons[i], size: 22, color: selected ? Colors.white : AppThemeColors.secondaryText(context)),
+            const SizedBox(height: 6),
+            Text(
+              labels[i],
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10.5,
+                height: 1.3,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: selected ? Colors.white : AppThemeColors.secondaryText(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDeactivatedAccountWidget() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -499,31 +548,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       LoginIllustration(height: context.sh(160)),
                       const SizedBox(height: 24),
                       if (_isDeactivated) _buildDeactivatedAccountWidget(),
-                      // Dropdown for login method
-                      TricolorBorderTextField(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
-                          child: DropdownButton<String>(
-                            value: _loginMethod,
-                            isExpanded: true,
-                            underline: const SizedBox(),
-                            items: _loginMethods.map((method) {
-                              return DropdownMenuItem<String>(
-                                value: method,
-                                child: Text(method),
-                              );
-                            }).toList(),
-                            onChanged: _isSubmitting
-                                ? null
-                                : (value) {
-                                    setState(() {
-                                      _loginMethod = value!;
-                                    });
-                                  },
-                          ),
-                        ),
-                      ),
+                      // Login method selector — styled icon chips
+                      _buildLoginMethodSelector(context),
                       const SizedBox(height: 18),
                       // Dynamic input fields based on login method
                       if (_loginMethod == 'Email + Password') ...[

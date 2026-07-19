@@ -9,6 +9,48 @@ import '../widgets/app_widgets.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
 
+String _friendlyDeviceName(String? ua) {
+  if (ua == null || ua.isEmpty) return 'Unknown Device';
+  String os = 'Unknown OS';
+  String browser = '';
+  if (ua.contains('Android')) {
+    final m = RegExp(r'Android ([0-9.]+)').firstMatch(ua);
+    os = 'Android${m != null ? ' ${m.group(1)}' : ''}';
+  } else if (ua.contains('iPhone')) {
+    os = 'iPhone';
+  } else if (ua.contains('iPad')) {
+    os = 'iPad';
+  } else if (ua.contains('Windows')) {
+    os = 'Windows';
+  } else if (ua.contains('Macintosh') || ua.contains('Mac OS')) {
+    os = 'Mac';
+  } else if (ua.contains('CrOS')) {
+    os = 'Chromebook';
+  } else if (ua.contains('Linux')) {
+    os = 'Linux';
+  }
+  if (ua.contains('OPR') || ua.contains('OPX')) {
+    browser = 'Opera';
+  } else if (ua.contains('Edg/') || ua.contains('EdgA/')) {
+    browser = 'Edge';
+  } else if (ua.contains('Chrome')) {
+    browser = 'Chrome';
+  } else if (ua.contains('Firefox')) {
+    browser = 'Firefox';
+  } else if (ua.contains('Safari')) {
+    browser = 'Safari';
+  }
+  return browser.isNotEmpty ? '$os · $browser' : os;
+}
+
+IconData _deviceIcon(String? ua) {
+  if (ua == null) return Icons.devices;
+  if (ua.contains('iPhone') || ua.contains('iPad')) return Icons.phone_iphone;
+  if (ua.contains('Android')) return Icons.phone_android;
+  if (ua.contains('Windows') || ua.contains('Macintosh') || ua.contains('Linux') || ua.contains('CrOS')) return Icons.computer;
+  return Icons.devices;
+}
+
 class PrivacySettingsPage extends StatefulWidget {
   const PrivacySettingsPage({super.key});
 
@@ -643,13 +685,13 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                             device['deviceId'] == _currentDeviceId;
                         return ListTile(
                           leading: Icon(
-                            Icons.devices,
+                            _deviceIcon(device['userAgent']?.toString()),
                             color: isCurrent
                                 ? Colors.green
                                 : AppThemeColors.secondaryText(context),
                           ),
                           title: Text(
-                            device['userAgent'] ?? t('unknown_device'),
+                            _friendlyDeviceName(device['userAgent']?.toString()),
                             style: TextStyle(
                               fontWeight: isCurrent
                                   ? FontWeight.bold

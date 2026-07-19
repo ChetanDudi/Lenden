@@ -3,27 +3,30 @@ const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
 const { sendPasswordResetOTP } = require('../utils/passwordresetemailotp');
 
-// In-memory OTP store for password reset
-const resetOtpStore = {};
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
+
+function isPasswordValid(password) {
+  if (!password || password.length < 8 || password.length > 30) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[a-z]/.test(password)) return false;
+  if (!/[^A-Za-z0-9]/.test(password)) return false;
+  return true;
+}
 
 // Send OTP for password reset
 exports.sendResetOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    let userType = null;
     const user = await User.findOne({ email });
-    const admin = await Admin.findOne({ email });
-    if (user) {
-      userType = 'user';
-    } else if (admin) {
-      userType = 'admin';
-    } else {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const admin = !user ? await Admin.findOne({ email }) : null;
+    const record = user || admin;
+    if (!record) return res.status(404).json({ error: 'User not found' });
+    const userType = user ? 'user' : 'admin';
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    resetOtpStore[email] = { otp, userType, created: Date.now() };
-    // Send a password reset email (custom subject/text)
+    record.resetOTP = { code: otp, expiry: new Date(Date.now() + OTP_EXPIRY_MS), sentAt: new Date() };
+    await record.save();
+
     await sendPasswordResetOTP(email, otp);
     res.status(200).json({ message: 'OTP sent to email', userType });
   } catch (err) {
@@ -35,19 +38,22 @@ exports.sendResetOtp = async (req, res) => {
 exports.verifyResetOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const entry = resetOtpStore[email];
-    if (!entry) {
-      return res.status(400).json({ error: 'No OTP found for this email' });
-    }
-    const now = Date.now();
-    if (now - entry.created > OTP_EXPIRY_MS) {
-      delete resetOtpStore[email];
+    const user = await User.findOne({ email });
+    const admin = !user ? await Admin.findOne({ email }) : null;
+    const record = user || admin;
+    if (!record) return res.status(404).json({ error: 'User not found' });
+
+    const stored = record.resetOTP;
+    if (!stored || !stored.code) return res.status(400).json({ error: 'No OTP found for this email' });
+    if (new Date() > stored.expiry) {
+      record.resetOTP = undefined;
+      await record.save();
       return res.status(400).json({ error: 'OTP expired. Please request a new OTP.' });
     }
-    if (entry.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-    res.status(200).json({ message: 'OTP verified', userType: entry.userType });
+    if (stored.code !== otp) return res.status(400).json({ error: 'Invalid OTP' });
+
+    const userType = user ? 'user' : 'admin';
+    res.status(200).json({ message: 'OTP verified', userType });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -60,19 +66,27 @@ exports.resetPassword = async (req, res) => {
     if (!email || !userType || !newPassword) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    if (userType === 'user') {
-      const user = await User.findOneAndUpdate({ email }, { password: hashedPassword });
-      if (!user) return res.status(404).json({ error: 'User not found' });
-    } else if (userType === 'admin') {
-      const admin = await Admin.findOneAndUpdate({ email }, { password: hashedPassword });
-      if (!admin) return res.status(404).json({ error: 'User not found' });
-    } else {
-      return res.status(400).json({ error: 'Invalid user type' });
+    if (!isPasswordValid(newPassword)) {
+      return res.status(400).json({ error: 'Password must be 8–30 characters and include uppercase, lowercase, and a special character.' });
     }
-    delete resetOtpStore[email];
+
+    const Model = userType === 'admin' ? Admin : User;
+    const record = await Model.findOne({ email });
+    if (!record) return res.status(404).json({ error: 'User not found' });
+
+    // Verify the OTP was actually confirmed (stored code must exist and be unexpired)
+    const stored = record.resetOTP;
+    if (!stored || !stored.code || new Date() > stored.expiry) {
+      return res.status(400).json({ error: 'OTP not verified or expired. Please restart the reset flow.' });
+    }
+
+    record.password = await bcrypt.hash(newPassword, 10);
+    record.resetOTP = undefined;
+    if (record.forceLogoutAfter !== undefined) record.forceLogoutAfter = new Date();
+    await record.save();
+
     res.status(200).json({ message: 'Password reset successful' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-}; 
+};

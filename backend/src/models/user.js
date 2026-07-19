@@ -61,6 +61,16 @@ const userSchema = new mongoose.Schema({
   // outgoing wallet payment. Stored as a bcrypt hash (never plaintext).
   // walletPinAttempts counts consecutive wrong guesses; hitting 5 sets
   // walletPinLockedUntil for 15 minutes to block brute-force.
+  loginOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+  },
+  resetOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+  },
   walletPin: { type: String, default: null },
   walletPinAttempts: { type: Number, default: 0 },
   walletPinLockedUntil: { type: Date, default: null },
