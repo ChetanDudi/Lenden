@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../otp_input.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
@@ -265,7 +266,11 @@ class _UserLoginPageState extends State<UserLoginPage> {
         }
       }
     } catch (e) {
-      _showErrorDialog('Login failed. Please try again.');
+      if (e is SocketException) {
+        _showGoogleNetworkErrorDialog();
+      } else {
+        _showErrorDialog('Login failed. Please try again.');
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -455,7 +460,11 @@ class _UserLoginPageState extends State<UserLoginPage> {
         _showErrorDialog(errorData['error'] ?? 'Failed to recover account');
       }
     } catch (e) {
-      _showErrorDialog('Failed to recover account. Please try again.');
+      if (e is SocketException) {
+        _showGoogleNetworkErrorDialog();
+      } else {
+        _showErrorDialog('Failed to recover account. Please try again.');
+      }
     } finally {
       setState(() => _isLoading = false);
     }

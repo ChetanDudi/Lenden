@@ -129,6 +129,9 @@ class EmailOtpLogin {
         };
       }
     } catch (e) {
+      if (e is SocketException) {
+        return {'success': false, 'error': 'No internet connection. Please check your network and try again.'};
+      }
       return {
         'success': false,
         'error': AppLocalizations.of(context).t('otp_verification_failed_retry')
