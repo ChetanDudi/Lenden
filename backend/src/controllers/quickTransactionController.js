@@ -262,6 +262,7 @@ exports.getQuickTransactions = async (req, res) => {
       dateFilter = 'all',
       favouritesOnly,
       counterparty,
+      category,
     } = req.query;
 
     // Base query
@@ -327,6 +328,11 @@ exports.getQuickTransactions = async (req, res) => {
           { createdAt: { $gte: monthStart } },
         ];
       }
+    }
+
+    // Category filter
+    if (category && category !== 'all') {
+      query.category = category;
     }
 
     // Build sort

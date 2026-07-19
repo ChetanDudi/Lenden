@@ -25,6 +25,27 @@ import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/wave_widget.dart';
 
+const _kCategories = [
+  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
+  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
+  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
+  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
+  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
+  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
+  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
+  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
+];
+
+IconData _catIcon(String? key) {
+  final cat = _kCategories.firstWhere((c) => c['key'] == key, orElse: () => _kCategories.last);
+  return cat['icon'] as IconData;
+}
+
+String _catLabel(String? key) {
+  return (_kCategories.firstWhere((c) => c['key'] == key, orElse: () => _kCategories.last)['label'] as String);
+}
+
 class QuickTransactionsPage extends StatefulWidget {
   final String? prefillCounterpartyEmail;
   final bool openCreateOnLoad;
@@ -52,6 +73,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   String _roleFilter = 'all'; // 'all', 'lent', 'borrowed'
   String _dateFilter = 'all'; // 'all', 'today', 'week', 'month'
   String _selectedCounterparty = 'all';
+  String _categoryFilter = 'all';
   bool _showFavouritesOnly = false;
   bool _showAll = false;
   Set<String> _blockedEmails = {};
@@ -649,6 +671,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _roleFilter != 'all' ||
         _dateFilter != 'all' ||
         _selectedCounterparty != 'all' ||
+        _categoryFilter != 'all' ||
         _showFavouritesOnly;
   }
 
@@ -720,6 +743,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       );
       labels.add(match['label'] ?? t('person_label'));
     }
+    if (_categoryFilter != 'all') labels.add(_catLabel(_categoryFilter));
     if (labels.isEmpty) return t('filter');
     if (labels.length == 1) return labels.first;
     return '${labels.first} +${labels.length - 1}';
@@ -752,6 +776,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       _roleFilter = 'all';
       _dateFilter = 'all';
       _selectedCounterparty = 'all';
+      _categoryFilter = 'all';
       _showFavouritesOnly = false;
       _showAll = false;
     });
@@ -775,6 +800,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       if (_showFavouritesOnly) params['favouritesOnly'] = 'true';
       if (_selectedCounterparty != 'all')
         params['counterparty'] = _selectedCounterparty;
+      if (_categoryFilter != 'all') params['category'] = _categoryFilter;
 
       final queryString = params.isEmpty
           ? ''
@@ -1693,6 +1719,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _roleFilter = (result['role'] ?? 'all').toString();
         _dateFilter = (result['date'] ?? 'all').toString();
         _selectedCounterparty = (result['counterparty'] ?? 'all').toString();
+        _categoryFilter = (result['category'] ?? 'all').toString();
         _showFavouritesOnly = result['favourites'] == true;
         _showAll = false;
       });
@@ -2364,7 +2391,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                                   filterBy != 'all' ||
                                                   _roleFilter != 'all' ||
                                                   _dateFilter != 'all' ||
-                                                  _selectedCounterparty != 'all'
+                                                  _selectedCounterparty != 'all' ||
+                                                  _categoryFilter != 'all'
                                               ? t('no_transactions_found_message')
                                               : t('no_quick_transactions_yet_message'),
                                       style: TextStyle(
@@ -2382,7 +2410,8 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                                   filterBy != 'all' ||
                                                   _roleFilter != 'all' ||
                                                   _dateFilter != 'all' ||
-                                                  _selectedCounterparty != 'all'
+                                                  _selectedCounterparty != 'all' ||
+                                                  _categoryFilter != 'all'
                                               ? t('try_adjusting_search_or_filters_message')
                                               : t('tap_plus_button_to_create_first_one_message'),
                                       textAlign: TextAlign.center,
@@ -2848,6 +2877,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                       ? Icons.close_rounded
                                       : Icons.handshake_rounded,
                             ),
+                          _buildStatusChip(
+                            _catLabel((transaction['category'] ?? 'other').toString()),
+                            Colors.deepPurple,
+                            _catIcon((transaction['category'] ?? 'other').toString()),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -3030,6 +3064,7 @@ class _QuickTransactionFilterPageState
   String _role = 'all';
   String _date = 'all';
   String _counterparty = 'all';
+  String _category = 'all';
   bool _favouritesOnly = false;
 
   String _counterpartyLabel(String value) {
@@ -3039,6 +3074,38 @@ class _QuickTransactionFilterPageState
       orElse: () => {'label': t('all_people_label')},
     );
     return match['label'] ?? t('all_people_label');
+  }
+
+  Widget _buildCategoryChip(String key, String label, IconData icon) {
+    final selected = _category == key;
+    return GestureDetector(
+      onTap: () => setState(() => _category = key),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? Colors.deepPurple : AppThemeColors.surfaceBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? Colors.deepPurple : AppThemeColors.border(context),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: selected ? Colors.white : Colors.deepPurple),
+            const SizedBox(width: 6),
+            Text(label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : AppThemeColors.primaryText(context),
+                )),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSection({
@@ -3582,6 +3649,27 @@ class _QuickTransactionFilterPageState
                   ),
                   const SizedBox(height: 16),
                   _buildSection(
+                    icon: Icons.category_rounded,
+                    title: 'Category',
+                    subtitle: 'Filter by transaction category',
+                    backgroundColor: AppThemeColors.tinted(context,
+                        light: const Color(0xFFF5F0FF),
+                        dark: const Color(0xFF1E1A2A)),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildCategoryChip('all', 'All', Icons.apps_rounded),
+                        ..._kCategories.map((cat) => _buildCategoryChip(
+                              cat['key'] as String,
+                              cat['label'] as String,
+                              cat['icon'] as IconData,
+                            )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSection(
                     icon: Icons.favorite_border_rounded,
                     title: t('favourite_filter_label'),
                     subtitle:
@@ -3641,6 +3729,7 @@ class _QuickTransactionFilterPageState
                           _role = 'all';
                           _date = 'all';
                           _counterparty = 'all';
+                          _category = 'all';
                           _favouritesOnly = false;
                         });
                       },
@@ -3669,6 +3758,7 @@ class _QuickTransactionFilterPageState
                           'role': _role,
                           'date': _date,
                           'counterparty': _counterparty,
+                          'category': _category,
                           'favourites': _favouritesOnly,
                         });
                       },

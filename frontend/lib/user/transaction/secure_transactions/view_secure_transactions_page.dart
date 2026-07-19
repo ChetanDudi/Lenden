@@ -18,6 +18,27 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
+const _kSecureCategories = [
+  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
+  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
+  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
+  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
+  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
+  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
+  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
+  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
+];
+
+IconData _secureCatIcon(String? key) {
+  final cat = _kSecureCategories.firstWhere((c) => c['key'] == key, orElse: () => _kSecureCategories.last);
+  return cat['icon'] as IconData;
+}
+
+String _secureCatLabel(String? key) {
+  return (_kSecureCategories.firstWhere((c) => c['key'] == key, orElse: () => _kSecureCategories.last)['label'] as String);
+}
+
 class UserTransactionsPage extends StatefulWidget {
   final String initialFilter;
   final String initialClearanceFilter;
@@ -760,6 +781,26 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.22)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_secureCatIcon((t['category'] ?? 'other').toString()), size: 14, color: Colors.deepPurple),
+                          const SizedBox(width: 5),
+                          Text(
+                            _secureCatLabel((t['category'] ?? 'other').toString()),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.deepPurple),
                           ),
                         ],
                       ),

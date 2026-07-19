@@ -161,12 +161,14 @@ const { initializeFraudAlertingScheduler } = require('./utils/fraudAlertingSched
 const { initializeAdminDigestScheduler } = require('./utils/adminDigestScheduler');
 const { initializeRecurringTemplateScheduler } = require('./utils/recurringTemplateScheduler');
 const { initializeSubscriptionScheduler } = require('./utils/subscriptionScheduler');
+const { initializeScheduledTransactionScheduler } = require('./utils/scheduledTransactionScheduler');
 initializeMonthlyLeaderboardRewardScheduler();
 initializeOfferCleanupScheduler();
 initializeFraudAlertingScheduler();
 initializeAdminDigestScheduler();
 initializeRecurringTemplateScheduler();
 initializeSubscriptionScheduler();
+initializeScheduledTransactionScheduler();
 
 // Auto-sync ECB currency rates every 4 hours
 cron.schedule('0 */4 * * *', () => {

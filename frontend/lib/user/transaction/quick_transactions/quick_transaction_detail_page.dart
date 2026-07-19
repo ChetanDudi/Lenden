@@ -12,6 +12,27 @@ import './create_edit_quick_transaction_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
+const _kQtCategories = [
+  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
+  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
+  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
+  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
+  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
+  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
+  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
+  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
+];
+
+IconData _categoryIcon(String? key) {
+  final cat = _kQtCategories.firstWhere((c) => c['key'] == key, orElse: () => _kQtCategories.last);
+  return cat['icon'] as IconData;
+}
+
+String _categoryLabel(String? key) {
+  return (_kQtCategories.firstWhere((c) => c['key'] == key, orElse: () => _kQtCategories.last)['label'] as String);
+}
+
 class QuickTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
 
@@ -678,6 +699,7 @@ class _QuickTransactionDetailPageState
             t('your_role_label'),
             _myRole == 'lender' ? t('lender_gave_label') : t('borrower_took_label'),
             Icons.people),
+        _infoRow('Category', _categoryLabel((_tx['category'] ?? 'other').toString()), _categoryIcon((_tx['category'] ?? 'other').toString())),
       ],
     );
   }

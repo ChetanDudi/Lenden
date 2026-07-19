@@ -24,6 +24,27 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
+const _kStCategories = [
+  {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
+  {'key': 'transport',     'label': 'Transport',     'icon': Icons.directions_car_rounded},
+  {'key': 'accommodation', 'label': 'Stay',          'icon': Icons.hotel_rounded},
+  {'key': 'entertainment', 'label': 'Fun',           'icon': Icons.sports_esports_rounded},
+  {'key': 'shopping',      'label': 'Shopping',      'icon': Icons.shopping_cart_rounded},
+  {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
+  {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
+  {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
+];
+
+IconData _stCatIcon(String? key) {
+  final cat = _kStCategories.firstWhere((c) => c['key'] == key, orElse: () => _kStCategories.last);
+  return cat['icon'] as IconData;
+}
+
+String _stCatLabel(String? key) {
+  return (_kStCategories.firstWhere((c) => c['key'] == key, orElse: () => _kStCategories.last)['label'] as String);
+}
+
 class SecureTransactionDetailPage extends StatefulWidget {
   final Map<String, dynamic> transaction;
   final bool isLending;
@@ -1893,6 +1914,30 @@ class _SecureTransactionDetailPageState
                               ),
                             ),
                           ],
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.22)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(_stCatIcon((t['category'] ?? 'other').toString()), size: 16, color: Colors.deepPurple),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Category', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                                    Text(_stCatLabel((t['category'] ?? 'other').toString()),
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.deepPurple)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                           if (!youCleared) ...[
                             const SizedBox(height: 10),
                             Container(
