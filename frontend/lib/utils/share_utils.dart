@@ -1,6 +1,33 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'api_client.dart';
+
+// ════════════════════════════════════════════════════════════════════════════
+// APP INVITE LINK HELPER
+// ════════════════════════════════════════════════════════════════════════════
+
+String? _cachedAppInviteLink;
+
+/// Returns the admin-configured app invite/download link from the referral API.
+/// The link is cached in memory after the first successful fetch.
+/// Falls back to an empty string on failure so callers can safely append it.
+Future<String> fetchAppInviteLink() async {
+  if (_cachedAppInviteLink != null) return _cachedAppInviteLink!;
+  try {
+    final res = await ApiClient.get('/api/referral/me');
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final link = (data['inviteLink'] ?? '').toString().trim();
+      if (link.isNotEmpty) {
+        _cachedAppInviteLink = link;
+        return link;
+      }
+    }
+  } catch (_) {}
+  return '';
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // FILE SHARING UTILITY

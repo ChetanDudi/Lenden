@@ -6,6 +6,7 @@ import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../utils/share_utils.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import './create_edit_quick_transaction_page.dart';
@@ -340,14 +341,18 @@ class _QuickTransactionDetailPageState
   void _shareTransaction() {
     final t = AppLocalizations.of(context).t;
     final roleLabel = _myRole == 'lender' ? t('lent_label') : t('borrowed_label');
-    final msg =
-        '${t('quick_transaction_summary_title')}\n'
-        '${_formatAmount()} - $_currency\n'
-        '${t('you_role_to_from_counterparty_label').replaceFirst('{role}', roleLabel).replaceFirst('{counterparty}', _counterpartyEmail)}\n'
-        '${t('description_colon_label')} $_description\n'
-        '${t('status_colon_label')} ${_cleared ? t('cleared') : t('pending_label')}\n'
-        '${t('settlement_colon_label')} $_settlementStatus';
-    Share.share(msg);
+    fetchAppInviteLink().then((appLink) {
+      final footer = appLink.isNotEmpty ? '\n──────────────────\n📱 Shared via LenDen\n$appLink' : '';
+      final msg =
+          '${t('quick_transaction_summary_title')}\n'
+          '${_formatAmount()} - $_currency\n'
+          '${t('you_role_to_from_counterparty_label').replaceFirst('{role}', roleLabel).replaceFirst('{counterparty}', _counterpartyEmail)}\n'
+          '${t('description_colon_label')} $_description\n'
+          '${t('status_colon_label')} ${_cleared ? t('cleared') : t('pending_label')}\n'
+          '${t('settlement_colon_label')} $_settlementStatus'
+          '$footer';
+      Share.share(msg);
+    });
   }
 
   // Direct "Pay Now" — /pay atomically transfers the wallet money and marks

@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../utils/share_utils.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
@@ -1165,7 +1166,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     }
   }
 
-  String _buildReceiptText(Map<String, dynamic> transaction) {
+  String _buildReceiptText(Map<String, dynamic> transaction, {String appLink = ''}) {
     final t = AppLocalizations.of(context).t;
     final counterparty = _counterpartyForViewer(transaction);
     final counterpartyName =
@@ -1176,7 +1177,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         : t('you_borrowed_label');
     final status =
         transaction['cleared'] == true ? t('cleared') : t('pending_label');
-    return [
+    final lines = [
       t('lenden_quick_transaction_label'),
       '${t('amount_colon_label')} ${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())}',
       '${t('currency_colon_label')} ${transaction['currency'] ?? 'INR'}',
@@ -1186,12 +1187,17 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       '${t('date_colon_label')} ${transaction['date']?.toString().split('T').first ?? ''}',
       '${t('time_colon_label')} ${transaction['time'] ?? ''}',
       '${t('status_colon_label')} $status',
-    ].join('\n');
+    ];
+    if (appLink.isNotEmpty) {
+      lines.addAll(['──────────────────', '📱 Shared via LenDen', appLink]);
+    }
+    return lines.join('\n');
   }
 
   Future<void> _showReceiptDialog(Map<String, dynamic> transaction) async {
     final t = AppLocalizations.of(context).t;
-    final receiptText = _buildReceiptText(transaction);
+    final appLink = await fetchAppInviteLink();
+    final receiptText = _buildReceiptText(transaction, appLink: appLink);
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(

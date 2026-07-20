@@ -309,6 +309,9 @@ class _GroupStatsPageState extends State<GroupStatsPage> {
           if (memberBalances.isNotEmpty) ...[
             Text(t('member_balances_label'),
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Positive = owed money back · Negative = owes the group',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(

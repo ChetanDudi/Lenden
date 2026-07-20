@@ -15,6 +15,7 @@ import '../../../utils/display_currency_helper.dart';
 import '../../chats/chat_page.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../utils/share_utils.dart';
 import 'partial_payment_page.dart';
 import 'partial_payment_history_page.dart';
 import 'payment_timeline_page.dart';
@@ -927,19 +928,23 @@ class _SecureTransactionDetailPageState
         double.tryParse(_calculateRemainingAmount(t)) ?? 0,
         t['currency']?.toString());
     final txId = t['transactionId'] ?? '—';
-    Share.share(
-      '📋 ${tr('transaction_summary_label')}\n'
-      '━━━━━━━━━━━━━━━━━━━\n'
-      '$role: $amount\n'
-      '${tr('counterparty_label')}: $counterparty\n'
-      '${tr('date_label')}: $date\n'
-      '${tr('interest_label')}: $interest\n'
-      '${tr('remaining_label')}: $remaining\n'
-      '${tr('id_label')}: $txId\n'
-      '━━━━━━━━━━━━━━━━━━━\n'
-      '${tr('shared_via_lenden_message')}',
-      subject: '${tr('lenden_transaction_label')}: $amount',
-    );
+    fetchAppInviteLink().then((appLink) {
+      final footer = appLink.isNotEmpty ? '\n📥 $appLink' : '';
+      Share.share(
+        '📋 ${tr('transaction_summary_label')}\n'
+        '━━━━━━━━━━━━━━━━━━━\n'
+        '$role: $amount\n'
+        '${tr('counterparty_label')}: $counterparty\n'
+        '${tr('date_label')}: $date\n'
+        '${tr('interest_label')}: $interest\n'
+        '${tr('remaining_label')}: $remaining\n'
+        '${tr('id_label')}: $txId\n'
+        '━━━━━━━━━━━━━━━━━━━\n'
+        '${tr('shared_via_lenden_message')}'
+        '$footer',
+        subject: '${tr('lenden_transaction_label')}: $amount',
+      );
+    });
   }
 
   void _showPaymentTimeline() {

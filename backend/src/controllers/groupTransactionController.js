@@ -950,6 +950,7 @@ exports.getUserGroups = async (req, res) => {
           updatedAt: obj.updatedAt,
           userStatus,
           userPendingBalance: Number(userPendingBalance.toFixed(2)),
+          joinCode: obj.joinCode || null,
         };
       })
     );
@@ -2457,13 +2458,20 @@ exports.getGroupStats = async (req, res) => {
       }
     }
 
-    // Member balance summary
-    const memberBalances = group.balances.map(b => {
-      const memberDoc = group.members.find(m => m.user._id.toString() === b.user.toString());
-      const email = memberDoc?.user?.email || '';
-      const name = memberDoc?.user?.name || memberDoc?.user?.username || email;
-      return { email, name, balance: b.balance };
-    });
+    // Member balance summary — include every active member (balance defaults to 0)
+    const balanceMap = {};
+    for (const b of group.balances) {
+      balanceMap[b.user.toString()] = b.balance;
+    }
+    const memberBalances = group.members
+      .filter(m => m.user && !m.leftAt)
+      .map(m => {
+        const uid = m.user._id.toString();
+        const email = m.user.email || '';
+        const name = m.user.name || m.user.username || email;
+        const balance = balanceMap[uid] ?? 0;
+        return { email, name, balance };
+      });
 
     res.json({
       totalExpenses,

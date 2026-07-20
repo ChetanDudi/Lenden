@@ -7,6 +7,7 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:share_plus/share_plus.dart';
+import '../../../utils/share_utils.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 import 'group_stats_page.dart';
@@ -530,26 +531,24 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       final groupTitle = (_group['title'] ?? 'Our Group').toString();
                       final memberCount = (_group['members'] as List?)?.length ?? 0;
-                      final msg = '''🎉 You're invited to join *$groupTitle* on LenDen!
-
-👥 Group: $groupTitle
-👤 Members: $memberCount
-
-🔑 Your Invite Code:
-*${currentCode!}*
-
-📱 How to join:
-1. Open the LenDen app
-2. Go to Groups → tap the 🔗 link icon
-3. Enter the code: ${currentCode!}
-
-──────────────────
-LenDen – Split expenses effortlessly with friends & family. Track debts, settle instantly, and manage group expenses with ease.
-
-Don't have LenDen yet? Download it from the Play Store / App Store! 🚀''';
+                      final appLink = await fetchAppInviteLink();
+                      final downloadLine = appLink.isNotEmpty ? '\n📥 Download LenDen: $appLink' : '';
+                      final msg = '🎉 You\'re invited to join *$groupTitle* on LenDen!\n\n'
+                          '👥 Group: $groupTitle\n'
+                          '👤 Members: $memberCount\n\n'
+                          '🔑 Your Invite Code:\n'
+                          '*${currentCode!}*\n\n'
+                          '📱 How to join:\n'
+                          '1. Open the LenDen app\n'
+                          '2. Go to Groups → tap the 🔗 link icon\n'
+                          '3. Enter the code: ${currentCode!}\n\n'
+                          '──────────────────\n'
+                          'LenDen – Split expenses effortlessly with friends & family. '
+                          'Track debts, settle instantly, and manage group expenses with ease.'
+                          '$downloadLine';
                       Share.share(msg, subject: 'Join $groupTitle on LenDen');
                     },
                   ),
