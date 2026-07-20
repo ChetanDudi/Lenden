@@ -1817,6 +1817,107 @@ class _AnalyticsPageState extends State<AnalyticsPage>
             ),
             const SizedBox(height: 24),
 
+            // ── Transaction Count Summary ─────────────────────────────────────
+            Text('Transaction Summary',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Count by type',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: _buildTypeCountCard('Quick', _quickTransactions.length, AppColors.cyan, Icons.flash_on_rounded)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildTypeCountCard('Secure', _secureTransactions.length, Colors.deepPurple, Icons.lock_rounded)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildTypeCountCard('Groups', _userGroups.fold(0, (s, g) => s + ((g['expenses'] as List?)?.length ?? 0)), Colors.teal, Icons.group_rounded)),
+            ]),
+            const SizedBox(height: 24),
+
+            // ── Biggest Transaction ───────────────────────────────────────────
+            Builder(builder: (ctx) {
+              double biggestAmt = 0;
+              String biggestLabel = '';
+              String biggestType = '';
+              for (final qt in _quickTransactions) {
+                final amt = _displayAmountForTransaction(qt);
+                if (amt > biggestAmt) {
+                  biggestAmt = amt;
+                  biggestType = 'Quick';
+                  final users = List<Map<String, dynamic>>.from(qt['users'] ?? []);
+                  final cp = users.firstWhere(
+                    (u) => (u['email'] ?? '').toString().toLowerCase() != _currentUserEmail(),
+                    orElse: () => {},
+                  );
+                  biggestLabel = (cp['name'] ?? cp['email'] ?? 'Unknown').toString();
+                }
+              }
+              for (final st in _secureTransactions) {
+                final amt = _secureDisplayAmount(st);
+                if (amt > biggestAmt) {
+                  biggestAmt = amt;
+                  biggestType = 'Secure';
+                  biggestLabel = _secureCounterpartyLabel(st);
+                }
+              }
+              final userEmail = _currentUserEmail();
+              for (final g in _userGroups) {
+                for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+                  if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
+                  final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+                  final target = _selectedDisplayCurrency.toUpperCase();
+                  final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
+                      ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+                      : raw;
+                  if (amt > biggestAmt) {
+                    biggestAmt = amt;
+                    biggestType = 'Group';
+                    biggestLabel = (g['title'] ?? 'Group').toString();
+                  }
+                }
+              }
+              if (biggestAmt == 0) return const SizedBox.shrink();
+              final typeColor = biggestType == 'Quick' ? AppColors.cyan : biggestType == 'Secure' ? Colors.deepPurple : Colors.teal;
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Biggest Transaction',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: typeColor.withValues(alpha: 0.25)),
+                    boxShadow: [BoxShadow(color: typeColor.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 3))],
+                  ),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: typeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                      child: Icon(Icons.emoji_events_rounded, color: typeColor, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(biggestLabel,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: typeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                        child: Text(biggestType, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: typeColor)),
+                      ),
+                    ])),
+                    Text(fmt(biggestAmt),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16,
+                            color: AppThemeColors.primaryText(context))),
+                  ]),
+                ),
+                const SizedBox(height: 24),
+              ]);
+            }),
+
             // ── Upcoming Payments ────────────────────────────────────────────
             Text('Upcoming Payments',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
@@ -2073,6 +2174,183 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         Text(label,
             style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
       ]),
+    );
+  }
+
+  Widget _buildTypeCountCard(String label, int count, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(height: 8),
+        Text('$count', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+            color: AppThemeColors.primaryText(context))),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
+  Widget _buildCategoryPieChart({required Map<String, double> cats}) {
+    if (cats.isEmpty) return const SizedBox.shrink();
+    final t = AppLocalizations.of(context).t;
+    final sorted = cats.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final total = sorted.fold(0.0, (s, e) => s + e.value);
+    final sym = _displayCurrencyData?.symbolFor(_selectedDisplayCurrency.toUpperCase()) ??
+        (_selectedDisplayCurrency.toUpperCase() == 'INR' ? '₹' : _selectedDisplayCurrency);
+    String fmt(double v) => '$sym${v.toStringAsFixed(2)}';
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(children: [
+        SizedBox(
+          height: 200,
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 3,
+              centerSpaceRadius: 48,
+              sections: sorted.map((entry) {
+                final meta = _kCategoryMeta[entry.key] ?? _kCategoryMeta['other']!;
+                final pct = total > 0 ? entry.value / total * 100 : 0.0;
+                return PieChartSectionData(
+                  color: meta['color'] as Color,
+                  value: entry.value,
+                  title: '${pct.toStringAsFixed(0)}%',
+                  radius: 52,
+                  titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        ...sorted.map((entry) {
+          final meta = _kCategoryMeta[entry.key] ?? _kCategoryMeta['other']!;
+          final pct = total > 0 ? entry.value / total : 0.0;
+          final catColor = meta['color'] as Color;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 6),
+                    decoration: BoxDecoration(color: catColor, shape: BoxShape.circle)),
+                Expanded(child: Text(_categoryDisplayLabel(entry.key, t),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                Text(fmt(entry.value),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: pct,
+                  minHeight: 7,
+                  backgroundColor: AppThemeColors.border(context),
+                  valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                ),
+              ),
+            ]),
+          );
+        }),
+      ]),
+    );
+  }
+
+  Widget _buildGroupBreakdown() {
+    final userEmail = _currentUserEmail();
+    final groupTotals = <Map<String, dynamic>>[];
+    for (final g in _userGroups) {
+      double total = 0.0;
+      int expenseCount = 0;
+      for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
+        if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
+        final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
+        final target = _selectedDisplayCurrency.toUpperCase();
+        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
+            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+            : raw;
+        total += amt;
+        expenseCount++;
+      }
+      if (total > 0) {
+        groupTotals.add({
+          'title': (g['title'] ?? 'Group').toString(),
+          'amount': total,
+          'count': expenseCount,
+        });
+      }
+    }
+    if (groupTotals.isEmpty) return const SizedBox.shrink();
+    groupTotals.sort((a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
+    final sym = _displayCurrencyData?.symbolFor(_selectedDisplayCurrency.toUpperCase()) ??
+        (_selectedDisplayCurrency.toUpperCase() == 'INR' ? '₹' : _selectedDisplayCurrency);
+    String fmt(double v) => '$sym${v.toStringAsFixed(2)}';
+    const cardColors = [
+      [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
+      [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
+      [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
+      [Color(0xFF58C4DD), Color(0xFF89E0EF)],
+      [Color(0xFFFFB562), Color(0xFFFFD9A0)],
+      [Color(0xFF7E74F1), Color(0xFFC0BCFF)],
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text('Group-wise Spending',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(context))),
+        const SizedBox(height: 4),
+        Text('Your contribution to each group',
+            style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 130,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemCount: groupTotals.length,
+            itemBuilder: (context, i) {
+              final item = groupTotals[i];
+              final c = cardColors[i % cardColors.length];
+              return Container(
+                width: 160,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(colors: [c[0], c[1]], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 6))],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(item['title'].toString(),
+                        maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 6),
+                    Text('${item['count']} expense${(item['count'] as int) != 1 ? 's' : ''}',
+                        style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.85))),
+                    const SizedBox(height: 8),
+                    Text(fmt(item['amount'] as double),
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -3126,9 +3404,32 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 ),
               ],
               const SizedBox(height: 24),
+              // Secure category breakdown
+              Builder(builder: (context) {
+                final cats = <String, double>{};
+                for (final st in _secureTransactions) {
+                  if (_secureViewerRole(st) != 'lender') continue;
+                  final cat = (st['category'] ?? 'other').toString();
+                  cats[cat] = (cats[cat] ?? 0) + _secureDisplayAmount(st);
+                }
+                if (cats.isEmpty) return const SizedBox.shrink();
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(t('spending_by_category_label'),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context))),
+                  const SizedBox(height: 4),
+                  Text('Loans given, broken down by purpose',
+                      style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                  const SizedBox(height: 12),
+                  _buildCategoryPieChart(cats: cats),
+                  const SizedBox(height: 24),
+                ]);
+              }),
             ],
             if (config.tabId == 'group') ...[
               _buildGroupInsights(),
+              _buildGroupBreakdown(),
+              const SizedBox(height: 8),
             ],
             if (config.tabId == 'quick') ...[
               const SizedBox(height: 4),
@@ -3476,6 +3777,27 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                   },
                 ),
                 const SizedBox(height: 24),
+                // Category breakdown for quick transactions
+                Builder(builder: (context) {
+                  final cats = <String, double>{};
+                  for (final qt in _quickTransactions) {
+                    if (_roleForViewer(qt) != 'lender') continue;
+                    final cat = (qt['category'] ?? 'other').toString();
+                    cats[cat] = (cats[cat] ?? 0) + _displayAmountForTransaction(qt);
+                  }
+                  if (cats.isEmpty) return const SizedBox.shrink();
+                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(t('spending_by_category_label'),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context))),
+                    const SizedBox(height: 4),
+                    Text('Where your lent money goes',
+                        style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                    const SizedBox(height: 12),
+                    _buildCategoryPieChart(cats: cats),
+                    const SizedBox(height: 24),
+                  ]);
+                }),
               ],
             ],
             const SizedBox(height: 24),
