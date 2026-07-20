@@ -26,9 +26,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _paymentReminders = true;
   bool _groupNotifications = true;
   bool _chatNotifications = true;
+  bool _friendNotifications = true;
+  bool _subscriptionNotifications = true;
   bool _emailNotifications = true;
   bool _pushNotifications = true;
   bool _smsNotifications = false;
+  bool _notificationSound = true;
+  bool _vibrationEnabled = true;
   bool _displayNotificationCount = true;
 
   // Notification frequency
@@ -59,9 +63,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           _paymentReminders = settings['paymentReminders'] ?? true;
           _groupNotifications = settings['groupNotifications'] ?? true;
           _chatNotifications = settings['chatNotifications'] ?? true;
+          _friendNotifications = settings['friendNotifications'] ?? true;
+          _subscriptionNotifications = settings['subscriptionNotifications'] ?? true;
           _emailNotifications = settings['emailNotifications'] ?? true;
           _pushNotifications = settings['pushNotifications'] ?? true;
           _smsNotifications = settings['smsNotifications'] ?? false;
+          _notificationSound = settings['notificationSound'] ?? true;
+          _vibrationEnabled = settings['vibrationEnabled'] ?? true;
           _reminderFrequency = settings['reminderFrequency'] ?? 'daily';
           _quietHoursStart = settings['quietHoursStart'] ?? '22:00';
           _quietHoursEnd = settings['quietHoursEnd'] ?? '08:00';
@@ -97,9 +105,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           'paymentReminders': _paymentReminders,
           'groupNotifications': _groupNotifications,
           'chatNotifications': _chatNotifications,
+          'friendNotifications': _friendNotifications,
+          'subscriptionNotifications': _subscriptionNotifications,
           'emailNotifications': _emailNotifications,
           'pushNotifications': _pushNotifications,
           'smsNotifications': _smsNotifications,
+          'notificationSound': _notificationSound,
+          'vibrationEnabled': _vibrationEnabled,
           'reminderFrequency': _reminderFrequency,
           'quietHoursStart': _quietHoursStart,
           'quietHoursEnd': _quietHoursEnd,
@@ -115,9 +127,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           'paymentReminders': _paymentReminders,
           'groupNotifications': _groupNotifications,
           'chatNotifications': _chatNotifications,
+          'friendNotifications': _friendNotifications,
+          'subscriptionNotifications': _subscriptionNotifications,
           'emailNotifications': _emailNotifications,
           'pushNotifications': _pushNotifications,
           'smsNotifications': _smsNotifications,
+          'notificationSound': _notificationSound,
+          'vibrationEnabled': _vibrationEnabled,
           'reminderFrequency': _reminderFrequency,
           'quietHoursStart': _quietHoursStart,
           'quietHoursEnd': _quietHoursEnd,
@@ -284,6 +300,22 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         _chatNotifications,
                         (value) => setState(() => _chatNotifications = value),
                       ),
+                      _buildSwitchTile(
+                        context,
+                        t('subscription_notifications_title'),
+                        t('subscription_notifications_desc'),
+                        Icons.workspace_premium_outlined,
+                        _subscriptionNotifications,
+                        (value) => setState(() => _subscriptionNotifications = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
+                        t('friend_notifications_title'),
+                        t('friend_notifications_desc'),
+                        Icons.people_outline,
+                        _friendNotifications,
+                        (value) => setState(() => _friendNotifications = value),
+                      ),
                     ],
                   ),
 
@@ -312,11 +344,25 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       ),
                       _buildSwitchTile(
                         context,
+                        t('notification_sound_title'),
+                        t('notification_sound_desc'),
+                        Icons.volume_up_outlined,
+                        _notificationSound,
+                        (value) => setState(() => _notificationSound = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
+                        t('vibration_title'),
+                        t('vibration_desc'),
+                        Icons.vibration,
+                        _vibrationEnabled,
+                        (value) => setState(() => _vibrationEnabled = value),
+                      ),
+                      _buildComingSoonTile(
+                        context,
                         t('sms_notifications_title'),
                         t('sms_notifications_desc'),
                         Icons.sms_outlined,
-                        _smsNotifications,
-                        (value) => setState(() => _smsNotifications = value),
                       ),
                       _buildSwitchTile(
                         context,
@@ -386,6 +432,31 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                           () => _selectTime(context, false),
                         ),
                       ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Quick Actions Section
+                  _buildSettingsSection(
+                    context,
+                    t('notification_actions_title'),
+                    [
+                      _buildActionTile(
+                        context,
+                        t('mark_all_read_title'),
+                        t('mark_all_read_desc'),
+                        Icons.done_all,
+                        _markAllAsRead,
+                      ),
+                      _buildActionTile(
+                        context,
+                        t('clear_read_notifications_title'),
+                        t('clear_read_notifications_desc'),
+                        Icons.delete_sweep_outlined,
+                        _clearReadNotifications,
+                        isDestructive: true,
+                      ),
                     ],
                   ),
 
@@ -462,6 +533,132 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           ...children,
         ],
       ),
+    );
+  }
+
+  Future<void> _markAllAsRead() async {
+    final t = AppLocalizations.of(context).t;
+    try {
+      final response = await ApiClient.post('/api/notifications/mark-as-read', body: {});
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        CustomWarningWidget.showAnimatedSuccess(context, t('mark_all_read_success'));
+      } else {
+        CustomWarningWidget.showAnimatedError(context, t('action_failed'));
+      }
+    } catch (e) {
+      if (mounted) CustomWarningWidget.showAnimatedError(context, 'Error: ${e.toString()}');
+    }
+  }
+
+  Future<void> _clearReadNotifications() async {
+    final t = AppLocalizations.of(context).t;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Text(t('clear_read_notifications_title'),
+            style: TextStyle(fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
+        content: Text(t('clear_read_confirm_message'),
+            style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(t('clear'), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final response = await ApiClient.delete('/api/notifications/clear-read');
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        CustomWarningWidget.showAnimatedSuccess(context, t('clear_read_success'));
+      } else {
+        CustomWarningWidget.showAnimatedError(context, t('action_failed'));
+      }
+    } catch (e) {
+      if (mounted) CustomWarningWidget.showAnimatedError(context, 'Error: ${e.toString()}');
+    }
+  }
+
+  Widget _buildActionTile(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onTap, {
+    bool isDestructive = false,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: isDestructive ? Colors.red : AppColors.cyan),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: isDestructive ? Colors.red : AppThemeColors.primaryText(context),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
+      ),
+      trailing: Icon(Icons.arrow_forward_ios,
+          color: isDestructive ? Colors.red : AppThemeColors.secondaryText(context), size: 16),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+
+  Widget _buildComingSoonTile(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+  ) {
+    return ListTile(
+      leading: Icon(icon, color: AppThemeColors.mutedText(context)),
+      title: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppThemeColors.mutedText(context),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              AppLocalizations.of(context).t('coming_soon_label'),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.cyan),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 

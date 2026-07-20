@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const Subscription = require('../models/subscription');
 const SubscriptionPlan = require('../models/subscriptionPlan');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
+const User = require('../models/user');
+const Notification = require('../models/notification');
 
 // Returns the endDate for a new subscription, preserving any remaining days
 // if the user renews before their current subscription expires.
@@ -126,6 +128,17 @@ exports.verifyManualPayment = async (req, res) => {
         paymentMethod: created.paymentMethod,
       },
     });
+
+    Promise.resolve().then(async () => {
+      const u = await User.findById(userId).select('notificationSettings').lean();
+      if (u?.notificationSettings?.subscriptionNotifications !== false) {
+        await Notification.create({
+          sender: userId, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [userId], recipientModel: 'User', category: 'subscription',
+          message: `Your "${created.subscriptionPlan}" subscription is now active until ${created.endDate.toLocaleDateString()}.`,
+        });
+      }
+    }).catch(() => {});
   } catch (err) {
     if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'This payment has already been used to activate a subscription.' });
     console.error('Error verifying manual payment:', err);

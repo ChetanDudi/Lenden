@@ -54,8 +54,8 @@ async function runDueTemplates() {
 
   for (const template of due) {
     try {
-      const user = await User.findOne({ email: template.creatorEmail }).select('_id email blockedUsers');
-      const counterparty = await User.findOne({ email: template.counterpartyEmail }).select('_id blockedUsers');
+      const user = await User.findOne({ email: template.creatorEmail }).select('_id email blockedUsers notificationSettings');
+      const counterparty = await User.findOne({ email: template.counterpartyEmail }).select('_id blockedUsers notificationSettings');
 
       if (!user || !counterparty || isBlockedBy(user, counterparty._id) || isBlockedBy(counterparty, user._id)) {
         template.isActive = false;
@@ -84,8 +84,19 @@ async function runDueTemplates() {
       template.nextRunAt = advanceNextRun(template);
       await template.save();
 
-      await notifyCreator(senderId, user._id,
-        `Recurring quick transaction of ${template.amount} ${template.currency} with ${template.counterpartyEmail} was auto-created.`);
+      if (user.notificationSettings?.transactionNotifications !== false) {
+        await notifyCreator(senderId, user._id,
+          `Recurring quick transaction of ${template.amount} ${template.currency} with ${template.counterpartyEmail} was auto-created.`);
+      }
+
+      // Notify counterparty too
+      if (counterparty.notificationSettings?.transactionNotifications !== false) {
+        await Notification.create({
+          sender: senderId, senderModel: 'Admin', recipientType: 'specific-users',
+          recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+          message: `A recurring quick transaction of ${template.amount} ${template.currency} with ${template.creatorEmail} was auto-created.`,
+        });
+      }
     } catch (err) {
       console.error(`Failed to run recurring template ${template._id}:`, err);
     }

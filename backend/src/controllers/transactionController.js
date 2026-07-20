@@ -15,6 +15,7 @@ const { processReferralRewardOnFirstCreation } = require('../utils/referralServi
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
+const Notification = require('../models/notification');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -672,11 +673,19 @@ exports.createTransaction = async (req, res) => {
       }
       if (counterparty) {
         await logTransactionActivity(counterparty._id, 'transaction_created', transaction, {}, creatorInfo);
+        // Notify counterparty of the new transaction
+        if (counterparty.notificationSettings?.transactionNotifications !== false) {
+          await Notification.create({
+            sender: user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+            message: `${userEmail} recorded a ${role} transaction of ₹${amount} with you.`,
+          });
+        }
       }
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
     }
-    
+
     // Award gift card every 5 user transactions (guaranteed, randomized within window)
     const userTxnCount = await Transaction.countDocuments({ userEmail });
     let awardedCard = null;
@@ -988,6 +997,15 @@ exports.clearTransaction = async (req, res) => {
             clearedBy: email,
             otherParty: otherPartyEmail
           }, creatorInfo);
+          // Notify the other party in-app
+          const otherPartyFull = await User.findById(otherPartyDoc._id).select('notificationSettings');
+          if (otherPartyFull?.notificationSettings?.transactionNotifications !== false) {
+            await Notification.create({
+              sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+              recipients: [otherPartyDoc._id], recipientModel: 'User', category: 'transaction',
+              message: `${email} cleared their side of the transaction. It is now ${transaction.userCleared && transaction.counterpartyCleared ? 'fully cleared' : 'partially cleared'}.`,
+            });
+          }
         }
       } catch (e) {
         console.error('Failed to log transaction activity:', e);
@@ -1391,6 +1409,29 @@ exports.processPartialPayment = async (req, res) => {
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
     }
+
+    // Fire-and-forget: notify payer and payee
+    Promise.all([
+      User.findById(req.user._id).select('notificationSettings'),
+      User.findById(payee._id).select('notificationSettings'),
+    ]).then(([payerUser, payeeUser]) => {
+      const notifs = [];
+      if (payerUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+          message: `Partial payment of ₹${amount} sent to ${payeeEmail} successfully.`,
+        }));
+      }
+      if (payeeUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [payee._id], recipientModel: 'User', category: 'transaction',
+          message: `You received a partial payment of ₹${amount} from ${payerEmail}.`,
+        }));
+      }
+      return Promise.all(notifs);
+    }).catch(() => {});
 
     res.json({
       success: true,

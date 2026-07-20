@@ -322,7 +322,7 @@ exports.sendFriendRequest = async (req, res) => {
 
     // Notification for recipient (if enabled)
     const recipientUser = await User.findById(target._id, 'notificationSettings');
-    if (recipientUser?.notificationSettings?.pushNotifications !== false) {
+    if (recipientUser?.notificationSettings?.friendNotifications !== false) {
       await Notification.create({
         sender: user._id,
         senderModel: 'User',
@@ -379,7 +379,7 @@ exports.acceptFriendRequest = async (req, res) => {
     await logFriendActivity(other._id, 'friend_request_accepted', { with: user.email });
 
     const senderUser = await User.findById(other._id, 'notificationSettings');
-    if (senderUser?.notificationSettings?.pushNotifications !== false) {
+    if (senderUser?.notificationSettings?.friendNotifications !== false) {
       await Notification.create({
         sender: user._id,
         senderModel: 'User',

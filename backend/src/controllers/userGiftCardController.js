@@ -2,6 +2,7 @@ const UserGiftCard = require('../models/userGiftCard');
 const GiftCard = require('../models/giftCard');
 const User = require('../models/user');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const Notification = require('../models/notification');
 
 // Helper: Check if user should get gift card (guaranteed once per window)
 // Uses deterministic hash based on userId + windowNumber to pick random position
@@ -49,6 +50,17 @@ exports.awardGiftCard = async (userId, awardedFrom) => {
       scratched: false,
       awardedFrom,
     });
+
+    // Notify the user they earned a scratch card
+    User.findById(userId).select('notificationSettings').then(u => {
+      if (u?.notificationSettings?.pushNotifications !== false) {
+        return Notification.create({
+          sender: userId, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [userId], recipientModel: 'User', category: 'general',
+          message: "🎁 You've earned a gift card! Open the app to scratch and reveal your LenDen coins.",
+        });
+      }
+    }).catch(() => {});
 
     return userGiftCard;
   } catch (error) {

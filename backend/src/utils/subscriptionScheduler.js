@@ -18,6 +18,8 @@ async function getSystemSenderId() {
 async function notifyUser(senderId, userId, message) {
   if (!senderId) return;
   try {
+    const u = await User.findById(userId).select('notificationSettings').lean();
+    if (u?.notificationSettings?.subscriptionNotifications === false) return;
     await Notification.create({
       sender: senderId,
       senderModel: 'Admin',

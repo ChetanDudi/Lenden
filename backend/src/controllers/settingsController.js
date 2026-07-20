@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendAlternativeEmailOTP: sendEmail } = require('../utils/alternativeEmailOtp');
 const { sendAccountDeletedEmail } = require('../utils/accountDeletedEmail');
+const Notification = require('../models/notification');
 
 // Change Password
 const changePassword = async (req, res) => {
@@ -51,6 +52,14 @@ const changePassword = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Password changed successfully' });
+
+    if (user.privacySettings?.loginNotifications !== false) {
+      Notification.create({
+        sender: userId, senderModel: 'User', recipientType: 'specific-users',
+        recipients: [userId], recipientModel: 'User', category: 'system',
+        message: "Your password was changed successfully. If this wasn't you, contact support immediately.",
+      }).catch(() => {});
+    }
   } catch (error) {
     console.error('Error changing password:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -161,10 +170,18 @@ const verifyAlternativeEmailOTP = async (req, res) => {
     user.altEmailOTP = null; // Clear OTP after successful verification
     await user.save();
 
-    res.json({ 
+    res.json({
       message: 'Alternative email verified and updated successfully',
-      altEmail: user.altEmail 
+      altEmail: user.altEmail
     });
+
+    if (user.privacySettings?.loginNotifications !== false) {
+      Notification.create({
+        sender: userId, senderModel: 'User', recipientType: 'specific-users',
+        recipients: [userId], recipientModel: 'User', category: 'system',
+        message: `Your alternative email was updated to ${altEmail}.`,
+      }).catch(() => {});
+    }
   } catch (error) {
     console.error('Error verifying alternative email OTP:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -247,9 +264,13 @@ const getNotificationSettings = async (req, res) => {
       paymentReminders: user.notificationSettings?.paymentReminders ?? true,
       chatNotifications: user.notificationSettings?.chatNotifications ?? true,
       groupNotifications: user.notificationSettings?.groupNotifications ?? true,
+      friendNotifications: user.notificationSettings?.friendNotifications ?? true,
+      subscriptionNotifications: user.notificationSettings?.subscriptionNotifications ?? true,
       emailNotifications: user.notificationSettings?.emailNotifications ?? true,
       pushNotifications: user.notificationSettings?.pushNotifications ?? true,
       smsNotifications: user.notificationSettings?.smsNotifications ?? false,
+      notificationSound: user.notificationSettings?.notificationSound ?? true,
+      vibrationEnabled: user.notificationSettings?.vibrationEnabled ?? true,
       reminderFrequency: user.notificationSettings?.reminderFrequency ?? 'daily',
       quietHoursStart: user.notificationSettings?.quietHoursStart ?? '22:00',
       quietHoursEnd: user.notificationSettings?.quietHoursEnd ?? '08:00',
@@ -272,9 +293,13 @@ const updateNotificationSettings = async (req, res) => {
       paymentReminders,
       chatNotifications,
       groupNotifications,
+      friendNotifications,
+      subscriptionNotifications,
       emailNotifications,
       pushNotifications,
       smsNotifications,
+      notificationSound,
+      vibrationEnabled,
       reminderFrequency,
       quietHoursStart,
       quietHoursEnd,
@@ -290,9 +315,13 @@ const updateNotificationSettings = async (req, res) => {
           paymentReminders,
           chatNotifications,
           groupNotifications,
+          friendNotifications,
+          subscriptionNotifications,
           emailNotifications,
           pushNotifications,
           smsNotifications,
+          notificationSound,
+          vibrationEnabled,
           reminderFrequency,
           quietHoursStart,
           quietHoursEnd,
@@ -338,7 +367,7 @@ const getPrivacySettings = async (req, res) => {
       twoFactorAuth: user.privacySettings?.twoFactorAuth ?? false,
       loginNotifications: user.privacySettings?.loginNotifications ?? true,
       deviceManagement: user.privacySettings?.deviceManagement ?? true,
-      sessionTimeout: user.sessionTimeout ?? 30,
+      sessionTimeout: user.privacySettings?.sessionTimeout ?? 30,
     };
 
     res.json(settings);
@@ -375,11 +404,9 @@ const updatePrivacySettings = async (req, res) => {
         twoFactorAuth,
         loginNotifications,
         deviceManagement,
+        ...(typeof sessionTimeout === 'number' && { sessionTimeout }),
       },
     };
-    if (typeof sessionTimeout === 'number') {
-      updatePayload.sessionTimeout = sessionTimeout;
-    }
 
     const user = await User.findByIdAndUpdate(userId, updatePayload, { new: true });
     if (!user) return res.status(404).json({ message: 'User not found' });

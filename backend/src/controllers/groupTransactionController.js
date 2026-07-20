@@ -503,10 +503,17 @@ exports.removeMember = async (req, res) => {
         memberEmail: email
       }, null, creatorInfo);
 
-      // Send email to the removed member first
       groupTransactionEmail.sendYouHaveBeenRemovedEmail(populatedGroup, email, req.user.email);
-      // Then, send email to the rest of the group
       groupTransactionEmail.sendMemberRemovedEmail(populatedGroup, email, req.user.email);
+
+      // Notify the removed member in-app
+      if (user.notificationSettings?.groupNotifications !== false) {
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [user._id], recipientModel: 'User', category: 'group',
+          message: `You were removed from the group "${group.title}" by ${req.user.email}.`,
+        });
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -785,6 +792,22 @@ exports.addExpense = async (req, res) => {
         currency: normalizedCurrency,
       }, null, creatorInfo);
       groupTransactionEmail.sendExpenseAddedEmail(populatedGroup, expenseData, userEmail);
+
+      // Notify all active members except the adder
+      const adderIdStr = userId.toString();
+      const addExpenseMemberIds = populatedGroup.members
+        .filter(m => !m.leftAt && m.user._id.toString() !== adderIdStr)
+        .map(m => m.user._id);
+      if (addExpenseMemberIds.length > 0) {
+        const eligible = await User.find({ _id: { $in: addExpenseMemberIds }, 'notificationSettings.groupNotifications': { $ne: false } }).select('_id');
+        if (eligible.length > 0) {
+          await Notification.create(eligible.map(u => ({
+            sender: userId, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [u._id], recipientModel: 'User', category: 'group',
+            message: `${userEmail} added an expense "${description}" of ₹${amount} to group "${group.title}".`,
+          })));
+        }
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -864,10 +887,21 @@ exports.otpVerifySettle = async (req, res) => {
     group._pendingOtp = undefined;
     await group.save();
     res.json({ group });
+
+    // Notify the member whose balance was zeroed
+    User.findById(userId).select('notificationSettings').then(member => {
+      if (member?.notificationSettings?.groupNotifications !== false) {
+        return Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [userId], recipientModel: 'User', category: 'group',
+          message: 'Your group balance has been settled by the group admin.',
+        });
+      }
+    }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
-}; 
+};
 
 // Get all groups for the logged-in user (as creator or member)
 exports.getUserGroups = async (req, res) => {
@@ -1184,10 +1218,27 @@ exports.deleteGroup = async (req, res) => {
     const group = await GroupTransaction.findById(groupId);
     if (!group) return res.status(404).json({ error: 'Group not found' });
     if (group.creator.toString() !== req.user._id.toString()) return res.status(403).json({ error: 'Only creator can delete group' });
-    
-    // Delete the group regardless of pending balances
+
+    // Collect active member IDs before deletion so we can notify them after
+    const activeMemberIds = group.members
+      .filter(m => !m.leftAt && m.user.toString() !== req.user._id.toString())
+      .map(m => m.user);
+
     await GroupTransaction.findByIdAndDelete(groupId);
     res.json({ message: 'Group deleted successfully' });
+
+    if (activeMemberIds.length > 0) {
+      User.find({ _id: { $in: activeMemberIds }, 'notificationSettings.groupNotifications': { $ne: false } })
+        .select('_id').then(eligible => {
+          if (eligible.length > 0) {
+            return Notification.create(eligible.map(u => ({
+              sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+              recipients: [u._id], recipientModel: 'User', category: 'group',
+              message: `The group "${group.title}" was deleted by ${req.user.email}.`,
+            })));
+          }
+        }).catch(() => {});
+    }
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1256,16 +1307,25 @@ exports.leaveGroup = async (req, res) => {
     
     res.json({ group: groupObj });
 
-    // Send email notification to the rest of the group
+    // Send email + notify group creator
     try {
       groupTransactionEmail.sendMemberLeftEmail(populatedGroup, req.user.email);
+      User.findById(group.creator).select('notificationSettings').then(creatorUser => {
+        if (creatorUser?.notificationSettings?.groupNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [group.creator], recipientModel: 'User', category: 'group',
+            message: `${req.user.email} left the group "${group.title}".`,
+          });
+        }
+      }).catch(() => {});
     } catch (e) {
       console.error('Failed to send member left email:', e);
     }
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
-}; 
+};
 
 // Delete expense (only creator)
 exports.deleteExpense = async (req, res) => {
@@ -1320,6 +1380,22 @@ exports.deleteExpense = async (req, res) => {
         currency: normalizeCurrency(deletedExpense.currency),
       }, null, creatorInfo);
       groupTransactionEmail.sendExpenseDeletedEmail(populatedGroup, deletedExpense, req.user.email);
+
+      // Notify all active members except the deleter
+      const deleterIdStr = req.user._id.toString();
+      const memberIds = populatedGroup.members
+        .filter(m => !m.leftAt && m.user._id.toString() !== deleterIdStr)
+        .map(m => m.user._id);
+      if (memberIds.length > 0) {
+        const eligible = await User.find({ _id: { $in: memberIds }, 'notificationSettings.groupNotifications': { $ne: false } }).select('_id');
+        if (eligible.length > 0) {
+          await Notification.create(eligible.map(u => ({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [u._id], recipientModel: 'User', category: 'group',
+            message: `${req.user.email} deleted the expense "${deletedExpense.description}" from group "${group.title}".`,
+          })));
+        }
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -1523,6 +1599,22 @@ exports.editExpense = async (req, res) => {
         currency: normalizedCurrency,
       }, null, creatorInfo);
       groupTransactionEmail.sendExpenseEditedEmail(group, expense, userEmail);
+
+      // Notify all active members except the editor
+      const editorIdStr = userId.toString();
+      const editMemberIds = group.members
+        .filter(m => !m.leftAt && m.user._id.toString() !== editorIdStr)
+        .map(m => m.user._id);
+      if (editMemberIds.length > 0) {
+        const eligible = await User.find({ _id: { $in: editMemberIds }, 'notificationSettings.groupNotifications': { $ne: false } }).select('_id');
+        if (eligible.length > 0) {
+          await Notification.create(eligible.map(u => ({
+            sender: userId, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [u._id], recipientModel: 'User', category: 'group',
+            message: `${userEmail} edited the expense "${description}" in group "${group.title}".`,
+          })));
+        }
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -1632,6 +1724,15 @@ exports.settleMemberExpenses = async (req, res) => {
         memberEmail: email,
         expensesUpdated: expensesUpdated
       }, null, creatorInfo);
+
+      // Notify the settled member
+      if (user.notificationSettings?.groupNotifications !== false) {
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [user._id], recipientModel: 'User', category: 'group',
+          message: `${req.user.email} marked your expenses as settled in group "${group.title}".`,
+        });
+      }
     } catch (e) {
       console.error('Failed to log group activity:', e);
     }
@@ -1742,6 +1843,29 @@ exports.recordMemberPayment = async (req, res) => {
     groupObj.expenses = processedExpenses;
 
     res.json({ group: groupObj, balance: newBalance });
+
+    // Fire-and-forget: notify payer and payee
+    Promise.all([
+      User.findById(req.user._id).select('notificationSettings'),
+      User.findById(payee._id).select('notificationSettings'),
+    ]).then(([payerUser, payeeUser]) => {
+      const notifs = [];
+      if (payerUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+          message: `Group settlement: ₹${parsedAmount} sent to ${cleanToEmail} for group "${group.title}".`,
+        }));
+      }
+      if (payeeUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [payee._id], recipientModel: 'User', category: 'transaction',
+          message: `Group settlement: You received ₹${parsedAmount} from ${req.user.email} for group "${group.title}".`,
+        }));
+      }
+      return Promise.all(notifs);
+    }).catch(() => {});
   } catch (err) {
     if (err.name === 'VersionError') {
       return res.status(409).json({
@@ -1932,6 +2056,16 @@ exports.settleExpenseSplits = async (req, res) => {
         memberEmails: memberEmails
       }, null, creatorInfo);
       groupTransactionEmail.sendExpenseSettledEmail(populatedGroup, expense, req.user.email);
+
+      // Notify each settled member
+      const settledUsers = await User.find({ email: { $in: memberEmails }, 'notificationSettings.groupNotifications': { $ne: false } }).select('_id');
+      if (settledUsers.length > 0) {
+        await Notification.create(settledUsers.map(u => ({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [u._id], recipientModel: 'User', category: 'group',
+          message: `${req.user.email} settled your split for expense "${expense.description}" in group "${group.title}".`,
+        })));
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -2004,11 +2138,22 @@ exports.sendLeaveRequest = async (req, res) => {
     );
     
     if (emailSent) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Leave request sent to group creator successfully',
         userBalance: userBalance
       });
+
+      // Notify group creator in-app
+      User.findById(group.creator._id).select('notificationSettings').then(creatorUser => {
+        if (creatorUser?.notificationSettings?.groupNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [group.creator._id], recipientModel: 'User', category: 'group',
+            message: `${user.email} requested to leave the group "${group.title}".`,
+          });
+        }
+      }).catch(() => {});
     } else {
       res.status(500).json({ error: 'Failed to send leave request email' });
     }

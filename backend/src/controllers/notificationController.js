@@ -248,17 +248,8 @@ exports.getNotifications = async (req, res) => {
         const userId = req.user._id;
         const userRole = req.user.role;
 
-        if (userRole === 'user') {
-            const user = await User.findById(userId, 'notificationSettings');
-            if (!user.notificationSettings.pushNotifications) {
-                return res.json([]);
-            }
-        } else if (userRole === 'admin') {
-            const admin = await Admin.findById(userId, 'notificationSettings');
-            if (!admin.notificationSettings.pushNotifications) {
-                return res.json([]);
-            }
-        }
+        // pushNotifications=false should stop NEW notifications from being created,
+        // not hide the existing inbox — users must always be able to read stored alerts.
 
         let query;
 
@@ -476,6 +467,23 @@ exports.markNotificationsAsRead = async (req, res) => {
       { $addToSet: { readBy: userId } }
     );
     res.status(200).json({ message: 'Notifications marked as read' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.clearReadNotifications = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    // Pull the user out of recipients on every notification they've already read.
+    // When recipients becomes empty the notification is effectively dead for everyone,
+    // so delete those rows entirely to avoid orphan documents building up.
+    await Notification.updateMany(
+      { recipients: userId, readBy: userId },
+      { $pull: { recipients: userId } }
+    );
+    await Notification.deleteMany({ recipients: { $size: 0 } });
+    res.status(200).json({ message: 'Read notifications cleared' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

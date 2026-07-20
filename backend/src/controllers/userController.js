@@ -284,7 +284,7 @@ exports.login = async (req, res) => {
       }
 
       // Send login notification email + in-app security alert if enabled
-      if (user.loginNotifications !== false) {
+      if (user.privacySettings?.loginNotifications !== false) {
         sendLoginNotificationEmail({
           to: user.email,
           name: user.name,

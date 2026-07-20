@@ -499,6 +499,7 @@ module.exports = (io) => {
   router.get('/notifications/audience-preview', auth, isAdmin, notificationController.getAudiencePreview);
   router.get('/notifications/unread-count', auth, notificationController.getUnreadNotificationCount);
   router.post('/notifications/mark-as-read', auth, notificationController.markNotificationsAsRead);
+  router.delete('/notifications/clear-read', auth, notificationController.clearReadNotifications);
   router.delete('/notifications/:id', auth, notificationController.deleteNotification);
   router.put('/notifications/:id', auth, notificationController.updateNotification);
 

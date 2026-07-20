@@ -457,6 +457,16 @@ exports.setWalletPin = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Transaction PIN updated successfully.' });
+
+    User.findById(req.user._id).select('privacySettings').then(u => {
+      if (u?.privacySettings?.loginNotifications !== false) {
+        return Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'system',
+          message: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
+        });
+      }
+    }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -711,6 +721,17 @@ exports.paySubscription = async (req, res) => {
     });
 
     res.json({ message: 'Subscription activated via wallet', balance: newBalance });
+
+    Promise.resolve().then(async () => {
+      const u = await User.findById(req.user._id).select('notificationSettings').lean();
+      if (u?.notificationSettings?.subscriptionNotifications !== false) {
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'subscription',
+          message: `Your "${plan.name}" subscription is now active.`,
+        });
+      }
+    }).catch(() => {});
   } catch (err) {
     res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {

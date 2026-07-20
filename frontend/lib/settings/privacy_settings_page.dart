@@ -65,8 +65,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
   // Privacy settings
   bool _profileVisibility = true;
+  bool _transactionHistory = true;
   bool _contactSharing = false;
   bool _analyticsSharing = true;
+  bool _marketingEmails = false;
+  bool _dataCollection = true;
 
   // Security settings
   bool _loginNotifications = true;
@@ -96,8 +99,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         final settings = json.decode(response.body);
         setState(() {
           _profileVisibility = settings['profileVisibility'] ?? true;
+          _transactionHistory = settings['transactionHistory'] ?? true;
           _contactSharing = settings['contactSharing'] ?? false;
           _analyticsSharing = settings['analyticsSharing'] ?? true;
+          _marketingEmails = settings['marketingEmails'] ?? false;
+          _dataCollection = settings['dataCollection'] ?? true;
           _loginNotifications = settings['loginNotifications'] ?? true;
           _deviceManagement = settings['deviceManagement'] ?? true;
           _sessionTimeout = settings['sessionTimeout']?.toString() ?? '30';
@@ -127,8 +133,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         '/api/users/privacy-settings',
         body: {
           'profileVisibility': _profileVisibility,
+          'transactionHistory': _transactionHistory,
           'contactSharing': _contactSharing,
           'analyticsSharing': _analyticsSharing,
+          'marketingEmails': _marketingEmails,
+          'dataCollection': _dataCollection,
           'loginNotifications': _loginNotifications,
           'deviceManagement': _deviceManagement,
           'sessionTimeout': int.parse(_sessionTimeout),
@@ -609,6 +618,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                       ),
                       _buildSwitchTile(
                         context,
+                        t('transaction_history_visibility_title'),
+                        t('transaction_history_visibility_desc'),
+                        Icons.history,
+                        _transactionHistory,
+                        (value) => setState(() => _transactionHistory = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
                         t('contact_sharing_title'),
                         t('contact_sharing_desc'),
                         Icons.contacts_outlined,
@@ -622,6 +639,22 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                         Icons.analytics_outlined,
                         _analyticsSharing,
                         (value) => setState(() => _analyticsSharing = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
+                        t('marketing_emails_title'),
+                        t('marketing_emails_desc'),
+                        Icons.campaign_outlined,
+                        _marketingEmails,
+                        (value) => setState(() => _marketingEmails = value),
+                      ),
+                      _buildSwitchTile(
+                        context,
+                        t('data_collection_title'),
+                        t('data_collection_desc'),
+                        Icons.data_usage_outlined,
+                        _dataCollection,
+                        (value) => setState(() => _dataCollection = value),
                       ),
                     ],
                   ),

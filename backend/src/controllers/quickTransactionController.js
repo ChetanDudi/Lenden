@@ -8,6 +8,7 @@ const { processReferralRewardOnFirstCreation } = require('../utils/referralServi
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
+const Notification = require('../models/notification');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -110,14 +111,25 @@ exports.createQuickTransaction = async (req, res) => {
     } else {
     }
 
-    res.status(201).json({ 
-        message: 'Quick transaction created successfully', 
-        quickTransaction, 
+    res.status(201).json({
+        message: 'Quick transaction created successfully',
+        quickTransaction,
         freeQuickTransactionsRemaining: user.freeQuickTransactionsRemaining,
         referralReward,
         giftCardAwarded: awardedCard ? true : false,
         awardedCard: awardedCard
     });
+
+    // Notify counterparty fire-and-forget
+    User.findById(counterparty._id).select('notificationSettings').then(cp => {
+      if (cp?.notificationSettings?.transactionNotifications !== false) {
+        return Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+          message: `${userEmail} recorded a quick transaction with you for ${amount} ${currency}.`,
+        });
+      }
+    }).catch(() => {});
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -237,15 +249,26 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
     } else {
     }
 
-    res.status(201).json({ 
-        message: 'Quick transaction created successfully with LenDen coins', 
-        quickTransaction, 
+    res.status(201).json({
+        message: 'Quick transaction created successfully with LenDen coins',
+        quickTransaction,
         lenDenCoins: user.lenDenCoins,
         warning: accessWarning,
         referralReward,
         giftCardAwarded: awardedCard ? true : false,
         awardedCard: awardedCard
     });
+
+    // Notify counterparty fire-and-forget
+    User.findById(counterparty._id).select('notificationSettings').then(cp => {
+      if (cp?.notificationSettings?.transactionNotifications !== false) {
+        return Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
+          message: `${userEmail} recorded a quick transaction with you for ${amount} ${currency}.`,
+        });
+      }
+    }).catch(() => {});
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
