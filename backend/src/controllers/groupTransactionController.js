@@ -19,6 +19,7 @@ const {
   enrichExpenseWithInr,
 } = require('../utils/currencyConverter');
 const { getSupportedCurrencyCodes } = require('../utils/supportedCurrencies');
+const Notification = require('../models/notification');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -335,6 +336,19 @@ exports.createGroup = async (req, res) => {
       };
       await logGroupActivityForAllMembers('group_created', group, {}, null, creatorInfo);
       groupTransactionEmail.sendGroupCreatedEmail(populatedGroup, creator);
+
+      // Notify invited members (everyone except the creator)
+      if (users.length > 0) {
+        const eligibleIds = users.map(u => u._id);
+        const eligible = await User.find({ _id: { $in: eligibleIds }, 'notificationSettings.groupNotifications': { $ne: false } }).select('_id');
+        if (eligible.length > 0) {
+          await Notification.create(eligible.map(u => ({
+            sender: creator._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [u._id], recipientModel: 'User', category: 'group',
+            message: `${creator.email} added you to the group "${title}".`,
+          })));
+        }
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -399,7 +413,7 @@ exports.addMember = async (req, res) => {
       email: groupObj.creator.email
     };
     res.json({ group: groupObj });
-    
+
     // Log activity for member addition - all members get notified
     try {
       const creatorInfo = {
@@ -410,6 +424,15 @@ exports.addMember = async (req, res) => {
         memberEmail: email
       }, null, creatorInfo);
       groupTransactionEmail.sendMemberAddedEmail(populatedGroup, email, req.user.email);
+
+      // Notify the added member
+      if (user.notificationSettings?.groupNotifications !== false) {
+        await Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [user._id], recipientModel: 'User', category: 'group',
+          message: `${req.user.email} added you to the group "${group.title}".`,
+        });
+      }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -2404,6 +2427,17 @@ exports.joinByCode = async (req, res) => {
 
     await group.save();
     res.json({ success: true, group });
+
+    // Notify group creator that a new member joined
+    User.findById(group.creator).select('notificationSettings').then(creatorUser => {
+      if (creatorUser?.notificationSettings?.groupNotifications !== false) {
+        return Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [group.creator], recipientModel: 'User', category: 'group',
+          message: `${userEmail} joined the group "${group.title}" via invite link.`,
+        });
+      }
+    }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: 'Failed to join group' });
   }

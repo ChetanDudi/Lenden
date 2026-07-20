@@ -13,6 +13,7 @@ const {
   generateUniqueReferralCode,
 } = require('../utils/referralService');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const Notification = require('../models/notification');
 
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
 const DAILY_LOGIN_COINS = 1;
@@ -282,7 +283,7 @@ exports.login = async (req, res) => {
         console.error('Failed to log login activity:', e);
       }
 
-      // Send login notification email if enabled — fire-and-forget so SMTP delays never block login
+      // Send login notification email + in-app security alert if enabled
       if (user.loginNotifications !== false) {
         sendLoginNotificationEmail({
           to: user.email,
@@ -291,6 +292,12 @@ exports.login = async (req, res) => {
           userAgent: req.get('User-Agent'),
           loginTime: new Date()
         }).catch(e => console.error('Failed to send login notification email:', e));
+
+        Notification.create({
+          sender: user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [user._id], recipientModel: 'User', category: 'system',
+          message: `New login to your account from ${req.ip || 'unknown location'}.`,
+        }).catch(() => {});
       }
 
       // Device management: enforce single-device login if needed

@@ -329,6 +329,7 @@ exports.sendFriendRequest = async (req, res) => {
         recipientType: 'specific-users',
         recipients: [target._id],
         recipientModel: 'User',
+        category: 'friend',
         message: `Friend request from ${user.name || user.username || user.email}`,
       });
     }
@@ -385,6 +386,7 @@ exports.acceptFriendRequest = async (req, res) => {
         recipientType: 'specific-users',
         recipients: [other._id],
         recipientModel: 'User',
+        category: 'friend',
         message: `${user.name || user.username || user.email} accepted your friend request`,
       });
     }

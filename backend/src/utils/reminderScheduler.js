@@ -3,6 +3,7 @@ const User = require('../models/user');
 const Admin = require('../models/admin');
 const Transaction = require('../models/transaction');
 const Notification = require('../models/notification');
+const { sendReminderEmail } = require('./lendingborrowingotp');
 
 // Quiet hours use simple 'HH:mm' string comparison, same format the
 // notificationSettings fields are stored in.
@@ -74,6 +75,11 @@ cron.schedule('0 0 * * *', async () => {
 
         if (shouldSendReminder) {
           const reminderMessage = `Reminder: Payment for transaction of amount ${transaction.amount} is due on ${expectedReturnDate.toDateString()}.`;
+
+          // Email reminder — sendReminderEmail checks emailNotifications + paymentReminders internally
+          sendReminderEmail(user.email, transaction, daysDifference).catch(e =>
+            console.error(`Failed to send reminder email for user ${user._id}, transaction ${transaction._id}:`, e)
+          );
 
           try {
             const notification = new Notification({

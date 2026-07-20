@@ -7,6 +7,7 @@ const Subscription = require('../models/subscription');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const Admin = require('../models/admin');
 const { sendWalletPayOTP, sendWalletPinSetupOTP } = require('../utils/walletPayOtp');
+const Notification = require('../models/notification');
 
 exports.getBalance = async (req, res) => {
   try {
@@ -215,8 +216,42 @@ exports.pay = async (req, res) => {
       newBalance = sender.walletBalance; // already decremented by findOneAndUpdate with {new:true}
     });
 
+    // Fire-and-forget: notify sender and receiver after successful transfer
+    Promise.all([
+      User.findById(req.user._id).select('notificationSettings'),
+      User.findById(receiver._id).select('notificationSettings'),
+    ]).then(([senderUser, receiverUser]) => {
+      const notifs = [];
+      if (senderUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+          message: `Payment of ₹${amount} sent to ${receiver.email} successfully.`,
+        }));
+      }
+      if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
+          message: `You received ₹${amount} from ${req.user.email}.`,
+        }));
+      }
+      return Promise.all(notifs);
+    }).catch(() => {});
+
     res.json({ message: 'Payment successful', balance: newBalance });
   } catch (err) {
+    if (err.message === 'Insufficient wallet balance') {
+      User.findById(req.user._id).select('notificationSettings').then(u => {
+        if (u?.notificationSettings?.transactionNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+            message: 'Payment failed: Insufficient LenDen wallet balance.',
+          });
+        }
+      }).catch(() => {});
+    }
     res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {
     session.endSession();
@@ -499,8 +534,42 @@ exports.payToUserWithOtp = async (req, res) => {
       newBalance = sender.walletBalance;
     });
 
+    // Fire-and-forget: notify sender and receiver after successful transfer
+    Promise.all([
+      User.findById(req.user._id).select('notificationSettings'),
+      User.findById(receiver._id).select('notificationSettings'),
+    ]).then(([senderUser, receiverUser]) => {
+      const notifs = [];
+      if (senderUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+          message: `Payment of ₹${amount} sent to ${receiver.email} successfully.`,
+        }));
+      }
+      if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
+          message: `You received ₹${amount} from ${senderDoc.email}.`,
+        }));
+      }
+      return Promise.all(notifs);
+    }).catch(() => {});
+
     res.json({ message: 'Payment successful', balance: newBalance });
   } catch (err) {
+    if (err.message === 'Insufficient wallet balance') {
+      User.findById(req.user._id).select('notificationSettings').then(u => {
+        if (u?.notificationSettings?.transactionNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+            message: 'Payment failed: Insufficient LenDen wallet balance.',
+          });
+        }
+      }).catch(() => {});
+    }
     res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {
     session.endSession();
@@ -538,8 +607,42 @@ exports.qrPay = async (req, res) => {
       newBalance = sender.walletBalance;
     });
 
+    // Fire-and-forget: notify sender and receiver after successful QR transfer
+    Promise.all([
+      User.findById(req.user._id).select('notificationSettings'),
+      User.findById(receiver._id).select('notificationSettings'),
+    ]).then(([senderUser, receiverUser]) => {
+      const notifs = [];
+      if (senderUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+          message: `QR payment of ₹${parsedAmount} sent to ${receiver.email} successfully.`,
+        }));
+      }
+      if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
+        notifs.push(Notification.create({
+          sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
+          message: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
+        }));
+      }
+      return Promise.all(notifs);
+    }).catch(() => {});
+
     res.json({ message: 'QR payment successful', balance: newBalance });
   } catch (err) {
+    if (err.message === 'Insufficient wallet balance') {
+      User.findById(req.user._id).select('notificationSettings').then(u => {
+        if (u?.notificationSettings?.transactionNotifications !== false) {
+          return Notification.create({
+            sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
+            recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
+            message: 'QR payment failed: Insufficient LenDen wallet balance.',
+          });
+        }
+      }).catch(() => {});
+    }
     res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });
   } finally {
     session.endSession();

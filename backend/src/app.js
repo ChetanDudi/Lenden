@@ -4,7 +4,6 @@ const app = express();
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
-const { sendReminderEmail } = require('./utils/lendingborrowingotp');
 const Transaction = require('./models/transaction');
 const User = require('./models/user');
 const http = require('http');
