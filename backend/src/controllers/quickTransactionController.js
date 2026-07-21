@@ -370,15 +370,35 @@ exports.getQuickTransactions = async (req, res) => {
       default: sortObj = { createdAt: -1 };
     }
 
-    const quickTransactions = await QuickTransaction.find(query).sort(sortObj).lean();
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
 
-    const populatedTransactions = await Promise.all(quickTransactions.map(async (t) => {
-      const users = await User.find({ email: { $in: t.users } }).select('name email phone');
-      t.users = users.map(u => ({ name: u.name, email: u.email, phone: u.phone ?? null }));
-      return t;
+    const [quickTransactions, totalCount] = await Promise.all([
+      QuickTransaction.find(query).sort(sortObj).skip(skip).limit(limit).lean(),
+      QuickTransaction.countDocuments(query),
+    ]);
+
+    // Collect all unique emails across all transactions, then fetch in one query
+    const allEmails = [...new Set(quickTransactions.flatMap(t => t.users))];
+    const userDocs = await User.find({ email: { $in: allEmails } }).select('name email phone').lean();
+    const userByEmail = Object.fromEntries(userDocs.map(u => [u.email, u]));
+
+    const populatedTransactions = quickTransactions.map(t => ({
+      ...t,
+      users: t.users.map(email => {
+        const u = userByEmail[email];
+        return u ? { name: u.name, email: u.email, phone: u.phone ?? null } : { email };
+      }),
     }));
 
-    res.status(200).json({ quickTransactions: populatedTransactions });
+    res.status(200).json({
+      quickTransactions: populatedTransactions,
+      total: totalCount,
+      page,
+      limit,
+      hasMore: skip + quickTransactions.length < totalCount,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -77,6 +77,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   String _categoryFilter = 'all';
   bool _showFavouritesOnly = false;
   bool _showAll = false;
+  int _qtPage = 1;
+  bool _qtHasMore = false;
+  bool _qtLoadingMore = false;
+  static const int _qtPageSize = 20;
   Set<String> _blockedEmails = {};
   Set<String> _pinnedTransactionIds = {};
   Map<String, dynamic>? _dailyLimits;
@@ -784,11 +788,16 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     fetchQuickTransactions();
   }
 
-  Future<void> fetchQuickTransactions() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
+  Future<void> fetchQuickTransactions({bool append = false}) async {
+    if (append) {
+      setState(() => _qtLoadingMore = true);
+    } else {
+      _qtPage = 1;
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    }
     try {
       // Build query params from current filter state
       final params = <String, String>{};
@@ -803,6 +812,10 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         params['counterparty'] = _selectedCounterparty;
       if (_categoryFilter != 'all') params['category'] = _categoryFilter;
 
+      final fetchPage = append ? _qtPage + 1 : 1;
+      params['page'] = fetchPage.toString();
+      params['limit'] = _qtPageSize.toString();
+
       final queryString = params.isEmpty
           ? ''
           : '?' +
@@ -816,15 +829,18 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         final body = json.decode(res.body);
         final rawTransactions = body['quickTransactions'];
         final fetchedTransactions = rawTransactions is List
-            ? rawTransactions.map((transaction) {
-                return Map<String, dynamic>.from(
-                  transaction is Map ? transaction : {},
-                );
-              }).toList()
+            ? rawTransactions.map((t) => Map<String, dynamic>.from(t is Map ? t : {})).toList()
             : <Map<String, dynamic>>[];
         setState(() {
-          transactions = fetchedTransactions;
-          filteredTransactions = List.from(fetchedTransactions);
+          if (append) {
+            transactions = [...transactions, ...fetchedTransactions];
+            _qtPage = fetchPage;
+          } else {
+            transactions = fetchedTransactions;
+            _qtPage = 1;
+          }
+          filteredTransactions = List.from(transactions);
+          _qtHasMore = body['hasMore'] == true;
           // Reset counterparty filter if it no longer exists in returned data
           final counterpartyStillExists = _counterpartyOptions().any(
             (item) => item['email'] == _selectedCounterparty,
@@ -835,17 +851,20 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           // Apply pin-based sort for display order only
           _applyPinSort();
           loading = false;
+          _qtLoadingMore = false;
         });
       } else {
         setState(() {
           error = AppLocalizations.of(context).t('failed_to_load_transactions');
           loading = false;
+          _qtLoadingMore = false;
         });
       }
     } catch (e) {
       setState(() {
         error = AppLocalizations.of(context).t('failed_to_load_transactions');
         loading = false;
+        _qtLoadingMore = false;
       });
     }
   }
@@ -2532,7 +2551,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                   if (filteredTransactions.length > 3)
                                     Padding(
                                       padding:
-                                          const EdgeInsets.only(bottom: 20.0),
+                                          const EdgeInsets.only(bottom: 8.0),
                                       child: TextButton(
                                         onPressed: () {
                                           setState(() {
@@ -2549,6 +2568,29 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
+                                      ),
+                                    ),
+                                  if (_qtHasMore && _showAll)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 20.0),
+                                      child: Center(
+                                        child: _qtLoadingMore
+                                            ? const CircularProgressIndicator(color: AppColors.cyan)
+                                            : OutlinedButton.icon(
+                                                onPressed: () => fetchQuickTransactions(append: true),
+                                                icon: const Icon(Icons.expand_more, color: AppColors.cyan),
+                                                label: Text(
+                                                  t('load_more_label'),
+                                                  style: const TextStyle(color: AppColors.cyan),
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                  side: const BorderSide(color: AppColors.cyan),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(16),
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                                                ),
+                                              ),
                                       ),
                                     ),
                                 ],

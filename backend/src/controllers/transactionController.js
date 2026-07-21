@@ -659,9 +659,11 @@ exports.createTransaction = async (req, res) => {
     
     // Log activity for both users with creator context
     try {
-      const user = await User.findOne({ email: userEmail });
-      const counterparty = await User.findOne({ email: counterpartyEmail });
-      
+      const [user, counterparty] = await Promise.all([
+        User.findOne({ email: userEmail }).select('_id notificationSettings'),
+        User.findOne({ email: counterpartyEmail }).select('_id notificationSettings'),
+      ]);
+
       // Determine who created the transaction (the user making the request)
       const creatorInfo = {
         creatorId: user._id,
@@ -852,7 +854,18 @@ exports.getUserTransactions = async (req, res) => {
     const sortField = sortFieldMap[sortBy] || 'createdAt';
     const sortDir = sortOrder === 'asc' ? 1 : -1;
 
-    const transactions = await Transaction.find(baseQuery).sort({ [sortField]: sortDir });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [transactions, totalCount] = await Promise.all([
+      Transaction.find(baseQuery)
+        .sort({ [sortField]: sortDir })
+        .skip(skip)
+        .limit(limit)
+        .select('-photos'),
+      Transaction.countDocuments(baseQuery),
+    ]);
 
     // Group into lending and borrowing
     let lending = transactions.filter(
@@ -917,7 +930,14 @@ exports.getUserTransactions = async (req, res) => {
     lending = applyClearanceFilter(lending);
     borrowing = applyClearanceFilter(borrowing);
 
-    res.json({ lending, borrowing, totalTransactions: lending.length + borrowing.length });
+    res.json({
+      lending,
+      borrowing,
+      totalTransactions: totalCount,
+      page,
+      limit,
+      hasMore: skip + transactions.length < totalCount,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch transactions' });
   }

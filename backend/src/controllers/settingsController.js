@@ -278,6 +278,7 @@ const getNotificationSettings = async (req, res) => {
       displayNotificationCount: user.notificationSettings?.displayNotificationCount ?? true,
     };
 
+    res.set('Cache-Control', 'private, max-age=300');
     res.json(settings);
   } catch (error) {
     console.error('Error getting notification settings:', error);

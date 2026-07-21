@@ -162,6 +162,10 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   final TextEditingController _amountController = TextEditingController();
   bool showAllTransactions = false;
   bool showFavouritesOnly = false;
+  int _txnPage = 1;
+  bool _txnHasMore = false;
+  bool _loadingMore = false;
+  static const int _txnPageSize = 20;
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
@@ -387,16 +391,21 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     );
   }
 
-  Future<void> fetchTransactions() async {
+  Future<void> fetchTransactions({bool append = false}) async {
     // Yield once so any caller invoking this directly from initState() never
     // touches AppLocalizations.of(context) before initState() has returned.
     await Future.value();
     if (!mounted) return;
     final t = AppLocalizations.of(context).t;
-    setState(() {
-      loading = true;
-      error = null;
-    });
+    if (append) {
+      setState(() => _loadingMore = true);
+    } else {
+      _txnPage = 1;
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    }
     final user = Provider.of<SessionProvider>(context, listen: false).user;
     final email = user?['email'];
     if (email == null) {
@@ -471,6 +480,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         params['favouritesOnly'] = 'true';
       }
 
+      // Pagination
+      final fetchPage = append ? _txnPage + 1 : 1;
+      params['page'] = fetchPage.toString();
+      params['limit'] = _txnPageSize.toString();
+
       final queryString = params.entries
           .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
           .join('&');
@@ -478,24 +492,43 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       final res = await ApiClient.get('/api/transactions/user?$queryString');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
+        final newLending = List<dynamic>.from(data['lending'] ?? []);
+        final newBorrowing = List<dynamic>.from(data['borrowing'] ?? []);
         setState(() {
-          lending = data['lending'] ?? [];
-          borrowing = data['borrowing'] ?? [];
+          if (append) {
+            lending = [...lending, ...newLending];
+            borrowing = [...borrowing, ...newBorrowing];
+            _txnPage = fetchPage;
+          } else {
+            lending = newLending;
+            borrowing = newBorrowing;
+            _txnPage = 1;
+            showAllTransactions = false;
+          }
           totalTransactions = data['totalTransactions'] ?? 0;
+          _txnHasMore = data['hasMore'] ?? false;
           loading = false;
+          _loadingMore = false;
         });
       } else {
         setState(() {
           error = t('failed_to_load_transactions_message');
           loading = false;
+          _loadingMore = false;
         });
       }
     } catch (e) {
       setState(() {
         error = t('unable_to_connect_check_internet_message');
         loading = false;
+        _loadingMore = false;
       });
     }
+  }
+
+  Future<void> _loadMoreTransactions() async {
+    if (_loadingMore || !_txnHasMore) return;
+    await fetchTransactions(append: true);
   }
 
   Widget _buildTransactionCard(Map t, bool isLending) {
@@ -2387,6 +2420,28 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                                           color: AppColors.cyan,
                                           fontSize: 16)),
                                 ),
+                              ),
+                            ),
+                          // Backend pagination: load next page
+                          if (_txnHasMore && showAllTransactions)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: _loadingMore
+                                    ? const CircularProgressIndicator(color: AppColors.cyan)
+                                    : OutlinedButton.icon(
+                                        onPressed: _loadMoreTransactions,
+                                        icon: const Icon(Icons.expand_more, color: AppColors.cyan),
+                                        label: Text(
+                                          loc('load_more_label'),
+                                          style: const TextStyle(color: AppColors.cyan),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(color: AppColors.cyan),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                                        ),
+                                      ),
                               ),
                             ),
                         ],

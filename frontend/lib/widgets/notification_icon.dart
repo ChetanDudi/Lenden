@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
@@ -22,13 +23,35 @@ class _NotificationIconState extends State<NotificationIcon> {
   bool _notificationSound = true;
   bool _vibrationEnabled = true;
   int _friendRequestCount = 0;
+  DateTime? _lastFetched;
+  Timer? _refreshTimer;
+  static const _cacheDuration = Duration(seconds: 30);
+  static const _pollInterval = Duration(minutes: 2);
 
   int get _combinedUserCount => _notificationCount + _friendRequestCount;
 
   @override
+  void initState() {
+    super.initState();
+    _refreshTimer = Timer.periodic(_pollInterval, (_) {
+      _lastFetched = null;
+      _fetchUnreadNotificationCount();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _fetchUnreadNotificationCount();
+    final now = DateTime.now();
+    if (_lastFetched == null || now.difference(_lastFetched!) > _cacheDuration) {
+      _fetchUnreadNotificationCount();
+    }
   }
 
   Future<void> _fetchUnreadNotificationCount() async {
@@ -78,10 +101,18 @@ class _NotificationIconState extends State<NotificationIcon> {
         _friendRequestCount = 0;
       }
 
+      _lastFetched = DateTime.now();
       if (mounted) setState(() {});
     } catch (e) {
       // Handle error
     }
+  }
+
+  /// Called externally (e.g. after returning from notifications page) to force
+  /// an immediate refresh, bypassing the 30-second cache.
+  void invalidateCache() {
+    _lastFetched = null;
+    _fetchUnreadNotificationCount();
   }
 
   @override

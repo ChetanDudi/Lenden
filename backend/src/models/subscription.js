@@ -99,5 +99,9 @@ subscriptionSchema.index(
     { razorpayPaymentId: 1 },
     { unique: true, partialFilterExpression: { razorpayPaymentId: { $type: 'string' } } }
 );
+// Subscription feature check: called on every gated request
+subscriptionSchema.index({ user: 1, status: 1, endDate: 1 });
+// Admin list filtered by status
+subscriptionSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

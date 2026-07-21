@@ -106,17 +106,11 @@ const resolveRecipients = async ({ recipientType, recipients = [], requirePush =
 };
 
 const dispatchDueScheduledNotifications = async () => {
-  const dueNotifications = await Notification.find({
-    deliveryStatus: 'scheduled',
-    scheduledFor: { $lte: new Date() },
-  });
-  if (!dueNotifications.length) return;
-
-  for (const notification of dueNotifications) {
-    notification.deliveryStatus = 'sent';
-    notification.sentAt = new Date();
-    await notification.save();
-  }
+  const now = new Date();
+  await Notification.updateMany(
+    { deliveryStatus: 'scheduled', scheduledFor: { $lte: now } },
+    { $set: { deliveryStatus: 'sent', sentAt: now } }
+  );
 };
 
 const canManageNotification = (notification, req, currentAdmin) => {
@@ -453,6 +447,7 @@ exports.getUnreadNotificationCount = async (req, res) => {
       deliveryStatus: 'sent',
       readBy: { $ne: userId }
     });
+    res.set('Cache-Control', 'private, max-age=30');
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

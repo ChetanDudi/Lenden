@@ -520,40 +520,24 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       );
     }
 
-    return ListView(
+    // Prepend friend-requests card as index 0 when visible
+    final hasFriendCard = showRequests && _incomingRequests.isNotEmpty;
+    final friendCardOffset = hasFriendCard ? 1 : 0;
+    final showViewAll = category == 'all' && _notifications.length >= 3 && !_isShowingAll;
+    final itemCount = friendCardOffset + items.length + (showViewAll ? 1 : 0);
+
+    return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-      children: [
-        if (showRequests && _incomingRequests.isNotEmpty)
-          _buildFriendRequestsCard(),
-        ...items.asMap().entries.map((entry) {
-          final index = entry.key;
-          final notification = entry.value;
-          final isRead = _isNotificationRead(notification, userId);
-          final id = notification['_id']?.toString() ?? '$index';
-          return Dismissible(
-            key: Key(id),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 24),
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: const Icon(Icons.delete_outline, color: Colors.red, size: 28),
-            ),
-            onDismissed: (_) => _deleteNotification(id),
-            child: _buildNotificationCard(
-              notification: notification,
-              isRead: isRead,
-              index: index,
-            ),
-          );
-        }),
-        if (category == 'all' && _notifications.length >= 3 && !_isShowingAll)
-          Padding(
+      itemCount: itemCount,
+      itemBuilder: (context, i) {
+        if (hasFriendCard && i == 0) return _buildFriendRequestsCard();
+
+        final notifIndex = i - friendCardOffset;
+
+        // "View All" footer
+        if (notifIndex == items.length) {
+          return Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Center(
               child: ElevatedButton(
@@ -561,19 +545,39 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 26,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Text(t('view_all_notifications')),
               ),
             ),
+          );
+        }
+
+        final notification = items[notifIndex];
+        final isRead = _isNotificationRead(notification, userId);
+        final id = notification['_id']?.toString() ?? '$notifIndex';
+        return Dismissible(
+          key: Key(id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: const Icon(Icons.delete_outline, color: Colors.red, size: 28),
           ),
-      ],
+          onDismissed: (_) => _deleteNotification(id),
+          child: _buildNotificationCard(
+            notification: notification,
+            isRead: isRead,
+            index: notifIndex,
+          ),
+        );
+      },
     );
   }
 

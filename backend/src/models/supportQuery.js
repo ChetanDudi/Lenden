@@ -96,4 +96,11 @@ supportQuerySchema.pre('save', function (next) {
   next();
 });
 
+// User support history (most common user-facing query)
+supportQuerySchema.index({ user: 1, createdAt: -1 });
+// Admin queue filtered by status
+supportQuerySchema.index({ status: 1, createdAt: -1 });
+// Admin prioritized queue
+supportQuerySchema.index({ status: 1, priority: 1, createdAt: -1 });
+
 module.exports = mongoose.model('SupportQuery', supportQuerySchema);

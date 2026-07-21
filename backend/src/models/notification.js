@@ -74,4 +74,13 @@ const notificationSchema = new mongoose.Schema({
   },
 });
 
+// Primary user inbox query: recipients + deliveryStatus
+notificationSchema.index({ recipients: 1, deliveryStatus: 1, createdAt: -1 });
+// Unread-count query: recipients + deliveryStatus + readBy exclusion
+notificationSchema.index({ recipients: 1, deliveryStatus: 1, readBy: 1 });
+// Admin sent-notifications list
+notificationSchema.index({ sender: 1, deliveryStatus: 1, createdAt: -1 });
+// Scheduled dispatch: find due scheduled notifications
+notificationSchema.index({ deliveryStatus: 1, scheduledFor: 1 });
+
 module.exports = mongoose.model('Notification', notificationSchema);

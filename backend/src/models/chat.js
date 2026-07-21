@@ -69,6 +69,13 @@ const chatSchema = new mongoose.Schema({
     }]
 }, { timestamps: true });
 
+// Primary fetch pattern: all messages for a transaction, newest-first
+chatSchema.index({ transactionId: 1, createdAt: -1 });
+// Lookup messages not yet seen by a participant (deletedFor filter)
+chatSchema.index({ transactionId: 1, deletedFor: 1 });
+// Sender-based queries (edit/delete own messages)
+chatSchema.index({ senderId: 1, createdAt: -1 });
+
 const Chat = mongoose.model('Chat', chatSchema);
 
 module.exports = Chat;
