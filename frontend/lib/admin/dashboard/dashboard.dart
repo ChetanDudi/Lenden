@@ -893,6 +893,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 ? null
                                 : IconButton(
                                     icon: const Icon(Icons.clear_rounded),
+                                    tooltip: t('clear'),
                                     onPressed: () {
                                       _searchController.clear();
                                       setState(() {});
@@ -1018,6 +1019,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           IconButton(
                             icon: Icon(Icons.arrow_back,
                                 color: AppThemeColors.primaryText(context)),
+                            tooltip: t('back'),
                             onPressed: () async {
                               final popped =
                                   await Navigator.of(context).maybePop();
@@ -1029,6 +1031,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           Builder(
                             builder: (context) => IconButton(
                               icon: Icon(Icons.menu, color: AppThemeColors.primaryText(context)),
+                              tooltip: t('menu'),
                               onPressed: () =>
                                   Scaffold.of(context).openDrawer(),
                             ),

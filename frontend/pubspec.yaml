@@ -41,6 +41,8 @@ dependencies:
     sdk: flutter
   google_mlkit_text_recognition: ^0.13.0
   google_sign_in: ^6.2.1
+  connectivity_plus: ^6.0.5
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1

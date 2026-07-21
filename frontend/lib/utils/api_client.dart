@@ -29,6 +29,9 @@ class ApiClient {
   // can wipe its in-memory state without ApiClient needing a direct reference.
   static void Function()? onAuthFailed;
 
+  // Called when the server returns 503 so the app can show a maintenance screen.
+  static void Function()? onMaintenance;
+
   // Secure storage keys
   static const _storage = FlutterSecureStorage();
   static const String _kAccessToken = 'access_token';
@@ -108,6 +111,11 @@ class ApiClient {
       }
     } catch (e) {
       rethrow;
+    }
+
+    if (resp.statusCode == 503) {
+      onMaintenance?.call();
+      return resp;
     }
 
     if (resp.statusCode == 440) {

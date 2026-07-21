@@ -26,6 +26,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   List<Map<String, dynamic>> _incomingRequests = [];
   final Set<String> _removingRequestIds = {};
   bool _isLoading = true;
+  bool _hasError = false;
   bool _isShowingAll = false;
   int _unreadCount = 0;
 
@@ -88,19 +89,24 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   }
 
   Future<void> _fetchNotifications({bool viewAll = false}) async {
-    final url =
-        viewAll ? '/api/notifications?viewAll=true' : '/api/notifications';
-    final response = await ApiClient.get(url);
-
-    if (response.statusCode == 200) {
-      setState(() {
-        _notifications = json.decode(response.body);
-        _isLoading = false;
-        if (viewAll) _isShowingAll = true;
-        _calculateUnreadCount();
-      });
-    } else {
-      setState(() => _isLoading = false);
+    setState(() { _isLoading = true; _hasError = false; });
+    try {
+      final url =
+          viewAll ? '/api/notifications?viewAll=true' : '/api/notifications';
+      final response = await ApiClient.get(url);
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        setState(() {
+          _notifications = json.decode(response.body);
+          _isLoading = false;
+          if (viewAll) _isShowingAll = true;
+          _calculateUnreadCount();
+        });
+      } else {
+        setState(() { _isLoading = false; _hasError = true; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _isLoading = false; _hasError = true; });
     }
   }
 
@@ -371,11 +377,43 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                 Expanded(
                   child: _isLoading
                       ? const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.cyan,
-                          ),
+                          child: CircularProgressIndicator(color: AppColors.cyan),
                         )
-                      : TabBarView(
+                      : _hasError
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.cloud_off_outlined,
+                                        size: 56,
+                                        color: AppThemeColors.secondaryText(context)),
+                                    const SizedBox(height: 16),
+                                    Text(t('fetch_error_message'),
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            color: AppThemeColors.secondaryText(context)),
+                                        textAlign: TextAlign.center),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton.icon(
+                                      onPressed: () => _fetchNotifications(viewAll: _isShowingAll),
+                                      icon: const Icon(Icons.refresh, color: Colors.white),
+                                      label: Text(t('retry'),
+                                          style: const TextStyle(color: Colors.white)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.cyan,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(20)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 28, vertical: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : TabBarView(
                           controller: _tabController,
                           children: _tabCategories
                               .map(

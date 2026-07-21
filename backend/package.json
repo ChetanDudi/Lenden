@@ -24,9 +24,11 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
     "pdfkit": "^0.17.1",
+    "morgan": "^1.10.0",
     "razorpay": "^2.9.6",
     "socket.io": "^4.7.4",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",

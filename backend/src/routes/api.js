@@ -610,5 +610,15 @@ module.exports = (io) => {
   router.post('/gift-cards/:userGiftCardId/scratch', auth, userGiftCardController.scratchGiftCard);
   router.get('/gift-cards/counts', auth, userGiftCardController.getGiftCardCounts);
 
+  // App version check — no auth required so the client can call this before login
+  router.get('/app-version', (req, res) => {
+    res.json({
+      minVersion: process.env.APP_MIN_VERSION || '1.0.0',
+      latestVersion: process.env.APP_LATEST_VERSION || '1.0.0',
+      forceUpdate: false,
+      updateUrl: process.env.APP_UPDATE_URL || '',
+    });
+  });
+
   return router;
 };

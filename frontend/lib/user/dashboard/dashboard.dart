@@ -1146,6 +1146,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                       IconButton(
                                         icon: Icon(Icons.clear,
                                             color: AppThemeColors.secondaryText(context), size: 20),
+                                        tooltip: t('clear'),
                                         onPressed: () {
                                           setState(() {
                                             _searchController.clear();
@@ -1385,6 +1386,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                               IconButton(
                                 icon: Icon(Icons.arrow_back,
                                     color: AppThemeColors.primaryText(context)),
+                                tooltip: t('back'),
                                 onPressed: () async {
                                   final popped =
                                       await Navigator.of(context).maybePop();
@@ -1398,6 +1400,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 builder: (context) => IconButton(
                                   icon: Icon(Icons.menu,
                                       color: AppThemeColors.primaryText(context)),
+                                  tooltip: t('menu'),
                                   onPressed: () =>
                                       Scaffold.of(context).openDrawer(),
                                 ),

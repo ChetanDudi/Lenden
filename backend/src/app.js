@@ -3,12 +3,14 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const cors = require('cors');
+const morgan = require('morgan');
 const cron = require('node-cron');
 const Transaction = require('./models/transaction');
 const User = require('./models/user');
 const http = require('http');
 const socketio = require('socket.io');
 const leoProfanity = require('leo-profanity');
+const logger = require('./utils/logger');
 
 const apiRoutes = require('./routes/api');
 const Admin = require('./models/admin');
@@ -95,10 +97,10 @@ app.use(express.json());
 // Add preflight handling for complex requests
 app.options('*', cors(corsOptions));
 
-// Debug middleware to log all requests
-app.use((req, res, next) => {
-  next();
-});
+// HTTP request logger
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+  stream: { write: (msg) => logger.http(msg.trimEnd()) },
+}));
 
 // Routes
 app.use('/api', apiRoutes(io));
@@ -148,7 +150,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(async () => {
   await Admin.createDefaultAdmin();
 })
-.catch((err) => console.error('Database connection error:', err));
+.catch((err) => logger.error('Database connection error:', err));
 
 // Initialize reminder scheduler
 require('./utils/reminderScheduler');
@@ -172,7 +174,7 @@ initializeScheduledTransactionScheduler();
 // Auto-sync ECB currency rates every 4 hours
 cron.schedule('0 */4 * * *', () => {
   autoSyncCurrencyRates().catch((err) =>
-    console.error('Currency cron sync failed:', err.message)
+    logger.error('Currency cron sync failed:', err.message)
   );
 });
 
@@ -180,4 +182,5 @@ cron.schedule('0 */4 * * *', () => {
 // which are wired up through apiRoutes(io) above.
 
 server.listen(PORT, () => {
+  logger.info(`Lenden backend listening on port ${PORT}`);
 });

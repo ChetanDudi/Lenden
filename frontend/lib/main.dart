@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'login/login_page.dart';
@@ -32,18 +34,30 @@ import 'utils/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/theme_helper.dart';
+import 'utils/connectivity_service.dart';
+import 'screens/maintenance_screen.dart';
 import 'widgets/wave_widget.dart' show DeepTopWaveClipper;
+import 'widgets/no_internet_banner.dart';
 
-void main() {
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => SessionProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => LocaleProvider()),
-      ],
-      child: const AppInitializer(),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ConnectivityService().init();
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('Flutter error: ${details.exceptionAsString()}');
+  };
+  runZonedGuarded(
+    () => runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => SessionProvider()),
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ],
+        child: const AppInitializer(),
+      ),
     ),
+    (error, stack) => debugPrint('Uncaught error: $error\n$stack'),
   );
 }
 
@@ -61,6 +75,8 @@ class _AppInitializerState extends State<AppInitializer>
   bool _dailyRewardDialogVisible = false;
   bool _locked = false;
   bool _wasBackgrounded = false;
+  bool _forceUpdate = false;
+  bool _inMaintenance = false;
   String? _activeUserId;
   SessionProvider? _session;
 
@@ -77,13 +93,27 @@ class _AppInitializerState extends State<AppInitializer>
     final session = Provider.of<SessionProvider>(context, listen: false);
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    // Wire ApiClient auth-failure events to the SessionProvider so that when
-    // a token refresh fails the in-memory session state is cleared too, not
-    // just the on-disk tokens.
     ApiClient.onAuthFailed = () => session.clearTokens();
+    ApiClient.onMaintenance = () {
+      if (mounted) setState(() => _inMaintenance = true);
+    };
     final startedAt = DateTime.now();
     await session.initSession();
     unawaited(_maybeQueueDailyReward(session));
+
+    // App version check — force-update if server says current version is too old
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final versionResp = await ApiClient.get('/api/app-version');
+      if (versionResp.statusCode == 200) {
+        final data = json.decode(versionResp.body) as Map<String, dynamic>;
+        final minVersion = (data['minVersion'] as String?) ?? '1.0.0';
+        final forceUpdate = (data['forceUpdate'] as bool?) ?? false;
+        if (forceUpdate || _isVersionLower(info.version, minVersion)) {
+          _forceUpdate = true;
+        }
+      }
+    } catch (_) {}
 
     // Each user/admin keeps their own theme and language — scope the loaded
     // preferences to whoever is currently logged in (or the guest slot).
@@ -100,6 +130,64 @@ class _AppInitializerState extends State<AppInitializer>
     if (elapsed < minimumSplash) {
       await Future.delayed(minimumSplash - elapsed);
     }
+  }
+
+  bool _isVersionLower(String current, String minimum) {
+    final c = current.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    final m = minimum.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    for (int i = 0; i < m.length; i++) {
+      final cv = i < c.length ? c[i] : 0;
+      final mv = m[i];
+      if (cv < mv) return true;
+      if (cv > mv) return false;
+    }
+    return false;
+  }
+
+  Widget _buildUpdateRequiredScreen(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
+    return Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 36),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.system_update_alt_rounded,
+                  size: 80, color: AppColors.cyan.withValues(alpha: 0.8)),
+              const SizedBox(height: 24),
+              Text(t('update_required_title'),
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context)),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              Text(t('update_required_message'),
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: AppThemeColors.secondaryText(context)),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.download_rounded, color: Colors.white),
+                label: Text(t('update_now_label'),
+                    style: const TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.cyan,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // Re-scopes theme/language storage whenever the logged-in account changes
@@ -308,20 +396,31 @@ class _AppInitializerState extends State<AppInitializer>
           brightness: Brightness.dark,
         ),
       ),
-      home: FutureBuilder<void>(
-        future: _bootstrapFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const SplashScreen(autoNavigate: false);
-          }
-          if (_locked) {
-            return AppLockScreen(
-              onUnlocked: () => setState(() => _locked = false),
-            );
-          }
-          _showPendingDailyRewardIfNeeded();
-          return const MyApp();
-        },
+      home: NoInternetBanner(
+        child: FutureBuilder<void>(
+          future: _bootstrapFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SplashScreen(autoNavigate: false);
+            }
+            if (_inMaintenance) {
+              return MaintenanceScreen(onRetry: () => setState(() {
+                _inMaintenance = false;
+                _bootstrapFuture = _initializeApp();
+              }));
+            }
+            if (_forceUpdate) {
+              return _buildUpdateRequiredScreen(context);
+            }
+            if (_locked) {
+              return AppLockScreen(
+                onUnlocked: () => setState(() => _locked = false),
+              );
+            }
+            _showPendingDailyRewardIfNeeded();
+            return const MyApp();
+          },
+        ),
       ),
       routes: {
         '/main': (context) => const MyApp(),
@@ -417,7 +516,7 @@ class HomePage extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('About'),
+              title: Text(t('about')),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AboutPage()),
@@ -425,7 +524,7 @@ class HomePage extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.contact_mail),
-              title: const Text('Contact'),
+              title: Text(t('contact')),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ContactPage()),
@@ -490,59 +589,62 @@ class HomePage extends StatelessWidget {
                                     } else {
                                       showDialog(
                                         context: context,
-                                        builder: (context) => AlertDialog(
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(24),
-                                          ),
-                                          backgroundColor:
-                                              const Color(0xFFF6F7FB),
-                                          elevation: 12,
-                                          title: Row(
-                                            children: [
-                                              Icon(Icons.lock_outline,
-                                                  color: AppColors.cyan,
-                                                  size: context.sp(26)),
-                                              SizedBox(width: context.sw(8)),
-                                              Text('Login Required',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: context.sp(20))),
-                                            ],
-                                          ),
-                                          content: Text(
-                                            'Please login to view your profile.',
-                                            style: TextStyle(
-                                                fontSize: context.sp(15),
-                                                color: Colors.black87),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: Colors.white,
-                                                backgroundColor:
-                                                    AppColors.cyan,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                ),
-                                              ),
-                                              onPressed: () =>
-                                                  Navigator.of(context).pop(),
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: context.sw(16),
-                                                    vertical: context.sh(6)),
-                                                child: Text('OK',
+                                        builder: (dlgCtx) {
+                                          final dt = AppLocalizations.of(dlgCtx).t;
+                                          return AlertDialog(
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(24),
+                                            ),
+                                            backgroundColor:
+                                                const Color(0xFFF6F7FB),
+                                            elevation: 12,
+                                            title: Row(
+                                              children: [
+                                                Icon(Icons.lock_outline,
+                                                    color: AppColors.cyan,
+                                                    size: context.sp(26)),
+                                                SizedBox(width: context.sw(8)),
+                                                Text(dt('login_required'),
                                                     style: TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
-                                                        fontSize: context.sp(15))),
-                                              ),
+                                                        fontSize: context.sp(20))),
+                                              ],
                                             ),
-                                          ],
-                                        ),
+                                            content: Text(
+                                              dt('please_login_to_view_profile'),
+                                              style: TextStyle(
+                                                  fontSize: context.sp(15),
+                                                  color: Colors.black87),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: Colors.white,
+                                                  backgroundColor:
+                                                      AppColors.cyan,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(16),
+                                                  ),
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.of(dlgCtx).pop(),
+                                                child: Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                      horizontal: context.sw(16),
+                                                      vertical: context.sh(6)),
+                                                  child: Text(dt('ok'),
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: context.sp(15))),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       );
                                     }
                                   },
@@ -663,7 +765,7 @@ class HomePage extends StatelessWidget {
                           ),
                           SizedBox(height: context.sh(6)),
                           Text(
-                            'Lend, borrow & manage money — together.',
+                            t('landing_tagline'),
                             style: TextStyle(
                               fontSize: context.sp(12),
                               color: Colors.grey.shade500,
@@ -724,7 +826,7 @@ class HomePage extends StatelessWidget {
                             ),
                             icon: const Icon(Icons.arrow_forward,
                                 color: Colors.white),
-                            label: Text('Get Started',
+                            label: Text(t('get_started'),
                                 style: TextStyle(
                                     fontSize: context.sp(17),
                                     color: Colors.white,
@@ -756,7 +858,7 @@ class HomePage extends StatelessWidget {
                             ),
                             icon: const Icon(Icons.arrow_forward,
                                 color: AppColors.cyan),
-                            label: Text('Register',
+                            label: Text(t('register'),
                                 style: TextStyle(
                                     fontSize: context.sp(17),
                                     color: AppColors.cyan,
