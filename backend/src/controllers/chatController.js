@@ -1,5 +1,6 @@
 const Transaction = require('../models/transaction');
 const User = require('../models/user');
+const Notification = require('../models/notification');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const Chat = require('../models/chat');
 const {
@@ -172,6 +173,20 @@ module.exports = (io) => {
                     messageCounts: updatedTransaction.messageCounts,
                     lenDenCoins: sender.lenDenCoins
                 });
+
+                // Create in-app notification only when receiver is offline so they
+                // see the missed message in their notification bell on next open.
+                if (!users[receiverId.toString()] && receiver.notificationSettings?.chatNotifications !== false) {
+                    Notification.create({
+                        sender: sender._id,
+                        senderModel: 'User',
+                        recipientType: 'specific-users',
+                        recipients: [receiver._id],
+                        recipientModel: 'User',
+                        category: 'general',
+                        message: `New message from ${sender.name || sender.username || sender.email}`,
+                    }).catch(() => {});
+                }
             } catch (error) {
                 console.error('Error in createMessage socket handler:', error);
                 socket.emit('createMessageError', { ...data, error: 'An error occurred while sending the message.' });

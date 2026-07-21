@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -16,7 +17,10 @@ class NotificationIcon extends StatefulWidget {
 
 class _NotificationIconState extends State<NotificationIcon> {
   int _notificationCount = 0;
+  int _prevUnreadCount = 0;
   bool _displayNotificationCount = true;
+  bool _notificationSound = true;
+  bool _vibrationEnabled = true;
   int _friendRequestCount = 0;
 
   int get _combinedUserCount => _notificationCount + _friendRequestCount;
@@ -54,7 +58,15 @@ class _NotificationIconState extends State<NotificationIcon> {
         final settings = json.decode(settingsResp.body);
         _displayNotificationCount =
             settings['displayNotificationCount'] ?? true;
+        _notificationSound = settings['notificationSound'] ?? true;
+        _vibrationEnabled = settings['vibrationEnabled'] ?? true;
       }
+
+      if (_notificationCount > _prevUnreadCount) {
+        if (_vibrationEnabled) HapticFeedback.lightImpact();
+        if (_notificationSound) SystemSound.play(SystemSoundType.alert);
+      }
+      _prevUnreadCount = _notificationCount;
 
       if (!session.isAdmin && responses.length > 2) {
         final reqRes = responses[2];

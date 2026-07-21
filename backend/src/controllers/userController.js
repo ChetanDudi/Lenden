@@ -243,7 +243,20 @@ exports.login = async (req, res) => {
       if (!match) {
         return res.status(401).json({ error: 'Incorrect password' });
       }
-      
+
+      // 2FA: send OTP and pause login if the user has twoFactorAuth enabled
+      if (user.privacySettings?.twoFactorAuth === true) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.loginOTP = { code: otp, expiry: new Date(Date.now() + OTP_EXPIRY_MS), sentAt: new Date() };
+        try {
+          await sendLoginOTP(user.email, otp);
+        } catch {
+          return res.status(503).json({ error: 'Could not send 2FA OTP. Please try again.' });
+        }
+        await user.save();
+        return res.status(202).json({ requires2FA: true, email: user.email });
+      }
+
       // Generate tokens for user
       const deviceId = req.body.deviceId || uuidv4();
       const deviceName = req.body.deviceName || req.get('User-Agent');
@@ -477,6 +490,18 @@ exports.googleLogin = async (req, res) => {
       });
     }
 
+    if (user.privacySettings?.twoFactorAuth === true) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.loginOTP = { code: otp, expiry: new Date(Date.now() + OTP_EXPIRY_MS), sentAt: new Date() };
+      try {
+        await sendLoginOTP(user.email, otp);
+      } catch {
+        return res.status(503).json({ error: 'Could not send 2FA OTP. Please try again.' });
+      }
+      await user.save();
+      return res.status(202).json({ requires2FA: true, email: user.email });
+    }
+
     const deviceId = req.body.deviceId || uuidv4();
     const deviceName = req.body.deviceName || req.get('User-Agent');
     const ipAddress = req.ip;
@@ -651,6 +676,35 @@ exports.verifyLoginOtp = async (req, res) => {
         deviceId, deviceName, ipAddress, userAgent: req.get('User-Agent'),
         expiresAt: TokenService.calculateTokenExpiry(),
       });
+
+      // Log login activity (same as regular login)
+      try {
+        await logProfileActivity(user._id, 'login', { ipAddress, userAgent: req.get('User-Agent') });
+      } catch (e) {
+        console.error('Failed to log OTP login activity:', e);
+      }
+
+      // Login notification (if enabled)
+      if (user.privacySettings?.loginNotifications !== false) {
+        sendLoginNotificationEmail({
+          to: user.email,
+          name: user.name,
+          ipAddress,
+          userAgent: req.get('User-Agent'),
+          loginTime: new Date()
+        }).catch(e => console.error('Failed to send OTP login notification email:', e));
+
+        Notification.create({
+          sender: user._id, senderModel: 'User', recipientType: 'specific-users',
+          recipients: [user._id], recipientModel: 'User', category: 'system',
+          message: `New login to your account from ${ipAddress || 'unknown location'}.`,
+        }).catch(() => {});
+      }
+
+      // Register device
+      user.devices = (user.devices || []).filter(d => d.deviceId !== deviceId);
+      const now = new Date();
+      user.devices.push({ deviceId, userAgent: deviceName, ipAddress, lastActive: now, createdAt: now });
 
       const dailyReward = applyDailyLoginReward(user);
       await user.save();

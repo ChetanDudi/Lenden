@@ -100,6 +100,52 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     await _fetchReceivedNotifications(viewAll: _viewAllReceived);
   }
 
+  Future<void> _markAllAsRead() async {
+    await ApiClient.post('/api/notifications/mark-as-read');
+    if (!mounted) return;
+    await _fetchReceivedNotifications(viewAll: _viewAllReceived);
+    if (mounted) {
+      showSnack(context, AppLocalizations.of(context).t('mark_all_read_success'));
+    }
+  }
+
+  Future<void> _clearReadNotifications() async {
+    final t = AppLocalizations.of(context).t;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Text(t('clear_read_notifications_title'),
+            style: TextStyle(color: AppThemeColors.primaryText(ctx), fontWeight: FontWeight.bold)),
+        content: Text(t('clear_read_confirm_message'),
+            style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(t('clear')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final res = await ApiClient.delete('/api/notifications/clear-read');
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      await _fetchReceivedNotifications(viewAll: _viewAllReceived);
+      showSnack(context, t('clear_read_success'));
+    }
+  }
+
   bool _isNotificationRead(dynamic notification, dynamic userId) {
     final targetId = userId.toString();
     final senderId = notification['sender']?.toString();
@@ -508,7 +554,32 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: AppThemeColors.primaryText(context)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        onSelected: (value) {
+                          if (value == 'mark_read') _markAllAsRead();
+                          if (value == 'clear_read') _clearReadNotifications();
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'mark_read',
+                            child: Row(children: [
+                              const Icon(Icons.done_all, color: AppColors.cyan, size: 20),
+                              const SizedBox(width: 10),
+                              Text(t('mark_all_read_title')),
+                            ]),
+                          ),
+                          PopupMenuItem(
+                            value: 'clear_read',
+                            child: Row(children: [
+                              const Icon(Icons.clear_all, color: Colors.orange, size: 20),
+                              const SizedBox(width: 10),
+                              Text(t('clear_read_notifications_title')),
+                            ]),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

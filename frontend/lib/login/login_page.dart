@@ -34,6 +34,10 @@ class _UserLoginPageState extends State<UserLoginPage> {
   bool _isGoogleLoading = false;
   bool _isDeactivated = false;
   Map<String, dynamic>? _recoverInfo;
+  // ignore: unused_field
+  bool _requires2FA = false;
+  // ignore: unused_field
+  String _twoFAEmail = '';
 
   // Login method selection
   String _loginMethod = 'Email + Password';
@@ -106,6 +110,13 @@ class _UserLoginPageState extends State<UserLoginPage> {
           refreshToken = result['refreshToken'];
           dailyLoginReward =
               result['dailyLoginReward'] as Map<String, dynamic>?;
+        } else if (result['requires2FA'] == true) {
+          setState(() {
+            _twoFAEmail = result['email'] as String;
+            _requires2FA = true;
+          });
+          _show2FADialog(result['email'] as String);
+          return;
         } else {
           error = result['error'];
           if (result['canRecover'] == true) {
@@ -127,6 +138,13 @@ class _UserLoginPageState extends State<UserLoginPage> {
           refreshToken = result['refreshToken'];
           dailyLoginReward =
               result['dailyLoginReward'] as Map<String, dynamic>?;
+        } else if (result['requires2FA'] == true) {
+          setState(() {
+            _twoFAEmail = result['email'] as String;
+            _requires2FA = true;
+          });
+          _show2FADialog(result['email'] as String);
+          return;
         } else {
           error = result['error'];
           if (result['canRecover'] == true) {
@@ -316,6 +334,12 @@ class _UserLoginPageState extends State<UserLoginPage> {
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/user/dashboard');
         }
+      } else if (result['requires2FA'] == true) {
+        setState(() {
+          _requires2FA = true;
+          _twoFAEmail = result['email'] as String;
+        });
+        _show2FADialog(result['email'] as String);
       } else if (result['cancelled'] != true) {
         if (result['error'] == 'network_error') {
           _showGoogleNetworkErrorDialog();
@@ -494,6 +518,234 @@ class _UserLoginPageState extends State<UserLoginPage> {
       }
       return false;
     });
+  }
+
+  void _show2FADialog(String email) {
+    final secondsNotifier = ValueNotifier<int>(120);
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (secondsNotifier.value > 0) {
+        secondsNotifier.value--;
+        return true;
+      }
+      return false;
+    });
+
+    String twoFACode = '';
+    bool isVerifying = false;
+    String? errorMsg;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDialogState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            backgroundColor: AppThemeColors.cardBg(ctx2),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 28, 16, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0077B6), AppColors.cyan],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cyan.withValues(alpha: 0.35),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.shield_outlined, color: Colors.white, size: 36),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Two-Factor Authentication',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppThemeColors.primaryText(ctx2),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Enter the 6-digit code sent to\n$email',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppThemeColors.secondaryText(ctx2),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  OtpInput(
+                    onChanged: (code) => setDialogState(() => twoFACode = code),
+                    enabled: !isVerifying,
+                  ),
+                  const SizedBox(height: 12),
+                  ValueListenableBuilder<int>(
+                    valueListenable: secondsNotifier,
+                    builder: (_, secs, __) => Text(
+                      secs > 0 ? 'Code expires in ${secs}s' : 'Code expired',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: secs > 0
+                            ? AppThemeColors.secondaryText(ctx2)
+                            : Colors.red,
+                      ),
+                    ),
+                  ),
+                  if (errorMsg != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      errorMsg!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isVerifying
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _requires2FA = false;
+                                    _twoFAEmail = '';
+                                  });
+                                  Navigator.of(ctx).pop();
+                                },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: AppThemeColors.border(ctx2)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: AppThemeColors.secondaryText(ctx2),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: (isVerifying || twoFACode.length < 6)
+                              ? null
+                              : () async {
+                                  setDialogState(() {
+                                    isVerifying = true;
+                                    errorMsg = null;
+                                  });
+                                  final result = await EmailOtpLogin.verifyOtp(
+                                    email: email,
+                                    otp: twoFACode,
+                                    context: ctx2,
+                                    deviceId: _deviceId ?? '',
+                                  );
+                                  if (result['success'] == true) {
+                                    secondsNotifier.dispose();
+                                    if (ctx.mounted) Navigator.of(ctx).pop();
+                                    await _finalizeTwoFALogin(result);
+                                  } else {
+                                    setDialogState(() {
+                                      isVerifying = false;
+                                      errorMsg = result['error'] ?? 'Invalid code. Please try again.';
+                                    });
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.cyan,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          child: isVerifying
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text(
+                                  'Verify',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _finalizeTwoFALogin(Map<String, dynamic> result) async {
+    if (!mounted) return;
+    final token = result['accessToken'] as String?;
+    final refreshToken = result['refreshToken'] as String?;
+    final userType = result['userType'] as String?;
+    final userOrAdmin = result['userOrAdmin'];
+    final dailyLoginReward = result['dailyLoginReward'] as Map<String, dynamic>?;
+
+    if (token == null || refreshToken == null || userType == null) return;
+
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    await session.saveTokens(token, refreshToken);
+
+    final profileRes = await _fetchProfile(token, userType);
+    if (profileRes != null) {
+      profileRes['role'] = userType == 'admin' ? 'admin' : 'user';
+      session.setUser(profileRes);
+    } else if (userOrAdmin != null) {
+      final userData = Map<String, dynamic>.from(userOrAdmin as Map);
+      userData['role'] = userType == 'admin' ? 'admin' : 'user';
+      session.setUser(userData);
+    }
+    await session.checkSubscriptionStatus();
+
+    if (!mounted) return;
+
+    setState(() {
+      _requires2FA = false;
+      _twoFAEmail = '';
+    });
+
+    if (dailyLoginReward != null && dailyLoginReward['awarded'] == true) {
+      final coins = dailyLoginReward['coinsAwarded'] ?? 1;
+      _showDailyLoginRewardNotification(coins);
+      await Future.delayed(const Duration(seconds: 3));
+    }
+
+    if (!mounted) return;
+
+    if (userType == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin/dashboard');
+    } else {
+      Navigator.pushReplacementNamed(context, '/user/dashboard');
+    }
   }
 
   void _showIncorrectPasswordDialog() {

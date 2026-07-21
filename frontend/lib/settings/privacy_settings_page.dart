@@ -72,6 +72,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   bool _dataCollection = true;
 
   // Security settings
+  bool _twoFactorAuth = false;
   bool _loginNotifications = true;
   bool _deviceManagement = true;
   String _sessionTimeout = '30'; // minutes
@@ -104,6 +105,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           _analyticsSharing = settings['analyticsSharing'] ?? true;
           _marketingEmails = settings['marketingEmails'] ?? false;
           _dataCollection = settings['dataCollection'] ?? true;
+          _twoFactorAuth = settings['twoFactorAuth'] ?? false;
           _loginNotifications = settings['loginNotifications'] ?? true;
           _deviceManagement = settings['deviceManagement'] ?? true;
           _sessionTimeout = settings['sessionTimeout']?.toString() ?? '30';
@@ -138,6 +140,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           'analyticsSharing': _analyticsSharing,
           'marketingEmails': _marketingEmails,
           'dataCollection': _dataCollection,
+          'twoFactorAuth': _twoFactorAuth,
           'loginNotifications': _loginNotifications,
           'deviceManagement': _deviceManagement,
           'sessionTimeout': int.parse(_sessionTimeout),
@@ -666,6 +669,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                     context,
                     t('security_settings_section'),
                     [
+                      _buildSwitchTile(
+                        context,
+                        t('two_factor_authentication_label'),
+                        t('enable_two_factor_auth_desc'),
+                        Icons.verified_user_outlined,
+                        _twoFactorAuth,
+                        (value) => setState(() => _twoFactorAuth = value),
+                      ),
                       _buildSwitchTile(
                         context,
                         t('login_notifications_title'),

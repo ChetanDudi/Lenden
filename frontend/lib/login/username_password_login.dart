@@ -82,6 +82,12 @@ class UsernamePasswordLogin {
           'email': responseData['email'],
           'username': responseData['username'],
         };
+      } else if (response.statusCode == 202 && responseData['requires2FA'] == true) {
+        return {
+          'success': false,
+          'requires2FA': true,
+          'email': responseData['email'],
+        };
       }
       return {'success': false, 'error': responseData['error']};
     } catch (e) {

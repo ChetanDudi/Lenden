@@ -54,6 +54,13 @@ class GoogleAuthService {
           'dailyLoginReward': responseData['dailyLoginReward'],
         };
       }
+      if (response.statusCode == 202 && responseData['requires2FA'] == true) {
+        return {
+          'success': false,
+          'requires2FA': true,
+          'email': responseData['email'],
+        };
+      }
       return {
         'success': false,
         'error': responseData['error'] ?? 'Google sign-in failed'

@@ -144,6 +144,72 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     await _fetchNotifications(viewAll: _isShowingAll);
   }
 
+  Future<void> _markAllAsRead() async {
+    await ApiClient.post('/api/notifications/mark-as-read');
+    if (!mounted) return;
+    await _fetchNotifications(viewAll: _isShowingAll);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t('mark_all_read_success')),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _clearReadNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        title: Text(t('clear_read_notifications_title'),
+            style: TextStyle(color: AppThemeColors.primaryText(ctx), fontWeight: FontWeight.bold)),
+        content: Text(t('clear_read_confirm_message'),
+            style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(t('clear')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final res = await ApiClient.delete('/api/notifications/clear-read');
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      await _fetchNotifications(viewAll: _isShowingAll);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t('clear_read_success')),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteNotification(String id) async {
+    await ApiClient.delete('/api/notifications/$id');
+    if (!mounted) return;
+    setState(() {
+      _notifications.removeWhere((n) => n['_id']?.toString() == id);
+      _calculateUnreadCount();
+    });
+  }
+
   bool _isNotificationRead(dynamic notification, dynamic userId) {
     final targetId = userId.toString();
     final readBy = (notification['readBy'] as List<dynamic>? ?? const []);
@@ -242,7 +308,42 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: AppThemeColors.primaryText(context)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        onSelected: (value) {
+                          if (value == 'mark_read') _markAllAsRead();
+                          if (value == 'clear_read') _clearReadNotifications();
+                          if (value == 'view_all') _fetchNotifications(viewAll: true);
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'mark_read',
+                            child: Row(children: [
+                              const Icon(Icons.done_all, color: AppColors.cyan, size: 20),
+                              const SizedBox(width: 10),
+                              Text(t('mark_all_read_title')),
+                            ]),
+                          ),
+                          PopupMenuItem(
+                            value: 'clear_read',
+                            child: Row(children: [
+                              const Icon(Icons.clear_all, color: Colors.orange, size: 20),
+                              const SizedBox(width: 10),
+                              Text(t('clear_read_notifications_title')),
+                            ]),
+                          ),
+                          if (!_isShowingAll)
+                            PopupMenuItem(
+                              value: 'view_all',
+                              child: Row(children: [
+                                const Icon(Icons.visibility_outlined, color: Colors.purple, size: 20),
+                                const SizedBox(width: 10),
+                                Text(t('view_all_notifications')),
+                              ]),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -429,10 +530,26 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
           final index = entry.key;
           final notification = entry.value;
           final isRead = _isNotificationRead(notification, userId);
-          return _buildNotificationCard(
-            notification: notification,
-            isRead: isRead,
-            index: index,
+          final id = notification['_id']?.toString() ?? '$index';
+          return Dismissible(
+            key: Key(id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 24),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: Colors.red.shade100,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Icon(Icons.delete_outline, color: Colors.red, size: 28),
+            ),
+            onDismissed: (_) => _deleteNotification(id),
+            child: _buildNotificationCard(
+              notification: notification,
+              isRead: isRead,
+              index: index,
+            ),
           );
         }),
         if (category == 'all' && _notifications.length == 3 && !_isShowingAll)
