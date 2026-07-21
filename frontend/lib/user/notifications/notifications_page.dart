@@ -552,7 +552,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
             ),
           );
         }),
-        if (category == 'all' && _notifications.length == 3 && !_isShowingAll)
+        if (category == 'all' && _notifications.length >= 3 && !_isShowingAll)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Center(

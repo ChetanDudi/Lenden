@@ -409,29 +409,40 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       _buildSwitchTile(
                         context,
                         t('enable_quiet_hours_title'),
-                        t('enable_quiet_hours_desc'),
+                        _quietHoursEnabled
+                            ? '${t('quiet_hours_active_label')}: $_quietHoursStart – $_quietHoursEnd'
+                            : t('enable_quiet_hours_desc'),
                         Icons.bedtime_outlined,
                         _quietHoursEnabled,
                         (value) => setState(() => _quietHoursEnabled = value),
                       ),
-                      if (_quietHoursEnabled) ...[
-                        _buildTimeTile(
-                          context,
-                          t('start_time'),
-                          t('start_time_desc'),
-                          Icons.access_time,
-                          _quietHoursStart,
-                          () => _selectTime(context, true),
+                      AnimatedCrossFade(
+                        firstChild: const SizedBox.shrink(),
+                        secondChild: Column(
+                          children: [
+                            _buildTimeTile(
+                              context,
+                              t('start_time'),
+                              t('start_time_desc'),
+                              Icons.access_time,
+                              _quietHoursStart,
+                              () => _selectTime(context, true),
+                            ),
+                            _buildTimeTile(
+                              context,
+                              t('end_time'),
+                              t('end_time_desc'),
+                              Icons.access_time,
+                              _quietHoursEnd,
+                              () => _selectTime(context, false),
+                            ),
+                          ],
                         ),
-                        _buildTimeTile(
-                          context,
-                          t('end_time'),
-                          t('end_time_desc'),
-                          Icons.access_time,
-                          _quietHoursEnd,
-                          () => _selectTime(context, false),
-                        ),
-                      ],
+                        crossFadeState: _quietHoursEnabled
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        duration: const Duration(milliseconds: 250),
+                      ),
                     ],
                   ),
 
@@ -456,6 +467,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         Icons.delete_sweep_outlined,
                         _clearReadNotifications,
                         isDestructive: true,
+                      ),
+                      _buildActionTile(
+                        context,
+                        t('reset_to_defaults_title'),
+                        t('reset_to_defaults_desc'),
+                        Icons.restore_outlined,
+                        _resetToDefaults,
                       ),
                     ],
                   ),
@@ -590,6 +608,29 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     } catch (e) {
       if (mounted) CustomWarningWidget.showAnimatedError(context, 'Error: ${e.toString()}');
     }
+  }
+
+  void _resetToDefaults() {
+    final t = AppLocalizations.of(context).t;
+    setState(() {
+      _transactionNotifications = true;
+      _paymentReminders = true;
+      _groupNotifications = true;
+      _chatNotifications = true;
+      _friendNotifications = true;
+      _subscriptionNotifications = true;
+      _emailNotifications = true;
+      _pushNotifications = true;
+      _smsNotifications = false;
+      _notificationSound = true;
+      _vibrationEnabled = true;
+      _displayNotificationCount = true;
+      _reminderFrequency = 'daily';
+      _quietHoursStart = '22:00';
+      _quietHoursEnd = '08:00';
+      _quietHoursEnabled = false;
+    });
+    CustomWarningWidget.showAnimatedSuccess(context, t('reset_to_defaults_success'));
   }
 
   Widget _buildActionTile(
