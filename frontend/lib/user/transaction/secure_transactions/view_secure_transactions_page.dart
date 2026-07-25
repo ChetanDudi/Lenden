@@ -17,6 +17,9 @@ import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/budget_limit_banner.dart';
+import '../../budget/budget_messages_page.dart';
+import '../../budget/budget_planning_page.dart';
 
 const _kSecureCategories = [
   {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
@@ -75,6 +78,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   DateTime? _endDate;
   double? _minAmount;
   double? _maxAmount;
+  int _bannerRefreshTrigger = 0;
   // New filter/search state
   String _searchCounterparty = '';
   String _searchPlace = '';
@@ -2215,8 +2219,12 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
         return;
       }
     }
-    Navigator.push(
+    await Navigator.push(
         context, MaterialPageRoute(builder: (_) => TransactionPage()));
+    if (mounted) {
+      fetchTransactions();
+      setState(() => _bannerRefreshTrigger++);
+    }
   }
 
   @override
@@ -2277,6 +2285,14 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                   children: [
+                    BudgetLimitBanner(
+                      type: 'secure',
+                      refreshTrigger: _bannerRefreshTrigger,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const BudgetPlanningPage())),
+                      onViewMessages: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: Container(

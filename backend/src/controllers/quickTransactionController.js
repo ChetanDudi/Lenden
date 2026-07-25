@@ -741,3 +741,46 @@ exports.cancelScheduledQuickTransaction = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
+exports.getFriendBalances = async (req, res) => {
+  try {
+    const myEmail = req.user.email;
+    const txns = await QuickTransaction.find({ users: myEmail, cleared: { $ne: true } }).lean();
+
+    const balanceMap = {};
+    for (const t of txns) {
+      const counterpartyEmail = t.creatorEmail === myEmail
+        ? t.users.find(u => u !== myEmail)
+        : t.creatorEmail;
+      if (!counterpartyEmail || counterpartyEmail === myEmail) continue;
+
+      if (!balanceMap[counterpartyEmail]) balanceMap[counterpartyEmail] = 0;
+
+      const isCreator = t.creatorEmail === myEmail;
+      const creatorRole = (t.role || '').toLowerCase();
+      // positive = they owe me (I lent), negative = I owe them (I borrowed)
+      const iLent = (isCreator && creatorRole === 'lender') || (!isCreator && creatorRole === 'borrower');
+      balanceMap[counterpartyEmail] += iLent ? (t.amount || 0) : -(t.amount || 0);
+    }
+
+    // Resolve names from User docs
+    const emails = Object.keys(balanceMap).filter(e => balanceMap[e] !== 0);
+    const users = await User.find({ email: { $in: emails } }).select('email name username profilePicture').lean();
+    const userMap = {};
+    for (const u of users) userMap[u.email] = u;
+
+    const balances = emails
+      .map(email => ({
+        email,
+        name: userMap[email]?.name || userMap[email]?.username || email,
+        avatar: userMap[email]?.profilePicture || null,
+        net: Math.round(balanceMap[email]),
+      }))
+      .filter(b => b.net !== 0)
+      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+
+    res.json({ balances });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

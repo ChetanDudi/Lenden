@@ -6,6 +6,7 @@ import '../../../widgets/app_colors.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../utils/api_client.dart';
+import '../../../widgets/budget_exceeded_sheet.dart';
 import '../../../utils/display_currency_helper.dart';
 import '../../../session.dart';
 import '../../../widgets/stylish_dialog.dart';
@@ -1550,19 +1551,20 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   }) async {
     setState(() => _loading = true);
     if (expense == null) {
+      final expenseBody = <String, dynamic>{
+        'description': desc,
+        'amount': amount,
+        'currency': currency,
+        'splitType': splitType,
+        'split': split,
+        'selectedMembers': selectedEmails,
+        'category': category,
+        'addedBy': addedBy,
+        if (useCoins) 'useCoins': true,
+      };
       final res = await ApiClient.post(
         '/api/group-transactions/${widget.groupId}/add-expense',
-        body: {
-          'description': desc,
-          'amount': amount,
-          'currency': currency,
-          'splitType': splitType,
-          'split': split,
-          'selectedMembers': selectedEmails,
-          'category': category,
-          'addedBy': addedBy,
-          if (useCoins) 'useCoins': true,
-        },
+        body: expenseBody,
       );
       if (!mounted) return;
       final t = AppLocalizations.of(context).t;
@@ -1571,7 +1573,29 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
         _refresh();
       } else {
         setState(() => _loading = false);
-        _showError(jsonDecode(res.body)['error'] ?? t('failed_to_add_expense_message'));
+        final exceeded = parseBudgetExceeded(res.body);
+        if (exceeded != null) {
+          final proceed = await showBudgetExceededSheet(context, exceeded);
+          if (!mounted) return;
+          if (proceed) {
+            expenseBody['force'] = true;
+            setState(() => _loading = true);
+            final res2 = await ApiClient.post(
+              '/api/group-transactions/${widget.groupId}/add-expense',
+              body: expenseBody,
+            );
+            if (!mounted) return;
+            if (res2.statusCode == 200 || res2.statusCode == 201) {
+              _showSnack(t('expense_added_message'), success: true);
+              _refresh();
+            } else {
+              setState(() => _loading = false);
+              _showError(jsonDecode(res2.body)['error'] ?? t('failed_to_add_expense_message'));
+            }
+          }
+          return;
+        }
+        _showError(jsonDecode(res.body)['error'] ?? jsonDecode(res.body)['message'] ?? t('failed_to_add_expense_message'));
       }
     } else {
       final res = await ApiClient.put(

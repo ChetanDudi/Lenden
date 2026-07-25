@@ -7,6 +7,7 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/budget_exceeded_sheet.dart';
 
 class CreateEditQuickTransactionPage extends StatefulWidget {
   final Map<String, dynamic>? transaction;
@@ -52,6 +53,7 @@ class _CreateEditQuickTransactionPageState
   bool _isScheduled = false;
   DateTime? _scheduledAt;
   bool _isLoading = false;
+  bool _loadingFriends = false;
   String? _userEmail;
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _suggestions = [];
@@ -116,7 +118,8 @@ class _CreateEditQuickTransactionPageState
             counterparty.isNotEmpty ? (counterparty['email'] ?? '') : '';
       }
       _role = widget.initialRole ?? widget.transaction!['role'] ?? 'lender';
-      _category = widget.transaction!['category'] ?? 'other';
+      final rawCat = widget.transaction!['category'] ?? 'other';
+      _category = rawCat == 'healthcare' ? 'medical' : rawCat;
     } else if ((widget.prefillCounterpartyEmail ?? '').isNotEmpty) {
       _counterpartyEmailController.text =
           widget.prefillCounterpartyEmail!.trim();
@@ -152,7 +155,10 @@ class _CreateEditQuickTransactionPageState
         });
         _updateSuggestions();
       }
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingFriends = false);
+    }
   }
 
   void _updateSuggestions() {
@@ -196,12 +202,24 @@ class _CreateEditQuickTransactionPageState
 
   Future<void> _pickFriend() async {
     final t = AppLocalizations.of(context).t;
-    try {
-      final res = await ApiClient.get('/api/friends');
-      if (res.statusCode != 200) return;
-      final data = jsonDecode(res.body);
-      final allFriends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
-      if (!mounted) return;
+    List<Map<String, dynamic>> allFriends;
+    if (_friends.isNotEmpty) {
+      allFriends = _friends;
+    } else {
+      setState(() => _loadingFriends = true);
+      try {
+        final res = await ApiClient.get('/api/friends');
+        if (!mounted) return;
+        if (res.statusCode != 200) return;
+        final data = jsonDecode(res.body);
+        allFriends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
+        if (mounted) setState(() { _friends = allFriends; _loadingFriends = false; });
+      } catch (_) {
+        if (mounted) setState(() => _loadingFriends = false);
+        return;
+      }
+    }
+    if (!mounted) return;
 
       showModalBottomSheet(
         context: context,
@@ -521,7 +539,6 @@ class _CreateEditQuickTransactionPageState
           );
         },
       );
-    } catch (_) {}
   }
 
   Widget _emptyFriendsState() {
@@ -601,8 +618,26 @@ class _CreateEditQuickTransactionPageState
       if (res.statusCode == 200 || res.statusCode == 201) {
         Navigator.pop(context, jsonDecode(res.body));
       } else {
-        final error = jsonDecode(res.body)['error'] ?? res.body;
         setState(() => _isLoading = false);
+        final exceeded = parseBudgetExceeded(res.body);
+        if (exceeded != null) {
+          final proceed = await showBudgetExceededSheet(context, exceeded);
+          if (!mounted) return;
+          if (proceed) {
+            body['force'] = true;
+            setState(() => _isLoading = true);
+            final res2 = await ApiClient.post(url, body: body);
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+            if (res2.statusCode == 200 || res2.statusCode == 201) {
+              Navigator.pop(context, jsonDecode(res2.body));
+            } else {
+              showSnack(context, jsonDecode(res2.body)['error'] ?? res2.body, isError: true);
+            }
+          }
+          return;
+        }
+        final error = jsonDecode(res.body)['error'] ?? jsonDecode(res.body)['message'] ?? res.body;
         showSnack(context, error.toString(), isError: true);
       }
     } catch (e) {
@@ -873,13 +908,19 @@ class _CreateEditQuickTransactionPageState
                                 color: isEditing
                                     ? Colors.grey
                                     : AppColors.cyan),
-                            suffixIcon: IconButton(
-                              icon: Icon(Icons.people,
-                                  color: isEditing
-                                      ? Colors.grey
-                                      : AppColors.cyan),
-                              onPressed: isEditing ? null : _pickFriend,
-                            ),
+                            suffixIcon: _loadingFriends
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: SizedBox(
+                                      width: 20, height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan),
+                                    ),
+                                  )
+                                : IconButton(
+                                    icon: Icon(Icons.people,
+                                        color: isEditing ? Colors.grey : AppColors.cyan),
+                                    onPressed: isEditing ? null : _pickFriend,
+                                  ),
                             border: InputBorder.none,
                           ),
                           validator: (value) {
@@ -951,18 +992,19 @@ class _CreateEditQuickTransactionPageState
                         child: DropdownButtonFormField<String>(
                           value: _category,
                           items: const [
-                            DropdownMenuItem(value: 'other', child: Text('Other')),
-                            DropdownMenuItem(value: 'personal', child: Text('Personal')),
                             DropdownMenuItem(value: 'food', child: Text('Food & Dining')),
-                            DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
                             DropdownMenuItem(value: 'transport', child: Text('Transport')),
+                            DropdownMenuItem(value: 'accommodation', child: Text('Accommodation')),
                             DropdownMenuItem(value: 'entertainment', child: Text('Entertainment')),
-                            DropdownMenuItem(value: 'healthcare', child: Text('Healthcare')),
-                            DropdownMenuItem(value: 'education', child: Text('Education')),
+                            DropdownMenuItem(value: 'shopping', child: Text('Shopping')),
                             DropdownMenuItem(value: 'utilities', child: Text('Utilities')),
+                            DropdownMenuItem(value: 'medical', child: Text('Medical / Healthcare')),
+                            DropdownMenuItem(value: 'education', child: Text('Education')),
+                            DropdownMenuItem(value: 'personal', child: Text('Personal')),
                             DropdownMenuItem(value: 'rent', child: Text('Rent')),
                             DropdownMenuItem(value: 'business', child: Text('Business')),
                             DropdownMenuItem(value: 'travel', child: Text('Travel')),
+                            DropdownMenuItem(value: 'other', child: Text('Other')),
                           ],
                           onChanged: (val) => setState(() => _category = val ?? 'other'),
                           decoration: InputDecoration(

@@ -33,6 +33,9 @@ import '../audit/audit_logs_page.dart';
 import '../support/contact_messages_page.dart';
 import '../disputes/manage_disputes_page.dart';
 import '../disputes/fraud_alerts_page.dart';
+import '../reports/admin_reports_page.dart';
+import '../budget/admin_budget_page.dart';
+import '../insights/admin_insights_page.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/avatar_action_sheet.dart';
 
@@ -70,6 +73,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     'content_analytics': GlobalKey(),
     'contact_messages': GlobalKey(),
     'audit_logs': GlobalKey(),
+    'platform_reports': GlobalKey(),
+    'budget_management': GlobalKey(),
+    'smart_insights_admin': GlobalKey(),
   };
 
   @override
@@ -617,6 +623,54 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AuditLogsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'platform_reports',
+          permissionKey: 'canViewReports',
+          icon: Icons.bar_chart_rounded,
+          label: 'Platform Reports',
+          caption: 'View transaction volumes, top users, and category trends across the platform.',
+          actionLabel: 'Reports',
+          backgroundColor: const Color(0xFFE3F2FD),
+          iconColor: const Color(0xFF1565C0),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminReportsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'budget_management',
+          permissionKey: 'canManageBudgets',
+          icon: Icons.account_balance_wallet_rounded,
+          label: 'Budget Management',
+          caption: 'View user budgets, override limits, and track recurring subscriptions.',
+          actionLabel: 'Budgets',
+          backgroundColor: const Color(0xFFE8F5E9),
+          iconColor: const Color(0xFF2E7D32),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminBudgetPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'smart_insights_admin',
+          permissionKey: 'canManageInsights',
+          icon: Icons.insights_rounded,
+          label: 'Smart Insights',
+          caption: 'Monitor health scores, detect anomalies, and publish financial tips to users.',
+          actionLabel: 'Insights',
+          backgroundColor: const Color(0xFFF3E5F5),
+          iconColor: const Color(0xFF6A1B9A),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminInsightsPage()),
             );
           },
         ),

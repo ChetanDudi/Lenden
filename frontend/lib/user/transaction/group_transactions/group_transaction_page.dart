@@ -12,6 +12,10 @@ import '../../../api_config.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/budget_limit_banner.dart';
+import '../../budget/budget_messages_page.dart';
+import '../../budget/budget_planning_page.dart';
+import 'package:image_picker/image_picker.dart';
 
 String _emailOf(dynamic field) {
   if (field == null) return '-';
@@ -86,6 +90,12 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   Color? selectedGroupColor; // for group color customization
   bool _showFavouritesOnly = false;
 
+  // Budget spending per group: groupId → {spent, budget}
+  Map<String, Map<String, dynamic>> _groupBudgetSpending = {};
+  bool _budgetStatusLoading = true;
+  int _bannerRefreshTrigger = 0;
+  String? _uploadingImageGroupId;
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +108,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     }
     _loadSupportedCurrencies();
     _fetchUserGroups();
+    _fetchGroupBudgetStatus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Provider.of<SessionProvider>(context, listen: false)
@@ -133,6 +144,29 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   // Get total amount entered for custom split
 
   // Get remaining amount for custom split
+
+  Future<void> _fetchGroupBudgetStatus() async {
+    try {
+      final res = await ApiClient.get('/api/budget/status');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body) as Map<String, dynamic>;
+        final spending = List<dynamic>.from(data['groupSpending'] ?? []);
+        final map = <String, Map<String, dynamic>>{};
+        for (final g in spending) {
+          if (g is Map) {
+            final id = g['id']?.toString() ?? '';
+            if (id.isNotEmpty) map[id] = Map<String, dynamic>.from(g);
+          }
+        }
+        if (mounted) setState(() { _groupBudgetSpending = map; _budgetStatusLoading = false; });
+      } else {
+        if (mounted) setState(() => _budgetStatusLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _budgetStatusLoading = false);
+    }
+  }
 
   Future<void> _loadSupportedCurrencies() async {
     try {
@@ -577,7 +611,154 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
           initialGroup: g,
         ),
       ),
-    ).then((_) => _fetchUserGroups());
+    ).then((_) {
+      _fetchUserGroups();
+      if (mounted) setState(() => _bannerRefreshTrigger++);
+    });
+  }
+
+  Color _colorFromGroup(Map<String, dynamic> g) {
+    if (g['color'] != null) {
+      try {
+        return Color(int.parse(g['color'].toString().replaceFirst('#', '0xff')));
+      } catch (_) {}
+    }
+    return Colors.blue.shade300;
+  }
+
+  Future<void> _pickGroupImageFromCard(Map<String, dynamic> g) async {
+    final gId = g['_id']?.toString() ?? '';
+    final hasImage = g['groupImageUrl'] != null && g['groupImageUrl'].toString().isNotEmpty;
+    final currentColor = _colorFromGroup(g);
+    const presetColors = [
+      Colors.teal, Colors.deepPurple, Colors.indigo, Colors.blue,
+      Colors.green, Colors.orange, Colors.pink, Colors.red,
+      Colors.brown, Colors.blueGrey,
+    ];
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(ctx),
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Text('Group Icon', style: TextStyle(fontWeight: FontWeight.bold,
+                fontSize: 17, color: AppThemeColors.primaryText(ctx))),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded, color: AppColors.cyan),
+              title: Text('Take photo', style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppColors.cyan),
+              title: Text('Choose from gallery', style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            if (hasImage)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            const Divider(height: 20),
+            Text('Preset Colors', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: presetColors.map((c) => GestureDetector(
+                onTap: () => Navigator.pop(ctx, 'color:${c.toARGB32()}'),
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: c,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: c.toARGB32() == currentColor.toARGB32() ? Colors.white : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: [BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 4)],
+                  ),
+                  child: c.toARGB32() == currentColor.toARGB32()
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
+                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+
+    if (action == 'remove') {
+      setState(() => _uploadingImageGroupId = gId);
+      try {
+        final res = await ApiClient.delete('/api/group-transactions/$gId/image');
+        if (res.statusCode == 200 && mounted) {
+          final idx = userGroups.indexWhere((x) => x['_id']?.toString() == gId);
+          if (idx != -1) userGroups[idx] = {...userGroups[idx], 'groupImageUrl': null};
+          _filterAndSearchGroups();
+        }
+      } finally {
+        if (mounted) setState(() => _uploadingImageGroupId = null);
+      }
+      return;
+    }
+
+    if (action != null && action.startsWith('color:')) {
+      final colorInt = int.tryParse(action.substring(6));
+      if (colorInt == null) return;
+      final hexColor = '#${colorInt.toRadixString(16).substring(2).toUpperCase()}';
+      final res = await ApiClient.put('/api/group-transactions/$gId/color', body: {'color': hexColor});
+      if (res.statusCode == 200 && mounted) {
+        final idx = userGroups.indexWhere((x) => x['_id']?.toString() == gId);
+        if (idx != -1) userGroups[idx] = {...userGroups[idx], 'color': hexColor};
+        _filterAndSearchGroups();
+      }
+      return;
+    }
+
+    if (action == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: action == 'camera' ? ImageSource.camera : ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingImageGroupId = gId);
+    try {
+      final bytes = await picked.readAsBytes();
+      final res = await ApiClient.putMultipart(
+        '/api/group-transactions/$gId/image',
+        files: [ApiMultipartFile(field: 'groupImage', filename: picked.name, bytes: bytes)],
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body);
+        final newUrl = data['groupImageUrl']?.toString();
+        final idx = userGroups.indexWhere((x) => x['_id']?.toString() == gId);
+        if (idx != -1) userGroups[idx] = {...userGroups[idx], 'groupImageUrl': newUrl};
+        _filterAndSearchGroups();
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _uploadingImageGroupId = null);
+    }
   }
 
   Future<void> _showJoinByCodeDialog() async {
@@ -1024,6 +1205,15 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                   ],
                                 ),
                                 SizedBox(height: 20),
+                                BudgetLimitBanner(
+                                  type: 'group',
+                                  refreshTrigger: _bannerRefreshTrigger,
+                                  onTap: () => Navigator.push(context,
+                                      MaterialPageRoute(builder: (_) => const BudgetPlanningPage())),
+                                  onViewMessages: () => Navigator.push(context,
+                                      MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
+                                ),
+                                const SizedBox(height: 4),
                                 if (_showFavouritesOnly &&
                                     filteredGroups.isEmpty)
                                   Container(
@@ -1087,6 +1277,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                           ? title[0].toUpperCase()
                                           : '?';
                                     }();
+                                    final gId = g['_id']?.toString() ?? '';
+                                    final gBudget = _groupBudgetSpending[gId];
+                                    final gHasLimit = gBudget != null && gBudget['budget'] != null;
+                                    final gSpent = (gBudget?['spent'] as num? ?? 0).toDouble();
+                                    final gLimit = gHasLimit ? (gBudget['budget'] as num).toDouble() : 0.0;
+                                    final gPct = gHasLimit && gLimit > 0 ? (gSpent / gLimit).clamp(0.0, 1.0) : 0.0;
+                                    final gLimitExceeded = gHasLimit && gSpent > gLimit;
+                                    final gColor = gLimitExceeded ? Colors.red.shade600 : gPct >= 0.85 ? Colors.orange.shade700 : Colors.teal;
                                     return Card(
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
@@ -1096,8 +1294,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                       child: Container(
                                         decoration: BoxDecoration(
                                           border: Border.all(
-                                            color: groupColor,
-                                            width: 2,
+                                            color: gHasLimit ? gColor.withValues(alpha: 0.6) : groupColor,
+                                            width: gLimitExceeded ? 2.5 : 2,
                                           ),
                                           borderRadius:
                                               BorderRadius.circular(18),
@@ -1113,6 +1311,76 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
+                                                    if (_budgetStatusLoading) ...[
+                                                      Container(
+                                                        margin: const EdgeInsets.only(bottom: 10),
+                                                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                                                        decoration: BoxDecoration(
+                                                          color: AppThemeColors.border(context).withValues(alpha: 0.4),
+                                                          borderRadius: BorderRadius.circular(10),
+                                                          border: Border.all(color: AppThemeColors.border(context)),
+                                                        ),
+                                                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                                          Row(children: [
+                                                            Container(width: 14, height: 14,
+                                                                decoration: BoxDecoration(color: AppThemeColors.secondaryText(context).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3))),
+                                                            const SizedBox(width: 6),
+                                                            Container(width: 120, height: 11,
+                                                                decoration: BoxDecoration(color: AppThemeColors.secondaryText(context).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3))),
+                                                          ]),
+                                                          const SizedBox(height: 6),
+                                                          ClipRRect(
+                                                            borderRadius: BorderRadius.circular(3),
+                                                            child: LinearProgressIndicator(
+                                                              value: null,
+                                                              minHeight: 4,
+                                                              backgroundColor: AppThemeColors.border(context),
+                                                            ),
+                                                          ),
+                                                        ]),
+                                                      ),
+                                                    ] else if (gHasLimit) ...[
+                                                      GestureDetector(
+                                                        onTap: gLimitExceeded ? () => Navigator.push(context,
+                                                            MaterialPageRoute(builder: (_) => const BudgetMessagesPage())) : null,
+                                                        child: Container(
+                                                          margin: const EdgeInsets.only(bottom: 10),
+                                                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                                                          decoration: BoxDecoration(
+                                                            color: gColor.withValues(alpha: 0.07),
+                                                            borderRadius: BorderRadius.circular(10),
+                                                            border: Border.all(color: gColor.withValues(alpha: 0.3)),
+                                                          ),
+                                                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                                            Row(children: [
+                                                              Icon(
+                                                                gLimitExceeded ? Icons.warning_amber_rounded : Icons.account_balance_wallet_outlined,
+                                                                color: gColor, size: 14,
+                                                              ),
+                                                              const SizedBox(width: 6),
+                                                              Expanded(child: Text(
+                                                                gLimitExceeded
+                                                                    ? 'Budget exceeded · ₹${gSpent.toStringAsFixed(0)} / ₹${gLimit.toStringAsFixed(0)}'
+                                                                    : 'Budget · ₹${gSpent.toStringAsFixed(0)} spent of ₹${gLimit.toStringAsFixed(0)}',
+                                                                style: TextStyle(fontSize: context.sp(11), color: gColor, fontWeight: FontWeight.w600),
+                                                              )),
+                                                              if (gLimitExceeded)
+                                                                Icon(Icons.chevron_right_rounded, size: 14, color: gColor),
+                                                            ]),
+                                                            const SizedBox(height: 5),
+                                                            ClipRRect(
+                                                              borderRadius: BorderRadius.circular(3),
+                                                              child: LinearProgressIndicator(
+                                                                value: gPct,
+                                                                minHeight: 4,
+                                                                backgroundColor: gColor.withValues(alpha: 0.15),
+                                                                valueColor: AlwaysStoppedAnimation<Color>(gColor),
+                                                              ),
+                                                            ),
+                                                          ]),
+                                                        ),
+                                                      ),
+                                                    ],
                                                     // New row for Favourites and View Details buttons
                                                     Row(
                                                       mainAxisAlignment:
@@ -1146,51 +1414,51 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                                     // Existing row with avatar, title, and color indicator
                                                     Row(
                                                       children: [
-                                                        CircleAvatar(
-                                                          backgroundColor:
-                                                              groupColor,
-                                                          radius: 22,
-                                                          child: ClipOval(
-                                                            child: (g['groupImageUrl'] !=
-                                                                        null &&
-                                                                    g['groupImageUrl']
-                                                                        .toString()
-                                                                        .isNotEmpty)
-                                                                ? Image.network(
-                                                                    g['groupImageUrl']
-                                                                        .toString(),
-                                                                    width: 44,
-                                                                    height: 44,
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                    errorBuilder: (context,
-                                                                            error,
-                                                                            stackTrace) =>
-                                                                        Text(
-                                                                      avatarText,
-                                                                      style: TextStyle(
-                                                                          fontSize:
-                                                                              22,
-                                                                          color: Colors
-                                                                              .white,
-                                                                          fontWeight:
-                                                                              FontWeight
-                                                                                  .bold),
+                                                        Builder(builder: (ctx) {
+                                                          final myEmail = (Provider.of<SessionProvider>(ctx, listen: false).user?['email'] ?? '').toString().toLowerCase();
+                                                          final creatorEmail = (g['creator']?['email'] ?? '').toString().toLowerCase();
+                                                          final isCardCreator = myEmail.isNotEmpty && myEmail == creatorEmail;
+                                                          final isUploading = _uploadingImageGroupId == gId;
+                                                          return GestureDetector(
+                                                            onTap: isCardCreator ? () => _pickGroupImageFromCard(g) : null,
+                                                            child: Stack(
+                                                              children: [
+                                                                CircleAvatar(
+                                                                  backgroundColor: groupColor,
+                                                                  radius: 22,
+                                                                  child: isUploading
+                                                                      ? const SizedBox(width: 18, height: 18,
+                                                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                                                      : ClipOval(
+                                                                          child: (g['groupImageUrl'] != null &&
+                                                                                  g['groupImageUrl'].toString().isNotEmpty)
+                                                                              ? Image.network(
+                                                                                  g['groupImageUrl'].toString(),
+                                                                                  width: 44, height: 44, fit: BoxFit.cover,
+                                                                                  errorBuilder: (_, __, ___) => Text(avatarText,
+                                                                                      style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold)),
+                                                                                )
+                                                                              : Text(avatarText,
+                                                                                  style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold)),
+                                                                        ),
+                                                                ),
+                                                                if (isCardCreator && !isUploading)
+                                                                  Positioned(
+                                                                    right: 0, bottom: 0,
+                                                                    child: Container(
+                                                                      width: 16, height: 16,
+                                                                      decoration: BoxDecoration(
+                                                                        color: AppColors.cyan,
+                                                                        shape: BoxShape.circle,
+                                                                        border: Border.all(color: Colors.white, width: 1.5),
+                                                                      ),
+                                                                      child: const Icon(Icons.camera_alt_rounded, size: 9, color: Colors.white),
                                                                     ),
-                                                                  )
-                                                                : Text(
-                                                                    avatarText,
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            22,
-                                                                        color: Colors
-                                                                            .white,
-                                                                        fontWeight:
-                                                                            FontWeight
-                                                                                .bold),
                                                                   ),
-                                                          ),
-                                                        ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        }),
                                                         SizedBox(width: 14),
                                                         Expanded(
                                                           child: Text(

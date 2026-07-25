@@ -25,6 +25,9 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/wave_widget.dart';
+import '../../../widgets/budget_limit_banner.dart';
+import '../../budget/budget_messages_page.dart';
+import '../../budget/budget_planning_page.dart';
 
 const _kCategories = [
   {'key': 'food',          'label': 'Food',          'icon': Icons.restaurant_rounded},
@@ -35,6 +38,10 @@ const _kCategories = [
   {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
   {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
   {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'personal',      'label': 'Personal',      'icon': Icons.person_rounded},
+  {'key': 'rent',          'label': 'Rent',          'icon': Icons.home_rounded},
+  {'key': 'business',      'label': 'Business',      'icon': Icons.business_center_rounded},
+  {'key': 'travel',        'label': 'Travel',        'icon': Icons.flight_rounded},
   {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
 ];
 
@@ -83,6 +90,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   static const int _qtPageSize = 20;
   Set<String> _blockedEmails = {};
   Set<String> _pinnedTransactionIds = {};
+  int _bannerRefreshTrigger = 0;
   Map<String, dynamic>? _dailyLimits;
   DisplayCurrencyData? _displayCurrencyData;
   String _selectedDisplayCurrency = 'INR';
@@ -582,6 +590,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ).show(context);
     } else if (result is Map<String, dynamic>) {
       fetchQuickTransactions();
+      setState(() => _bannerRefreshTrigger++);
       session.loadFreebieCounts();
       final giftCardAwarded = result['giftCardAwarded'] as bool?;
       final awardedCard = result['awardedCard'];
@@ -941,6 +950,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
       ).show(context);
     } else if (result is Map<String, dynamic>) {
       fetchQuickTransactions();
+      setState(() => _bannerRefreshTrigger++);
       session.loadFreebieCounts();
       final giftCardAwarded = result['giftCardAwarded'] as bool?;
       final awardedCard = result['awardedCard'];
@@ -1872,6 +1882,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 bottom: MediaQuery.of(context).padding.bottom + 110),
             child: Column(
               children: [
+                BudgetLimitBanner(
+                  type: 'quick',
+                  refreshTrigger: _bannerRefreshTrigger,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const BudgetPlanningPage())),
+                  onViewMessages: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
+                ),
                 Consumer<SessionProvider>(
                   builder: (context, session, child) {
                     if (session.isSubscribed) {

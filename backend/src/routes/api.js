@@ -15,6 +15,7 @@ module.exports = (io) => {
   const sessionTimeout = require('../middleware/sessionTimeout');
   const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter } = require('../middleware/rateLimit');
   const walletAuthMiddleware = require('../middleware/walletAuth');
+  const budgetCheck = require('../middleware/budgetCheck');
   const fs = require('fs');
   const multer = require('multer');
   const os = require('os');
@@ -174,7 +175,7 @@ module.exports = (io) => {
   // Quick Transaction routes
   router.get('/quick-transactions', auth, quickTransactionController.getQuickTransactions);
   router.put('/quick-transactions/:id/favourite', auth, quickTransactionController.toggleQuickTransactionFavourite);
-  router.post('/quick-transactions', auth, handleUsage('quickTransaction'), quickTransactionController.createQuickTransaction);
+  router.post('/quick-transactions', auth, handleUsage('quickTransaction'), budgetCheck('quick'), quickTransactionController.createQuickTransaction);
   router.post('/quick-transactions/with-coins', auth, quickTransactionController.createQuickTransactionWithCoins);
   router.put('/quick-transactions/:id', auth, quickTransactionController.updateQuickTransaction);
   router.delete('/quick-transactions/:id', auth, quickTransactionController.deleteQuickTransaction);
@@ -185,6 +186,7 @@ module.exports = (io) => {
   router.delete('/quick-transactions', auth, quickTransactionController.clearAllQuickTransactions);
   router.get('/quick-transactions/scheduled', auth, quickTransactionController.getScheduledQuickTransactions);
   router.delete('/quick-transactions/:id/cancel-scheduled', auth, quickTransactionController.cancelScheduledQuickTransaction);
+  router.get('/quick-transactions/friend-balances', auth, quickTransactionController.getFriendBalances);
 
   // Support routes (User)
   router.get('/contact-info', contactConfigController.getPublicContactConfig);
@@ -204,7 +206,7 @@ module.exports = (io) => {
   router.get('/admins/:id/profile-image', profileController.getAdminProfileImage);
 
   // Transaction routes
-  router.post('/transactions/create', auth, handleUsage('userTransaction'), upload.array('files'), transactionController.createTransaction);
+  router.post('/transactions/create', auth, handleUsage('userTransaction'), budgetCheck('secure'), upload.array('files'), transactionController.createTransaction);
   router.post('/transactions/with-coins', auth, upload.array('files'), transactionController.createTransactionWithCoins);
   router.post('/transactions/check-email', auth, transactionController.checkEmailExists);
   router.post('/transactions/send-counterparty-otp', auth, otpSendLimiter, transactionController.sendCounterpartyOTP);
@@ -609,6 +611,75 @@ module.exports = (io) => {
   router.get('/gift-cards/scratched', auth, userGiftCardController.getScratcedGiftCards);
   router.post('/gift-cards/:userGiftCardId/scratch', auth, userGiftCardController.scratchGiftCard);
   router.get('/gift-cards/counts', auth, userGiftCardController.getGiftCardCounts);
+
+  // Budget routes
+  const budgetController = require('../controllers/budgetController');
+  router.get('/budget/status', auth, budgetController.getBudgetStatus);
+  router.get('/budget/history', auth, budgetController.getBudgetHistory);
+  router.get('/budget/recommendations', auth, budgetController.getBudgetRecommendations);
+  router.get('/budget/insights', auth, budgetController.getBudgetInsights);
+  router.get('/budget/recurring', auth, budgetController.getRecurring);
+  router.post('/budget/recurring', auth, budgetController.addRecurring);
+  router.delete('/budget/recurring/:id', auth, budgetController.deleteRecurring);
+  router.get('/budget/rollover-preview', auth, budgetController.getRolloverPreview);
+  router.post('/budget/rollover', auth, budgetController.applyRollover);
+  router.get('/budget/streak', auth, budgetController.getBudgetStreak);
+  router.patch('/budget/group-limit', auth, budgetController.setGroupLimit);
+
+  // Budget messages — must come before /:year/:month wildcard
+  const budgetMessageController = require('../controllers/budgetMessageController');
+  router.get('/budget/messages/unread-count', auth, budgetMessageController.getUnreadCount);
+  router.put('/budget/messages/read-all', auth, budgetMessageController.markAllRead);
+  router.put('/budget/messages/:id/read', auth, budgetMessageController.markRead);
+  router.get('/budget/messages', auth, budgetMessageController.getBudgetMessages);
+  router.delete('/budget/messages', auth, budgetMessageController.clearMessages);
+
+  router.get('/budget/:year/:month', auth, budgetController.getBudget);
+  router.post('/budget', auth, budgetController.setBudget);
+  router.put('/budget/categories', auth, budgetController.setCategoryBudget);
+  router.put('/budget/alerts', auth, budgetController.setAlertThresholds);
+
+  // Savings goals routes
+  const savingsGoalController = require('../controllers/savingsGoalController');
+  router.get('/savings-goals', auth, savingsGoalController.getGoals);
+  router.post('/savings-goals', auth, savingsGoalController.createGoal);
+  router.put('/savings-goals/:id', auth, savingsGoalController.updateGoal);
+  router.delete('/savings-goals/:id', auth, savingsGoalController.deleteGoal);
+  router.post('/savings-goals/:id/add', auth, savingsGoalController.addSavings);
+
+  // Reports route
+  const reportsController = require('../controllers/reportsController');
+  router.get('/reports/summary', auth, reportsController.getReportSummary);
+
+  // Smart insights route
+  const insightsController = require('../controllers/insightsController');
+  router.get('/insights', auth, insightsController.getInsights);
+
+  // Admin — Reports
+  const adminReportsController = require('../controllers/adminReportsController');
+  router.get('/admin/reports/platform',        auth, isAdmin, adminReportsController.getPlatformOverview);
+  router.get('/admin/reports/top-users',       auth, isAdmin, adminReportsController.getTopUsers);
+  router.get('/admin/reports/category-trends', auth, isAdmin, adminReportsController.getCategoryTrends);
+  router.get('/admin/reports/search-users',    auth, isAdmin, adminReportsController.searchUsers);
+  router.get('/admin/reports/user/:userId',    auth, isAdmin, adminReportsController.getUserReport);
+
+  // Admin — Budget
+  const adminBudgetController = require('../controllers/adminBudgetController');
+  router.get('/admin/budget/overview',                      auth, isAdmin, adminBudgetController.getBudgetOverview);
+  router.get('/admin/budget/users',                         auth, isAdmin, adminBudgetController.getBudgetUsers);
+  router.get('/admin/budget/subscriptions',                 auth, isAdmin, adminBudgetController.getAllSubscriptions);
+  router.get('/admin/budget/user/:userId',                  auth, isAdmin, adminBudgetController.getUserBudgetDetail);
+  router.patch('/admin/budget/user/:userId/limits',         auth, isAdmin, adminBudgetController.setUserBudgetLimits);
+
+  // Admin — Insights
+  const adminInsightsController = require('../controllers/adminInsightsController');
+  router.get('/admin/insights/platform',          auth, isAdmin, adminInsightsController.getPlatformInsights);
+  router.get('/admin/insights/health-scores',     auth, isAdmin, adminInsightsController.getHealthScores);
+  router.get('/admin/insights/anomalies',         auth, isAdmin, adminInsightsController.getAnomalies);
+  router.get('/admin/insights/tips',              auth, isAdmin, adminInsightsController.getTips);
+  router.post('/admin/insights/tips',             auth, isAdmin, adminInsightsController.createTip);
+  router.patch('/admin/insights/tips/:id/toggle', auth, isAdmin, adminInsightsController.toggleTip);
+  router.delete('/admin/insights/tips/:id',       auth, isAdmin, adminInsightsController.deleteTip);
 
   // App version check — no auth required so the client can call this before login
   router.get('/app-version', (req, res) => {

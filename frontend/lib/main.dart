@@ -929,7 +929,7 @@ class _FeatureCard extends StatelessWidget {
         padding: EdgeInsets.all(context.sw(14)),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(15.5),
         ),
         child: Column(
@@ -941,11 +941,15 @@ class _FeatureCard extends StatelessWidget {
             SizedBox(height: context.sh(4)),
             Text(title,
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: context.sp(13))),
+                    fontWeight: FontWeight.bold,
+                    fontSize: context.sp(13),
+                    color: AppThemeColors.primaryText(context))),
             SizedBox(height: context.sh(2)),
             Text(
               description,
-              style: TextStyle(color: Colors.grey, fontSize: context.sp(11)),
+              style: TextStyle(
+                  color: AppThemeColors.secondaryText(context),
+                  fontSize: context.sp(11)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -967,44 +971,94 @@ class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
   int _currentPage = 0;
   final List<Map<String, dynamic>> _features = [
     {
-      'icon': Icons.swap_horiz,
-      'title': 'One-to-One',
-      'description': 'Direct lending and borrowing between users.'
+      'icon': Icons.flash_on_rounded,
+      'title': 'Quick Transactions',
+      'description': 'Lend & borrow instantly with one tap.'
     },
     {
-      'icon': Icons.groups,
-      'title': 'Group Transactions',
-      'description': 'Manage and settle group transactions easily.'
+      'icon': Icons.shield_rounded,
+      'title': 'Secure Transactions',
+      'description': 'OTP-verified lending with interest & repayment schedule.'
     },
     {
-      'icon': Icons.event_note,
-      'title': 'Activities',
-      'description': 'Track all your lending and borrowing activities.'
+      'icon': Icons.groups_rounded,
+      'title': 'Group Expenses',
+      'description': 'Split bills and settle group expenses fairly.'
     },
     {
-      'icon': Icons.note,
-      'title': 'Notes',
-      'description': 'Add notes to your transactions for better tracking.'
+      'icon': Icons.account_balance_wallet_rounded,
+      'title': 'LenDen Wallet',
+      'description': 'In-app wallet for instant payments & withdrawals.'
     },
     {
-      'icon': Icons.security,
-      'title': 'Secure',
-      'description': 'Your data is protected with top security.'
+      'icon': Icons.qr_code_scanner_rounded,
+      'title': 'QR Payments',
+      'description': 'Scan a QR code to pay friends instantly.'
     },
     {
-      'icon': Icons.flash_on,
-      'title': 'Fast',
-      'description': 'Quick transactions and instant notifications.'
+      'icon': Icons.savings_rounded,
+      'title': 'Savings Goals',
+      'description': 'Set targets, track progress & hit your goals.'
     },
     {
-      'icon': Icons.people,
-      'title': 'Community',
-      'description': 'Connect with trusted users.'
+      'icon': Icons.pie_chart_rounded,
+      'title': 'Budget Planning',
+      'description': 'Monthly limits by type & category with alerts.'
     },
     {
-      'icon': Icons.support_agent,
-      'title': 'Support',
-      'description': '24/7 customer support.'
+      'icon': Icons.auto_awesome_rounded,
+      'title': 'Smart Insights',
+      'description': 'AI-powered spending analysis & predictions.'
+    },
+    {
+      'icon': Icons.bar_chart_rounded,
+      'title': 'Reports & Analytics',
+      'description': 'Charts, trends & PDF export for any period.'
+    },
+    {
+      'icon': Icons.grid_view_rounded,
+      'title': 'Spending Heatmap',
+      'description': '13-week visual calendar of your daily spending.'
+    },
+    {
+      'icon': Icons.people_alt_rounded,
+      'title': 'Friend Balances',
+      'description': 'See exactly who owes you and what you owe.'
+    },
+    {
+      'icon': Icons.monetization_on_rounded,
+      'title': 'LenDen Coins',
+      'description': 'Earn coins for activity & redeem rewards.'
+    },
+    {
+      'icon': Icons.repeat_rounded,
+      'title': 'Recurring Transactions',
+      'description': 'Auto-schedule recurring payments & reminders.'
+    },
+    {
+      'icon': Icons.pin_rounded,
+      'title': 'Wallet PIN',
+      'description': 'Secure every outgoing payment with a 6-digit PIN.'
+    },
+    {
+      'icon': Icons.calendar_today_rounded,
+      'title': 'Due Date Calendar',
+      'description': 'Visual calendar of all upcoming due dates.'
+    },
+    {
+      'icon': Icons.star_rounded,
+      'title': 'Ratings',
+      'description': 'Build trust by rating your counterparties.'
+    },
+    {
+      'icon': Icons.local_offer_rounded,
+      'title': 'Offers & Gifts',
+      'description': 'Exclusive coin offers & gift card rewards.'
+    },
+    {
+      'icon': Icons.support_agent_rounded,
+      'title': '24/7 Support',
+      'description': 'In-app help, disputes & live support queries.'
     },
   ];
 

@@ -38,6 +38,9 @@ import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
 import '../../widgets/avatar_action_sheet.dart';
 import '../../widgets/birthday_banner.dart';
+import '../reports/reports_page.dart';
+import '../budget/budget_planning_page.dart';
+import '../insights/smart_insights_page.dart';
 
 enum _QuickActionsViewStyle {
   grid,
@@ -73,6 +76,11 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   int _adsShownThisSession = 0;
   DateTime? _lastAdShownAt;
 
+  late final String _greetingSubtitle;
+  late final int _dailyTip;
+  double? _netLent;
+  double? _netBorrowed;
+  List<Map<String, dynamic>> _savingsGoals = [];
   bool _hasRatedApp = false;
   bool _ratingDialogShown = false;
   bool _useCompactTransactionOptions = true;
@@ -95,6 +103,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     'analytics': GlobalKey(),
     'group_transaction': GlobalKey(),
     'view_group': GlobalKey(),
+    'savings_goals': GlobalKey(),
   };
 
   final List<Map<String, dynamic>> _carouselItems = [
@@ -193,7 +202,17 @@ class _UserDashboardPageState extends State<UserDashboardPage>
   @override
   void initState() {
     super.initState();
+    final h = DateTime.now().hour;
+    const _morningSubs    = ['Welcome Back','Rise & Shine','Have a Great Day','New Day','Fresh Start',"Let's Go",'Stay Focused','Good to See You'];
+    const _afternoonSubs  = ['Keep Going','Stay Productive',"You're Doing Great",'Keep Smiling','Stay Motivated','Have Fun','Keep Growing'];
+    const _eveningSubs    = ['Welcome Back','Relax Time','Wind Down','Unwind Now','Take It Easy','Evening Vibes','Enjoy Evening'];
+    const _nightSubs      = ['Sleep Well','Rest Well','Sweet Dreams','See You Tomorrow','Good Rest','Recharge Time','Take Care'];
+    final subs = h >= 5 && h < 12 ? _morningSubs : h >= 12 && h < 17 ? _afternoonSubs : h >= 17 && h < 21 ? _eveningSubs : _nightSubs;
+    _greetingSubtitle = subs[Random().nextInt(subs.length)];
+    _dailyTip = Random().nextInt(15);
     _fetchFriends();
+    _fetchNetPosition();
+    _fetchSavingsGoals();
     _fetchUnreadUpdatesCount();
     _checkAndShowRatingDialog();
     _quickActionsRotationController = AnimationController(
@@ -299,35 +318,84 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     } catch (_) {}
   }
 
+  static const _searchIndex = [
+    // section scroll targets
+    {'keys': ['quick', 'quick tx', 'lend', 'borrow', 'quick transaction'], 'section': 'quick_transactions', 'label': 'Quick Transactions', 'icon': 'flash'},
+    {'keys': ['create transaction', 'new transaction', 'add transaction'], 'section': 'transactions', 'label': 'Create Transaction', 'icon': 'add'},
+    {'keys': ['your transaction', 'my transaction', 'transaction history'], 'section': 'your_transactions', 'label': 'Your Transactions', 'icon': 'history'},
+    {'keys': ['analytic', 'visual', 'chart', 'stat'], 'section': 'analytics', 'label': 'Analytics', 'icon': 'bar_chart'},
+    {'keys': ['create group', 'new group', 'group expense', 'group transaction'], 'section': 'group_transaction', 'label': 'Group Transactions', 'icon': 'group'},
+    {'keys': ['view group', 'my group', 'group list'], 'section': 'view_group', 'label': 'View Groups', 'icon': 'group_work'},
+    {'keys': ['saving', 'goal', 'savings goal', 'target'], 'section': 'savings_goals', 'label': 'Savings Goals', 'icon': 'savings'},
+    // page navigations
+    {'keys': ['report', 'export', 'statement'], 'page': 'reports', 'label': 'Reports', 'icon': 'bar_chart'},
+    {'keys': ['budget', 'limit', 'spending limit', 'budget plan'], 'page': 'budget', 'label': 'Budget Planning', 'icon': 'savings'},
+    {'keys': ['insight', 'smart', 'ai', 'predict', 'tip'], 'page': 'insights', 'label': 'Smart Insights', 'icon': 'auto_awesome'},
+    {'keys': ['wallet', 'pay', 'balance', 'money', 'transfer'], 'page': 'wallet', 'label': 'LenDen Wallet', 'icon': 'wallet'},
+    {'keys': ['friend', 'contact', 'people', 'connection'], 'page': 'friends', 'label': 'Friends', 'icon': 'people'},
+    {'keys': ['secure', 'loan', 'formal', 'interest', 'otp'], 'page': 'secure', 'label': 'Secure Transactions', 'icon': 'shield'},
+    {'keys': ['scan', 'qr', 'camera', 'qr code'], 'page': 'scanner', 'label': 'QR Scanner', 'icon': 'qr_code_scanner'},
+    {'keys': ['profile', 'account', 'settings', 'me'], 'page': 'profile', 'label': 'My Profile', 'icon': 'person'},
+    {'keys': ['coin', 'reward', 'lenden coin'], 'page': 'coins', 'label': 'LenDen Coins', 'icon': 'monetization_on'},
+    {'keys': ['offer', 'discount', 'deal', 'promo'], 'page': 'offers', 'label': 'Offers', 'icon': 'local_offer'},
+    {'keys': ['notification', 'update', 'news'], 'page': 'updates', 'label': 'Updates', 'icon': 'notifications'},
+  ];
+
   void _performSearch(String query) {
+    setState(() => _searchController.clear());
     if (query.isEmpty) return;
+    final q = query.toLowerCase();
 
-    final lowerQuery = query.toLowerCase();
-    String? matchedSection;
-
-    if (lowerQuery.contains('quick') || lowerQuery.contains('transaction')) {
-      matchedSection = 'quick_transactions';
-    } else if (lowerQuery.contains('create') ||
-        lowerQuery.contains('transaction')) {
-      matchedSection = 'transactions';
-    } else if (lowerQuery.contains('your') || lowerQuery.contains('detail')) {
-      matchedSection = 'your_transactions';
-    } else if (lowerQuery.contains('analytic') ||
-        lowerQuery.contains('visual')) {
-      matchedSection = 'analytics';
-    } else if (lowerQuery.contains('group') && lowerQuery.contains('create')) {
-      matchedSection = 'group_transaction';
-    } else if (lowerQuery.contains('group') && lowerQuery.contains('view')) {
-      matchedSection = 'view_group';
+    // Check section scroll targets first
+    for (final item in _searchIndex) {
+      if (item['section'] == null) continue;
+      final keys = item['keys'] as List;
+      if (keys.any((k) => q.contains(k.toString()) || k.toString().contains(q))) {
+        final key = _sectionKeys[item['section'] as String];
+        if (key?.currentContext != null) {
+          Scrollable.ensureVisible(key!.currentContext!,
+              duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+        }
+        return;
+      }
     }
 
-    if (matchedSection != null &&
-        _sectionKeys[matchedSection]?.currentContext != null) {
-      Scrollable.ensureVisible(
-        _sectionKeys[matchedSection]!.currentContext!,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Navigate to page
+    for (final item in _searchIndex) {
+      if (item['page'] == null) continue;
+      final keys = item['keys'] as List;
+      if (keys.any((k) => q.contains(k.toString()) || k.toString().contains(q))) {
+        _navigateToPage(item['page'] as String);
+        return;
+      }
+    }
+  }
+
+  void _navigateToPage(String page) {
+    switch (page) {
+      case 'reports':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsPage()));
+      case 'budget':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetPlanningPage()))
+            .then((_) => _fetchSavingsGoals());
+      case 'insights':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SmartInsightsPage()));
+      case 'wallet':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const LendenWalletPage()));
+      case 'friends':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsPage()));
+      case 'secure':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const UserTransactionsPage()));
+      case 'scanner':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerPage()));
+      case 'profile':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
+      case 'coins':
+        _openLenDenCoinsPage(Provider.of<SessionProvider>(context, listen: false).lenDenCoins ?? 0);
+      case 'offers':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const UserOffersPage()));
+      case 'updates':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const UserUpdatesPage()));
     }
   }
 
@@ -366,6 +434,35 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     } catch (_) {
       // ignore
     }
+  }
+
+  Future<void> _fetchNetPosition() async {
+    try {
+      final res = await ApiClient.get('/api/analytics/quick');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data['analyticsSharing'] == false) return;
+        setState(() {
+          _netLent = (data['totalLent'] as num?)?.toDouble() ?? 0;
+          _netBorrowed = (data['totalBorrowed'] as num?)?.toDouble() ?? 0;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchSavingsGoals() async {
+    try {
+      final res = await ApiClient.get('/api/savings-goals');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final raw = jsonDecode(res.body);
+        setState(() {
+          _savingsGoals = List<Map<String, dynamic>>.from(
+              raw is List ? raw : (raw['goals'] ?? []));
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> showTransactionForm() async {
@@ -1080,115 +1177,107 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       final sess = Provider.of<SessionProvider>(bCtx, listen: false);
                       return BirthdayBanner(birthdayRaw: sess.user?['birthday']?.toString());
                     }),
+                    const SizedBox(height: 8),
+                    _buildGreetingCard(context),
+                    const SizedBox(height: 4),
                     // Search Bar with tricolor border + view menu
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(27),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.orange,
-                                    Colors.white,
-                                    Colors.green
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: SizedBox(
+                        height: 44,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
-                                  color: AppThemeColors.cardBg(context),
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.search,
-                                      color: AppThemeColors.secondaryText(context),
-                                      size: 20,
+                                  borderRadius: BorderRadius.circular(22),
+                                  gradient: const LinearGradient(
+                                    colors: [Colors.orange, Colors.white, Colors.green],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _searchController,
-                                        onSubmitted: _performSearch,
-                                        style: TextStyle(
-                                          fontSize: context.sp(15),
-                                          color: AppThemeColors.primaryText(context),
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: t('search_sections_placeholder'),
-                                          hintStyle: TextStyle(
-                                              color: AppThemeColors.mutedText(context)),
-                                          border: InputBorder.none,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  vertical: 8),
-                                        ),
-                                      ),
-                                    ),
-                                    if (_searchController.text.isNotEmpty)
-                                      IconButton(
-                                        icon: Icon(Icons.clear,
-                                            color: AppThemeColors.secondaryText(context), size: 20),
-                                        tooltip: t('clear'),
-                                        onPressed: () {
-                                          setState(() {
-                                            _searchController.clear();
-                                          });
-                                        },
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                      ),
                                   ],
                                 ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppThemeColors.cardBg(context),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.search,
+                                          color: AppThemeColors.secondaryText(context), size: 19),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _searchController,
+                                          onSubmitted: _performSearch,
+                                          style: TextStyle(
+                                            fontSize: context.sp(14),
+                                            color: AppThemeColors.primaryText(context),
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: t('search_sections_placeholder'),
+                                            hintStyle: TextStyle(
+                                                color: AppThemeColors.mutedText(context),
+                                                fontSize: context.sp(14)),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
+                                        ),
+                                      ),
+                                      if (_searchController.text.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: () => setState(() => _searchController.clear()),
+                                          child: Icon(Icons.clear,
+                                              color: AppThemeColors.secondaryText(context), size: 17),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Colors.orange,
-                                  Colors.white,
-                                  Colors.green
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              width: 44,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [Colors.orange, Colors.white, Colors.green],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.all(2),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppThemeColors.cardBg(context),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.more_vert, color: Color(0xFF00B4D8)),
+                                    tooltip: t('quick_actions_view_label'),
+                                    onPressed: _showQuickActionsViewMenu,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    iconSize: 20,
+                                  ),
+                                ),
                               ),
                             ),
-                            padding: const EdgeInsets.all(2),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: Icon(Icons.more_vert,
-                                    color: Color(0xFF00B4D8)),
-                                tooltip: t('quick_actions_view_label'),
-                                onPressed: _showQuickActionsViewMenu,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
 
@@ -1272,6 +1361,46 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                     ),
 
                     const SizedBox(height: 16),
+
+                    // ── Analytics & Planning ─────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Row(
+                        children: [
+                          Expanded(child: _buildAnalyticsCard(
+                            icon: Icons.bar_chart_rounded,
+                            color: const Color(0xFF00BCD4),
+                            label: t('reports_title'),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsPage())),
+                          )),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildAnalyticsCard(
+                            icon: Icons.savings_outlined,
+                            color: const Color(0xFF4CAF50),
+                            label: t('budget_planning_title'),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetPlanningPage()))
+                                .then((_) => _fetchSavingsGoals()),
+                          )),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildAnalyticsCard(
+                            icon: Icons.auto_awesome_rounded,
+                            color: const Color(0xFF9C27B0),
+                            label: t('smart_insights_title'),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SmartInsightsPage())),
+                          )),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // ── Savings Goals ─────────────────────────────────
+                    KeyedSubtree(
+                      key: _sectionKeys['savings_goals'],
+                      child: _buildSavingsGoalsCard(context),
+                    ),
+
+                    const SizedBox(height: 8),
 
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -2285,6 +2414,317 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             fontSize: context.sp(12),
             fontWeight: FontWeight.w700,
             color: selected ? Colors.white : AppColors.cyan,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSavingsGoalsCard(BuildContext context) {
+    final active = _savingsGoals.where((g) => g['isCompleted'] != true).toList();
+    const cardColor = Color(0xFF7C3AED);
+
+    void goToGoalsTab() {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const BudgetPlanningPage(initialTabIndex: 3)))
+          .then((_) => _fetchSavingsGoals());
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(2),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+        gradient: LinearGradient(
+          colors: [Colors.orange, Colors.white, Colors.green],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: AppThemeColors.tinted(context,
+              light: const Color(0xFFF5F0FF), dark: const Color(0xFF140C24)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // ── Header row ────────────────────────────────────────
+          Row(children: [
+            const Icon(Icons.savings_rounded, color: cardColor, size: 20),
+            const SizedBox(width: 8),
+            Text(t('savings_goals_title'), style: TextStyle(
+              fontSize: context.sp(16),
+              fontWeight: FontWeight.bold,
+              color: cardColor,
+            )),
+            const Spacer(),
+            if (active.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: cardColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  t('active_goals_label').replaceAll('{count}', active.length.toString()),
+                  style: TextStyle(fontSize: context.sp(11), color: cardColor, fontWeight: FontWeight.w700),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 12),
+
+          // ── Empty state ──────────────────────────────────────
+          if (active.isEmpty)
+            GestureDetector(
+              onTap: goToGoalsTab,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.tinted(context,
+                      light: Colors.white, dark: const Color(0xFF1C1236)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: cardColor.withValues(alpha: 0.20)),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.savings_outlined, size: 36,
+                      color: cardColor.withValues(alpha: 0.45)),
+                  const SizedBox(height: 8),
+                  Text('No savings goals yet',
+                      style: TextStyle(fontSize: context.sp(13),
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context))),
+                  const SizedBox(height: 4),
+                  Text('Tap to add a goal',
+                      style: TextStyle(fontSize: context.sp(11),
+                          color: cardColor)),
+                ]),
+              ),
+            )
+
+          // ── Goal cards — horizontal scroll ────────────────────
+          else
+            SizedBox(
+              height: 96,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: active.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (_, i) {
+                  final g = active[i];
+                  final target = (g['targetAmount'] as num?)?.toDouble() ?? 1;
+                  final saved  = (g['savedAmount']  as num?)?.toDouble() ?? 0;
+                  final pct    = (saved / target).clamp(0.0, 1.0);
+                  Color goalColor = cardColor;
+                  try {
+                    final hex = (g['color'] ?? '#7C3AED').toString();
+                    goalColor = Color(int.parse(hex.replaceFirst('#', '0xff')));
+                  } catch (_) {}
+                  final daysLeft = g['deadline'] != null
+                      ? DateTime.parse(g['deadline'].toString()).difference(DateTime.now()).inDays
+                      : null;
+                  return Container(
+                    width: 165,
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.tinted(context,
+                          light: Colors.white, dark: const Color(0xFF1C1236)),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: goalColor.withValues(alpha: 0.30)),
+                      boxShadow: [BoxShadow(color: goalColor.withValues(alpha: 0.08),
+                          blurRadius: 6, offset: const Offset(0, 2))],
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                      Row(children: [
+                        Text(g['emoji']?.toString() ?? '🎯',
+                            style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 5),
+                        Expanded(child: Text(g['name']?.toString() ?? '',
+                          style: TextStyle(fontSize: context.sp(12),
+                              fontWeight: FontWeight.w700,
+                              color: AppThemeColors.primaryText(context)),
+                          overflow: TextOverflow.ellipsis, maxLines: 1)),
+                      ]),
+                      const SizedBox(height: 5),
+                      Text('₹${saved.toStringAsFixed(0)} / ₹${target.toStringAsFixed(0)}',
+                          style: TextStyle(fontSize: context.sp(11),
+                              color: goalColor, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 5),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: pct, minHeight: 5,
+                          backgroundColor: AppThemeColors.border(context),
+                          valueColor: AlwaysStoppedAnimation<Color>(goalColor),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(children: [
+                        Text(t('percent_saved_label').replaceAll('{pct}', (pct * 100).toStringAsFixed(0)),
+                            style: TextStyle(fontSize: context.sp(9),
+                                color: AppThemeColors.secondaryText(context))),
+                        const Spacer(),
+                        if (daysLeft != null)
+                          Text(t('days_left_short_label').replaceAll('{count}', daysLeft.toString()),
+                              style: TextStyle(fontSize: context.sp(9),
+                                  color: daysLeft < 7 ? Colors.red.shade600
+                                      : AppThemeColors.secondaryText(context),
+                                  fontWeight: daysLeft < 7 ? FontWeight.bold : FontWeight.normal)),
+                      ]),
+                    ]),
+                  );
+                },
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildGreetingCard(BuildContext context) {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final name    = (session.user?['name'] as String? ?? '').split(' ').first;
+    final hour = DateTime.now().hour;
+    final (greeting, emoji) = hour >= 5 && hour < 12
+        ? ('Good Morning', '🌅')
+        : hour >= 12 && hour < 17
+            ? ('Good Afternoon', '☀️')
+            : hour >= 17 && hour < 21
+                ? ('Good Evening', '🌇')
+                : ('Good Night', '🌙');
+
+    const tips = [
+      '💡 Track every expense — small ones add up fast.',
+      '📊 Review your budget weekly to stay on track.',
+      '🎯 Setting a savings goal makes spending intentional.',
+      '🔁 Automate savings before you spend.',
+      '📉 Cutting one subscription can save ₹1,000+/year.',
+      '🧾 Split group expenses fairly — use LenDen Groups.',
+      '⚡ Quick transactions under ₹500 drain budgets silently.',
+      '📅 End-of-month reviews reveal your biggest leaks.',
+      '🏆 A 3-month budget streak builds lasting habits.',
+      '💸 Pay yourself first — save before you splurge.',
+      '🔍 Audit your subscriptions every 3 months.',
+      '📆 Plan big purchases a month ahead.',
+    ];
+    final tip = tips[_dailyTip % tips.length];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.cyan.withValues(alpha: 0.15), Colors.deepPurple.withValues(alpha: 0.08)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Text(emoji, style: const TextStyle(fontSize: 26)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                name.isNotEmpty ? '$greeting, $name!' : greeting,
+                style: TextStyle(fontSize: context.sp(16), fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(context)),
+              ),
+              Text(
+                _greetingSubtitle,
+                style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.secondaryText(context)),
+              ),
+              if (_netLent != null) ...[
+                const SizedBox(height: 4),
+                Builder(builder: (_) {
+                  final net = (_netLent ?? 0) - (_netBorrowed ?? 0);
+                  final isPositive = net >= 0;
+                  final color = isPositive ? Colors.green.shade600 : Colors.red.shade600;
+                  final key = isPositive ? 'net_positive_label' : 'net_negative_label';
+                  final label = AppLocalizations.of(_).t(key).replaceAll('{amount}', net.abs().toStringAsFixed(0));
+                  return Text(label,
+                      style: TextStyle(fontSize: context.sp(11), color: color, fontWeight: FontWeight.w600));
+                }),
+              ],
+            ])),
+          ]),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(tip,
+                style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.primaryText(context), height: 1.4)),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsCard({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Colors.orange, Colors.white, Colors.green],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(1.5),
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(context),
+            borderRadius: BorderRadius.circular(14.5),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: context.sp(10),
+                  fontWeight: FontWeight.w600,
+                  color: AppThemeColors.primaryText(context),
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
         ),
       ),

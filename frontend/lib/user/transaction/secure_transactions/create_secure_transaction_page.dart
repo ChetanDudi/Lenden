@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:http_parser/http_parser.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
+import '../../../widgets/budget_exceeded_sheet.dart';
 // Add for wavy background
 import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
@@ -2483,8 +2484,40 @@ class _TransactionPageState extends State<TransactionPage> {
 
         _showTransactionSuccessDialog(giftCardAwarded: giftCardAwarded);
       } else {
-        final errBody =
-            (res.body.isNotEmpty) ? res.body : t('unknown_error_label');
+        final errBody = res.body.isNotEmpty ? res.body : t('unknown_error_label');
+        // Budget exceeded — show stylish sheet and let user decide
+        final exceeded = parseBudgetExceeded(errBody);
+        if (exceeded != null) {
+          final proceed = await showBudgetExceededSheet(context, exceeded);
+          if (!mounted) return;
+          if (proceed) {
+            body['force'] = 'true';
+            setState(() => _isLoading = true);
+            final res2 = await ApiClient.postMultipart(
+              '/api/transactions/create',
+              fields: body,
+              files: _buildMultipartFiles(),
+            );
+            setState(() => _isLoading = false);
+            if (!mounted) return;
+            if (res2.statusCode == 200 || res2.statusCode == 201) {
+              final data2 = jsonDecode(res2.body);
+              final giftCardAwarded = data2['giftCardAwarded'] == true;
+              await _clearDraft();
+              setState(() { _transactionId = data2['transactionId']; });
+              Provider.of<SessionProvider>(context, listen: false).loadFreebieCounts();
+              _showTransactionSuccessDialog(giftCardAwarded: giftCardAwarded);
+            } else {
+              try {
+                final d = jsonDecode(res2.body);
+                _showStylishErrorDialog(t('transaction_failed_title'), d['error'] ?? d['message'] ?? res2.body);
+              } catch (_) {
+                _showStylishErrorDialog(t('transaction_failed_title'), res2.body);
+              }
+            }
+          }
+          return;
+        }
         String errorMsg = t('failed_to_create_transaction_message');
         try {
           final data = jsonDecode(errBody);

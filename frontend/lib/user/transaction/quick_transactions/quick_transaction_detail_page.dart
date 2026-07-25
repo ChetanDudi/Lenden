@@ -22,6 +22,10 @@ const _kQtCategories = [
   {'key': 'utilities',     'label': 'Utilities',     'icon': Icons.electrical_services_rounded},
   {'key': 'medical',       'label': 'Medical',       'icon': Icons.local_hospital_rounded},
   {'key': 'education',     'label': 'Education',     'icon': Icons.school_rounded},
+  {'key': 'personal',      'label': 'Personal',      'icon': Icons.person_rounded},
+  {'key': 'rent',          'label': 'Rent',          'icon': Icons.home_rounded},
+  {'key': 'business',      'label': 'Business',      'icon': Icons.business_center_rounded},
+  {'key': 'travel',        'label': 'Travel',        'icon': Icons.flight_rounded},
   {'key': 'other',         'label': 'Other',         'icon': Icons.more_horiz_rounded},
 ];
 

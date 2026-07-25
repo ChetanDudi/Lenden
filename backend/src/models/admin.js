@@ -42,6 +42,9 @@ const adminSchema = new mongoose.Schema({
     canManageDigitise: { type: Boolean, default: true },
     canManageSettings: { type: Boolean, default: true },
     canViewAuditLogs: { type: Boolean, default: true },
+    canViewReports: { type: Boolean, default: true },
+    canManageBudgets: { type: Boolean, default: true },
+    canManageInsights: { type: Boolean, default: true },
   },
   notificationSettings: {
     systemAlerts: { type: Boolean, default: true },

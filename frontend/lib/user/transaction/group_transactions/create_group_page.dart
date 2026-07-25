@@ -10,6 +10,8 @@ import '../../../widgets/stylish_dialog.dart';
 import '../../digitise/gift_card_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io' as dart_io;
 
 const _tricolorGradient = LinearGradient(
   colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
@@ -37,6 +39,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _friendSuggestions = [];
   Set<String> _blockedEmails = {};
+  bool _loadingFriends = false;
+  XFile? _selectedImage;
   Color? _selectedColor;
   int? _dailyGroupRemaining;
 
@@ -180,8 +184,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Future<void> _addMembersFromFriends() async {
     final t = AppLocalizations.of(context).t;
+    setState(() => _loadingFriends = true);
     try {
       final res = await ApiClient.get('/api/friends');
+      if (!mounted) return;
       if (res.statusCode != 200) return;
       final data = jsonDecode(res.body);
       final friends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
@@ -361,6 +367,31 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       if (mounted) {
         setState(() => _memberEmails = tempSelected.toList());
       }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingFriends = false);
+    }
+  }
+
+  Future<void> _pickGroupImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+    if (picked != null && mounted) setState(() => _selectedImage = picked);
+  }
+
+  Future<void> _uploadGroupImageAfterCreate(String groupId) async {
+    if (_selectedImage == null) return;
+    try {
+      final bytes = await _selectedImage!.readAsBytes();
+      await ApiClient.putMultipart(
+        '/api/group-transactions/$groupId/image',
+        files: [ApiMultipartFile(field: 'groupImage', filename: _selectedImage!.name, bytes: bytes)],
+      );
     } catch (_) {}
   }
 
@@ -441,6 +472,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               description: Text(t('group_created_success_msg')),
             ).show(context);
           }
+          final groupId = data['group']?['_id']?.toString() ?? '';
+          if (groupId.isNotEmpty) await _uploadGroupImageAfterCreate(groupId);
           Navigator.pop(context, data['group']);
         }
       } else if (res.statusCode == 403) {
@@ -544,6 +577,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               description: Text(t('group_created_success_msg')),
             ).show(context);
           }
+          final groupId = data['group']?['_id']?.toString() ?? '';
+          if (groupId.isNotEmpty) await _uploadGroupImageAfterCreate(groupId);
           Navigator.pop(context, data['group']);
         }
       } else {
@@ -635,25 +670,52 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     borderRadius: BorderRadius.circular(19)),
                 child: Row(
                   children: [
-                    Container(
-                      height: 52,
-                      width: 52,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade800],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepPurple.withValues(alpha: 0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
+                    GestureDetector(
+                      onTap: _pickGroupImage,
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 52,
+                            width: 52,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade800],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepPurple.withValues(alpha: 0.25),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                              image: _selectedImage != null
+                                  ? DecorationImage(
+                                      image: FileImage(dart_io.File(_selectedImage!.path)),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: _selectedImage == null
+                                ? const Icon(Icons.group, color: Colors.white, size: 28)
+                                : null,
+                          ),
+                          Positioned(
+                            right: 0, bottom: 0,
+                            child: Container(
+                              width: 18, height: 18,
+                              decoration: BoxDecoration(
+                                color: AppColors.cyan,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              child: const Icon(Icons.camera_alt_rounded, size: 10, color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.group, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -887,9 +949,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                onPressed: _addMembersFromFriends,
-                icon: const Icon(Icons.people, color: AppColors.cyan),
-                label: Text(t('add_from_friends_label'), style: const TextStyle(color: AppColors.cyan)),
+                onPressed: _loadingFriends ? null : _addMembersFromFriends,
+                icon: _loadingFriends
+                    ? const SizedBox(
+                        width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan),
+                      )
+                    : const Icon(Icons.people, color: AppColors.cyan),
+                label: Text(
+                  _loadingFriends ? 'Loading...' : t('add_from_friends_label'),
+                  style: const TextStyle(color: AppColors.cyan),
+                ),
               ),
             ),
 
@@ -904,12 +974,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: _memberEmails.map((e) => Chip(
-                  label: Text(e, style: const TextStyle(fontSize: 13)),
-                  onDeleted: () => _removeMemberEmail(e),
-                  backgroundColor: Colors.blue.shade50,
-                  deleteIconColor: Colors.red.shade300,
-                )).toList(),
+                children: _memberEmails.map((e) {
+                  final blocked = _isBlocked(e);
+                  return Chip(
+                    avatar: blocked ? const Icon(Icons.block_rounded, size: 14, color: Colors.red) : null,
+                    label: Text(e, style: TextStyle(fontSize: 13, color: blocked ? Colors.red.shade700 : null)),
+                    onDeleted: () => _removeMemberEmail(e),
+                    backgroundColor: blocked ? Colors.red.shade50 : Colors.blue.shade50,
+                    side: blocked ? BorderSide(color: Colors.red.shade300) : null,
+                    deleteIconColor: Colors.red.shade300,
+                  );
+                }).toList(),
               ),
             ],
 

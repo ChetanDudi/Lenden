@@ -15,6 +15,7 @@ import '../../wallet/lenden_wallet_page.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import 'package:image_picker/image_picker.dart';
 
 const _kCardColors = [
   Color(0xFFFFF4E6), Color(0xFFE8F5E9), Color(0xFFFCE4EC),
@@ -94,6 +95,7 @@ class GroupDetailPage extends StatefulWidget {
 class _GroupDetailPageState extends State<GroupDetailPage> {
   late Map<String, dynamic> _group;
   bool _loading = false;
+  bool _uploadingImage = false;
   String? _userEmail;
   bool _isCreator = false;
 
@@ -123,6 +125,138 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pickGroupImage() async {
+    if (!_isCreator) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppThemeColors.divider(ctx),
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Text('Group Icon', style: TextStyle(fontWeight: FontWeight.bold,
+                fontSize: 17, color: AppThemeColors.primaryText(ctx))),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded, color: AppColors.cyan),
+              title: Text('Take photo', style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: AppColors.cyan),
+              title: Text('Choose from gallery', style: TextStyle(color: AppThemeColors.primaryText(ctx))),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            if (_group['groupImageUrl'] != null && _group['groupImageUrl'].toString().isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            const Divider(height: 20),
+            Text('Preset Colors', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                Colors.teal, Colors.deepPurple, Colors.indigo, Colors.blue,
+                Colors.green, Colors.orange, Colors.pink, Colors.red,
+                Colors.brown, Colors.blueGrey,
+              ].map((c) => GestureDetector(
+                onTap: () => Navigator.pop(ctx, 'color:${c.toARGB32()}'),
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: c,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: c.toARGB32() == _groupColor.toARGB32() ? Colors.white : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: [BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 4)],
+                  ),
+                  child: c.toARGB32() == _groupColor.toARGB32()
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
+                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+
+    if (action == 'remove') {
+      setState(() => _uploadingImage = true);
+      try {
+        final res = await ApiClient.delete('/api/group-transactions/${widget.groupId}/image');
+        if (res.statusCode == 200 && mounted) {
+          setState(() => _group = {..._group, 'groupImageUrl': null});
+        }
+      } finally {
+        if (mounted) setState(() => _uploadingImage = false);
+      }
+      return;
+    }
+
+    if (action != null && action.startsWith('color:')) {
+      final colorInt = int.tryParse(action.substring(6));
+      if (colorInt == null) return;
+      final hexColor = '#${colorInt.toRadixString(16).substring(2).toUpperCase()}';
+      await ApiClient.put('/api/group-transactions/${widget.groupId}/color', body: {'color': hexColor});
+      if (mounted) _refresh();
+      return;
+    }
+
+    if (action == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: action == 'camera' ? ImageSource.camera : ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingImage = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final res = await ApiClient.putMultipart(
+        '/api/group-transactions/${widget.groupId}/image',
+        files: [ApiMultipartFile(field: 'groupImage', filename: picked.name, bytes: bytes)],
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _group = {..._group, 'groupImageUrl': data['groupImageUrl']});
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to upload image'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to upload image'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
     }
   }
 
@@ -956,26 +1090,45 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundColor: _groupColor,
-                          backgroundImage: (_group['groupImageUrl'] != null &&
-                                  _group['groupImageUrl'].toString().isNotEmpty)
-                              ? NetworkImage(
-                                  _group['groupImageUrl'].toString())
-                              : null,
-                          child: (_group['groupImageUrl'] != null &&
-                                  _group['groupImageUrl'].toString().isNotEmpty)
-                              ? null
-                              : Text(
-                                  title.isNotEmpty
-                                      ? title[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                      fontSize: 24,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
+                        GestureDetector(
+                          onTap: _isCreator ? _pickGroupImage : null,
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 26,
+                                backgroundColor: _groupColor,
+                                backgroundImage: (_group['groupImageUrl'] != null &&
+                                        _group['groupImageUrl'].toString().isNotEmpty)
+                                    ? NetworkImage(_group['groupImageUrl'].toString())
+                                    : null,
+                                child: _uploadingImage
+                                    ? const SizedBox(
+                                        width: 20, height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : (_group['groupImageUrl'] != null &&
+                                            _group['groupImageUrl'].toString().isNotEmpty)
+                                        ? null
+                                        : Text(
+                                            title.isNotEmpty ? title[0].toUpperCase() : '?',
+                                            style: const TextStyle(
+                                                fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+                                          ),
+                              ),
+                              if (_isCreator && !_uploadingImage)
+                                Positioned(
+                                  right: 0, bottom: 0,
+                                  child: Container(
+                                    width: 18, height: 18,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.cyan,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 1.5),
+                                    ),
+                                    child: const Icon(Icons.camera_alt_rounded, size: 10, color: Colors.white),
+                                  ),
                                 ),
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

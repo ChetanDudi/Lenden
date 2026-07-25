@@ -46,6 +46,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   int _friendsVisibleCount = 10;
   String _blockedQuery = '';
   int _blockedVisibleCount = 10;
+  List<Map<String, dynamic>> _friendBalances = [];
+  bool _loadingBalances = true;
 
   // Friends tab filter/sort
   String? _filterGender;   // null = All, 'Male', 'Female', 'Other'
@@ -59,8 +61,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _fetchFriends();
+    _fetchFriendBalances();
   }
 
   @override
@@ -131,6 +134,21 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       _loadBirthdayFriends();
     } finally {
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _fetchFriendBalances() async {
+    setState(() => _loadingBalances = true);
+    try {
+      final res = await ApiClient.get('/api/quick-transactions/friend-balances');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() => _friendBalances = List<Map<String, dynamic>>.from(data['balances'] ?? []));
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingBalances = false);
     }
   }
 
@@ -1628,6 +1646,13 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                           Text('${t('discover_tab_label')}${_suggestions.isNotEmpty ? ' (${_suggestions.length})' : ''}'),
                         ]),
                       ),
+                      Tab(
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.account_balance_wallet_rounded, size: 15),
+                          const SizedBox(width: 4),
+                          Text('${t('friend_balances_tab_label')}${_friendBalances.isNotEmpty ? ' (${_friendBalances.length})' : ''}'),
+                        ]),
+                      ),
                     ],
                   ),
                 ),
@@ -2313,6 +2338,94 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 );
                               },
                             ),
+
+                            // ── Tab 5: Balances ──────────────────────────────
+                            _loadingBalances
+                              ? const Center(child: CircularProgressIndicator())
+                              : RefreshIndicator(
+                                  onRefresh: _fetchFriendBalances,
+                                  color: AppColors.cyan,
+                                  child: _friendBalances.isEmpty
+                                    ? ListView(
+                                        padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
+                                        children: [
+                                          Center(
+                                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                              Icon(Icons.account_balance_wallet_outlined, size: 72,
+                                                  color: AppThemeColors.divider(context)),
+                                              const SizedBox(height: 14),
+                                              Text(t('no_outstanding_balances_title'),
+                                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
+                                                      color: AppThemeColors.primaryText(context))),
+                                              const SizedBox(height: 6),
+                                              Text(t('no_outstanding_balances_subtitle'),
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
+                                            ]),
+                                          ),
+                                        ],
+                                      )
+                                    : ListView.separated(
+                                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                                        itemCount: _friendBalances.length,
+                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                        itemBuilder: (_, i) {
+                                          final b = _friendBalances[i];
+                                          final name = (b['name'] ?? b['email'] ?? 'Unknown').toString();
+                                          final net = (b['net'] as num?)?.toDouble() ?? 0;
+                                          final owesYou = net > 0;
+                                          final color = owesYou ? Colors.green.shade600 : Colors.red.shade600;
+                                          final firstName = name.split(' ').first;
+                                          final label = owesYou
+                                              ? t('friend_owes_you_label').replaceAll('{name}', firstName)
+                                              : t('you_owe_friend_label').replaceAll('{name}', firstName);
+                                          final initials = _initials(name, (b['email'] ?? '').toString());
+                                          final avatarColor = _avatarColor(name);
+                                          final avatar = (b['avatar'] as String?);
+                                          return Container(
+                                            padding: const EdgeInsets.all(14),
+                                            decoration: BoxDecoration(
+                                              color: AppThemeColors.cardBg(context),
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: Border.all(color: color.withValues(alpha: 0.25)),
+                                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
+                                            ),
+                                            child: Row(children: [
+                                              CircleAvatar(
+                                                radius: 22,
+                                                backgroundColor: avatarColor,
+                                                backgroundImage: avatar != null && avatar.isNotEmpty
+                                                    ? NetworkImage('${ApiConfig.baseUrl}$avatar') : null,
+                                                child: (avatar == null || avatar.isEmpty)
+                                                    ? Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                                Text(name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14,
+                                                    color: AppThemeColors.primaryText(context))),
+                                                const SizedBox(height: 2),
+                                                Text(label, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+                                              ])),
+                                              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                                Text('₹${net.abs().toStringAsFixed(0)}',
+                                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                                                Container(
+                                                  margin: const EdgeInsets.only(top: 4),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: color.withValues(alpha: 0.1),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(owesYou ? t('gets_paid_label') : t('you_pay_label'),
+                                                      style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+                                                ),
+                                              ]),
+                                            ]),
+                                          );
+                                        },
+                                      ),
+                                ),
                           ],
                         ),
                       ),
