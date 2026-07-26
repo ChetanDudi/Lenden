@@ -92,6 +92,7 @@ module.exports = (io) => {
   const coinLedgerController = require('../controllers/coinLedgerController');
   const appContentController = require('../controllers/appContentController');
   const currencyConversionController = require('../controllers/currencyConversionController');
+  const adminCoinPricingController = require('../controllers/adminCoinPricingController');
   const disputeController = require('../controllers/disputeController');
   const fraudAlertController = require('../controllers/fraudAlertController');
   const lendingBudgetController = require('../controllers/lendingBudgetController');
@@ -454,6 +455,10 @@ module.exports = (io) => {
   // Security Settings
   router.get('/admin/security-settings', auth, isAdmin, adminController.getSecuritySettings);
   router.put('/admin/security-settings', auth, isAdmin, adminController.updateSecuritySettings);
+
+  // Coin Pricing Config
+  router.get('/admin/coin-pricing', auth, isAdmin, adminCoinPricingController.getCoinPricing);
+  router.put('/admin/coin-pricing', auth, isAdmin, adminCoinPricingController.updateCoinPricing);
 
   // Currency Conversions
   router.get('/admin/currency-conversions', auth, isAdmin, currencyConversionController.getAdminCurrencyConversions);

@@ -2211,7 +2211,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: t('secure_transaction_feature_label'), coinCost: 10, currentCoins: coins);
+            featureName: t('secure_transaction_feature_label'), coinCost: session.secureTransactionCoinCost, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context,

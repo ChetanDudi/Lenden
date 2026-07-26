@@ -13,6 +13,7 @@ const { sendGroupReceiptEmail } = require('../utils/groupReceiptEmail');
 const { processReferralRewardOnFirstCreation } = require('../utils/referralService');
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const { getCoinPricing } = require('../utils/coinPricing');
 const {
   INR,
   normalizeCurrency,
@@ -89,7 +90,8 @@ async function validateUsers(userIds) {
 }
 
 exports.createGroupWithCoins = async (req, res) => {
-  const GROUP_COST = 20;
+  const pricing = await getCoinPricing();
+  const GROUP_COST = pricing.groupCreationCost;
   const GROUP_DAILY_LIMIT = 1;
   try {
     const { title, memberEmails, color } = req.body;
@@ -523,7 +525,8 @@ exports.removeMember = async (req, res) => {
 };
 
 exports.addExpense = async (req, res) => {
-  const EXPENSE_COST = 5;
+  const pricing = await getCoinPricing();
+  const EXPENSE_COST = pricing.groupExpenseCost;
   try {
     const { groupId } = req.params;
     const {

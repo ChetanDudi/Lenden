@@ -787,7 +787,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'secure transaction', coinCost: 10, currentCoins: coins);
+            featureName: 'secure transaction', coinCost: session.secureTransactionCoinCost, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context, MaterialPageRoute(
@@ -827,7 +827,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'group creation', coinCost: 20, currentCoins: coins);
+            featureName: 'group creation', coinCost: session.groupCreationCoinCost, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context, MaterialPageRoute(

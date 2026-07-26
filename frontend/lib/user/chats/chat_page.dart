@@ -264,7 +264,7 @@ class _ChatPageState extends State<ChatPage> {
     final dailyLimitReached =
         !session.hasFeature('private_chat') && _dailyMessageUsed >= _dailyMessageLimit;
     final remainingFree = 5 - (_messageCounts[_currentUserId] ?? 0);
-    const int messageCost = 5;
+    final int messageCost = session.privateChatCoinCost;
 
     if (!session.hasFeature('private_chat')) {
       // Daily limit expired → hard block; free messages also paused until tomorrow.

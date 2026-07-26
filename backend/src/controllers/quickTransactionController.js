@@ -9,6 +9,7 @@ const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const Notification = require('../models/notification');
+const { getCoinPricing } = require('../utils/coinPricing');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -136,7 +137,8 @@ exports.createQuickTransaction = async (req, res) => {
 };
 
 exports.createQuickTransactionWithCoins = async (req, res) => {
-  const QUICK_TRANSACTION_COST = 5;
+  const pricing = await getCoinPricing();
+  const QUICK_TRANSACTION_COST = pricing.quickTransactionCost;
   const QUICK_TRANSACTION_DAILY_LIMIT = 3;
   try {
     const { amount, currency, date, time, description, counterpartyEmail, role, category, isScheduled, scheduledAt } = req.body;

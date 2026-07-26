@@ -489,7 +489,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'secure transaction', coinCost: 10, currentCoins: coins);
+            featureName: 'secure transaction', coinCost: session.secureTransactionCoinCost, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context,

@@ -530,7 +530,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         (session.freeGroupsRemaining ?? 0) <= 0;
 
     if (shouldUseCoins) {
-      const int coinCost = 20;
+      final int coinCost = session.groupCreationCoinCost;
       final coins = session.lenDenCoins ?? 0;
       if (coins < coinCost) {
         coins == 0 ? showZeroCoinsDialog(context) : showInsufficientCoinsDialog(context);

@@ -9,6 +9,7 @@ const {
     toChatResponse
 } = require('../utils/chatCodec');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const { getCoinPricing } = require('../utils/coinPricing');
 
 function hasEncryptedPayloads(encryptedPayloads) {
     return Array.isArray(encryptedPayloads) && encryptedPayloads.length > 0;
@@ -97,7 +98,8 @@ module.exports = (io) => {
 
                 const userMessageCount = transaction.messageCounts.find(mc => mc.user.toString() === senderId);
                 if (!isSubscribed) {
-                    const MESSAGE_COST = 5;
+                    const pricing = await getCoinPricing();
+                    const MESSAGE_COST = pricing.privateChatMessageCost;
                     const dailyLimitReached = todayCount >= 3;
                     const totalFreeUsed = userMessageCount && userMessageCount.count >= 5;
                     const needsCoins = dailyLimitReached || totalFreeUsed;

@@ -5,12 +5,7 @@ const QuickTransaction = require('../models/quickTransaction');
 const GroupTransaction = require('../models/groupTransaction');
 const MonthlyLeaderboardReward = require('../models/monthlyLeaderboardReward');
 const { recordCoinLedgerEntry } = require('./coinLedgerService');
-
-const RANK_REWARDS = {
-  1: 20,
-  2: 10,
-  3: 5,
-};
+const { getCoinPricing } = require('./coinPricing');
 
 const toMonthKey = (date) => {
   const y = date.getFullYear();
@@ -39,6 +34,12 @@ const rankWithTies = (rows) => {
 };
 
 const settlePreviousMonthRewards = async () => {
+  const pricing = await getCoinPricing();
+  const RANK_REWARDS = {
+    1: pricing.leaderboardRank1Reward,
+    2: pricing.leaderboardRank2Reward,
+    3: pricing.leaderboardRank3Reward,
+  };
   const { start, end, monthKey } = getPreviousMonthWindow(new Date());
 
   const alreadyProcessed = await MonthlyLeaderboardReward.findOne({ monthKey });

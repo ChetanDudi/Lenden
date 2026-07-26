@@ -456,7 +456,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
         await session.loadFreebieCounts();
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: 'group chat message', coinCost: 7, currentCoins: coins);
+            featureName: 'group chat message', coinCost: session.groupChatCoinCost, currentCoins: coins);
         if (useCoins != true) return;
       }
     }

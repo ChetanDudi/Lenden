@@ -42,6 +42,20 @@ class SessionProvider extends ChangeNotifier {
   int? _freeUserTransactionsRemaining;
   int? _freeGroupsRemaining;
   int? _lenDenCoins;
+  Map<String, dynamic> _coinPricing = const {
+    'privateChatMessageCost': 5,
+    'groupChatMessageCost': 7,
+    'quickTransactionCost': 5,
+    'secureTransactionCost': 10,
+    'groupCreationCost': 20,
+    'groupExpenseCost': 5,
+    'dailyLoginReward': 1,
+    'leaderboardRank1Reward': 20,
+    'leaderboardRank2Reward': 10,
+    'leaderboardRank3Reward': 5,
+    'coinValueCurrency': 'INR',
+    'coinValue': 0.10,
+  };
 
   bool get isSubscribed => _isSubscribed;
   String? get subscriptionPlan => _subscriptionPlan;
@@ -65,6 +79,15 @@ class SessionProvider extends ChangeNotifier {
   int? get freeUserTransactionsRemaining => _freeUserTransactionsRemaining;
   int? get freeGroupsRemaining => _freeGroupsRemaining;
   int? get lenDenCoins => _lenDenCoins;
+
+  int get privateChatCoinCost    => (_coinPricing['privateChatMessageCost'] as num? ?? 5).toInt();
+  int get groupChatCoinCost      => (_coinPricing['groupChatMessageCost'] as num? ?? 7).toInt();
+  int get quickTransactionCoinCost => (_coinPricing['quickTransactionCost'] as num? ?? 5).toInt();
+  int get secureTransactionCoinCost => (_coinPricing['secureTransactionCost'] as num? ?? 10).toInt();
+  int get groupCreationCoinCost  => (_coinPricing['groupCreationCost'] as num? ?? 20).toInt();
+  int get groupExpenseCoinCost   => (_coinPricing['groupExpenseCost'] as num? ?? 5).toInt();
+  int get dailyLoginCoinReward   => (_coinPricing['dailyLoginReward'] as num? ?? 1).toInt();
+  Map<String, dynamic> get coinPricingConfig => Map.unmodifiable(_coinPricing);
 
   static const String _deviceIdKey = 'device_id';
 
@@ -358,6 +381,9 @@ class SessionProvider extends ChangeNotifier {
         _lenDenCoins = (data['lenDenCoins'] as num?)?.toInt();
         if (_user != null && _lenDenCoins != null) {
           _user!['lenDenCoins'] = _lenDenCoins;
+        }
+        if (data['coinPricing'] is Map) {
+          _coinPricing = Map<String, dynamic>.from(data['coinPricing'] as Map);
         }
         notifyListeners();
       }

@@ -1297,7 +1297,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       if (freeRemaining <= 0) {
         final coins = session.lenDenCoins ?? 0;
         final useCoins = await showFreeAttemptsExhaustedDialog(context,
-            featureName: t('group_creation_feature_label'), coinCost: 20, currentCoins: coins);
+            featureName: t('group_creation_feature_label'), coinCost: session.groupCreationCoinCost, currentCoins: coins);
         if (!mounted) return;
         if (useCoins != true) return;
         Navigator.push(context,

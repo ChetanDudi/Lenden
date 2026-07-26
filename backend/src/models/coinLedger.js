@@ -32,6 +32,7 @@ const coinLedgerSchema = new mongoose.Schema(
         'group_creation_with_coins',
         'private_chat_with_coins',
         'group_chat_with_coins',
+        'group_expense_with_coins',
         'birthday_gift_sent',
         'birthday_gift_received',
       ],

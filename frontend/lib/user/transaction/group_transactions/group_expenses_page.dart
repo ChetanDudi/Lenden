@@ -1027,7 +1027,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,
         featureName: t('group_expense_feature_label'),
-        coinCost: 5,
+        coinCost: session.groupExpenseCoinCost,
         currentCoins: coins,
       );
       if (useCoins != true) return;

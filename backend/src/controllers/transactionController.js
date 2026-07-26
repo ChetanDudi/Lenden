@@ -15,6 +15,7 @@ const { processReferralRewardOnFirstCreation } = require('../utils/referralServi
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
+const { getCoinPricing } = require('../utils/coinPricing');
 const Notification = require('../models/notification');
 
 const isBlockedBy = (user, other) =>
@@ -325,7 +326,8 @@ exports.generateReceipt = async (req, res) => {
 };
 
 exports.createTransactionWithCoins = async (req, res) => {
-  const TRANSACTION_COST = 10;
+  const pricing = await getCoinPricing();
+  const TRANSACTION_COST = pricing.secureTransactionCost;
   const USER_TRANSACTION_DAILY_LIMIT = 2;
   try {
     const {

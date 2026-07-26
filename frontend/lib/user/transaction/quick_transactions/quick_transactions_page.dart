@@ -538,7 +538,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         (session.freeQuickTransactionsRemaining ?? 0) <= 0;
 
     if (shouldUseCoins) {
-      const int coinCost = 5;
+      final int coinCost = session.quickTransactionCoinCost;
       final coins = session.lenDenCoins ?? 0;
       if (coins < coinCost) {
         if (coins == 0) {
@@ -910,7 +910,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         (session.freeQuickTransactionsRemaining ?? 0) <= 0;
 
     if (shouldUseCoins) {
-      const int coinCost = 5;
+      final int coinCost = session.quickTransactionCoinCost;
       final coins = session.lenDenCoins ?? 0;
       if (coins < coinCost) {
         if (coins == 0) {

@@ -36,6 +36,7 @@ import '../disputes/fraud_alerts_page.dart';
 import '../reports/admin_reports_page.dart';
 import '../budget/admin_budget_page.dart';
 import '../insights/admin_insights_page.dart';
+import '../coin_pricing/manage_coin_pricing_page.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/avatar_action_sheet.dart';
 
@@ -671,6 +672,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AdminInsightsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'coin_pricing',
+          permissionKey: 'canManageSettings',
+          icon: Icons.monetization_on_rounded,
+          label: 'Coin Pricing',
+          caption: 'Set coin costs for every action and rewards in any currency.',
+          actionLabel: 'Coins',
+          backgroundColor: const Color(0xFFFFF8E1),
+          iconColor: const Color(0xFFD4A017),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ManageCoinPricingPage()),
             );
           },
         ),

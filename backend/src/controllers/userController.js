@@ -14,9 +14,9 @@ const {
 } = require('../utils/referralService');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const Notification = require('../models/notification');
+const { getCoinPricing } = require('../utils/coinPricing');
 
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
-const DAILY_LOGIN_COINS = 1;
 
 function isPasswordValid(password) {
   const lengthValid = password.length >= 8 && password.length <= 30;
@@ -30,12 +30,14 @@ function getUtcDateKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
-function applyDailyLoginReward(user) {
+async function applyDailyLoginReward(user) {
   const todayKey = getUtcDateKey();
   if (user.lastDailyLoginRewardDate === todayKey) {
     return { awarded: false, coinsAwarded: 0 };
   }
 
+  const pricing = await getCoinPricing();
+  const DAILY_LOGIN_COINS = pricing.dailyLoginReward;
   user.lenDenCoins = (user.lenDenCoins || 0) + DAILY_LOGIN_COINS;
   user.lastDailyLoginRewardDate = todayKey;
   user.lastDailyLoginRewardAt = new Date();
@@ -331,7 +333,7 @@ exports.login = async (req, res) => {
         lastActive: now,
         createdAt: now
       });
-      const dailyReward = applyDailyLoginReward(user);
+      const dailyReward = await applyDailyLoginReward(user);
       await user.save();
       await recordDailyLoginRewardIfNeeded(user, dailyReward);
 
@@ -706,7 +708,7 @@ exports.verifyLoginOtp = async (req, res) => {
       const now = new Date();
       user.devices.push({ deviceId, userAgent: deviceName, ipAddress, lastActive: now, createdAt: now });
 
-      const dailyReward = applyDailyLoginReward(user);
+      const dailyReward = await applyDailyLoginReward(user);
       await user.save();
       await recordDailyLoginRewardIfNeeded(user, dailyReward);
 
@@ -992,7 +994,10 @@ exports.getActiveSessions = async (req, res) => {
 
 exports.getFreebieCounts = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const [user, pricing] = await Promise.all([
+      User.findById(req.user._id),
+      getCoinPricing(),
+    ]);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -1001,6 +1006,20 @@ exports.getFreebieCounts = async (req, res) => {
       freeUserTransactionsRemaining: user.freeUserTransactionsRemaining,
       freeGroupsRemaining: user.freeGroupsRemaining,
       lenDenCoins: user.lenDenCoins,
+      coinPricing: {
+        privateChatMessageCost: pricing.privateChatMessageCost,
+        groupChatMessageCost:   pricing.groupChatMessageCost,
+        quickTransactionCost:   pricing.quickTransactionCost,
+        secureTransactionCost:  pricing.secureTransactionCost,
+        groupCreationCost:      pricing.groupCreationCost,
+        groupExpenseCost:       pricing.groupExpenseCost,
+        dailyLoginReward:       pricing.dailyLoginReward,
+        leaderboardRank1Reward: pricing.leaderboardRank1Reward,
+        leaderboardRank2Reward: pricing.leaderboardRank2Reward,
+        leaderboardRank3Reward: pricing.leaderboardRank3Reward,
+        coinValueCurrency:      pricing.coinValueCurrency,
+        coinValue:              pricing.coinValue,
+      },
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -1014,7 +1033,7 @@ exports.applyDailyLoginRewardOnAppOpen = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const dailyLoginReward = applyDailyLoginReward(user);
+    const dailyLoginReward = await applyDailyLoginReward(user);
     if (dailyLoginReward.awarded) {
       await user.save();
       await recordDailyLoginRewardIfNeeded(user, dailyLoginReward);
