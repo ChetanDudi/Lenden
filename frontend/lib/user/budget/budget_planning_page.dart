@@ -447,7 +447,7 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                 ),
                 // Body
                 Expanded(
-                  child: !session.isSubscribed
+                  child: !session.hasFeature('budget_planning')
                       ? const BudgetPremiumGate()
                       : _isLoading
                           ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))

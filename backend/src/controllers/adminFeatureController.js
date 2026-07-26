@@ -340,6 +340,24 @@ exports.reactivateUserSubscription = async (req, res) => {
             },
             { new: true }
         );
+
+        // Pause any active "bridge" subscriptions the user got while this plan was deactivated.
+        // They will auto-resume once this reactivated plan expires.
+        const bridgingSubs = await Subscription.find({
+            user: sub.user,
+            _id: { $ne: sub._id },
+            status: 'active',
+            adminDeactivated: { $ne: true },
+        });
+        for (const bridge of bridgingSubs) {
+            const pauseNow = new Date();
+            const remainingMs = Math.max(0, (bridge.endDate || pauseNow).getTime() - pauseNow.getTime());
+            const pausedRemainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+            await Subscription.findByIdAndUpdate(bridge._id, {
+                $set: { status: 'paused', pausedAt: pauseNow, pausedRemainingDays, pausedByBridging: true },
+            });
+        }
+
         res.status(200).json({ message: 'Subscription reactivated successfully', subscription: updatedSubscription });
     } catch (error) {
         res.status(500).json({ message: 'Error reactivating subscription' });

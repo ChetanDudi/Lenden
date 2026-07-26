@@ -38,6 +38,7 @@ import 'utils/connectivity_service.dart';
 import 'screens/maintenance_screen.dart';
 import 'widgets/wave_widget.dart' show DeepTopWaveClipper;
 import 'widgets/no_internet_banner.dart';
+import 'user/digitise/subscriptions_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -901,8 +902,12 @@ class _FeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
+  final bool isPremium;
   const _FeatureCard(
-      {required this.icon, required this.title, required this.description});
+      {required this.icon,
+      required this.title,
+      required this.description,
+      this.isPremium = false});
 
   @override
   Widget build(BuildContext context) {
@@ -911,11 +916,17 @@ class _FeatureCard extends StatelessWidget {
       margin: EdgeInsets.symmetric(horizontal: context.sw(8), vertical: context.sh(8)),
       padding: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: isPremium
+            ? const LinearGradient(
+                colors: [Color(0xFFFFB300), Color(0xFFFFF8E1), Color(0xFFFF8F00)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Colors.orange, Colors.white, Colors.green],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(
@@ -937,7 +948,32 @@ class _FeatureCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: AppColors.cyan, size: context.sp(26)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon,
+                    color: isPremium ? const Color(0xFFFFB300) : AppColors.cyan,
+                    size: context.sp(26)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.amber, width: 0.8),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.workspace_premium, size: 9, color: Colors.amber),
+                    const SizedBox(width: 2),
+                    Text(isPremium ? 'Premium' : 'Free',
+                        style: TextStyle(
+                            fontSize: context.sp(8),
+                            color: isPremium ? Colors.amber : Colors.teal,
+                            fontWeight: FontWeight.bold)),
+                  ]),
+                ),
+              ],
+            ),
             SizedBox(height: context.sh(4)),
             Text(title,
                 style: TextStyle(
@@ -998,27 +1034,32 @@ class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
     {
       'icon': Icons.savings_rounded,
       'title': 'Savings Goals',
-      'description': 'Set targets, track progress & hit your goals.'
+      'description': 'Set targets, track progress & hit your goals.',
+      'isPremium': true,
     },
     {
       'icon': Icons.pie_chart_rounded,
       'title': 'Budget Planning',
-      'description': 'Monthly limits by type & category with alerts.'
+      'description': 'Monthly limits by type & category with alerts.',
+      'isPremium': true,
     },
     {
       'icon': Icons.auto_awesome_rounded,
       'title': 'Smart Insights',
-      'description': 'AI-powered spending analysis & predictions.'
+      'description': 'AI-powered spending analysis & predictions.',
+      'isPremium': true,
     },
     {
       'icon': Icons.bar_chart_rounded,
       'title': 'Reports & Analytics',
-      'description': 'Charts, trends & PDF export for any period.'
+      'description': 'Charts, trends & PDF export for any period.',
+      'isPremium': true,
     },
     {
       'icon': Icons.grid_view_rounded,
       'title': 'Spending Heatmap',
-      'description': '13-week visual calendar of your daily spending.'
+      'description': '13-week visual calendar of your daily spending.',
+      'isPremium': true,
     },
     {
       'icon': Icons.people_alt_rounded,
@@ -1033,7 +1074,8 @@ class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
     {
       'icon': Icons.repeat_rounded,
       'title': 'Recurring Transactions',
-      'description': 'Auto-schedule recurring payments & reminders.'
+      'description': 'Auto-schedule recurring payments & reminders.',
+      'isPremium': true,
     },
     {
       'icon': Icons.pin_rounded,
@@ -1048,7 +1090,8 @@ class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
     {
       'icon': Icons.star_rounded,
       'title': 'Ratings',
-      'description': 'Build trust by rating your counterparties.'
+      'description': 'Build trust by rating your counterparties.',
+      'isPremium': true,
     },
     {
       'icon': Icons.local_offer_rounded,
@@ -1059,6 +1102,12 @@ class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
       'icon': Icons.support_agent_rounded,
       'title': '24/7 Support',
       'description': 'In-app help, disputes & live support queries.'
+    },
+    {
+      'icon': Icons.workspace_premium_rounded,
+      'title': 'Go Premium',
+      'description': 'Unlock Insights, Budget, Reports, Goals & more.',
+      'isPremium': true,
     },
   ];
 
@@ -1096,15 +1145,23 @@ class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
       itemBuilder: (context, i) {
         final feature = _features[i];
         final isActive = i == _currentPage;
+        final card = _FeatureCard(
+          icon: feature['icon'],
+          title: feature['title'],
+          description: feature['description'],
+          isPremium: (feature['isPremium'] as bool?) ?? false,
+        );
         return Transform.scale(
           scale: isActive ? 1.08 : 0.92,
           child: Opacity(
             opacity: isActive ? 1 : 0.7,
-            child: _FeatureCard(
-              icon: feature['icon'],
-              title: feature['title'],
-              description: feature['description'],
-            ),
+            child: feature['title'] == 'Go Premium'
+                ? GestureDetector(
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
+                    child: card,
+                  )
+                : card,
           ),
         );
       },

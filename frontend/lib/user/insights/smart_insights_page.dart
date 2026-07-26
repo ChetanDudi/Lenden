@@ -377,7 +377,7 @@ class _SmartInsightsPageState extends State<SmartInsightsPage>
                 ),
                 // Body
                 Expanded(
-                  child: !session.isSubscribed
+                  child: !session.hasFeature('smart_insights')
                       ? const InsightsPremiumGate()
                       : _isLoading
                           ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))

@@ -8,7 +8,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'expired'],
+        enum: ['active', 'expired', 'paused'],
         default: 'active'
     },
     subscribed: {
@@ -82,7 +82,11 @@ const subscriptionSchema = new mongoose.Schema({
         type: { type: String, enum: ['deactivated', 'reactivated'] },
         at: { type: Date },
         reason: { type: String, default: null }
-    }]
+    }],
+    // Paused because a previously deactivated plan was reactivated and takes priority
+    pausedByBridging: { type: Boolean, default: false },
+    pausedAt: { type: Date, default: null },
+    pausedRemainingDays: { type: Number, default: null },
 }, { timestamps: true });
 
 // Partial unique index: only enforces uniqueness where razorpayPaymentId is an

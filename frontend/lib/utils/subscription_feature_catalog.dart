@@ -19,6 +19,9 @@ const List<SubscriptionFeature> kSubscriptionFeatures = [
   SubscriptionFeature('group_chat', 'feature_group_chat_label', Icons.forum),
   SubscriptionFeature('discover', 'feature_discover_label', Icons.person_search),
   SubscriptionFeature('view_rankings', 'feature_view_rankings_label', Icons.leaderboard),
+  SubscriptionFeature('reports', 'feature_reports_label', Icons.bar_chart),
+  SubscriptionFeature('budget_planning', 'feature_budget_planning_label', Icons.pie_chart),
+  SubscriptionFeature('smart_insights', 'feature_smart_insights_label', Icons.auto_awesome),
 ];
 
 List<String> get kAllSubscriptionFeatureKeys =>

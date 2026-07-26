@@ -115,6 +115,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   String? _plansError;
   String? _benefitsError;
   String? _faqsError;
+  bool _heroExpanded = false;
   bool _isPayingViaWallet = false;
   bool _isTogglingAutoRenew = false;
   bool _showRenewalSection = false;
@@ -1798,6 +1799,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     final t = AppLocalizations.of(context).t;
     return Column(
       children: [
+        // Primary: LenDen Wallet (gradient)
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -1816,19 +1818,36 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             ],
           ),
           child: ElevatedButton.icon(
-            onPressed: onRazorpay,
+            onPressed: onWallet,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               disabledBackgroundColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            icon: const Icon(Icons.payment_rounded, color: Colors.white),
-            label: Text(
-              razorpayLabel,
-              style: const TextStyle(
-                  fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            icon: _isPayingViaWallet
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                : const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
+            label: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isPayingViaWallet ? t('processing_ellipsis_label') : walletLabel,
+                  style: const TextStyle(
+                      fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                if (!_isPayingViaWallet)
+                  Text(
+                    t('balance_amount_message')
+                        .replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)),
+                    style: const TextStyle(fontSize: 11, color: Colors.white70),
+                  ),
+              ],
             ),
           ),
         ),
@@ -1846,6 +1865,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           Expanded(child: Divider(thickness: 1, color: AppThemeColors.divider(context))),
         ]),
         const SizedBox(height: 14),
+        // Secondary: Razorpay (outlined)
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -1854,35 +1874,19 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             border: Border.all(color: AppColors.cyan, width: 1.5),
           ),
           child: ElevatedButton.icon(
-            onPressed: onWallet,
+            onPressed: onRazorpay,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              disabledBackgroundColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            icon: _isPayingViaWallet
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.cyan))
-                : const Icon(Icons.account_balance_wallet_rounded, color: AppColors.cyan),
-            label: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isPayingViaWallet ? t('processing_ellipsis_label') : walletLabel,
-                  style: const TextStyle(
-                      fontSize: 15, color: AppColors.cyan, fontWeight: FontWeight.bold),
-                ),
-                if (!_isPayingViaWallet)
-                  Text(
-                    t('balance_amount_message')
-                        .replaceFirst('{amount}', _walletBalance.toStringAsFixed(2)),
-                    style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context)),
-                  ),
-              ],
+            icon: const Icon(Icons.payment_rounded, color: AppColors.cyan),
+            label: Text(
+              razorpayLabel,
+              style: const TextStyle(
+                  fontSize: 16, color: AppColors.cyan, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -2569,19 +2573,63 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
   Widget _buildPremiumHero() {
     final t = AppLocalizations.of(context).t;
+    const featureColors = {
+      'quick_transactions':  Color(0xFFFFA000),
+      'secure_transactions': Color(0xFF00897B),
+      'group_creation':      Color(0xFF1E88E5),
+      'group_expenses':      Color(0xFFE53935),
+      'private_chat':        Color(0xFF8E24AA),
+      'group_chat':          Color(0xFF3949AB),
+      'discover':            Color(0xFF00ACC1),
+      'view_rankings':       Color(0xFF43A047),
+      'reports':             Color(0xFFD81B60),
+      'budget_planning':     Color(0xFF6D4C41),
+      'smart_insights':      Color(0xFF5E35B1),
+    };
+    final visible = _heroExpanded ? kSubscriptionFeatures : kSubscriptionFeatures.take(4).toList();
+    final remaining = kSubscriptionFeatures.length - 4;
+
+    final isDark = AppThemeColors.isDark(context);
+    final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary = isDark ? Colors.white70 : Colors.black54;
+
+    Widget featureTile(f) {
+      final color = featureColors[f.key] ?? AppColors.cyan;
+      final label = t(f.labelKey).split(' ').take(2).join('\n');
+      return Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 52, height: 52,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(f.icon, size: 24, color: color),
+        ),
+        const SizedBox(height: 6),
+        Text(label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 9, height: 1.2,
+            color: textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ]);
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.cyan, AppColors.blue],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: cardBg,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: AppColors.cyan.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -2593,36 +2641,59 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
+              color: AppColors.cyan.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 28),
+            child: const Icon(Icons.workspace_premium_rounded, color: AppColors.cyan, size: 28),
           ),
           const SizedBox(height: 14),
           Text(t('unlock_premium_title'),
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              style: TextStyle(color: textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Text(t('unlock_premium_subtitle'),
-              style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: kSubscriptionFeatures.take(4).map((f) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(f.icon, size: 13, color: Colors.white),
-                    const SizedBox(width: 5),
-                    Text(t(f.labelKey),
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                  ]),
-                )).toList(),
+              style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4)),
+          const SizedBox(height: 18),
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 14,
+            childAspectRatio: 0.82,
+            children: visible.map((f) => featureTile(f)).toList(),
           ),
+          if (!_heroExpanded) ...[
+            const SizedBox(height: 14),
+            GestureDetector(
+              onTap: () => setState(() => _heroExpanded = true),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.cyan.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25)),
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text('+$remaining more features',
+                    style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.cyan, size: 18),
+                ]),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 14),
+            GestureDetector(
+              onTap: () => setState(() => _heroExpanded = false),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('Show less',
+                  style: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 4),
+                Icon(Icons.keyboard_arrow_up_rounded, color: textSecondary, size: 16),
+              ]),
+            ),
+          ],
         ],
       ),
     );
@@ -2792,36 +2863,45 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                       ),
                     ),
                   ],
-                  if (plan.allowedFeatures.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 38),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: kSubscriptionFeatures
-                            .where((f) => plan.allowedFeatures.contains(f.key))
-                            .map((f) => Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cyan.withValues(alpha: isDark ? 0.18 : 0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                    Icon(f.icon, size: 11, color: AppColors.cyan),
-                                    const SizedBox(width: 4),
-                                    Text(t(f.labelKey),
-                                        style: const TextStyle(
-                                            fontSize: 10,
-                                            color: AppColors.cyan,
-                                            fontWeight: FontWeight.w600)),
-                                  ]),
-                                ))
-                            .toList(),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: plan.allowedFeatures.isEmpty
+                        ? null
+                        : () => _showUserFeaturesSheet(context, plan, t),
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 38),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white.withValues(alpha: 0.92)
+                            : AppColors.cyan.withValues(alpha: isDark ? 0.15 : 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.cyan.withValues(alpha: 0.3),
+                        ),
                       ),
+                      child: Row(children: [
+                        Icon(Icons.apps_rounded, size: 14, color: AppColors.cyan),
+                        const SizedBox(width: 6),
+                        Text(
+                          plan.allowedFeatures.isEmpty
+                              ? t('no_features_selected_message')
+                              : '${plan.allowedFeatures.length} features included',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.cyan,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (plan.allowedFeatures.isNotEmpty)
+                          const Icon(Icons.chevron_right_rounded, size: 14,
+                              color: AppColors.cyan),
+                      ]),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -3005,41 +3085,184 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     );
   }
 
+  void _showUserFeaturesSheet(BuildContext context, SubscriptionPlan plan, String Function(String) t) {
+    const featureColors = {
+      'quick_transactions':  Color(0xFFFFA000),
+      'secure_transactions': Color(0xFF00897B),
+      'group_creation':      Color(0xFF1E88E5),
+      'group_expenses':      Color(0xFFE53935),
+      'private_chat':        Color(0xFF8E24AA),
+      'group_chat':          Color(0xFF3949AB),
+      'discover':            Color(0xFF00ACC1),
+      'view_rankings':       Color(0xFF43A047),
+      'reports':             Color(0xFFD81B60),
+      'budget_planning':     Color(0xFF6D4C41),
+      'smart_insights':      Color(0xFF5E35B1),
+    };
+
+    final included = kSubscriptionFeatures
+        .where((f) => plan.allowedFeatures.contains(f.key))
+        .toList();
+    if (included.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.65),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              decoration: BoxDecoration(
+                color: AppThemeColors.divider(ctx),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Row(children: [
+                const Icon(Icons.workspace_premium_rounded, size: 20, color: Colors.amber),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(plan.name,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(ctx))),
+                    Text('${included.length} premium feature${included.length == 1 ? '' : 's'} unlocked',
+                        style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(ctx))),
+                  ]),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFFFFB300), Color(0xFFFF8F00)]),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text('${included.length} / ${kSubscriptionFeatures.length}',
+                      style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ]),
+            ),
+            const Divider(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                child: GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 14,
+                  children: included.map((f) {
+                    final color = featureColors[f.key] ?? AppColors.cyan;
+                    return Column(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        width: 56, height: 56,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35),
+                              blurRadius: 8, offset: const Offset(0, 3))],
+                        ),
+                        child: Icon(f.icon, size: 26, color: Colors.white),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        t(f.labelKey).split(' ').take(2).join('\n'),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 9.5, height: 1.25, fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(ctx),
+                        ),
+                      ),
+                    ]);
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBenefitItem(int index, String text) {
     final accent = _accentColor(index);
     final isDark = AppThemeColors.isDark(context);
+    final num = '${index + 1}'.padLeft(2, '0');
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppThemeColors.divider(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: accent.withValues(alpha: isDark ? 0.18 : 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-              shape: BoxShape.circle, color: accent.withValues(alpha: isDark ? 0.22 : 0.14)),
-          child: Icon(Icons.check_rounded, color: accent, size: 19),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // Left accent stripe
+            Container(
+              width: 5,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accent, accent.withValues(alpha: 0.45)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            // Card body
+            Expanded(
+              child: Container(
+                color: AppThemeColors.cardBg(context),
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                child: Row(children: [
+                  // Number badge
+                  Container(
+                    width: 34, height: 34,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accent.withValues(alpha: isDark ? 0.20 : 0.12),
+                    ),
+                    child: Center(
+                      child: Text(num,
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.bold, color: accent)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(text,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                            color: AppThemeColors.primaryText(context))),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.workspace_premium_rounded, size: 17, color: Colors.amber.shade600),
+                ]),
+              ),
+            ),
+          ]),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text(text,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppThemeColors.primaryText(context))),
-        ),
-      ]),
+      ),
     );
   }
 

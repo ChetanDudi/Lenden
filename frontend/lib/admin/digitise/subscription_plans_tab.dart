@@ -348,39 +348,36 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                                     ],
                                   ),
                                   SizedBox(height: 10),
-                                  if (plan.allowedFeatures.isEmpty)
-                                    Text(t('no_features_selected_message'),
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            fontStyle: FontStyle.italic,
-                                            color: AppThemeColors.mutedText(
-                                                context)))
-                                  else
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 6,
-                                      children: kSubscriptionFeatures
-                                          .where((f) => plan.allowedFeatures
-                                              .contains(f.key))
-                                          .map((f) => Chip(
-                                                avatar: Icon(f.icon,
-                                                    size: 14,
-                                                    color: AppColors.cyan),
-                                                label: Text(t(f.labelKey),
-                                                    style: const TextStyle(
-                                                        fontSize: 10)),
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                materialTapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
-                                                padding: EdgeInsets.zero,
-                                                backgroundColor:
-                                                    AppColors.cyan
-                                                        .withValues(alpha: 0.1),
-                                              ))
-                                          .toList(),
+                                  GestureDetector(
+                                    onTap: () => _showFeaturesSheet(context, plan, t),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cyan.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25)),
+                                      ),
+                                      child: Row(children: [
+                                        Icon(Icons.apps_rounded, size: 16, color: AppColors.cyan),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          plan.allowedFeatures.isEmpty
+                                              ? t('no_features_selected_message')
+                                              : '${plan.allowedFeatures.length} ${plan.allowedFeatures.length == 1 ? 'feature' : 'features'} included',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: plan.allowedFeatures.isEmpty
+                                                ? AppThemeColors.mutedText(context)
+                                                : AppColors.cyan,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        if (plan.allowedFeatures.isNotEmpty)
+                                          Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.cyan),
+                                      ]),
                                     ),
+                                  ),
                                   SizedBox(height: 10),
                                   Wrap(
                                     spacing: 8,
@@ -433,6 +430,181 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
           ),
         ),
       ),
+    );
+  }
+
+  static const _featureColors = {
+    'quick_transactions':  Color(0xFFFFA000),
+    'secure_transactions': Color(0xFF00897B),
+    'group_creation':      Color(0xFF1E88E5),
+    'group_expenses':      Color(0xFFE53935),
+    'private_chat':        Color(0xFF8E24AA),
+    'group_chat':          Color(0xFF3949AB),
+    'discover':            Color(0xFF00ACC1),
+    'view_rankings':       Color(0xFF43A047),
+    'reports':             Color(0xFFD81B60),
+    'budget_planning':     Color(0xFF6D4C41),
+    'smart_insights':      Color(0xFF5E35B1),
+  };
+
+  void _showFeaturesSheet(BuildContext context, SubscriptionPlan plan, String Function(String) t) {
+    final included = kSubscriptionFeatures
+        .where((f) => plan.allowedFeatures.contains(f.key))
+        .toList();
+    final excluded = kSubscriptionFeatures
+        .where((f) => !plan.allowedFeatures.contains(f.key))
+        .toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.75),
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(ctx),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.divider(ctx),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                child: Row(children: [
+                  Icon(Icons.apps_rounded, size: 20, color: AppColors.cyan),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      plan.name,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(ctx),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${included.length} / ${kSubscriptionFeatures.length}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ]),
+              ),
+              const Divider(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (included.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 12),
+                          child: Text(
+                            'Included in this plan',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppThemeColors.secondaryText(ctx),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        GridView.count(
+                          crossAxisCount: 4,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 14,
+                          children: included.map((f) => _featureTile(ctx, f, t, enabled: true)).toList(),
+                        ),
+                      ],
+                      if (excluded.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, top: 20, bottom: 12),
+                          child: Text(
+                            'Not included',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppThemeColors.mutedText(ctx),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        GridView.count(
+                          crossAxisCount: 4,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 14,
+                          children: excluded.map((f) => _featureTile(ctx, f, t, enabled: false)).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _featureTile(BuildContext ctx, SubscriptionFeature f, String Function(String) t, {required bool enabled}) {
+    final color = _featureColors[f.key] ?? AppColors.cyan;
+    final isDark = AppThemeColors.isDark(ctx);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56, height: 56,
+          decoration: BoxDecoration(
+            color: enabled
+                ? color
+                : (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE)),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: enabled
+                ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))]
+                : [],
+          ),
+          child: Icon(
+            f.icon,
+            size: 26,
+            color: enabled ? Colors.white : AppThemeColors.mutedText(ctx),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          t(f.labelKey).split(' ').take(2).join('\n'),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 9.5,
+            height: 1.25,
+            fontWeight: enabled ? FontWeight.w600 : FontWeight.normal,
+            color: enabled ? AppThemeColors.primaryText(ctx) : AppThemeColors.mutedText(ctx),
+          ),
+        ),
+      ],
     );
   }
 
@@ -554,6 +726,7 @@ class _PlanDialogState extends State<PlanDialog> {
   late int _free;
   late Set<String> _allowedFeatures;
   bool _isSaving = false;
+  String? _featuresError;
 
   @override
   void initState() {
@@ -736,7 +909,7 @@ class _PlanDialogState extends State<PlanDialog> {
                             fontWeight: FontWeight.bold,
                             color: AppThemeColors.primaryText(context)),
                       ),
-                      TextButton(
+                      TextButton.icon(
                         onPressed: () {
                           setState(() {
                             if (_allowedFeatures.length ==
@@ -746,9 +919,22 @@ class _PlanDialogState extends State<PlanDialog> {
                               _allowedFeatures
                                   .addAll(kAllSubscriptionFeatureKeys);
                             }
+                            _featuresError = null;
                           });
                         },
-                        child: Text(t('select_all_label')),
+                        icon: Icon(
+                          _allowedFeatures.length == kSubscriptionFeatures.length
+                              ? Icons.deselect_rounded
+                              : Icons.select_all_rounded,
+                          size: 16,
+                          color: AppColors.cyan,
+                        ),
+                        label: Text(
+                          _allowedFeatures.length == kSubscriptionFeatures.length
+                              ? 'Deselect All'
+                              : 'Select All',
+                          style: const TextStyle(color: AppColors.cyan),
+                        ),
                       ),
                     ],
                   ),
@@ -782,6 +968,7 @@ class _PlanDialogState extends State<PlanDialog> {
                                 } else {
                                   _allowedFeatures.remove(feature.key);
                                 }
+                                if (_allowedFeatures.isNotEmpty) _featuresError = null;
                               });
                             },
                             activeColor: AppColors.cyan,
@@ -795,6 +982,15 @@ class _PlanDialogState extends State<PlanDialog> {
                       ),
                     ),
                   ),
+                  if (_featuresError != null) ...[
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      const Icon(Icons.error_outline, size: 14, color: Colors.red),
+                      const SizedBox(width: 6),
+                      Text(_featuresError!,
+                          style: const TextStyle(fontSize: 12, color: Colors.red)),
+                    ]),
+                  ],
                   SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -834,6 +1030,10 @@ class _PlanDialogState extends State<PlanDialog> {
 
   Future<void> _savePlan() async {
     final t = AppLocalizations.of(context).t;
+    if (_allowedFeatures.isEmpty) {
+      setState(() => _featuresError = 'Select at least one feature — a plan with no features is useless.');
+      return;
+    }
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() {

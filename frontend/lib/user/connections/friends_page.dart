@@ -14,7 +14,7 @@ import '../transaction/group_transactions/create_group_page.dart';
 import '../../widgets/stylish_dialog.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
-import '../digitise/subscriptions_page.dart';
+import '../../widgets/premium_gate.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({Key? key}) : super(key: key);
@@ -2132,49 +2132,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                             Consumer<SessionProvider>(
                               builder: (context, session, _) {
                                 if (!session.isSubscribed) {
-                                  return ListView(
-                                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                                    children: [
-                                      _tricolorBorder(
-                                        child: Container(
-                                          padding: const EdgeInsets.all(22),
-                                          decoration: BoxDecoration(
-                                              color: AppThemeColors.tinted(context,
-                                                  light: const Color(0xFFFFF8F0),
-                                                  dark: const Color(0xFF3A3420)),
-                                              borderRadius: BorderRadius.circular(18)),
-                                          child: Column(children: [
-                                            const Icon(Icons.lock_rounded, size: 48, color: AppColors.cyan),
-                                            const SizedBox(height: 14),
-                                            Text(t('premium_feature_label'),
-                                                style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF0096C7))),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              t('subscribe_to_discover_people'),
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(color: AppThemeColors.secondaryText(context)),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppColors.cyan,
-                                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                              ),
-                                              icon: const Icon(Icons.workspace_premium, color: Colors.amber),
-                                              label: Text(t('subscribe_now_label'),
-                                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                              onPressed: () => Navigator.push(context,
-                                                  MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
-                                            ),
-                                          ]),
-                                        ),
-                                      ),
-                                    ],
-                                  );
+                                  return const DiscoverPremiumGate();
                                 }
                                 return ListView(
                                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),

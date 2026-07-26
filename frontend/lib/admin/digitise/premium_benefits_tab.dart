@@ -132,53 +132,99 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
                       ),
                     )
                   : ListView.builder(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       itemCount: _benefits.length,
                       itemBuilder: (context, index) {
                         final benefit = _benefits[index];
+                        final accentColors = [
+                          const Color(0xFFFB8C00),
+                          const Color(0xFF43A047),
+                          const Color(0xFFD81B60),
+                          const Color(0xFF1E88E5),
+                          const Color(0xFFF9A825),
+                          const Color(0xFF8E24AA),
+                        ];
+                        final accent = accentColors[index % accentColors.length];
+                        final isDark = AppThemeColors.isDark(context);
+                        final num = '${index + 1}'.padLeft(2, '0');
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(2),
+                          margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.orange,
-                                Colors.white,
-                                Colors.green
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: _getCardColor(context, index),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: ListTile(
-                              leading: Icon(Icons.check_circle,
-                                  color: AppColors.cyan, size: 32),
-                              title: Text(benefit.text,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          AppThemeColors.primaryText(context))),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon:
-                                        Icon(Icons.edit, color: AppColors.cyan),
-                                    onPressed: () =>
-                                        _showBenefitDialog(benefit: benefit),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _deleteBenefit(benefit.id),
-                                  ),
-                                ],
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: accent.withValues(alpha: isDark ? 0.18 : 0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: IntrinsicHeight(
+                              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                // Left accent stripe
+                                Container(
+                                  width: 5,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [accent, accent.withValues(alpha: 0.45)],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  ),
+                                ),
+                                // Card body
+                                Expanded(
+                                  child: Container(
+                                    color: _getCardColor(context, index),
+                                    padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+                                    child: Row(children: [
+                                      // Number badge
+                                      Container(
+                                        width: 34, height: 34,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: accent.withValues(alpha: isDark ? 0.22 : 0.14),
+                                        ),
+                                        child: Center(
+                                          child: Text(num,
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: accent)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(benefit.text,
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                height: 1.4,
+                                                color: AppThemeColors.primaryText(context))),
+                                      ),
+                                      // Actions
+                                      Icon(Icons.workspace_premium_rounded,
+                                          size: 16, color: Colors.amber.shade600),
+                                      IconButton(
+                                        icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.cyan),
+                                        onPressed: () => _showBenefitDialog(benefit: benefit),
+                                        tooltip: 'Edit',
+                                        padding: const EdgeInsets.all(6),
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.red),
+                                        onPressed: () => _deleteBenefit(benefit.id),
+                                        tooltip: 'Delete',
+                                        padding: const EdgeInsets.all(6),
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                    ]),
+                                  ),
+                                ),
+                              ]),
                             ),
                           ),
                         );

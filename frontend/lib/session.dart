@@ -35,6 +35,8 @@ class SessionProvider extends ChangeNotifier {
   bool _subscriptionAdminDeactivated = false;
   String? _subscriptionDeactivationReason;
   int? _subscriptionRemainingDays;
+  // null = all features unlocked (legacy / no plan restrictions); List = explicit allow-list
+  List<String>? _allowedFeatures;
 
   int? _freeQuickTransactionsRemaining;
   int? _freeUserTransactionsRemaining;
@@ -50,6 +52,15 @@ class SessionProvider extends ChangeNotifier {
   int? get subscriptionRemainingDays => _subscriptionRemainingDays;
   int? get free => _free;
   bool get autoRenew => _autoRenew;
+  List<String>? get allowedFeatures => _allowedFeatures;
+
+  /// Returns true when the user is subscribed AND their plan includes [featureKey].
+  /// A null allowedFeatures list (legacy plan) grants access to every feature.
+  bool hasFeature(String featureKey) {
+    if (!_isSubscribed) return false;
+    if (_allowedFeatures == null) return true;
+    return _allowedFeatures!.contains(featureKey);
+  }
   int? get freeQuickTransactionsRemaining => _freeQuickTransactionsRemaining;
   int? get freeUserTransactionsRemaining => _freeUserTransactionsRemaining;
   int? get freeGroupsRemaining => _freeGroupsRemaining;
@@ -280,11 +291,14 @@ class SessionProvider extends ChangeNotifier {
           _subscriptionAdminDeactivated = false;
           _subscriptionDeactivationReason = null;
           _subscriptionRemainingDays = null;
+          final af = data['allowedFeatures'];
+          _allowedFeatures = af == null ? null : List<String>.from(af as List);
         } else {
           _subscriptionPlan = data['subscriptionPlan'];
           _subscriptionEndDate = null;
           _free = null;
           _autoRenew = false;
+          _allowedFeatures = null;
           _subscriptionAdminDeactivated = data['adminDeactivated'] == true;
           _subscriptionDeactivationReason = data['deactivationReason']?.toString();
           _subscriptionRemainingDays = data['remainingDays'] is int
@@ -494,6 +508,7 @@ class SessionProvider extends ChangeNotifier {
     _subscriptionHistory = null;
     _free = null;
     _autoRenew = false;
+    _allowedFeatures = null;
     _subscriptionAdminDeactivated = false;
     _subscriptionDeactivationReason = null;
     _subscriptionRemainingDays = null;

@@ -630,7 +630,7 @@ class _ReportsPageState extends State<ReportsPage>
                 ),
                 // Body
                 Expanded(
-                  child: !session.isSubscribed
+                  child: !session.hasFeature('reports')
                       ? const ReportsPremiumGate()
                       : _isLoading
                           ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))

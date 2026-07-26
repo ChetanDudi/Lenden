@@ -2556,6 +2556,9 @@ class AppLocalizations {
       'feature_group_chat_label': 'Unlimited Group Chat Messages',
       'feature_discover_label': 'Discover People You May Know',
       'feature_view_rankings_label': 'View Other Users\' Rankings',
+      'feature_reports_label': 'Full Reports & Analytics',
+      'feature_budget_planning_label': 'Budget Planning & Savings Goals',
+      'feature_smart_insights_label': 'AI Smart Insights & Predictions',
       'plan_includes_label': 'This plan includes',
       'no_features_selected_message': 'No features selected for this plan yet.',
       'select_plan_features_label': 'What does this subscription allow?',
@@ -2577,7 +2580,7 @@ class AppLocalizations {
       'unavailable_label': 'Unavailable',
       'unlock_premium_title': 'Unlock Premium',
       'unlock_premium_subtitle':
-          'Get unlimited quick & secure transactions, groups, chats, rankings and more — ad-free.',
+          'Get unlimited transactions, groups, chats, reports, budgets, AI insights, friend discovery and more — ad-free.',
       'selected_label': 'Selected',
       'expiring_today_message':
           'Your subscription expires today. Renew now to keep your premium features.',
@@ -6673,6 +6676,9 @@ class AppLocalizations {
       'feature_group_chat_label': 'असीमित ग्रुप चैट संदेश',
       'feature_discover_label': 'आपके परिचित लोगों को खोजें',
       'feature_view_rankings_label': 'अन्य उपयोगकर्ताओं की रैंकिंग देखें',
+      'feature_reports_label': 'पूर्ण रिपोर्ट्स और एनालिटिक्स',
+      'feature_budget_planning_label': 'बजट प्लानिंग और बचत लक्ष्य',
+      'feature_smart_insights_label': 'AI स्मार्ट इनसाइट्स और भविष्यवाणियां',
       'plan_includes_label': 'इस प्लान में शामिल है',
       'no_features_selected_message':
           'इस प्लान के लिए अभी तक कोई सुविधा चुनी नहीं गई है।',
@@ -6696,7 +6702,7 @@ class AppLocalizations {
       'unavailable_label': 'अनुपलब्ध',
       'unlock_premium_title': 'प्रीमियम अनलॉक करें',
       'unlock_premium_subtitle':
-          'असीमित क्विक और सुरक्षित ट्रांजैक्शन, ग्रुप्स, चैट्स, रैंकिंग और भी बहुत कुछ पाएं — बिना विज्ञापन के।',
+          'असीमित ट्रांजैक्शन, ग्रुप्स, चैट्स, रिपोर्ट्स, बजट, AI इनसाइट्स, दोस्त खोज और भी बहुत कुछ पाएं — बिना विज्ञापन के।',
       'selected_label': 'चयनित',
       'expiring_today_message':
           'आपकी सदस्यता आज समाप्त हो रही है। प्रीमियम सुविधाएं बनाए रखने के लिए अभी नवीनीकृत करें।',

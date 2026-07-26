@@ -308,3 +308,22 @@ class InsightsPremiumGate extends StatelessWidget {
     ],
   );
 }
+
+class DiscoverPremiumGate extends StatelessWidget {
+  const DiscoverPremiumGate({super.key});
+
+  @override
+  Widget build(BuildContext context) => PremiumGate(
+    pageTitle: 'Discover',
+    badgeLabel: '🔍 DISCOVER PREMIUM',
+    headline: 'Find & Connect with People',
+    subtext: 'Expand your network with AI-powered friend suggestions based on mutual connections and transactions.',
+    accentColor: AppColors.cyan,
+    features: const [
+      _PremiumFeature(Icons.person_search_rounded, AppColors.cyan, 'People You May Know', 'Smart suggestions based on your mutual contacts'),
+      _PremiumFeature(Icons.hub_outlined, Colors.deepPurple, 'Network Expansion', 'Discover friends-of-friends and common connections'),
+      _PremiumFeature(Icons.star_rounded, Colors.amber, 'Trust Ratings', 'See community ratings before you connect'),
+      _PremiumFeature(Icons.verified_rounded, Colors.teal, 'Verified Profiles', 'Connect with verified LenDen members'),
+    ],
+  );
+}

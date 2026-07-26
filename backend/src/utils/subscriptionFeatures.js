@@ -14,6 +14,9 @@ const FEATURES = {
   GROUP_CHAT: 'group_chat',
   DISCOVER: 'discover',
   VIEW_RANKINGS: 'view_rankings',
+  REPORTS: 'reports',
+  BUDGET_PLANNING: 'budget_planning',
+  SMART_INSIGHTS: 'smart_insights',
 };
 
 const ALL_FEATURE_KEYS = Object.values(FEATURES);

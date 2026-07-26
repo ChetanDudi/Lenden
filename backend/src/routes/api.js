@@ -535,7 +535,7 @@ module.exports = (io) => {
   // Outgoing wallet payments — every route below is gated by walletAuthMiddleware
   // which requires either authPin (transaction PIN) or authOtp (email OTP).
   router.post('/wallet/qr-pay', auth, walletAuthMiddleware, walletController.qrPay);
-  router.post('/wallet/pay-subscription', auth, walletAuthMiddleware, walletController.paySubscription);
+  router.post('/wallet/pay-subscription', auth, walletController.paySubscription);
 
   // Real-money wallet top-up via the Razorpay Payment Handle link
   router.post('/wallet/topup/manual/verify', auth, manualPaymentVerifyLimiter, walletController.verifyManualTopUp);
