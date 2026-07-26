@@ -685,6 +685,18 @@ exports.getInsights = async (req, res) => {
     const financialPersonality = { personality, emoji: personalityEmoji, description: personalityDesc, topCategory: topCatName };
 
     // ── Personal timeline (monthly summary, last 6 months) ────────────────────
+    // Batch-load all 6 months of budget records in one query instead of N+1 findOne calls
+    const timelineMonths = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return { year: d.getFullYear(), month: d.getMonth() + 1 };
+    });
+    const timelineBudgets = await Budget.find({
+      user: userId,
+      $or: timelineMonths.map(({ year, month }) => ({ year, month })),
+    }).lean();
+    const budgetByYM = {};
+    for (const b of timelineBudgets) budgetByYM[`${b.year}-${b.month}`] = b;
+
     const personalTimeline = [];
     for (let i = 5; i >= 0; i--) {
       const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -693,7 +705,7 @@ exports.getInsights = async (req, res) => {
         const d = new Date(t.date || t.createdAt);
         return d >= mStart && d <= mEnd;
       });
-      const mBudget = await Budget.findOne({ user: userId, year: mStart.getFullYear(), month: mStart.getMonth() + 1 }).lean();
+      const mBudget = budgetByYM[`${mStart.getFullYear()}-${mStart.getMonth() + 1}`];
       const mSpent = mTxns.reduce((s, t) => s + (t.amount || 0), 0);
       const mOverall = mBudget?.limits?.overall ?? null;
       const mSaved  = mOverall ? Math.max(0, mOverall - mSpent) : null;

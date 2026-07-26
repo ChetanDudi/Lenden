@@ -2190,7 +2190,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   Future<void> _openCreateSecureTransaction() async {
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('secure_transactions')) {
       int? dailyRemaining;
       await Future.wait([
         session.loadFreebieCounts(),

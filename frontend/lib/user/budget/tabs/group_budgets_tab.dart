@@ -118,7 +118,7 @@ class _GroupBudgetsTabState extends State<GroupBudgetsTab> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('budget_planning')) {
       return const PremiumTabGate(
         featureName: 'Group Budgets',
         description:

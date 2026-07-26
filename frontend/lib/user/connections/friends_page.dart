@@ -765,7 +765,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   Future<void> _openUserTransaction(String email) async {
     if (_isBlockedEmail(email)) { showBlockedUserDialog(context); return; }
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('secure_transactions')) {
       int? dailyRemaining;
       await Future.wait([
         session.loadFreebieCounts(),
@@ -805,7 +805,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     if (_selectedForGroup.isEmpty) return;
     if (_selectedForGroup.any(_isBlockedEmail)) { showBlockedUserDialog(context); return; }
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('group_creation')) {
       int? dailyRemaining;
       await Future.wait([
         session.loadFreebieCounts(),
@@ -951,7 +951,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final color = _avatarColor(displayName);
     final avgRating = friend['avgRating'] as num?;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final canSeeRatings = session.isSubscribed && !session.subscriptionAdminDeactivated;
+    final canSeeRatings = session.hasFeature('view_rankings') && !session.subscriptionAdminDeactivated;
     final isBirthdayToday = _birthdayFriends.any(
         (b) => b['_id']?.toString() == friendId && (b['daysUntil'] ?? 99) == 0);
 
@@ -1302,7 +1302,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final personId = (person['_id'] ?? '').toString();
     final avgRating = person['avgRating'] as num?;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final canSeeRatings = session.isSubscribed && !session.subscriptionAdminDeactivated;
+    final canSeeRatings = session.hasFeature('view_rankings') && !session.subscriptionAdminDeactivated;
 
     return _tricolorBorder(
       child: Container(
@@ -2131,7 +2131,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                             // ── Tab 4: Discover ─────────────────────────────
                             Consumer<SessionProvider>(
                               builder: (context, session, _) {
-                                if (!session.isSubscribed) {
+                                if (!session.hasFeature('discover')) {
                                   return const DiscoverPremiumGate();
                                 }
                                 return ListView(

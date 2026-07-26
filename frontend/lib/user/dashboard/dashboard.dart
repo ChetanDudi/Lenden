@@ -467,7 +467,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
   Future<void> showTransactionForm() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('secure_transactions')) {
       int? dailyRemaining;
       await Future.wait([
         session.loadFreebieCounts(),

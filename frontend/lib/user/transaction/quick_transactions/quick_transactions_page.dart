@@ -137,7 +137,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
 
   Future<void> _loadDailyLimits() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.hasFeature('quick_transactions')) return;
     try {
       final res = await ApiClient.get('/api/limits/daily');
       if (res.statusCode == 200) {
@@ -507,7 +507,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     if (_blockedEmails.isEmpty) {
       await _loadBlockedUsers();
     }
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('quick_transactions')) {
       await Future.wait([
         session.loadFreebieCounts(),
         _loadDailyLimits(),
@@ -522,7 +522,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
 
     // Rule: if daily limit is expired → hard block; free attempts are also paused.
-    if (!session.isSubscribed &&
+    if (!session.hasFeature('quick_transactions') &&
         transaction == null &&
         dailyQuickRemaining != null &&
         dailyQuickRemaining <= 0) {
@@ -533,7 +533,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     }
 
     // Daily limit OK but free attempts exhausted → offer coins.
-    final shouldUseCoins = !session.isSubscribed &&
+    final shouldUseCoins = !session.hasFeature('quick_transactions') &&
         transaction == null &&
         (session.freeQuickTransactionsRemaining ?? 0) <= 0;
 
@@ -568,7 +568,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           blockedEmails: _blockedEmails,
           dailyRemaining: _dailyLimits?['limits']?['quickTransactions']
               ?['remaining'],
-          isSubscribed: session.isSubscribed,
+          isSubscribed: session.hasFeature('quick_transactions'),
         ),
       ),
     );
@@ -885,7 +885,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     if (_blockedEmails.isEmpty) {
       await _loadBlockedUsers();
     }
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('quick_transactions')) {
       await Future.wait([
         session.loadFreebieCounts(),
         _loadDailyLimits(),
@@ -895,7 +895,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
 
     // Daily limit expired → hard block (free attempts also paused until tomorrow).
-    if (!session.isSubscribed &&
+    if (!session.hasFeature('quick_transactions') &&
         transaction == null &&
         dailyQuickRemaining != null &&
         dailyQuickRemaining <= 0) {
@@ -905,7 +905,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     }
 
     // Daily limit OK but free attempts exhausted → offer coins.
-    final shouldUseCoins = !session.isSubscribed &&
+    final shouldUseCoins = !session.hasFeature('quick_transactions') &&
         transaction == null &&
         (session.freeQuickTransactionsRemaining ?? 0) <= 0;
 
@@ -938,7 +938,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           blockedEmails: _blockedEmails,
           dailyRemaining: _dailyLimits?['limits']?['quickTransactions']
               ?['remaining'],
-          isSubscribed: session.isSubscribed,
+          isSubscribed: session.hasFeature('quick_transactions'),
         ),
       ),
     );
@@ -1892,7 +1892,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 ),
                 Consumer<SessionProvider>(
                   builder: (context, session, child) {
-                    if (session.isSubscribed) {
+                    if (session.hasFeature('quick_transactions')) {
                       return Text(t('unlimited_quick_transactions_message'),
                           style: TextStyle(
                               fontSize: 16,

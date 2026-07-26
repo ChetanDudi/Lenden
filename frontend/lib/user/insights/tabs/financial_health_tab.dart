@@ -15,7 +15,7 @@ class FinancialHealthTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('smart_insights')) {
       return const PremiumTabGate(
         featureName: 'Financial Health Score',
         description: 'Get a comprehensive score and breakdown of your financial wellbeing.',

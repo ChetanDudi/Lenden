@@ -16,7 +16,7 @@ class PredictionsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('smart_insights')) {
       return const PremiumTabGate(
         featureName: 'Spending Predictions',
         description: 'AI-powered forecasts for your end-of-month spending based on your habits.',

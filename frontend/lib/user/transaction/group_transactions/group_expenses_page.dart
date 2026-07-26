@@ -997,7 +997,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
 
   Future<void> _fetchDailyExpenseLimit() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.hasFeature('group_expenses')) return;
     try {
       final res = await ApiClient.get(
           '/api/limits/group/${widget.groupId}/expenses');
@@ -1016,13 +1016,13 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   Future<void> _openAddExpense() async {
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('group_expenses')) {
       await Future.wait([
         session.loadFreebieCounts(),
         _fetchDailyExpenseLimit(),
       ]);
     }
-    if (!session.isSubscribed && _dailyExpenseUsed >= _dailyExpenseLimit) {
+    if (!session.hasFeature('group_expenses') && _dailyExpenseUsed >= _dailyExpenseLimit) {
       final coins = session.lenDenCoins ?? 0;
       final useCoins = await showFreeAttemptsExhaustedDialog(
         context,

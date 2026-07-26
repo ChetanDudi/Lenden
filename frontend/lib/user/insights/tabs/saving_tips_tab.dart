@@ -47,7 +47,7 @@ class SavingTipsTab extends StatelessWidget {
         ],
         if (premTips.isNotEmpty) ...[
           const SizedBox(height: 6),
-          if (!session.isSubscribed)
+          if (!session.hasFeature('smart_insights'))
             _buildPremiumTipsTeaser(context, premTips.length)
           else ...[
             Text('Advanced Tips',

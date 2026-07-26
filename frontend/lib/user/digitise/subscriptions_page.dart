@@ -837,16 +837,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
       // Status filter
       bool matchesFilter = true;
       final isAdminDeactivated = sub['adminDeactivated'] == true;
+      final isBridgingPaused = !isAdminDeactivated && sub['status'] == 'paused' && sub['pausedByBridging'] == true;
       if (_filterOption == 'Active') {
         final endDate = DateTime.parse(sub['endDate']);
-        // Admin-paused subs count as "active" from the user's perspective — they
-        // still have remaining days, they're just temporarily paused by admin.
-        matchesFilter = isAdminDeactivated ||
+        // Admin-paused and bridging-paused subs count as "active" — they have remaining days.
+        matchesFilter = isAdminDeactivated || isBridgingPaused ||
             (sub['status'] == 'active' && endDate.isAfter(DateTime.now()));
       } else if (_filterOption == 'Expired') {
         final endDate = DateTime.parse(sub['endDate']);
-        // Exclude admin-paused from 'Expired' — they are not expired, just paused.
-        matchesFilter = !isAdminDeactivated &&
+        // Exclude admin-paused and bridging-paused from 'Expired'.
+        matchesFilter = !isAdminDeactivated && !isBridgingPaused &&
             (sub['status'] == 'expired' || endDate.isBefore(DateTime.now()));
       }
 
@@ -1072,9 +1072,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             final subId = sub['_id']?.toString() ?? '';
             final endDate = DateTime.parse(sub['endDate']);
             final adminDeactivated = sub['adminDeactivated'] == true;
+            final isPausedBridging = !adminDeactivated && sub['status'] == 'paused' && sub['pausedByBridging'] == true;
             final isActive =
-                !adminDeactivated && sub['status'] == 'active' && endDate.isAfter(DateTime.now());
-            final isExpired = !adminDeactivated && !isActive;
+                !adminDeactivated && !isPausedBridging && sub['status'] == 'active' && endDate.isAfter(DateTime.now());
+            final isExpired = !adminDeactivated && !isPausedBridging && !isActive;
             final deactivationReason = sub['deactivationReason']?.toString();
             // Build ordered event list merging all sources:
             //  • adminEvents array  — set by new code, one entry per cycle
@@ -1144,9 +1145,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
 
             final statusColor = adminDeactivated
                 ? Colors.orange
-                : isActive
-                    ? const Color(0xFF2E7D32)
-                    : AppThemeColors.mutedText(context);
+                : isPausedBridging
+                    ? Colors.deepPurple
+                    : isActive
+                        ? const Color(0xFF2E7D32)
+                        : AppThemeColors.mutedText(context);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -1172,9 +1175,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                         width: 5,
                         color: adminDeactivated
                             ? Colors.orange
-                            : isActive
-                                ? const Color(0xFF43A047)
-                                : AppThemeColors.divider(context),
+                            : isPausedBridging
+                                ? Colors.deepPurple
+                                : isActive
+                                    ? const Color(0xFF43A047)
+                                    : AppThemeColors.divider(context),
                       ),
                       Expanded(
                         child: Padding(
@@ -1186,9 +1191,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                               Icon(
                                 adminDeactivated
                                     ? Icons.pause_circle_filled_rounded
-                                    : isActive
-                                        ? Icons.check_circle_rounded
-                                        : Icons.history_rounded,
+                                    : isPausedBridging
+                                        ? Icons.hourglass_top_rounded
+                                        : isActive
+                                            ? Icons.check_circle_rounded
+                                            : Icons.history_rounded,
                                 color: statusColor,
                                 size: 26,
                               ),
@@ -1219,9 +1226,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                                             child: Text(
                                               adminDeactivated
                                                   ? t('subscription_paused_label').toUpperCase()
-                                                  : isActive
-                                                      ? t('active_caps_label')
-                                                      : t('expired_caps_label'),
+                                                  : isPausedBridging
+                                                      ? 'QUEUED'
+                                                      : isActive
+                                                          ? t('active_caps_label')
+                                                          : t('expired_caps_label'),
                                               style: TextStyle(
                                                   fontSize: 9.5,
                                                   fontWeight: FontWeight.bold,
@@ -1236,18 +1245,22 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                                             ? t('subscription_admin_paused_days_label')
                                                 .replaceFirst('{days}',
                                                     '${((sub['deactivatedAt'] != null && sub['endDate'] != null) ? (DateTime.tryParse(sub['endDate'].toString())?.difference(DateTime.tryParse(sub['deactivatedAt'].toString()) ?? DateTime.now()).inDays ?? 0).clamp(0, 99999) : 0)}')
-                                            : isActive
-                                                ? t('active_until_message').replaceFirst(
-                                                    '{date}',
-                                                    endDate.toLocal().toString().substring(0, 10))
-                                                : t('expired_on_message').replaceFirst(
-                                                    '{date}',
-                                                    endDate.toLocal().toString().substring(0, 10)),
+                                            : isPausedBridging
+                                                ? 'Queued — resumes automatically (${sub['pausedRemainingDays'] ?? 0} days remaining)'
+                                                : isActive
+                                                    ? t('active_until_message').replaceFirst(
+                                                        '{date}',
+                                                        endDate.toLocal().toString().substring(0, 10))
+                                                    : t('expired_on_message').replaceFirst(
+                                                        '{date}',
+                                                        endDate.toLocal().toString().substring(0, 10)),
                                         style: TextStyle(
                                             fontSize: 11.5,
                                             color: adminDeactivated
                                                 ? Colors.orange[700]
-                                                : AppThemeColors.secondaryText(context)),
+                                                : isPausedBridging
+                                                    ? Colors.deepPurple[400]
+                                                    : AppThemeColors.secondaryText(context)),
                                       ),
                                       if (adminDeactivated && deactivationReason != null && deactivationReason.isNotEmpty) ...[
                                         const SizedBox(height: 4),

@@ -23,6 +23,8 @@ const budgetSchema = new mongoose.Schema({
   groupLimits: { type: Map, of: Number, default: {} },
   alertThresholds: { type: [Number], default: [75, 90, 100] },
   rolloverApplied: { type: Number, default: null },
+  adminOverride: { type: Boolean, default: false },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
 }, { timestamps: true });
 
 budgetSchema.index({ user: 1, year: 1, month: 1 }, { unique: true });

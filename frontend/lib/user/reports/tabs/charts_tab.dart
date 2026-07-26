@@ -23,7 +23,7 @@ class _ChartsTabState extends State<ChartsTab> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('reports')) {
       return const PremiumTabGate(
         featureName: 'Advanced Charts',
         description: 'GitHub-style spending heatmap, cash-flow timeline, and visual drill-downs.',

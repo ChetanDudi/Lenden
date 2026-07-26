@@ -41,7 +41,7 @@ class _RecurringTabState extends State<RecurringTab> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('budget_planning')) {
       return const PremiumTabGate(
         featureName: 'Recurring Expenses',
         description: 'Track fixed monthly costs like rent, EMIs, subscriptions and loan repayments.',

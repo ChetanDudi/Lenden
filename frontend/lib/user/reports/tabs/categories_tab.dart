@@ -23,7 +23,7 @@ class _CategoriesTabState extends State<CategoriesTab> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('reports')) {
       return const PremiumTabGate(
         featureName: 'Category Analytics',
         description: 'See how you spend across every category with detailed drill-downs and trends.',

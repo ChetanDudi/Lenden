@@ -246,7 +246,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Future<void> _fetchDailyMessageLimit() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.hasFeature('group_chat')) return;
     try {
       final res = await ApiClient.get(
           '/api/limits/group/${widget.groupTransactionId}/messages');
@@ -443,7 +443,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
     final session = Provider.of<SessionProvider>(context, listen: false);
 
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('group_chat')) {
       if (_dailyMessageUsed >= _dailyMessageLimit) {
         showDailyLimitDialog(context,
             message:
@@ -1460,7 +1460,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                             fontSize: 16)),
                     Consumer<SessionProvider>(
                       builder: (context, session, child) {
-                        if (session.isSubscribed) {
+                        if (session.hasFeature('group_chat')) {
                           return SizedBox.shrink();
                         }
                         return const Text(
@@ -1902,7 +1902,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Widget _buildDailyLimitPill() {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return SizedBox.shrink();
+    if (session.hasFeature('group_chat')) return SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

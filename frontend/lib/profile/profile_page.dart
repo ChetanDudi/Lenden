@@ -223,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   if (memberSince.isNotEmpty)
                     _profileField(Icons.calendar_today, t('member_since'),
                         memberSinceDisplay),
-                  if (avgRating.isNotEmpty && (isViewingOwnProfile || session.isSubscribed))
+                  if (avgRating.isNotEmpty && (isViewingOwnProfile || session.hasFeature('view_rankings')))
                     Row(
                       children: [
                         Expanded(

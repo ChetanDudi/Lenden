@@ -91,7 +91,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _fetchDailyMessageLimit() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.hasFeature('private_chat')) return;
     try {
       final res = await ApiClient.get(
           '/api/limits/transaction/${widget.transactionId}/messages');
@@ -262,11 +262,11 @@ class _ChatPageState extends State<ChatPage> {
 
     final session = Provider.of<SessionProvider>(context, listen: false);
     final dailyLimitReached =
-        !session.isSubscribed && _dailyMessageUsed >= _dailyMessageLimit;
+        !session.hasFeature('private_chat') && _dailyMessageUsed >= _dailyMessageLimit;
     final remainingFree = 5 - (_messageCounts[_currentUserId] ?? 0);
     const int messageCost = 5;
 
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('private_chat')) {
       // Daily limit expired → hard block; free messages also paused until tomorrow.
       if (dailyLimitReached) {
         showDailyLimitDialog(context,
@@ -919,7 +919,7 @@ class _ChatPageState extends State<ChatPage> {
                             const SizedBox(height: 2),
                             Consumer<SessionProvider>(
                               builder: (context, session, child) {
-                                if (session.isSubscribed) {
+                                if (session.hasFeature('private_chat')) {
                                   return const SizedBox.shrink();
                                 }
                                 return Row(
@@ -1221,7 +1221,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildDailyLimitPill() {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return SizedBox.shrink();
+    if (session.hasFeature('private_chat')) return SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

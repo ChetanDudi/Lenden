@@ -31,31 +31,36 @@ exports.getPlatformInsights = async (req, res) => {
     const lastTotal = [...quickLastMonth, ...secureLastMonth].reduce((s, t) => s + (t.amount || 0), 0);
     const volumeChange = lastTotal > 0 ? Math.round(((thisTotal - lastTotal) / lastTotal) * 100) : null;
 
-    // Avg health score proxy: users with budgets who are under limit
-    const userIds = budgetsThisMonth.map(b => b.user?.toString()).filter(Boolean);
-    const spendMap = {};
-    for (const t of [...quickThisMonth, ...secureThisMonth]) {
-      const uid = (t.user || t.userId)?.toString();
-      if (uid) spendMap[uid] = (spendMap[uid] || 0) + (t.amount || 0);
+    // Build correct spend maps: QuickTransaction uses creatorEmail, Transaction uses user ObjectId
+    const budgetUserObjIds = budgetsThisMonth.map(b => b.user).filter(Boolean);
+    const budgetUserDocs = await User.find({ _id: { $in: budgetUserObjIds } }).select('_id email').lean();
+    const uidToEmail = {};
+    for (const u of budgetUserDocs) uidToEmail[u._id.toString()] = u.email;
+
+    const emailQuickMap = {};
+    for (const t of quickThisMonth) {
+      if (t.creatorEmail) emailQuickMap[t.creatorEmail] = (emailQuickMap[t.creatorEmail] || 0) + (t.amount || 0);
     }
+    const uidSecureMap = {};
+    for (const t of secureThisMonth) {
+      const uid = t.user?.toString();
+      if (uid) uidSecureMap[uid] = (uidSecureMap[uid] || 0) + (t.amount || 0);
+    }
+    const getSpend = (uid) => (emailQuickMap[uidToEmail[uid]] || 0) + (uidSecureMap[uid] || 0);
+
     let underBudget = 0;
+    let anomalyCount = 0;
     for (const b of budgetsThisMonth) {
-      const uid = b.user?.toString();
+      const uid   = b.user?.toString();
+      const spent = getSpend(uid);
       const total = Object.values(b.limits || {}).reduce((s, v) => s + v, 0);
-      if (total > 0 && (spendMap[uid] || 0) <= total) underBudget++;
+      if (total > 0) {
+        if (spent <= total) underBudget++;
+        if (spent > total * 1.5) anomalyCount++;
+      }
     }
     const avgHealthScore = budgetsThisMonth.length > 0
       ? Math.round((underBudget / budgetsThisMonth.length) * 100) : 0;
-
-    // Detect anomaly: spending > 2× the user's monthly average
-    let anomalyCount = 0;
-    for (const [uid, spent] of Object.entries(spendMap)) {
-      const b = budgetsThisMonth.find(b => b.user?.toString() === uid);
-      if (b) {
-        const total = Object.values(b.limits || {}).reduce((s, v) => s + v, 0);
-        if (total > 0 && spent > total * 1.5) anomalyCount++;
-      }
-    }
 
     // Category breakdown this month
     const catMap = {};
@@ -106,16 +111,20 @@ exports.getHealthScores = async (req, res) => {
     const budgetMap = {};
     for (const b of budgets) budgetMap[b.user?.toString()] = b;
 
-    const spendMap = {};
-    for (const t of [...quickTxns, ...secureTxns]) {
-      const uid = (t.user || t.userId)?.toString();
-      if (uid) spendMap[uid] = (spendMap[uid] || 0) + (t.amount || 0);
+    const emailQuickMap = {};
+    for (const t of quickTxns) {
+      if (t.creatorEmail) emailQuickMap[t.creatorEmail] = (emailQuickMap[t.creatorEmail] || 0) + (t.amount || 0);
+    }
+    const uidSecureMap = {};
+    for (const t of secureTxns) {
+      const uid = t.user?.toString();
+      if (uid) uidSecureMap[uid] = (uidSecureMap[uid] || 0) + (t.amount || 0);
     }
 
     const scored = users.map(u => {
       const uid    = u._id.toString();
       const budget = budgetMap[uid];
-      const spent  = spendMap[uid] || 0;
+      const spent  = (emailQuickMap[u.email] || 0) + (uidSecureMap[uid] || 0);
       const total  = budget ? Object.values(budget.limits || {}).reduce((s, v) => s + v, 0) : 0;
 
       let score = 50;
@@ -158,33 +167,42 @@ exports.getAnomalies = async (req, res) => {
     const lastStart  = new Date(year, month - 2, 1);
     const lastEnd    = new Date(year, month - 1, 0, 23, 59, 59, 999);
 
-    const [budgets, quickThis, secureThis, quickLast, secureLast] = await Promise.all([
+    const [budgets, quickThis, secureThis, quickLast, secureLast, allUsers] = await Promise.all([
       Budget.find({ year, month }).lean(),
       QuickTransaction.find({ date: { $gte: monthStart } }).lean(),
       Transaction.find({ createdAt: { $gte: monthStart } }).lean(),
       QuickTransaction.find({ date: { $gte: lastStart, $lte: lastEnd } }).lean(),
       Transaction.find({ createdAt: { $gte: lastStart, $lte: lastEnd } }).lean(),
+      User.find({ role: { $ne: 'admin' } }).select('_id name email').lean(),
     ]);
 
-    const buildSpend = (txns) => {
+    const emailToUid = {};
+    const userMap = {};
+    for (const u of allUsers) {
+      emailToUid[u.email] = u._id.toString();
+      userMap[u._id.toString()] = u;
+    }
+
+    // Build uid-keyed spend maps (quick via email→uid translation, secure via user ObjectId)
+    const buildSpend = (quickTxns, secureTxns) => {
       const m = {};
-      for (const t of txns) {
-        const uid = (t.user || t.userId)?.toString();
+      for (const t of quickTxns) {
+        const uid = t.creatorEmail ? emailToUid[t.creatorEmail] : null;
+        if (uid) m[uid] = (m[uid] || 0) + (t.amount || 0);
+      }
+      for (const t of secureTxns) {
+        const uid = t.user?.toString();
         if (uid) m[uid] = (m[uid] || 0) + (t.amount || 0);
       }
       return m;
     };
 
-    const thisSpend = buildSpend([...quickThis, ...secureThis]);
-    const lastSpend = buildSpend([...quickLast, ...secureLast]);
+    const thisSpend = buildSpend(quickThis, secureThis);
+    const lastSpend = buildSpend(quickLast, secureLast);
 
     const userIds = Array.from(new Set([
       ...Object.keys(thisSpend), ...Object.keys(lastSpend),
     ]));
-
-    const users = await User.find({ _id: { $in: userIds } }).select('name email').lean();
-    const userMap = {};
-    for (const u of users) userMap[u._id.toString()] = u;
 
     const budgetMap = {};
     for (const b of budgets) budgetMap[b.user?.toString()] = b;

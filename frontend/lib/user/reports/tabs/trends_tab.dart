@@ -17,7 +17,7 @@ class TrendsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('reports')) {
       return const PremiumTabGate(
         featureName: 'Spending Trends',
         description: 'Monthly trend analysis, weekly comparison charts, and AI-driven spending insights.',

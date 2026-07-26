@@ -27,7 +27,7 @@ class GoalsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('budget_planning')) {
       return const PremiumTabGate(
         featureName: 'Savings Goals',
         description: 'Set multiple savings goals with deadlines, track progress, and get forecasts.',

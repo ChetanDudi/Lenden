@@ -15,7 +15,7 @@ class SubscriptionsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('smart_insights')) {
       return const PremiumTabGate(
         featureName: 'Subscription Tracker',
         description: 'AI detects recurring payments and shows your total subscription spend.',

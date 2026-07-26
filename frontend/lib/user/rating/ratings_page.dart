@@ -800,7 +800,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             child: Consumer<SessionProvider>(
                               builder: (context, session, _) {
-                                if (!session.isSubscribed) {
+                                if (!session.hasFeature('view_rankings')) {
                                   return _tricolorBorder(
                                     child: Container(
                                       padding: const EdgeInsets.all(22),

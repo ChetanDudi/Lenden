@@ -1,4 +1,5 @@
 const SavingsGoal = require('../models/savingsGoal');
+const Notification = require('../models/notification');
 
 exports.getGoals = async (req, res) => {
   try {
@@ -71,9 +72,25 @@ exports.addSavings = async (req, res) => {
     const amount = parseFloat(req.body.amount);
     if (!amount || amount <= 0) return res.status(400).json({ message: 'Amount must be positive' });
 
+    const wasCompleted = goal.isCompleted;
     goal.savedAmount = Math.min(goal.targetAmount, goal.savedAmount + amount);
-    if (goal.savedAmount >= goal.targetAmount) goal.isCompleted = true;
+    const justCompleted = !wasCompleted && goal.savedAmount >= goal.targetAmount;
+    if (justCompleted) goal.isCompleted = true;
     await goal.save();
+
+    if (justCompleted) {
+      Notification.create({
+        sender: goal.user,
+        senderModel: 'User',
+        recipientType: 'specific-users',
+        recipients: [goal.user],
+        recipientModel: 'User',
+        category: 'system',
+        title: 'Goal Achieved!',
+        message: `You've reached your savings goal "${goal.name}" — ₹${goal.targetAmount.toLocaleString('en-IN')} saved!`,
+      }).catch(() => {});
+    }
+
     res.json(goal);
   } catch {
     res.status(500).json({ message: 'Server error' });

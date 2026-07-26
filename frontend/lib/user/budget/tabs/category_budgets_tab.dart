@@ -73,7 +73,7 @@ class _CategoryBudgetsTabState extends State<CategoryBudgetsTab> {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('budget_planning')) {
       return const PremiumTabGate(
         featureName: 'Category Budgets',
         description: 'Set individual spending limits for Food, Shopping, Travel and more.',

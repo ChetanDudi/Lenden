@@ -330,7 +330,7 @@ module.exports = (io) => {
   router.post('/group-transactions/:groupId/settle-member-expenses', auth, groupTransactionController.settleMemberExpenses);
   router.post('/group-transactions/:groupId/self-settle', auth, groupTransactionController.selfSettleExpenses);
   router.post('/group-transactions/:groupId/record-payment', auth, walletAuthMiddleware, groupTransactionController.recordMemberPayment);
-  router.post('/group-transactions/:groupId/add-expense', auth, groupTransactionController.addExpense);
+  router.post('/group-transactions/:groupId/add-expense', auth, budgetCheck('group'), groupTransactionController.addExpense);
   router.put('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.editExpense);
   router.delete('/group-transactions/:groupId/expenses/:expenseId', auth, groupTransactionController.deleteExpense);
   router.post('/group-transactions/:groupId/expenses/:expenseId/settle', auth, groupTransactionController.settleExpenseSplits);

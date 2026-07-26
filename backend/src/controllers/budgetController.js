@@ -13,6 +13,36 @@ const getUserEmail = async (userId) => {
   return u?.email;
 };
 
+// Lazily apply last month's surplus as rollover if not yet applied for this month.
+// Called at the start of getBudgetStatus so the user never needs to click "Apply Rollover" manually.
+const lazyApplyRollover = async (userId, email, year, month) => {
+  try {
+    const existing = await Budget.findOne({ user: userId, year, month }).lean();
+    if (existing?.rolloverApplied) return; // already done
+
+    const lastYear  = month === 1 ? year - 1 : year;
+    const lastMonth = month === 1 ? 12 : month - 1;
+    const prevBudget = await Budget.findOne({ user: userId, year: lastYear, month: lastMonth }).lean();
+    if (!prevBudget?.limits?.overall) return;
+
+    const startDate = new Date(lastYear, lastMonth - 1, 1);
+    const endDate   = new Date(lastYear, lastMonth, 0, 23, 59, 59);
+    const [quick, secure] = await Promise.all([
+      QuickTransaction.aggregate([{ $match: { creatorEmail: email, date: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Transaction.aggregate([{ $match: { userEmail: email, createdAt: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+    ]);
+    const prevSpent = (quick[0]?.total ?? 0) + (secure[0]?.total ?? 0);
+    const surplus   = Math.max(0, prevBudget.limits.overall - prevSpent);
+    if (surplus === 0) return;
+
+    await Budget.findOneAndUpdate(
+      { user: userId, year, month },
+      { $inc: { 'limits.overall': surplus }, $set: { rolloverApplied: Math.round(surplus) } },
+      { upsert: true },
+    );
+  } catch {} // best-effort; never block the main status response
+};
+
 exports.getBudget = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -122,6 +152,9 @@ exports.getBudgetStatus = async (req, res) => {
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const startDate = new Date(year, month - 1, 1);
+
+    // Auto-apply last month's surplus (fire-and-forget; re-fetched below)
+    await lazyApplyRollover(userId, email, year, month);
 
     const [budget, quickTxns, secureTxns, groupsRaw, recurringItems] = await Promise.all([
       Budget.findOne({ user: userId, year, month }).lean(),

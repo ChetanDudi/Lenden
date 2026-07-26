@@ -18,7 +18,7 @@ class GoalForecastTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('smart_insights')) {
       return const PremiumTabGate(
         featureName: 'Goal Forecast',
         description: 'See projected completion dates for all your savings goals based on current saving rate.',

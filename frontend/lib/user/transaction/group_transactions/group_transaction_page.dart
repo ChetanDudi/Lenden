@@ -915,7 +915,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
   Future<void> _showCreateGroup({List<String>? prefill}) async {
     final t = AppLocalizations.of(context).t;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('group_creation')) {
       int? dailyRemaining;
       await Future.wait([
         session.loadFreebieCounts(),

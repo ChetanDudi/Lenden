@@ -97,7 +97,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Future<void> _loadDailyLimits() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.hasFeature('group_creation')) return;
     try {
       final res = await ApiClient.get('/api/limits/daily');
       if (res.statusCode == 200 && mounted) {
@@ -504,7 +504,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       return;
     }
 
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('group_creation')) {
       await Future.wait([
         session.loadFreebieCounts(),
         _loadDailyLimits(),
@@ -512,7 +512,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
 
     // Daily limit expired → hard block; free attempts are also paused until tomorrow.
-    if (!session.isSubscribed &&
+    if (!session.hasFeature('group_creation') &&
         _dailyGroupRemaining != null &&
         _dailyGroupRemaining! <= 0) {
       showDailyLimitDialog(context, message: t('daily_group_limit_reached_msg'));
@@ -520,13 +520,13 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
 
     // useCoins confirmed before navigation — skip the dialog.
-    if (!session.isSubscribed && widget.useCoins) {
+    if (!session.hasFeature('group_creation') && widget.useCoins) {
       _createGroupWithCoins();
       return;
     }
 
     // Daily limit OK but free attempts exhausted → offer coins.
-    final shouldUseCoins = !session.isSubscribed &&
+    final shouldUseCoins = !session.hasFeature('group_creation') &&
         (session.freeGroupsRemaining ?? 0) <= 0;
 
     if (shouldUseCoins) {
@@ -993,17 +993,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             // Create button with limits info
             Consumer<SessionProvider>(
               builder: (context, session, _) {
-                final dailyLimitReached = !session.isSubscribed &&
+                final dailyLimitReached = !session.hasFeature('group_creation') &&
                     _dailyGroupRemaining != null &&
                     _dailyGroupRemaining! <= 0;
-                final canCreate = session.isSubscribed ||
+                final canCreate = session.hasFeature('group_creation') ||
                     (!dailyLimitReached && (session.freeGroupsRemaining ?? 0) > 0) ||
                     (session.lenDenCoins ?? 0) >= 20;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (!session.isSubscribed && (session.freeGroupsRemaining ?? 0) > 0)
+                    if (!session.hasFeature('group_creation') && (session.freeGroupsRemaining ?? 0) > 0)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
@@ -1013,7 +1013,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           style: const TextStyle(color: Colors.green),
                         ),
                       ),
-                    if (!session.isSubscribed && _dailyGroupRemaining != null)
+                    if (!session.hasFeature('group_creation') && _dailyGroupRemaining != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(

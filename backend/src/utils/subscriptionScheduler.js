@@ -104,6 +104,30 @@ async function runSubscriptionMaintenance() {
     );
 
     const senderId = await getSystemSenderId();
+
+    // Auto-resume paused bridging subscriptions whose blocking plan has now expired.
+    // This ensures users get their queued plan resumed even if they never open the app.
+    const pausedBridging = await Subscription.find({ status: 'paused', pausedByBridging: true });
+    for (const paused of pausedBridging) {
+      const blockingActive = await Subscription.findOne({
+        user: paused.user,
+        status: 'active',
+        _id: { $ne: paused._id },
+      });
+      if (!blockingActive && paused.pausedRemainingDays > 0) {
+        const newEndDate = new Date(Date.now() + paused.pausedRemainingDays * 24 * 60 * 60 * 1000);
+        await Subscription.findByIdAndUpdate(paused._id, {
+          $set: { status: 'active', pausedByBridging: false, pausedAt: null, endDate: newEndDate },
+        });
+        if (senderId) {
+          await notifyUser(
+            senderId,
+            paused.user,
+            `Your "${paused.subscriptionPlan}" subscription has been automatically resumed with ${paused.pausedRemainingDays} day${paused.pausedRemainingDays === 1 ? '' : 's'} remaining.`,
+          );
+        }
+      }
+    }
     if (!senderId) {
       console.error('Skipping subscription reminders: no admin account exists to attribute system notifications to.');
       return;

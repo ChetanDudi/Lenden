@@ -1405,7 +1405,7 @@ class _TransactionPageState extends State<TransactionPage> {
 
   Future<void> _loadDailyLimits() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (session.isSubscribed) return;
+    if (session.hasFeature('secure_transactions')) return;
     try {
       final res = await ApiClient.get('/api/limits/daily');
       if (res.statusCode == 200) {
@@ -2275,9 +2275,9 @@ class _TransactionPageState extends State<TransactionPage> {
     }
 
     // Safety net: re-check daily limit in case user had the page open a while.
-    if (!session.isSubscribed) await _loadDailyLimits();
+    if (!session.hasFeature('secure_transactions')) await _loadDailyLimits();
 
-    if (!session.isSubscribed &&
+    if (!session.hasFeature('secure_transactions') &&
         _dailyUserTxRemaining != null &&
         _dailyUserTxRemaining! <= 0) {
       showDailyLimitDialog(context,
@@ -2286,7 +2286,7 @@ class _TransactionPageState extends State<TransactionPage> {
     }
 
     // useCoins was determined before this page was opened.
-    if (session.isSubscribed || !widget.useCoins) {
+    if (session.hasFeature('secure_transactions') || !widget.useCoins) {
       _submitWithApi();
     } else {
       _submitWithCoins();
@@ -3282,7 +3282,7 @@ class _TransactionPageState extends State<TransactionPage> {
         children: [
           // Subscription/limit info banner
           Consumer<SessionProvider>(builder: (context, session, _) {
-            if (session.isSubscribed) {
+            if (session.hasFeature('secure_transactions')) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(t('unlimited_transactions_message'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.cyan)),

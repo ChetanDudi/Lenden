@@ -27,7 +27,7 @@ class ExportTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    if (!session.isSubscribed) {
+    if (!session.hasFeature('reports')) {
       return const PremiumTabGate(
         featureName: 'Export Reports',
         description: 'Download your financial data as PDF or CSV for any period.',

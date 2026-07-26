@@ -20,20 +20,28 @@ exports.getBudgetOverview = async (req, res) => {
     const usersWithBudget = new Set(budgetsThisMonth.map(b => b.user?.toString())).size;
 
     // Compute spending per user to check overspending
-    const userIds = budgetsThisMonth.map(b => b.user?.toString()).filter(Boolean);
+    const budgetUserObjIds = budgetsThisMonth.map(b => b.user).filter(Boolean);
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd   = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const [quickTxns, secureTxns] = await Promise.all([
+    // QuickTransaction uses creatorEmail (string), Transaction uses user ObjectId
+    const [quickTxns, secureTxns, budgetUserDocs] = await Promise.all([
       QuickTransaction.find({ date: { $gte: monthStart, $lte: monthEnd } }).lean(),
       Transaction.find({ createdAt: { $gte: monthStart, $lte: monthEnd } }).lean(),
+      User.find({ _id: { $in: budgetUserObjIds } }).select('_id email').lean(),
     ]);
 
-    const spendMap = {};
-    for (const t of [...quickTxns, ...secureTxns]) {
-      const uid = (t.user || t.userId)?.toString();
-      if (!uid) continue;
-      spendMap[uid] = (spendMap[uid] || 0) + (t.amount || 0);
+    const uidToEmail = {};
+    for (const u of budgetUserDocs) uidToEmail[u._id.toString()] = u.email;
+
+    const emailQuickMap = {};
+    for (const t of quickTxns) {
+      if (t.creatorEmail) emailQuickMap[t.creatorEmail] = (emailQuickMap[t.creatorEmail] || 0) + (t.amount || 0);
+    }
+    const uidSecureMap = {};
+    for (const t of secureTxns) {
+      const uid = t.user?.toString();
+      if (uid) uidSecureMap[uid] = (uidSecureMap[uid] || 0) + (t.amount || 0);
     }
 
     let overspendingCount = 0;
@@ -43,7 +51,8 @@ exports.getBudgetOverview = async (req, res) => {
 
     for (const b of budgetsThisMonth) {
       const uid   = b.user?.toString();
-      const spent = spendMap[uid] || 0;
+      const email = uidToEmail[uid];
+      const spent = (emailQuickMap[email] || 0) + (uidSecureMap[uid] || 0);
       const total = Object.values(b.limits || {}).reduce((s, v) => s + v, 0);
       totalBudgetLimit += total;
       totalSpent += spent;
@@ -124,21 +133,25 @@ exports.getBudgetUsers = async (req, res) => {
 
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd   = new Date(year, month, 0, 23, 59, 59, 999);
+    const userEmails = users.map(u => u.email).filter(Boolean);
     const [quickTxns, secureTxns] = await Promise.all([
-      QuickTransaction.find({ date: { $gte: monthStart, $lte: monthEnd }, user: { $in: userIds } }).lean(),
+      QuickTransaction.find({ date: { $gte: monthStart, $lte: monthEnd }, creatorEmail: { $in: userEmails } }).lean(),
       Transaction.find({ createdAt: { $gte: monthStart, $lte: monthEnd }, user: { $in: userIds } }).lean(),
     ]);
-    const spendMap = {};
-    for (const t of [...quickTxns, ...secureTxns]) {
-      const uid = (t.user || t.userId)?.toString();
-      if (!uid) continue;
-      spendMap[uid] = (spendMap[uid] || 0) + (t.amount || 0);
+    const emailQuickMap = {};
+    for (const t of quickTxns) {
+      if (t.creatorEmail) emailQuickMap[t.creatorEmail] = (emailQuickMap[t.creatorEmail] || 0) + (t.amount || 0);
+    }
+    const uidSecureMap = {};
+    for (const t of secureTxns) {
+      const uid = t.user?.toString();
+      if (uid) uidSecureMap[uid] = (uidSecureMap[uid] || 0) + (t.amount || 0);
     }
 
     const rows = users.map(u => {
       const uid    = u._id.toString();
       const budget = budgetMap[uid];
-      const spent  = spendMap[uid] || 0;
+      const spent  = (emailQuickMap[u.email] || 0) + (uidSecureMap[uid] || 0);
       const totalLimit = budget ? Object.values(budget.limits || {}).reduce((s, v) => s + v, 0) : 0;
       return {
         userId:     uid,
@@ -178,21 +191,19 @@ exports.setUserBudgetLimits = async (req, res) => {
     const user = await User.findById(userId).select('_id name email').lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const sanitized = {};
-    for (const [cat, val] of Object.entries(limits)) {
+    // Split incoming keys: type-level (quick/secure/group/overall) vs category-level
+    const TYPE_KEYS = new Set(['quick', 'secure', 'group', 'overall']);
+    const setFields = { adminOverride: true, updatedBy: req.admin._id };
+    for (const [key, val] of Object.entries(limits)) {
       const n = parseFloat(val);
-      if (!isNaN(n) && n >= 0) sanitized[cat] = n;
+      if (isNaN(n) || n < 0) continue;
+      if (TYPE_KEYS.has(key)) setFields[`limits.${key}`] = n;
+      else setFields[`categoryLimits.${key}`] = n;
     }
 
     const budget = await Budget.findOneAndUpdate(
       { user: userId, year, month },
-      {
-        $set: {
-          limits: sanitized,
-          updatedBy: req.admin._id,
-          adminOverride: true,
-        },
-      },
+      { $set: setFields },
       { upsert: true, new: true },
     );
 
@@ -222,7 +233,7 @@ exports.getUserBudgetDetail = async (req, res) => {
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd   = new Date(year, month, 0, 23, 59, 59, 999);
     const [quickTxns, secureTxns] = await Promise.all([
-      QuickTransaction.find({ date: { $gte: monthStart, $lte: monthEnd }, user: userId }).lean(),
+      QuickTransaction.find({ date: { $gte: monthStart, $lte: monthEnd }, creatorEmail: user.email }).lean(),
       Transaction.find({ createdAt: { $gte: monthStart, $lte: monthEnd }, user: userId }).lean(),
     ]);
 

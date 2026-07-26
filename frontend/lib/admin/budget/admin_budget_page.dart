@@ -35,6 +35,13 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
   Map<String, dynamic>? _selectedUserBudget;
   bool _loadingUserBudget = false;
 
+  // Set Override tab state
+  final _overrideSearchCtrl = TextEditingController();
+  List<dynamic> _overrideResults = [];
+  bool _overrideSearching = false;
+  Map<String, dynamic>? _overrideUser;
+  bool _overrideLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +62,7 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
   void dispose() {
     _tabs.dispose();
     _searchController.dispose();
+    _overrideSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -568,33 +576,177 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
     );
   }
 
+  Future<void> _overrideSearch(String q) async {
+    if (q.trim().isEmpty) {
+      setState(() { _overrideResults = []; _overrideSearching = false; });
+      return;
+    }
+    setState(() => _overrideSearching = true);
+    try {
+      final r = await ApiClient.get(
+        '/api/admin/budget/users?search=${Uri.encodeComponent(q.trim())}&limit=6',
+      );
+      if (r.statusCode == 200 && mounted) {
+        setState(() => _overrideResults = (jsonDecode(r.body)['rows'] as List? ?? []));
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _overrideSearching = false);
+  }
+
   Widget _buildOverrideTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    final isDark = AppThemeColors.isDark(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.cyan.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline_rounded, color: AppColors.cyan),
-              const SizedBox(width: 10),
-              Expanded(child: Text('To override a user\'s budget limits, go to the User Budgets tab, tap a user, and set limits per category.',
-                  style: TextStyle(color: AppThemeColors.primaryText(context)))),
-            ],
-          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Search User',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15,
+                    color: AppThemeColors.primaryText(context))),
+            const SizedBox(height: 4),
+            Text('Find a user by name or email to override their monthly budget limits.',
+                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _overrideSearchCtrl,
+              onChanged: _overrideSearch,
+              decoration: InputDecoration(
+                hintText: 'Name or email…',
+                hintStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
+                suffixIcon: _overrideSearching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan)))
+                    : (_overrideSearchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 18),
+                            color: AppThemeColors.secondaryText(context),
+                            onPressed: () {
+                              _overrideSearchCtrl.clear();
+                              setState(() { _overrideResults = []; _overrideUser = null; });
+                            })
+                        : null),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E1E2E) : Colors.grey.shade50,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppThemeColors.border(context))),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppThemeColors.border(context))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.cyan, width: 1.5)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+          ]),
         ),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.people_rounded, color: Colors.white),
-          label: const Text('Go to User Budgets', style: TextStyle(color: Colors.white)),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, minimumSize: const Size(double.infinity, 48)),
-          onPressed: () => _tabs.animateTo(1),
-        ),
+        const SizedBox(height: 8),
+        if (_overrideResults.isEmpty && _overrideSearchCtrl.text.isEmpty)
+          Expanded(
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.08), shape: BoxShape.circle),
+                  child: const Icon(Icons.manage_search_rounded, size: 44, color: AppColors.cyan),
+                ),
+                const SizedBox(height: 14),
+                Text('Search for a user', style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600,
+                    color: AppThemeColors.primaryText(context))),
+                const SizedBox(height: 6),
+                Text('Type a name or email above to find a user\nand set their budget limits directly.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+              ]),
+            ),
+          )
+        else if (_overrideResults.isEmpty && !_overrideSearching)
+          Expanded(
+            child: Center(child: Text('No users found',
+                style: TextStyle(color: AppThemeColors.secondaryText(context)))),
+          )
+        else
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              itemCount: _overrideResults.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                final u = _overrideResults[i] as Map<String, dynamic>;
+                final spent     = (u['spent']      as num?)?.toDouble() ?? 0;
+                final limit     = (u['totalLimit'] as num?)?.toDouble() ?? 0;
+                final hasBudget = u['hasBudget'] == true;
+                final isOver    = u['isOver']    == true;
+                final pct       = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
+                final barColor  = isOver ? Colors.red : AppColors.cyan;
+
+                return GestureDetector(
+                  onTap: () => _loadUserBudgetDetail(u),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: isOver
+                              ? Colors.red.withValues(alpha: 0.4)
+                              : AppThemeColors.border(context)),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                            color: AppColors.cyan.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.account_circle_rounded, color: AppColors.cyan, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(u['name'] ?? '', style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13,
+                            color: AppThemeColors.primaryText(context))),
+                        Text(u['email'] ?? '', style: TextStyle(
+                            fontSize: 11, color: AppThemeColors.secondaryText(context))),
+                        if (hasBudget) ...[
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: LinearProgressIndicator(
+                              value: pct, minHeight: 4,
+                              color: barColor,
+                              backgroundColor: AppThemeColors.border(context),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            isOver
+                                ? '₹${spent.toStringAsFixed(0)} / ₹${limit.toStringAsFixed(0)} — Over budget'
+                                : '₹${spent.toStringAsFixed(0)} / ₹${limit.toStringAsFixed(0)}',
+                            style: TextStyle(fontSize: 10, color: barColor, fontWeight: FontWeight.w600),
+                          ),
+                        ] else
+                          Text('No budget set', style: TextStyle(
+                              fontSize: 10, color: AppThemeColors.secondaryText(context))),
+                      ])),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: AppColors.cyan.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(8)),
+                        child: const Text('Override',
+                            style: TextStyle(fontSize: 10, color: AppColors.cyan, fontWeight: FontWeight.bold)),
+                      ),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
       ],
     );
   }
