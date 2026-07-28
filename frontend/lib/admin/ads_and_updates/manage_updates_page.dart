@@ -9,6 +9,7 @@ import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'update_history_page.dart';
 
 class ManageUpdatesPage extends StatefulWidget {
   const ManageUpdatesPage({super.key});
@@ -1008,7 +1009,25 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                     label: Text(t('edit')),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          AdminUpdateHistoryPage(update: update),
+                    ),
+                  ),
+                  icon: const Icon(Icons.history_rounded,
+                      size: 16, color: AppColors.cyan),
+                  label: const Text('History',
+                      style: TextStyle(color: AppColors.cyan)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.cyan),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 0),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: canManage ? () => _confirmDelete(update) : null,

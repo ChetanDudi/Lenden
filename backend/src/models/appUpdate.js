@@ -73,6 +73,24 @@ const appUpdateSchema = new mongoose.Schema(
       ref: 'Admin',
       required: true,
     },
+    editHistory: {
+      type: [
+        {
+          editedAt: { type: Date, required: true },
+          title: { type: String, default: '' },
+          body: { type: String, default: '' },
+          summary: { type: String, default: '' },
+          versionTag: { type: String, default: '' },
+          category: { type: String, default: 'general' },
+          importance: { type: String, default: 'normal' },
+          tags: { type: [String], default: [] },
+          platforms: { type: [String], default: ['all'] },
+          targetAudience: { type: String, default: 'all' },
+          status: { type: String, default: 'published' },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );

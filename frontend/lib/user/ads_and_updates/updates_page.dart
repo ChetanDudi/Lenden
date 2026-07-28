@@ -753,20 +753,46 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                           const SizedBox(height: 10),
                           Row(
                             children: [
-                              Icon(Icons.access_time_rounded,
-                                  size: 12,
-                                  color: AppThemeColors.mutedText(context)
-                                      .withValues(alpha: 0.7)),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatDate(update['publishedAt']),
-                                style: TextStyle(
-                                  color: AppThemeColors.mutedText(context)
-                                      .withValues(alpha: 0.7),
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 11,
+                              if (update['lastEditedAt'] != null) ...[
+                                Icon(Icons.edit_rounded,
+                                    size: 12,
+                                    color: const Color(0xFFF59E0B)
+                                        .withValues(alpha: 0.85)),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    'Edited ${_formatDateTime(update['lastEditedAt'])}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFF59E0B),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () => _showEditHistorySheet(context, update),
+                                  child: Icon(Icons.history_rounded,
+                                      size: 15,
+                                      color: _sky.withValues(alpha: 0.75)),
+                                ),
+                              ] else ...[
+                                Icon(Icons.access_time_rounded,
+                                    size: 12,
+                                    color: AppThemeColors.mutedText(context)
+                                        .withValues(alpha: 0.7)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatDate(update['publishedAt']),
+                                  style: TextStyle(
+                                    color: AppThemeColors.mutedText(context)
+                                        .withValues(alpha: 0.7),
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
                               const Spacer(),
                               if (!isRead)
                                 GestureDetector(
@@ -949,5 +975,464 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _formatDateTime(dynamic value) {
+    final date =
+        DateTime.tryParse(value?.toString() ?? '')?.toLocal();
+    if (date == null) return t('unknown_date_label');
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final h = date.hour.toString().padLeft(2, '0');
+    final m = date.minute.toString().padLeft(2, '0');
+    return '${date.day} ${months[date.month - 1]} ${date.year}, $h:$m';
+  }
+
+  // Reconstruct the full version timeline from editHistory + current doc.
+  // editHistory[i] = content BEFORE edit i+1, editedAt = when edit i+1 happened.
+  // So:
+  //   versions[0]   = original  (content=editHistory[0],  date=publishedAt)
+  //   versions[1]   = after edit1 (content=editHistory[1], date=editHistory[0].editedAt)
+  //   versions[N]   = current   (content=doc fields,       date=lastEditedAt)
+  List<Map<String, dynamic>> _buildVersionTimeline(Map<String, dynamic> update) {
+    final rawHistory = ((update['editHistory'] as List?) ?? [])
+        .cast<Map<String, dynamic>>()
+        .toList();
+    final versions = <Map<String, dynamic>>[];
+
+    if (rawHistory.isEmpty) {
+      // Never edited — single entry: the current doc
+      versions.add({
+        'label': 'Published',
+        'isCurrent': true,
+        'date': update['publishedAt'],
+        ...{
+          for (final k in ['title', 'body', 'summary', 'versionTag',
+              'category', 'importance', 'tags'])
+            k: update[k],
+        },
+      });
+      return versions;
+    }
+
+    // Version 0: original — content from editHistory[0], date from publishedAt
+    versions.add({
+      'label': 'Original',
+      'isCurrent': false,
+      'date': update['publishedAt'],
+      ...{
+        for (final k in ['title', 'body', 'summary', 'versionTag',
+            'category', 'importance', 'tags'])
+          k: rawHistory[0][k],
+      },
+    });
+
+    // Versions 1..N-1: intermediate edits
+    // version i content = rawHistory[i], date = rawHistory[i-1].editedAt
+    for (int i = 1; i < rawHistory.length; i++) {
+      versions.add({
+        'label': 'Edit $i',
+        'isCurrent': false,
+        'date': rawHistory[i - 1]['editedAt'],
+        ...{
+          for (final k in ['title', 'body', 'summary', 'versionTag',
+              'category', 'importance', 'tags'])
+            k: rawHistory[i][k],
+        },
+      });
+    }
+
+    // Final (current) version: date = lastEditedAt (= rawHistory.last.editedAt)
+    versions.add({
+      'label': 'Latest',
+      'isCurrent': true,
+      'date': update['lastEditedAt'],
+      ...{
+        for (final k in ['title', 'body', 'summary', 'versionTag',
+            'category', 'importance', 'tags'])
+          k: update[k],
+      },
+    });
+
+    return versions;
+  }
+
+  void _showEditHistorySheet(
+      BuildContext context, Map<String, dynamic> update) {
+    // Newest first for the sheet
+    final versions = _buildVersionTimeline(update).reversed.toList();
+    final totalVersions = versions.length;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.70,
+          minChildSize: 0.40,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (sheetContext, scrollController) {
+            final isDark = AppThemeColors.isDark(sheetContext);
+            return Container(
+              decoration: BoxDecoration(
+                color: AppThemeColors.scaffoldBg(sheetContext),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  // ── Header ──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppThemeColors.divider(sheetContext),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _sky.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.history_rounded,
+                                  size: 18, color: _sky),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Version History',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    color: AppThemeColors.primaryText(
+                                        sheetContext),
+                                  ),
+                                ),
+                                Text(
+                                  '$totalVersions version${totalVersions == 1 ? '' : 's'}',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color:
+                                        AppThemeColors.mutedText(sheetContext),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Divider(
+                            color: AppThemeColors.divider(sheetContext),
+                            height: 1),
+                      ],
+                    ),
+                  ),
+                  // ── Version cards ──
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                      itemCount: versions.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (ctx, index) {
+                        final ver = versions[index];
+                        final isCurrent = ver['isCurrent'] == true;
+                        final label = (ver['label'] ?? '').toString();
+                        final vTitle = (ver['title'] ?? '').toString();
+                        final vSummary =
+                            (ver['summary'] ?? '').toString().trim();
+                        final vBody = (ver['body'] ?? '').toString().trim();
+                        final vVersionTag =
+                            (ver['versionTag'] ?? '').toString().trim();
+                        final vCategory =
+                            (ver['category'] ?? 'general').toString();
+                        final vImportance =
+                            (ver['importance'] ?? 'normal').toString();
+                        final vTags = ((ver['tags'] as List?) ?? [])
+                            .map((t) => t.toString())
+                            .where((t) => t.trim().isNotEmpty)
+                            .toList();
+
+                        final accentColor = isCurrent
+                            ? _sky
+                            : vImportance == 'critical'
+                                ? const Color(0xFFD32F2F)
+                                : vImportance == 'important'
+                                    ? const Color(0xFFE65100)
+                                    : _deepBlue;
+
+                        final labelBg = isCurrent
+                            ? _sky.withValues(
+                                alpha: isDark ? 0.18 : 0.10)
+                            : label == 'Original'
+                                ? const Color(0xFF22C55E)
+                                    .withValues(alpha: isDark ? 0.18 : 0.10)
+                                : const Color(0xFFF59E0B)
+                                    .withValues(alpha: isDark ? 0.18 : 0.10);
+                        final labelColor = isCurrent
+                            ? _sky
+                            : label == 'Original'
+                                ? const Color(0xFF22C55E)
+                                : const Color(0xFFF59E0B);
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppThemeColors.cardBg(ctx),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? _sky.withValues(alpha: 0.35)
+                                  : AppThemeColors.divider(ctx),
+                              width: isCurrent ? 1.5 : 1,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.stretch,
+                                children: [
+                                  // Accent strip
+                                  Container(
+                                    width: 4,
+                                    color:
+                                        accentColor.withValues(alpha: 0.65),
+                                  ),
+                                  // Content
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          12, 12, 12, 12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Row: label + date
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: labelBg,
+                                                  borderRadius:
+                                                      BorderRadius.circular(7),
+                                                ),
+                                                child: Text(
+                                                  label,
+                                                  style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: labelColor,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              Icon(
+                                                isCurrent
+                                                    ? Icons.star_rounded
+                                                    : Icons.access_time_rounded,
+                                                size: 11,
+                                                color: AppThemeColors.mutedText(
+                                                    ctx),
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                _formatDateTime(ver['date']),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: AppThemeColors
+                                                      .mutedText(ctx),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 9),
+                                          // Title
+                                          Text(
+                                            vTitle,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13.5,
+                                              color: AppThemeColors.primaryText(
+                                                  ctx),
+                                            ),
+                                          ),
+                                          // Version tag
+                                          if (vVersionTag.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.code_rounded,
+                                                    size: 12,
+                                                    color: _sky
+                                                        .withValues(alpha: 0.8)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'v$vVersionTag',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: _sky,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                          // Chips: category + importance
+                                          const SizedBox(height: 7),
+                                          Wrap(
+                                            spacing: 5,
+                                            runSpacing: 4,
+                                            children: [
+                                              _metaChip(
+                                                vCategory.replaceAll('_', ' '),
+                                                isDark
+                                                    ? const Color(0xFF334155)
+                                                    : const Color(0xFFE2E8F0),
+                                              ),
+                                              _metaChip(
+                                                vImportance,
+                                                vImportance == 'critical'
+                                                    ? const Color(0xFFD32F2F)
+                                                        .withValues(alpha: 0.18)
+                                                    : vImportance == 'important'
+                                                        ? const Color(0xFFE65100)
+                                                            .withValues(alpha: 0.15)
+                                                        : isDark
+                                                            ? const Color(
+                                                                0xFF1E3A4A)
+                                                            : const Color(
+                                                                0xFFDCF5EC),
+                                                icon: vImportance == 'critical'
+                                                    ? Icons.warning_amber_rounded
+                                                    : vImportance == 'important'
+                                                        ? Icons.priority_high
+                                                        : Icons.check_circle_outline,
+                                              ),
+                                            ],
+                                          ),
+                                          // Summary
+                                          if (vSummary.isNotEmpty) ...[
+                                            const SizedBox(height: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      8, 6, 8, 6),
+                                              decoration: BoxDecoration(
+                                                border: Border(
+                                                  left: BorderSide(
+                                                    color: accentColor
+                                                        .withValues(alpha: 0.5),
+                                                    width: 3,
+                                                  ),
+                                                ),
+                                                color: accentColor.withValues(
+                                                    alpha: isDark ? 0.06 : 0.04),
+                                              ),
+                                              child: Text(
+                                                vSummary,
+                                                style: TextStyle(
+                                                  fontStyle: FontStyle.italic,
+                                                  fontSize: 12,
+                                                  color: AppThemeColors
+                                                      .secondaryText(ctx),
+                                                  height: 1.4,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          // Body
+                                          if (vBody.isNotEmpty) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              vBody,
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                height: 1.5,
+                                                color: AppThemeColors
+                                                    .secondaryText(ctx),
+                                              ),
+                                            ),
+                                          ],
+                                          // Tags
+                                          if (vTags.isNotEmpty) ...[
+                                            const SizedBox(height: 8),
+                                            Wrap(
+                                              spacing: 5,
+                                              runSpacing: 4,
+                                              children: vTags
+                                                  .map((tag) => Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 7,
+                                                                vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: _deepBlue
+                                                              .withValues(
+                                                                  alpha: 0.08),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(6),
+                                                          border: Border.all(
+                                                            color: _deepBlue
+                                                                .withValues(
+                                                                    alpha: 0.20),
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          '#$tag',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: AppThemeColors
+                                                                .secondaryText(
+                                                                    ctx),
+                                                          ),
+                                                        ),
+                                                      ))
+                                                  .toList(),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

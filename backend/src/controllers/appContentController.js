@@ -31,26 +31,44 @@ const canManageContent = (admin, content) => {
   return creatorId?.toString() === adminId?.toString();
 };
 
-const toUpdateResponse = (req, update, currentAdmin = null) => ({
-  _id: update._id,
-  title: update.title,
-  body: update.body,
-  summary: update.summary || '',
-  versionTag: update.versionTag || '',
-  category: update.category || 'general',
-  importance: update.importance || 'normal',
-  targetAudience: update.targetAudience || 'all',
-  platforms: Array.isArray(update.platforms) ? update.platforms : ['all'],
-  tags: Array.isArray(update.tags) ? update.tags : [],
-  status: update.status || 'published',
-  scheduledFor: update.scheduledFor || null,
-  pinned: !!update.pinned,
-  publishedAt: update.publishedAt,
-  createdAt: update.createdAt,
-  updatedAt: update.updatedAt,
-  createdBy: normalizeCreator(update.createdBy),
-  canManage: currentAdmin ? canManageContent(currentAdmin, update) : undefined,
-});
+const toUpdateResponse = (req, update, currentAdmin = null) => {
+  const history = Array.isArray(update.editHistory) ? update.editHistory : [];
+  const lastEditedAt = history.length > 0 ? history[history.length - 1].editedAt : null;
+  return {
+    _id: update._id,
+    title: update.title,
+    body: update.body,
+    summary: update.summary || '',
+    versionTag: update.versionTag || '',
+    category: update.category || 'general',
+    importance: update.importance || 'normal',
+    targetAudience: update.targetAudience || 'all',
+    platforms: Array.isArray(update.platforms) ? update.platforms : ['all'],
+    tags: Array.isArray(update.tags) ? update.tags : [],
+    status: update.status || 'published',
+    scheduledFor: update.scheduledFor || null,
+    pinned: !!update.pinned,
+    publishedAt: update.publishedAt,
+    createdAt: update.createdAt,
+    updatedAt: update.updatedAt,
+    lastEditedAt,
+    editHistory: history.map((entry) => ({
+      editedAt: entry.editedAt,
+      title: entry.title || '',
+      body: entry.body || '',
+      summary: entry.summary || '',
+      versionTag: entry.versionTag || '',
+      category: entry.category || 'general',
+      importance: entry.importance || 'normal',
+      tags: Array.isArray(entry.tags) ? entry.tags : [],
+      platforms: Array.isArray(entry.platforms) ? entry.platforms : ['all'],
+      targetAudience: entry.targetAudience || 'all',
+      status: entry.status || 'published',
+    })),
+    createdBy: normalizeCreator(update.createdBy),
+    canManage: currentAdmin ? canManageContent(currentAdmin, update) : undefined,
+  };
+};
 
 const toAdResponse = (req, ad, currentAdmin = null) => ({
   _id: ad._id,
@@ -572,22 +590,40 @@ exports.updateUpdate = async (req, res) => {
     const publishedAt =
       normalizedStatus === 'scheduled' && scheduledDate ? scheduledDate : existing.publishedAt || new Date();
 
+    // Snapshot current content before overwriting so viewers can see what changed.
+    const snapshot = {
+      editedAt: new Date(),
+      title: existing.title,
+      body: existing.body,
+      summary: existing.summary || '',
+      versionTag: existing.versionTag || '',
+      category: existing.category || 'general',
+      importance: existing.importance || 'normal',
+      tags: Array.isArray(existing.tags) ? existing.tags : [],
+      platforms: Array.isArray(existing.platforms) ? existing.platforms : ['all'],
+      targetAudience: existing.targetAudience || 'all',
+      status: existing.status || 'published',
+    };
+
     const update = await AppUpdate.findByIdAndUpdate(
       req.params.updateId,
       {
-        title: title.trim(),
-        body: body.trim(),
-        summary: (summary || '').trim(),
-        versionTag: (versionTag || '').trim(),
-        category: normalizeCategory(category),
-        importance: normalizeImportance(importance),
-        targetAudience: normalizeAudience(targetAudience, 'all'),
-        platforms: normalizePlatforms(platforms),
-        tags: normalizeStringArray(tags),
-        status: normalizedStatus,
-        scheduledFor: scheduledDate,
-        pinned: pinned === true || pinned === 'true',
-        publishedAt,
+        $set: {
+          title: title.trim(),
+          body: body.trim(),
+          summary: (summary || '').trim(),
+          versionTag: (versionTag || '').trim(),
+          category: normalizeCategory(category),
+          importance: normalizeImportance(importance),
+          targetAudience: normalizeAudience(targetAudience, 'all'),
+          platforms: normalizePlatforms(platforms),
+          tags: normalizeStringArray(tags),
+          status: normalizedStatus,
+          scheduledFor: scheduledDate,
+          pinned: pinned === true || pinned === 'true',
+          publishedAt,
+        },
+        $push: { editHistory: snapshot },
       },
       { new: true }
     )
