@@ -68,24 +68,6 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     super.dispose();
   }
 
-  Color _getNoteColor(BuildContext context, int index) {
-    final colors = [
-      AppThemeColors.tinted(context,
-          light: const Color(0xFFFFF4E6), dark: const Color(0xFF3A2E1A)),
-      AppThemeColors.tinted(context,
-          light: const Color(0xFFE8F5E9), dark: const Color(0xFF1E3320)),
-      AppThemeColors.tinted(context,
-          light: const Color(0xFFFCE4EC), dark: const Color(0xFF3A2230)),
-      AppThemeColors.tinted(context,
-          light: const Color(0xFFE3F2FD), dark: const Color(0xFF1B3A57)),
-      AppThemeColors.tinted(context,
-          light: const Color(0xFFFFF9C4), dark: const Color(0xFF3A3618)),
-      AppThemeColors.tinted(context,
-          light: const Color(0xFFF3E5F5), dark: const Color(0xFF332139)),
-    ];
-    return colors[index % colors.length];
-  }
-
   void _calculateUnreadCount() {
     final session = Provider.of<SessionProvider>(context, listen: false);
     final userId = session.user!['_id'];
@@ -844,18 +826,13 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
               ),
             ),
           ),
-        ...filtered.asMap().entries.map((entry) {
-          final index = entry.key;
-          final notification = entry.value;
-          return _buildNotificationCard(
-            context: context,
-            notification: notification,
-            index: index,
-            unreadUserId: unreadUserId,
-            canManage: canManage,
-            showReadState: showReadState,
-          );
-        }),
+        ...filtered.map((notification) => _buildNotificationCard(
+          context: context,
+          notification: notification,
+          unreadUserId: unreadUserId,
+          canManage: canManage,
+          showReadState: showReadState,
+        )),
         if (allowViewAll)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -884,7 +861,6 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
   Widget _buildNotificationCard({
     required BuildContext context,
     required dynamic notification,
-    required int index,
     required dynamic unreadUserId,
     required bool canManage,
     required bool showReadState,
@@ -894,103 +870,168 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
     final accent = _accentForCategory(category);
     final isRead = _isNotificationRead(notification, unreadUserId);
     final canEditThis = _canCurrentAdminManageNotification(notification);
+    final title = (notification['title'] ?? '').toString().trim();
+    final message = _prettifyMessage(t, (notification['message'] ?? '').toString());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border(
+          left: BorderSide(color: accent, width: 5),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _getNoteColor(context, index),
-          borderRadius: BorderRadius.circular(20),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Icon badge
             Container(
-              padding: const EdgeInsets.all(10),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  colors: [accent, accent.withValues(alpha: 0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(_iconForCategory(category), color: accent),
+              child: Icon(_iconForCategory(category),
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Category chip + unread dot + menu
                   Row(
                     children: [
-                      Expanded(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         child: Text(
                           _labelForCategory(t, category),
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
                             color: accent,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
+                      const Spacer(),
                       if (showReadState && !isRead)
                         Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            color: AppColors.cyan,
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: accent,
                             shape: BoxShape.circle,
                           ),
                         ),
                       if (canManage && canEditThis)
-                        PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _editNotification(notification);
-                            } else if (value == 'delete') {
-                              _deleteNotification(notification['_id']);
-                            }
-                          },
-                          itemBuilder: (_) => [
-                            PopupMenuItem(value: 'edit', child: Text(t('edit'))),
-                            PopupMenuItem(value: 'delete', child: Text(t('delete'))),
-                          ],
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            iconSize: 18,
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _editNotification(notification);
+                              } else if (value == 'delete') {
+                                _deleteNotification(notification['_id']);
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                  value: 'edit', child: Text(t('edit'))),
+                              PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text(t('delete'),
+                                      style: const TextStyle(
+                                          color: Colors.red))),
+                            ],
+                          ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
+                  // Title
+                  if (title.isNotEmpty) ...[
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppThemeColors.primaryText(context),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                  ],
+                  // Message
                   Text(
-                    _prettifyMessage(
-                        t, (notification['message'] ?? '').toString()),
+                    message,
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      height: 1.35,
-                      color: AppThemeColors.primaryText(context),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                      color: AppThemeColors.secondaryText(context),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    _audienceLabel(t, notification),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppThemeColors.secondaryText(context),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatTime(t, notification['createdAt']),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppThemeColors.secondaryText(context),
-                    ),
+                  // Audience + time
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.group_outlined,
+                                size: 12,
+                                color: AppThemeColors.mutedText(context)),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                _audienceLabel(t, notification),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppThemeColors.mutedText(context),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.schedule_rounded,
+                          size: 11,
+                          color: AppThemeColors.mutedText(context)),
+                      const SizedBox(width: 3),
+                      Text(
+                        _formatTime(t, notification['createdAt']),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppThemeColors.mutedText(context),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

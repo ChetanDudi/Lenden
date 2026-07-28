@@ -7,7 +7,7 @@ import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
-import '../../utils/display_currency_helper.dart';
+import '../../widgets/currency_display.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../widgets/premium_gate.dart';
@@ -29,7 +29,7 @@ class SmartInsightsPage extends StatefulWidget {
 }
 
 class _SmartInsightsPageState extends State<SmartInsightsPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, CurrencyDisplayMixin<SmartInsightsPage> {
   bool _isLoading = true;
   bool _hasError = false;
   List<Map<String, dynamic>> _insights = [];
@@ -48,8 +48,6 @@ class _SmartInsightsPageState extends State<SmartInsightsPage>
 
   late final TabController _tabController;
   final _fmt = NumberFormat('#,##0', 'en_IN');
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
 
   @override
@@ -57,7 +55,9 @@ class _SmartInsightsPageState extends State<SmartInsightsPage>
     super.initState();
     _tabController = TabController(length: 9, vsync: this);
     _fetchInsights();
-    _loadDisplayCurrencies();
+    loadCurrencies(onError: (_) {
+      if (mounted) setState(() => _displayCurrencyError = 'Currency conversion unavailable');
+    });
   }
 
   @override
@@ -66,74 +66,15 @@ class _SmartInsightsPageState extends State<SmartInsightsPage>
     super.dispose();
   }
 
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        _displayCurrencyError = null;
-        if (!data.currencies.any((item) => item['code'] == _selectedDisplayCurrency)) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError = 'Currency conversion unavailable';
-      });
-    }
-  }
-
   String _ca(num? v) {
     final amount = (v ?? 0).abs().toDouble();
-    if (_selectedDisplayCurrency == 'INR' || _displayCurrencyData == null ||
-        !_displayCurrencyData!.canConvert('INR', _selectedDisplayCurrency)) {
+    if (selectedCurrency == 'INR' || currencyData == null ||
+        !currencyData!.canConvert('INR', selectedCurrency)) {
       return '₹${_fmt.format(amount)}';
     }
-    final converted = _displayCurrencyData!.convert(amount, 'INR', _selectedDisplayCurrency);
-    final sym = _displayCurrencyData!.symbolFor(_selectedDisplayCurrency);
+    final converted = currencyData!.convert(amount, 'INR', selectedCurrency);
+    final sym = currencyData!.symbolFor(selectedCurrency);
     return '$sym${_fmt.format(converted)}';
-  }
-
-  Widget _buildCurrencySelector() {
-    final currencies = _displayCurrencyData?.currencies ??
-        const <Map<String, String>>[{'code': 'INR', 'symbol': '₹', 'label': ''}];
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedDisplayCurrency,
-            borderRadius: BorderRadius.circular(16),
-            isDense: true,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-            items: currencies.map((c) => DropdownMenuItem(
-              value: c['code'],
-              child: Text('${c['symbol']} ${c['code']}',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13,
-                      color: AppThemeColors.primaryText(context))),
-            )).toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() => _selectedDisplayCurrency = value);
-            },
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _fetchInsights() async {
@@ -349,7 +290,7 @@ class _SmartInsightsPageState extends State<SmartInsightsPage>
                     const Spacer(),
                     Text('Currency:', style: TextStyle(fontSize: context.sp(12), color: AppThemeColors.secondaryText(context))),
                     const SizedBox(width: 8),
-                    _buildCurrencySelector(),
+                    buildCurrencySelector(),
                   ]),
                 ),
                 const SizedBox(height: 4),

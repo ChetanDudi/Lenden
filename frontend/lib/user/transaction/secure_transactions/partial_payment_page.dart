@@ -12,7 +12,7 @@ import '../../../utils/responsive.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../wallet/lenden_wallet_page.dart';
 import '../../../settings/set_wallet_pin_page.dart';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 
 class PartialPaymentPage extends StatefulWidget {
   final Map<String, dynamic> transaction;

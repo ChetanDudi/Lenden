@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
+import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/wave_widget.dart';
 
 class UserUpdatesPage extends StatefulWidget {
   const UserUpdatesPage({super.key});
@@ -16,7 +18,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   final _searchController = TextEditingController();
 
   bool _loading = true;
-  String? _error;
+  bool _hasError = false;
   String _filter = 'all';
   List<Map<String, dynamic>> _updates = [];
 
@@ -50,6 +52,8 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   int get _criticalCount =>
       _updates.where((u) => u['importance'] == 'critical').length;
 
+  String t(String key) => AppLocalizations.of(context).t(key);
+
   @override
   void initState() {
     super.initState();
@@ -75,27 +79,25 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   Future<void> _loadUpdates() async {
     setState(() {
       _loading = true;
-      _error = null;
+      _hasError = false;
     });
 
     try {
       final res = await ApiClient.get('/api/app-updates');
+      if (!mounted) return;
       final data = _decodeJson(res.body);
       if (res.statusCode != 200) {
-        final t = AppLocalizations.of(context).t;
-        throw Exception((data['error'] ?? t('failed_to_load_updates_message')).toString());
+        setState(() { _loading = false; _hasError = true; });
+        return;
       }
       setState(() {
         _updates = List<Map<String, dynamic>>.from(
           (data['updates'] ?? []).map((e) => Map<String, dynamic>.from(e)),
         );
+        _loading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _hasError = true; });
     }
   }
 
@@ -129,73 +131,121 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          t('app_updates_label'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          if (_unreadCount > 0)
-            TextButton.icon(
-              onPressed: _markAllRead,
-              icon: const Icon(Icons.done_all, color: Colors.white, size: 18),
-              label: Text(
-                t('mark_all_read_label'),
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-        ],
-      ),
       body: Stack(
         children: [
-          // Top wave — same clipper & colour as user dashboard
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _WaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
-                height: (MediaQuery.of(context).padding.top + kToolbarHeight) * 1.5,
-                color: AppColors.cyan,
+                height: context.sh(170),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
           SafeArea(
-            child: RefreshIndicator(
-              color: _sky,
-              onRefresh: _loadUpdates,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 4, 16, 24),
-                children: [
-                  _buildHeroCard(),
-                  const SizedBox(height: 14),
-                  _buildSearchCard(),
-                  const SizedBox(height: 12),
-                  _buildFilterRow(),
-                  const SizedBox(height: 16),
-                  if (_loading)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 40),
-                      child: Center(
-                        child: CircularProgressIndicator(color: _sky),
+            child: Column(
+              children: [
+                // ── Header row ──────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back,
+                            color: AppThemeColors.primaryText(context)),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                    )
-                  else if (_error != null)
-                    _buildStateCard(_error!, Colors.redAccent)
-                  else if (_filteredUpdates.isEmpty)
-                    _buildStateCard(t('no_updates_matched_filter_message'), Colors.black54)
-                  else
-                    ..._filteredUpdates.map(_buildUpdateCard),
-                ],
-              ),
+                      Expanded(
+                        child: Text(
+                          t('app_updates_label'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context),
+                          ),
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert,
+                            color: AppThemeColors.primaryText(context)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        onSelected: (value) {
+                          if (value == 'mark_read') _markAllRead();
+                          if (value == 'refresh') _loadUpdates();
+                        },
+                        itemBuilder: (_) => [
+                          if (_unreadCount > 0)
+                            PopupMenuItem(
+                              value: 'mark_read',
+                              child: Row(children: [
+                                const Icon(Icons.done_all,
+                                    color: AppColors.cyan, size: 20),
+                                const SizedBox(width: 10),
+                                Text(t('mark_all_read_label')),
+                              ]),
+                            ),
+                          PopupMenuItem(
+                            value: 'refresh',
+                            child: Row(children: [
+                              const Icon(Icons.refresh_rounded,
+                                  color: Colors.orange, size: 20),
+                              const SizedBox(width: 10),
+                              Text(t('refresh_label')),
+                            ]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Summary card ─────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  child: _buildSummaryCard(),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Scrollable body ──────────────────────────────────────
+                Expanded(
+                  child: RefreshIndicator(
+                    color: _sky,
+                    onRefresh: _loadUpdates,
+                    child: ListView(
+                      padding:
+                          const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      children: [
+                        _buildSearchCard(),
+                        const SizedBox(height: 12),
+                        _buildFilterRow(),
+                        const SizedBox(height: 16),
+                        if (_loading)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 60),
+                            child: Center(
+                              child:
+                                  CircularProgressIndicator(color: _sky),
+                            ),
+                          )
+                        else if (_hasError)
+                          _buildErrorState()
+                        else if (_filteredUpdates.isEmpty)
+                          _buildEmptyState()
+                        else
+                          ..._filteredUpdates.map(_buildUpdateCard),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -203,103 +253,97 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     );
   }
 
-  Widget _buildHeroCard() {
-    final t = AppLocalizations.of(context).t;
+  // ── Summary / stats card (mirrors notifications' _buildSummaryCard) ──────
+
+  Widget _buildSummaryCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _sky.withValues(alpha: 0.18),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildStatTile(
+              title: t('total_label'),
+              value: '${_updates.length}',
+              color: _sky,
+              icon: Icons.system_update_rounded,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatTile(
+              title: t('unread_label'),
+              value: '$_unreadCount',
+              color: _unreadCount > 0 ? Colors.redAccent : Colors.green,
+              icon: Icons.mark_email_unread_outlined,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatTile(
+              title: t('critical_label'),
+              value: '$_criticalCount',
+              color:
+                  _criticalCount > 0 ? Colors.orange : Colors.green,
+              icon: Icons.warning_amber_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatTile({
+    required String title,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0077B6), _sky],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.system_update_rounded, color: Colors.white, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t('whats_new_label'),
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppThemeColors.primaryText(context)),
-                    ),
-                    Text(
-                      t('features_fixes_security_message'),
-                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Icon(icon, color: color),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _statBox(_updates.length.toString(), t('total_label'), _sky),
-              const SizedBox(width: 10),
-              _statBox(_unreadCount.toString(), t('unread_label'),
-                  _unreadCount > 0 ? Colors.redAccent : Colors.green),
-              const SizedBox(width: 10),
-              _statBox(_criticalCount.toString(), t('critical_label'),
-                  _criticalCount > 0 ? Colors.orange : Colors.green),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppThemeColors.secondaryText(context),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _statBox(String value, String label, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.20)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ── Search card ──────────────────────────────────────────────────────────
 
   Widget _buildSearchCard() {
-    final t = AppLocalizations.of(context).t;
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -312,9 +356,12 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       ),
       child: TextField(
         controller: _searchController,
-        style: TextStyle(color: AppThemeColors.primaryText(context)),
+        style:
+            TextStyle(color: AppThemeColors.primaryText(context)),
         decoration: InputDecoration(
           hintText: t('search_updates_hint'),
+          hintStyle: TextStyle(
+              color: AppThemeColors.mutedText(context), fontSize: 13),
           filled: true,
           fillColor: AppThemeColors.cardBg(context),
           prefixIcon: const Icon(Icons.search, color: _sky),
@@ -328,31 +375,40 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
   }
 
+  // ── Filter chips ─────────────────────────────────────────────────────────
+
   Widget _buildFilterRow() {
-    final t = AppLocalizations.of(context).t;
     return SizedBox(
       height: 38,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildFilterChip('all', t('all_label'), Icons.list_rounded),
-          _buildFilterChip('unread', t('unread_label'), Icons.mark_email_unread_rounded),
-          _buildFilterChip('critical', t('critical_label'), Icons.warning_amber_rounded),
-          _buildFilterChip('feature', t('features_filter_label'), Icons.star_rounded),
-          _buildFilterChip('security', t('security_filter_label'), Icons.security_rounded),
-          _buildFilterChip('bug_fix', t('bug_fixes_filter_label'), Icons.bug_report_rounded),
+          _buildFilterChip(
+              'all', t('all_label'), Icons.list_rounded),
+          _buildFilterChip('unread', t('unread_label'),
+              Icons.mark_email_unread_rounded),
+          _buildFilterChip('critical', t('critical_label'),
+              Icons.warning_amber_rounded),
+          _buildFilterChip('feature', t('features_filter_label'),
+              Icons.star_rounded),
+          _buildFilterChip('security', t('security_filter_label'),
+              Icons.security_rounded),
+          _buildFilterChip('bug_fix', t('bug_fixes_filter_label'),
+              Icons.bug_report_rounded),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String value, String label, IconData icon) {
+  Widget _buildFilterChip(
+      String value, String label, IconData icon) {
     final selected = _filter == value;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -370,7 +426,9 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
           selectedColor: _sky,
           backgroundColor: AppThemeColors.cardBg(context),
           labelStyle: TextStyle(
-            color: selected ? Colors.white : AppThemeColors.primaryText(context),
+            color: selected
+                ? Colors.white
+                : AppThemeColors.primaryText(context),
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
@@ -384,53 +442,108 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     );
   }
 
-  Widget _buildStateCard(String message, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+  // ── Error state (mirrors notifications page _hasError block) ─────────────
+
+  Widget _buildErrorState() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_outlined,
+                  size: 56,
+                  color: AppThemeColors.secondaryText(context)),
+              const SizedBox(height: 16),
+              Text(
+                t('no_internet_connection_title'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                t('check_connection_and_retry_message'),
+                style: TextStyle(
+                    fontSize: 14,
+                    color: AppThemeColors.secondaryText(context)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _loadUpdates,
+                icon: const Icon(Icons.refresh,
+                    color: Colors.white),
+                label: Text(t('retry_label'),
+                    style:
+                        const TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.cyan,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 12),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(
-            color == Colors.redAccent ? Icons.error_outline : Icons.inbox_rounded,
-            color: color,
-            size: 40,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: color, fontWeight: FontWeight.w600),
-          ),
-        ],
+        ),
       ),
     );
   }
 
+  // ── Empty state (mirrors notifications page empty-tab block) ─────────────
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.inbox_rounded,
+              size: 72,
+              color: AppThemeColors.divider(context),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              t('no_updates_matched_filter_message'),
+              style: TextStyle(
+                  fontSize: 16,
+                  color: AppThemeColors.secondaryText(context)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Update card ──────────────────────────────────────────────────────────
+
   Widget _buildUpdateCard(Map<String, dynamic> update) {
-    final t = AppLocalizations.of(context).t;
     final pinned = update['pinned'] == true;
     final isRead = update['isRead'] == true;
     final importance = (update['importance'] ?? 'normal').toString();
     final category = (update['category'] ?? 'general').toString();
+    final title = (update['title'] ?? '').toString();
+    final summary = (update['summary'] ?? '').toString().trim();
+    final body = (update['body'] ?? '').toString().trim();
+    final versionTag = (update['versionTag'] ?? '').toString().trim();
     final tags = ((update['tags'] as List?) ?? const [])
         .map((tag) => tag.toString())
         .where((tag) => tag.trim().isNotEmpty)
         .toList();
 
     final importanceColor = importance == 'critical'
-        ? Colors.redAccent
+        ? const Color(0xFFD32F2F)
         : importance == 'important'
-            ? Colors.orange
+            ? const Color(0xFFE65100)
             : _deepBlue;
 
     return GestureDetector(
@@ -439,136 +552,329 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(22),
           gradient: const LinearGradient(
             colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: importanceColor.withValues(alpha: isRead ? 0.05 : 0.13),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Container(
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isRead ? AppThemeColors.cardBg(context) : const Color(0xFFF0FAFF),
-            borderRadius: BorderRadius.circular(22),
+            color: AppThemeColors.cardBg(context),
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // ── Left accent strip ───────────────────────────────
                   Container(
-                    margin: const EdgeInsets.only(top: 2, right: 10),
-                    padding: const EdgeInsets.all(7),
+                    width: 5,
                     decoration: BoxDecoration(
-                      color: importanceColor.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      _categoryIcon(category),
-                      color: importanceColor,
-                      size: 18,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      (update['title'] ?? '').toString(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: isRead ? AppThemeColors.primaryText(context) : const Color(0xFF0B1F33),
+                      gradient: LinearGradient(
+                        colors: [
+                          importanceColor,
+                          importanceColor.withValues(alpha: 0.45),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
                   ),
-                  if (pinned) ...[
-                    const SizedBox(width: 6),
-                    _pill(t('pinned_label'), const Color(0xFF0E5A8A)),
-                  ],
-                  if (!isRead) ...[
-                    const SizedBox(width: 6),
-                    _pill(t('new_label'), _sky),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _infoTag(_categoryLabel(category, t), _sky),
-                  _infoTag(_importanceLabel(importance, t), importanceColor),
-                  if ((update['versionTag'] ?? '').toString().trim().isNotEmpty)
-                    _infoTag('v${update['versionTag']}', _deepBlue),
-                ],
-              ),
-              if ((update['summary'] ?? '').toString().trim().isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  (update['summary'] ?? '').toString(),
-                  style: const TextStyle(
-                    color: Color(0xFF0077B6),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                (update['body'] ?? '').toString(),
-                style: TextStyle(height: 1.5, color: isRead ? AppThemeColors.primaryText(context) : const Color(0xFF0B1F33), fontSize: 14),
-              ),
-              if (tags.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: tags.map((tag) => _tagChip('#$tag')).toList(),
-                ),
-              ],
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today_rounded, size: 13, color: Colors.grey.shade400),
-                  const SizedBox(width: 4),
+                  // ── Card content ─────────────────────────────────────
                   Expanded(
-                    child: Text(
-                      _formatDate(update['publishedAt'], t),
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  if (!isRead)
-                    GestureDetector(
-                      onTap: () => _markRead(update),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: _sky.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _sky.withValues(alpha: 0.30)),
-                        ),
-                        child: Text(
-                          t('mark_read_label'),
-                          style: const TextStyle(
-                            color: _sky,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: icon badge + title + unread dot
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      importanceColor.withValues(alpha: 0.18),
+                                      importanceColor.withValues(alpha: 0.06),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(
+                                  _categoryIcon(category),
+                                  color: importanceColor,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            title,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppThemeColors
+                                                  .primaryText(context),
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                        ),
+                                        if (pinned) ...[
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            Icons.push_pin_rounded,
+                                            size: 15,
+                                            color: const Color(0xFF0E5A8A),
+                                          ),
+                                        ],
+                                        if (!isRead) ...[
+                                          const SizedBox(width: 7),
+                                          Container(
+                                            width: 9,
+                                            height: 9,
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.cyan,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    // Meta chips
+                                    Wrap(
+                                      spacing: 5,
+                                      runSpacing: 4,
+                                      children: [
+                                        _metaChip(
+                                          _categoryLabel(category),
+                                          _sky,
+                                          icon: _categoryIcon(category),
+                                        ),
+                                        _metaChip(
+                                          _importanceLabel(importance),
+                                          importanceColor,
+                                        ),
+                                        if (versionTag.isNotEmpty)
+                                          _versionChip(versionTag),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+
+                          // Summary blockquote
+                          if (summary.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: importanceColor.withValues(alpha: 0.07),
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(10),
+                                  bottomRight: Radius.circular(10),
+                                  bottomLeft: Radius.circular(4),
+                                  topLeft: Radius.circular(4),
+                                ),
+                                border: Border(
+                                  left: BorderSide(
+                                      color: importanceColor, width: 3.5),
+                                ),
+                              ),
+                              child: Text(
+                                summary,
+                                style: TextStyle(
+                                  color: importanceColor.withValues(
+                                      alpha: AppThemeColors.isDark(context)
+                                          ? 0.9
+                                          : 1.0),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          // Body text
+                          if (body.isNotEmpty) ...[
+                            const SizedBox(height: 9),
+                            Text(
+                              body,
+                              style: TextStyle(
+                                height: 1.5,
+                                color: AppThemeColors.secondaryText(context),
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ],
+
+                          // Tags
+                          if (tags.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 5,
+                              children: tags
+                                  .map((tag) => _tagChip('#$tag'))
+                                  .toList(),
+                            ),
+                          ],
+
+                          // Footer: date + mark-read button
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time_rounded,
+                                  size: 12,
+                                  color: AppThemeColors.mutedText(context)
+                                      .withValues(alpha: 0.7)),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatDate(update['publishedAt']),
+                                style: TextStyle(
+                                  color: AppThemeColors.mutedText(context)
+                                      .withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (!isRead)
+                                GestureDetector(
+                                  onTap: () => _markRead(update),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: _sky.withValues(alpha: 0.10),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color:
+                                              _sky.withValues(alpha: 0.30)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.check_rounded,
+                                            size: 13, color: _sky),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          t('mark_read_label'),
+                                          style: const TextStyle(
+                                            color: _sky,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  Widget _metaChip(String label, Color color, {IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 11, color: color),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _versionChip(String version) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: _deepBlue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _deepBlue.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.code_rounded,
+              size: 10,
+              color: _deepBlue.withValues(
+                  alpha: AppThemeColors.isDark(context) ? 0.8 : 1.0)),
+          const SizedBox(width: 3),
+          Text(
+            'v$version',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: _deepBlue.withValues(
+                  alpha: AppThemeColors.isDark(context) ? 0.8 : 1.0),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   IconData _categoryIcon(String category) {
     switch (category) {
@@ -585,7 +891,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     }
   }
 
-  String _categoryLabel(String category, String Function(String) t) {
+  String _categoryLabel(String category) {
     switch (category) {
       case 'bug_fix':
         return t('bug_fix_label');
@@ -602,7 +908,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     }
   }
 
-  String _importanceLabel(String importance, String Function(String) t) {
+  String _importanceLabel(String importance) {
     switch (importance) {
       case 'critical':
         return t('critical_label');
@@ -613,60 +919,30 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     }
   }
 
-  Widget _pill(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11),
-      ),
-    );
-  }
-
-  Widget _infoTag(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
   Widget _tagChip(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5FF),
+        color: _sky.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _sky.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 12,
-          color: _deepBlue,
+          color: AppThemeColors.isDark(context)
+              ? _sky
+              : _deepBlue,
         ),
       ),
     );
   }
 
-  String _formatDate(dynamic value, String Function(String) t) {
-    final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
+  String _formatDate(dynamic value) {
+    final date =
+        DateTime.tryParse(value?.toString() ?? '')?.toLocal();
     if (date == null) return t('unknown_date_label');
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -674,22 +950,4 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
-}
-
-class _WaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_WaveClipper oldClipper) => false;
 }

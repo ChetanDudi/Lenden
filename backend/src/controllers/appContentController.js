@@ -6,6 +6,8 @@ const AppUpdate = require('../models/appUpdate');
 const AppUpdateRead = require('../models/appUpdateRead');
 const AppAd = require('../models/appAd');
 const Subscription = require('../models/subscription');
+const Notification = require('../models/notification');
+const User = require('../models/user');
 const { getAdMediaBucket } = require('../utils/adMediaBucket');
 
 const normalizeCreator = (creator) => {
@@ -489,6 +491,40 @@ exports.createUpdate = async (req, res) => {
       .lean();
     const currentAdmin = await getCurrentAdmin(req);
 
+    // Fan out a notification to all users for published updates so it
+    // appears in the user notifications page under the "Updates" tab.
+    if (normalizedStatus === 'published') {
+      try {
+        const allUsers = await User.find({}, '_id').lean();
+        const recipientIds = allUsers.map((u) => u._id);
+        const notifMessage =
+          update.summary?.trim() ||
+          (update.body?.trim() || '').substring(0, 200) ||
+          update.title.trim();
+        await Notification.create({
+          sender: req.user._id,
+          senderModel: 'Admin',
+          recipientType: 'all-users',
+          recipients: recipientIds,
+          recipientModel: 'User',
+          title: update.title.trim(),
+          message: notifMessage,
+          category: 'update',
+          deliveryStatus: 'sent',
+          sentAt: new Date(),
+          estimatedAudience: recipientIds.length,
+          metadata: {
+            updateId: update._id,
+            updateCategory: update.category,
+            importance: update.importance,
+          },
+        });
+      } catch (notifErr) {
+        // Non-fatal — the update is already saved; log and move on.
+        console.error('Failed to fan out update notification:', notifErr);
+      }
+    }
+
     res.status(201).json({
       message: 'Update published successfully.',
       update: toUpdateResponse(req, populated, currentAdmin),
@@ -557,6 +593,9 @@ exports.updateUpdate = async (req, res) => {
     )
       .populate('createdBy', 'name email isSuperAdmin')
       .lean();
+
+    // Editing an update resets read state for all viewers — treat it as new content.
+    await AppUpdateRead.deleteMany({ update: req.params.updateId });
 
     res.json({
       message: 'Update edited successfully.',

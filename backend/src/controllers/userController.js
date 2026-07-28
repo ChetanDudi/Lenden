@@ -457,7 +457,44 @@ exports.googleLogin = async (req, res) => {
 
     const adminWithEmail = await Admin.findOne({ email });
     if (adminWithEmail) {
-      return res.status(403).json({ error: 'This email belongs to an admin account. Please use admin login.' });
+      // Link Google ID to admin account on first Google sign-in
+      if (!adminWithEmail.googleId) {
+        adminWithEmail.googleId = googleId;
+        await adminWithEmail.save();
+      }
+      const deviceId = req.body.deviceId || uuidv4();
+      const deviceName = req.body.deviceName || req.get('User-Agent');
+      const ipAddress = req.ip;
+      const accessToken = TokenService.generateAccessToken({
+        _id: adminWithEmail._id,
+        email: adminWithEmail.email,
+        role: 'admin',
+        deviceId,
+      });
+      const refreshToken = TokenService.generateRefreshToken();
+      await TokenService.saveRefreshToken({
+        token: refreshToken,
+        userId: adminWithEmail._id,
+        userType: 'admin',
+        deviceId,
+        deviceName,
+        ipAddress,
+        userAgent: deviceName,
+        expiresAt: TokenService.calculateTokenExpiry(),
+      });
+      try {
+        await logProfileActivity(adminWithEmail._id, 'login', { ipAddress, userAgent: deviceName });
+      } catch (_) {}
+      const adminResponse = adminWithEmail.toObject();
+      delete adminResponse.password;
+      return res.status(200).json({
+        message: 'Admin login successful',
+        admin: adminResponse,
+        accessToken,
+        refreshToken,
+        deviceId,
+        userType: 'admin',
+      });
     }
 
     let user = await User.findOne({ $or: [{ googleId }, { email }] });

@@ -7,7 +7,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../utils/api_client.dart';
 import '../../../widgets/budget_exceeded_sheet.dart';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 import '../../../session.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../utils/share_utils.dart';
@@ -957,7 +957,8 @@ class GroupExpensesPage extends StatefulWidget {
   State<GroupExpensesPage> createState() => _GroupExpensesPageState();
 }
 
-class _GroupExpensesPageState extends State<GroupExpensesPage> {
+class _GroupExpensesPageState extends State<GroupExpensesPage>
+    with CurrencyDisplayMixin<GroupExpensesPage> {
   late List<dynamic> _expenses;
   late List<dynamic> _members;
   late List<dynamic> _memberPayments;
@@ -969,8 +970,6 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
   int _dailyExpenseLimit = 3;
   int _dailyExpenseUsed = 0;
 
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   static const _kFallbackCurrencies = [
     {'code': 'INR', 'symbol': '₹'},
     {'code': 'USD', 'symbol': '\$'},
@@ -988,7 +987,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     _expenses = List<dynamic>.from(widget.initialExpenses);
     _members = List<dynamic>.from(widget.initialMembers);
     _memberPayments = List<dynamic>.from(widget.initialMemberPayments);
-    _loadDisplayCurrencies();
+    loadCurrencies();
     _fetchDailyExpenseLimit();
     if (widget.openAddExpense) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openAddExpense());
@@ -1037,36 +1036,17 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
     _showAddEditSheet();
   }
 
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        if (!data.currencies.any((c) => c['code'] == _selectedDisplayCurrency)) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-      });
-    }
-  }
-
   // Convert an amountInr value into the selected display currency.
   String _fmtInr(num amountInr) {
-    final target = _selectedDisplayCurrency.toUpperCase();
+    final target = selectedCurrency.toUpperCase();
     if (target != 'INR' &&
-        !(_displayCurrencyData?.canConvert('INR', target) ?? false)) {
+        !(currencyData?.canConvert('INR', target) ?? false)) {
       return '₹${amountInr.toStringAsFixed(2)}';
     }
     final converted =
-        _displayCurrencyData?.convert(amountInr, 'INR', target) ??
+        currencyData?.convert(amountInr, 'INR', target) ??
             amountInr.toDouble();
-    final sym = _displayCurrencyData?.symbolFor(target) ?? '₹';
+    final sym = currencyData?.symbolFor(target) ?? '₹';
     return '$sym${converted.toStringAsFixed(2)}';
   }
 
@@ -1940,7 +1920,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                   ),
                                 ),
                                 if ((expense['currency']?.toString().toUpperCase() ?? 'INR') !=
-                                    _selectedDisplayCurrency.toUpperCase())
+                                    selectedCurrency.toUpperCase())
                                   Text(
                                     '$sym$amt',
                                     style: TextStyle(
@@ -2052,14 +2032,14 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
             padding: const EdgeInsets.only(right: 4),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: _selectedDisplayCurrency,
+                value: selectedCurrency,
                 dropdownColor: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(14),
                 style: TextStyle(
                     color: AppThemeColors.primaryText(context), fontWeight: FontWeight.w600),
                 iconEnabledColor: Colors.white,
                 selectedItemBuilder: (_) =>
-                    (_displayCurrencyData?.currencies ?? _kFallbackCurrencies)
+                    (currencyData?.currencies ?? _kFallbackCurrencies)
                         .map((c) => Center(
                               child: Text(
                                 '${c['symbol']} ${c['code']}',
@@ -2070,14 +2050,14 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                               ),
                             ))
                         .toList(),
-                items: (_displayCurrencyData?.currencies ?? _kFallbackCurrencies)
+                items: (currencyData?.currencies ?? _kFallbackCurrencies)
                     .map((c) => DropdownMenuItem(
                           value: c['code'],
                           child: Text('${c['symbol']} ${c['code']}'),
                         ))
                     .toList(),
                 onChanged: (v) {
-                  if (v != null) setState(() => _selectedDisplayCurrency = v);
+                  if (v != null) setCurrency(v);
                 },
               ),
             ),
@@ -2501,7 +2481,7 @@ class _GroupExpensesPageState extends State<GroupExpensesPage> {
                                         ),
                                         // native amount (only when different)
                                         if (nativeCur.toUpperCase() !=
-                                            _selectedDisplayCurrency
+                                            selectedCurrency
                                                 .toUpperCase())
                                           Text(
                                             '$nativeSym$nativeAmt',

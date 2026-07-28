@@ -44,13 +44,14 @@ class GoogleAuthService {
 
       final responseData = jsonDecode(response.body);
 
-      if (response.statusCode == 200 && responseData['user'] != null) {
+      if (response.statusCode == 200 &&
+          (responseData['user'] != null || responseData['admin'] != null)) {
         return {
           'success': true,
-          'userOrAdmin': responseData['user'],
+          'userOrAdmin': responseData['user'] ?? responseData['admin'],
           'accessToken': responseData['accessToken'],
           'refreshToken': responseData['refreshToken'],
-          'userType': 'user',
+          'userType': (responseData['userType'] as String?) ?? 'user',
           'dailyLoginReward': responseData['dailyLoginReward'],
         };
       }

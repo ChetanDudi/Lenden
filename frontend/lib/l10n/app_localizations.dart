@@ -1964,6 +1964,11 @@ class AppLocalizations {
       'failed_to_load_transactions_message': 'Failed to load transactions.',
       'oops_something_went_wrong_message': 'Oops! Something went wrong',
       'retry_label': 'Retry',
+      'updates_tab_label': 'Updates',
+      'no_connection_label': 'No connection',
+      'no_internet_connection_title': 'No internet connection',
+      'check_connection_and_retry_message':
+          'Check your internet connection or try again when the server is reachable.',
       'unable_to_connect_check_internet_message':
           'Unable to connect. Please check your internet connection.',
       'user_email_not_found_message': 'User email not found.',
@@ -6174,6 +6179,11 @@ class AppLocalizations {
       'failed_to_load_transactions_message': 'ट्रांज़ैक्शन लोड करने में विफल।',
       'oops_something_went_wrong_message': 'उफ़! कुछ गलत हो गया',
       'retry_label': 'पुनः प्रयास करें',
+      'updates_tab_label': 'अपडेट',
+      'no_connection_label': 'कोई कनेक्शन नहीं',
+      'no_internet_connection_title': 'इंटरनेट कनेक्शन नहीं है',
+      'check_connection_and_retry_message':
+          'अपना इंटरनेट कनेक्शन जांचें या सर्वर उपलब्ध होने पर पुनः प्रयास करें।',
       'unable_to_connect_check_internet_message':
           'कनेक्ट करने में असमर्थ। कृपया अपना इंटरनेट कनेक्शन जांचें।',
       'user_email_not_found_message': 'उपयोगकर्ता ईमेल नहीं मिला।',

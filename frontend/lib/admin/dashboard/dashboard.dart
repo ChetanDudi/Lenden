@@ -48,13 +48,16 @@ class AdminDashboardPage extends StatefulWidget {
 }
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
-  int _imageRefreshKey = 0; // Key to force avatar rebuild
+  int _imageRefreshKey = 0;
   bool _useCompactAdminOptions = true;
   bool _showOverviewPanel = false;
   bool _loadingOverview = false;
   bool _expandHealthAlerts = false; // Toggle for health alerts expansion
   String? _overviewError;
   Map<String, dynamic>? _dashboardSummary;
+  // Stored at first-frame time so dispose() can remove the listener
+  // without touching context (which is unsafe in dispose).
+  SessionProvider? _sessionRef;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   final Map<String, GlobalKey> _sectionKeys = {
@@ -82,29 +85,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   @override
   void initState() {
     super.initState();
-
-    // Listen to session changes to refresh profile image
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final session = Provider.of<SessionProvider>(context, listen: false);
-      session.addListener(_onSessionChanged);
+      if (!mounted) return;
+      _sessionRef = Provider.of<SessionProvider>(context, listen: false);
+      _sessionRef!.addListener(_onSessionChanged);
       _loadDashboardSummary();
     });
   }
 
   @override
   void dispose() {
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    session.removeListener(_onSessionChanged);
+    _sessionRef?.removeListener(_onSessionChanged);
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   void _onSessionChanged() {
-    setState(() {
-      _imageRefreshKey++;
-    });
-    _loadDashboardSummary();
+    if (!mounted) return;
+    setState(() => _imageRefreshKey++);
+    if (!_loadingOverview) _loadDashboardSummary();
   }
 
   Future<void> _loadDashboardSummary() async {

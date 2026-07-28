@@ -30,9 +30,10 @@ const adminSchema = new mongoose.Schema({
     expiry: { type: Date },
     sentAt: { type: Date },
   },
-  isSuperAdmin: { 
-    type: Boolean, 
-    default: false 
+  googleId: { type: String, default: null },
+  isSuperAdmin: {
+    type: Boolean,
+    default: false
   },
   permissions: {
     canManageUsers: { type: Boolean, default: true },

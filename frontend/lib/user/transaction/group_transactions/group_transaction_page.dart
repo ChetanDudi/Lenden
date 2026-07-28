@@ -13,6 +13,7 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/budget_limit_banner.dart';
+import '../../../widgets/free_attempts_banner.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1213,6 +1214,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                   onViewMessages: () => Navigator.push(context,
                                       MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
                                 ),
+                                const SizedBox(height: 6),
+                                const FreeAttemptsBanner(featureKey: 'group_creation'),
                                 const SizedBox(height: 4),
                                 if (_showFavouritesOnly &&
                                     filteredGroups.isEmpty)

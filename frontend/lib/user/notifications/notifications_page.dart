@@ -5,6 +5,7 @@ import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../connections/friends_page.dart';
 import '../digitise/offers_page.dart';
+import '../ads_and_updates/updates_page.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
@@ -31,25 +32,22 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   int _unreadCount = 0;
 
   static const List<String> _tabCategories = [
-    'all', 'friend', 'offer', 'transaction', 'group', 'general',
+    'all', 'friend', 'transaction', 'group', 'offer', 'system', 'subscription', 'update', 'general',
   ];
 
   String t(String key) => AppLocalizations.of(context).t(key);
 
   String _tabLabel(String category) {
     switch (category) {
-      case 'friend':
-        return t('requests_tab_label');
-      case 'offer':
-        return t('offers');
-      case 'transaction':
-        return t('transactions');
-      case 'group':
-        return t('groups');
-      case 'general':
-        return t('general_label');
-      default:
-        return t('all');
+      case 'friend':      return t('requests_tab_label');
+      case 'offer':       return t('offers');
+      case 'transaction': return t('transactions');
+      case 'group':       return t('groups');
+      case 'system':      return 'System';
+      case 'subscription': return 'Premium';
+      case 'update':      return t('updates_tab_label');
+      case 'general':     return t('general_label');
+      default:            return t('all');
     }
   }
 
@@ -68,17 +66,6 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     super.dispose();
   }
 
-  Color _getNoteColor(int index) {
-    const colors = [
-      Color(0xFFFFF4E6),
-      Color(0xFFE8F5E9),
-      Color(0xFFFCE4EC),
-      Color(0xFFE3F2FD),
-      Color(0xFFFFF9C4),
-      Color(0xFFF3E5F5),
-    ];
-    return colors[index % colors.length];
-  }
 
   void _calculateUnreadCount() {
     final session = Provider.of<SessionProvider>(context, listen: false);
@@ -230,20 +217,26 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   }
 
   String _categoryForNotification(dynamic notification) {
-    final explicit = (notification['category'] ?? '').toString().toLowerCase();
-    if (explicit.isNotEmpty) return explicit;
+    final explicit = (notification['category'] ?? '').toString().toLowerCase().trim();
+    if (explicit.isNotEmpty && explicit != 'undefined') return explicit;
 
+    final title = (notification['title'] ?? '').toString().toLowerCase();
     final message = (notification['message'] ?? '').toString().toLowerCase();
-    if (message.contains('friend')) return 'friend';
-    if (message.contains('offer')) return 'offer';
-    if (message.contains('group') || message.contains('split')) return 'group';
-    if (message.contains('transaction') ||
-        message.contains('payment') ||
-        message.contains('borrow') ||
-        message.contains('lend') ||
-        message.contains('due')) {
-      return 'transaction';
-    }
+    final combined = '$title $message';
+
+    if (combined.contains('friend') || combined.contains('request') || combined.contains('follow')) return 'friend';
+    if (combined.contains('subscri') || combined.contains('premium') || combined.contains('plan') || combined.contains('upgrade')) return 'subscription';
+    if (combined.contains('new version') || combined.contains('app update') ||
+        combined.contains('whats new') || combined.contains("what's new") ||
+        combined.contains('feature release') || combined.contains('bug fix') ||
+        combined.contains('release note')) return 'update';
+    if (combined.contains('system') || combined.contains('admin') || combined.contains('alert') ||
+        combined.contains('security') || combined.contains('maintenance')) return 'system';
+    if (combined.contains('offer') || combined.contains('discount') || combined.contains('deal') || combined.contains('coupon')) return 'offer';
+    if (combined.contains('group') || combined.contains('split') || combined.contains('expense')) return 'group';
+    if (combined.contains('transaction') || combined.contains('payment') ||
+        combined.contains('borrow') || combined.contains('lend') || combined.contains('due') ||
+        combined.contains('settled') || combined.contains('paid')) return 'transaction';
     return 'general';
   }
 
@@ -267,6 +260,13 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const UserOffersPage()),
+      );
+      return;
+    }
+    if (category == 'update') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const UserUpdatesPage()),
       );
     }
   }
@@ -724,93 +724,163 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
   }) {
     final category = _categoryForNotification(notification);
     final isBirthday = _isBirthdayWish(notification);
-    final accent = _accentForCategory(category, isBirthday: isBirthday);
-    final icon = _iconForCategory(category, isBirthday: isBirthday);
+    final theme = _themeForCategory(category, isBirthday: isBirthday);
     final title = (notification['title'] ?? '').toString().trim();
     final message = _prettifyMessage((notification['message'] ?? '').toString());
+    final timeStr = _formatTime(notification['createdAt']);
 
     return InkWell(
       onTap: () => _openNotificationTarget(notification),
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        child: tricolorBorder(
-          child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isBirthday
-                ? (AppThemeColors.isDark(context)
-                    ? const Color(0xFF2A2000)
-                    : const Color(0xFFFFFDE7))
-                : (AppThemeColors.isDark(context)
-                    ? AppThemeColors.surfaceBg(context)
-                    : _getNoteColor(index)),
-            borderRadius: BorderRadius.circular(20),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isRead
+                ? theme.accent.withValues(alpha: 0.18)
+                : theme.accent.withValues(alpha: 0.45),
+            width: isRead ? 1 : 1.5,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: theme.accent.withValues(alpha: isRead ? 0.04 : 0.09),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left accent strip
+                Container(
+                  width: 5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [theme.accent, theme.accent.withValues(alpha: 0.5)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
                 ),
-                child: Icon(icon, color: accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            title.isNotEmpty ? title : _labelForCategory(category),
-                            style: TextStyle(
-                              fontSize: title.isNotEmpty ? 14 : 12,
-                              fontWeight: FontWeight.w700,
-                              color: accent,
-                              letterSpacing: 0.2,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Icon badge
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    theme.accent.withValues(alpha: 0.18),
+                                    theme.accent.withValues(alpha: 0.06),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(theme.icon, color: theme.accent, size: 20),
                             ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Category chip + unread dot
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: theme.accent.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          theme.label,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.accent,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                      if (!isRead) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.cyan,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  if (title.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      title,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppThemeColors.primaryText(context),
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          message,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w500,
+                            height: 1.45,
+                            color: AppThemeColors.secondaryText(context),
                           ),
                         ),
-                        if (!isRead)
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: AppColors.cyan,
-                              shape: BoxShape.circle,
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Icon(Icons.access_time_rounded,
+                                size: 11, color: AppThemeColors.secondaryText(context).withValues(alpha: 0.6)),
+                            const SizedBox(width: 3),
+                            Text(
+                              timeStr,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppThemeColors.secondaryText(context).withValues(alpha: 0.6),
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      message,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        height: 1.35,
-                        color: AppThemeColors.primaryText(context),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _formatTime(notification['createdAt']),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppThemeColors.secondaryText(context),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -818,55 +888,69 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
 
   bool _isBirthdayWish(dynamic notification) {
     final title = (notification['title'] ?? '').toString().toLowerCase();
-    return title.startsWith('birthday wish');
+    return title.contains('birthday');
   }
 
-  Color _accentForCategory(String category, {bool isBirthday = false}) {
-    if (isBirthday) return Colors.amber;
+  _NotifTheme _themeForCategory(String category, {bool isBirthday = false}) {
+    if (isBirthday) {
+      return _NotifTheme(
+        accent: const Color(0xFFFF8F00),
+        icon: Icons.cake_rounded,
+        label: '🎂 Birthday',
+      );
+    }
     switch (category) {
       case 'friend':
-        return Colors.orange;
+        return _NotifTheme(
+          accent: const Color(0xFFE65100),
+          icon: Icons.person_add_rounded,
+          label: 'Friend Request',
+        );
       case 'offer':
-        return Colors.purple;
+        return _NotifTheme(
+          accent: const Color(0xFF7B1FA2),
+          icon: Icons.discount_rounded,
+          label: 'Offer',
+        );
       case 'transaction':
-        return Colors.teal;
+        return _NotifTheme(
+          accent: const Color(0xFF00695C),
+          icon: Icons.swap_horiz_rounded,
+          label: 'Transaction',
+        );
       case 'group':
-        return Colors.deepPurple;
+        return _NotifTheme(
+          accent: const Color(0xFF283593),
+          icon: Icons.groups_rounded,
+          label: 'Group',
+        );
+      case 'system':
+        return _NotifTheme(
+          accent: const Color(0xFFB71C1C),
+          icon: Icons.admin_panel_settings_outlined,
+          label: 'System',
+        );
+      case 'subscription':
+        return _NotifTheme(
+          accent: const Color(0xFFD4A017),
+          icon: Icons.workspace_premium_rounded,
+          label: 'Premium',
+        );
+      case 'update':
+        return _NotifTheme(
+          accent: const Color(0xFF0077B6),
+          icon: Icons.system_update_rounded,
+          label: 'Update',
+        );
       default:
-        return AppColors.cyan;
+        return _NotifTheme(
+          accent: AppColors.cyan,
+          icon: Icons.notifications_active_rounded,
+          label: 'General',
+        );
     }
   }
 
-  IconData _iconForCategory(String category, {bool isBirthday = false}) {
-    if (isBirthday) return Icons.cake_rounded;
-    switch (category) {
-      case 'friend':
-        return Icons.people_alt_outlined;
-      case 'offer':
-        return Icons.local_offer_outlined;
-      case 'transaction':
-        return Icons.receipt_long_outlined;
-      case 'group':
-        return Icons.groups_2_outlined;
-      default:
-        return Icons.notifications_active_outlined;
-    }
-  }
-
-  String _labelForCategory(String category) {
-    switch (category) {
-      case 'friend':
-        return t('friends_category_label');
-      case 'offer':
-        return t('offers_category_label');
-      case 'transaction':
-        return t('transactions_category_label');
-      case 'group':
-        return t('groups_category_label');
-      default:
-        return t('general_category_label');
-    }
-  }
 
   String _prettifyMessage(String message) {
     final normalized = message.trim().replaceAll(RegExp(r'\s+'), ' ');
@@ -888,5 +972,12 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
     if (diff.inDays < 7) return '${diff.inDays} ${t('day_ago_suffix')}';
     return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
   }
+}
+
+class _NotifTheme {
+  final Color accent;
+  final IconData icon;
+  final String label;
+  const _NotifTheme({required this.accent, required this.icon, required this.label});
 }
 

@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
-import '../../utils/display_currency_helper.dart';
+import '../../widgets/currency_display.dart';
 import '../../widgets/payment_success_page.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
@@ -93,7 +93,7 @@ class SubscriptionsPage extends StatefulWidget {
 }
 
 class _SubscriptionsPageState extends State<SubscriptionsPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, CurrencyDisplayMixin<SubscriptionsPage> {
   late TabController _tabController;
 
   String? _selectedPlan;
@@ -101,8 +101,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
   String _planSearchQuery = '';
   String _filterOption = 'All'; // All, Active, Expired
   bool _showComparison = false;
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
 
   List<SubscriptionPlan> _plans = [];
@@ -134,7 +132,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     final session = Provider.of<SessionProvider>(context, listen: false);
     session.checkSubscriptionStatus();
     session.fetchSubscriptionHistory();
-    _loadDisplayCurrencies();
+    loadCurrencies(onError: (_) {
+      if (mounted) setState(() => _displayCurrencyError = AppLocalizations.of(context).t('currency_conversion_unavailable_message'));
+    });
     _fetchSubscriptionData();
   }
 
@@ -167,98 +167,29 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     } catch (_) {}
   }
 
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        _displayCurrencyError = null;
-        final exists = data.currencies.any(
-          (item) => item['code'] == _selectedDisplayCurrency,
-        );
-        if (!exists) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      final t = AppLocalizations.of(context).t;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError = t('currency_conversion_unavailable_message');
-      });
-    }
-  }
-
   bool _hasMissingPlanConversion() {
-    if (_selectedDisplayCurrency.toUpperCase() == 'INR') return false;
-    if (_displayCurrencyData == null) return true;
-    return !_displayCurrencyData!.canConvert('INR', _selectedDisplayCurrency);
+    if (selectedCurrency.toUpperCase() == 'INR') return false;
+    if (currencyData == null) return true;
+    return !currencyData!.canConvert('INR', selectedCurrency);
   }
 
   String _formatPlanAmount(double amountInInr) {
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
+    final targetCurrency = selectedCurrency.toUpperCase();
     final canConvert =
-        _displayCurrencyData?.canConvert('INR', targetCurrency) ??
+        currencyData?.canConvert('INR', targetCurrency) ??
             (targetCurrency == 'INR');
     if (!canConvert) {
       return '₹${amountInInr.toStringAsFixed(2)}';
     }
-    final converted = _displayCurrencyData?.convert(
+    final converted = currencyData?.convert(
           amountInInr,
           'INR',
           targetCurrency,
         ) ??
         amountInInr;
-    final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ??
+    final symbol = currencyData?.symbolFor(targetCurrency) ??
         (targetCurrency == 'INR' ? '₹' : targetCurrency);
     return '$symbol${converted.toStringAsFixed(2)}';
-  }
-
-  Widget _buildCurrencySelector() {
-    final currencies = _displayCurrencyData?.currencies ??
-        const <Map<String, String>>[
-          {'code': 'INR', 'symbol': '₹', 'label': ''},
-        ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppThemeColors.divider(context)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedDisplayCurrency,
-          icon: Icon(Icons.keyboard_arrow_down_rounded,
-              color: AppThemeColors.secondaryText(context)),
-          borderRadius: BorderRadius.circular(14),
-          dropdownColor: AppThemeColors.cardBg(context),
-          items: currencies
-              .map(
-                (currency) => DropdownMenuItem<String>(
-                  value: currency['code'],
-                  child: Text(
-                    '${currency['symbol']} ${currency['code']}',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: AppThemeColors.primaryText(context)),
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() {
-              _selectedDisplayCurrency = value;
-            });
-          },
-        ),
-      ),
-    );
   }
 
   Future<void> _fetchPlans() async {
@@ -1646,7 +1577,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                     color: AppThemeColors.secondaryText(context)),
               ),
               const SizedBox(width: 10),
-              _buildCurrencySelector(),
+              buildCurrencySelector(),
             ],
           ),
           if (showWarning) ...[
@@ -1654,7 +1585,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
             _buildWarningBanner(
               _displayCurrencyError ??
                   t('conversion_unavailable_subscription_message')
-                      .replaceFirst('{currency}', _selectedDisplayCurrency),
+                      .replaceFirst('{currency}', selectedCurrency),
             ),
           ],
           const SizedBox(height: 18),

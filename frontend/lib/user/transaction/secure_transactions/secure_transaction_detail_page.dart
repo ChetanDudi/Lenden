@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../widgets/app_widgets.dart';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 import '../../chats/chat_page.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -60,10 +60,9 @@ class SecureTransactionDetailPage extends StatefulWidget {
 }
 
 class _SecureTransactionDetailPageState
-    extends State<SecureTransactionDetailPage> {
+    extends State<SecureTransactionDetailPage>
+    with CurrencyDisplayMixin<SecureTransactionDetailPage> {
   late Map<String, dynamic> _t;
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   DateTime _now = DateTime.now();
   Timer? _countdownTimer;
   bool _needsRefresh = false;
@@ -77,7 +76,7 @@ class _SecureTransactionDetailPageState
     } else {
       _t['favourite'] = <dynamic>[];
     }
-    _loadDisplayCurrencies();
+    loadCurrencies();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -89,38 +88,19 @@ class _SecureTransactionDetailPageState
     super.dispose();
   }
 
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        if (!data.currencies.any((c) => c['code'] == _selectedDisplayCurrency)) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-      });
-    }
-  }
-
   String _formatDisplayAmount(num? amount, String? originalCurrency) {
     final numericAmount = (amount ?? 0).toDouble();
     final src = (originalCurrency ?? 'INR').toUpperCase();
-    final tgt = _selectedDisplayCurrency.toUpperCase();
+    final tgt = selectedCurrency.toUpperCase();
     final canConvert =
-        _displayCurrencyData?.canConvert(src, tgt) ?? (src == tgt);
+        currencyData?.canConvert(src, tgt) ?? (src == tgt);
     if (!canConvert) {
-      final sym = _displayCurrencyData?.symbolFor(src) ?? src;
+      final sym = currencyData?.symbolFor(src) ?? src;
       return '$sym${numericAmount.toStringAsFixed(2)} $src';
     }
     final converted =
-        _displayCurrencyData?.convert(numericAmount, src, tgt) ?? numericAmount;
-    final sym = _displayCurrencyData?.symbolFor(tgt) ?? tgt;
+        currencyData?.convert(numericAmount, src, tgt) ?? numericAmount;
+    final sym = currencyData?.symbolFor(tgt) ?? tgt;
     return '$sym${converted.toStringAsFixed(2)} $tgt';
   }
 
@@ -594,8 +574,8 @@ class _SecureTransactionDetailPageState
       MaterialPageRoute(
         builder: (_) => PartialPaymentHistoryPage(
           transaction: _t,
-          displayCurrencyData: _displayCurrencyData,
-          selectedDisplayCurrency: _selectedDisplayCurrency,
+          displayCurrencyData: currencyData,
+          selectedDisplayCurrency: selectedCurrency,
         ),
       ),
     );
@@ -955,8 +935,8 @@ class _SecureTransactionDetailPageState
       MaterialPageRoute(
         builder: (_) => PaymentTimelinePage(
           transaction: t,
-          displayCurrencyData: _displayCurrencyData,
-          selectedDisplayCurrency: _selectedDisplayCurrency,
+          displayCurrencyData: currencyData,
+          selectedDisplayCurrency: selectedCurrency,
           fullyCleared: fullyCleared,
         ),
       ),
@@ -976,8 +956,8 @@ class _SecureTransactionDetailPageState
       MaterialPageRoute(
         builder: (_) => RepaymentSchedulePage(
           transaction: t,
-          displayCurrencyData: _displayCurrencyData,
-          selectedDisplayCurrency: _selectedDisplayCurrency,
+          displayCurrencyData: currencyData,
+          selectedDisplayCurrency: selectedCurrency,
           remainingAmount: remaining,
         ),
       ),

@@ -8,7 +8,7 @@ import 'dart:math';
 import '../../../utils/api_client.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 import 'secure_transaction_detail_page.dart';
 import 'partial_payment_page.dart';
 import 'create_secure_transaction_page.dart';
@@ -18,6 +18,7 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/budget_limit_banner.dart';
+import '../../../widgets/free_attempts_banner.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
 
@@ -64,7 +65,8 @@ class UserTransactionsPage extends StatefulWidget {
   _UserTransactionsPageState createState() => _UserTransactionsPageState();
 }
 
-class _UserTransactionsPageState extends State<UserTransactionsPage> {
+class _UserTransactionsPageState extends State<UserTransactionsPage>
+    with CurrencyDisplayMixin<UserTransactionsPage> {
   List<dynamic> lending = [];
   List<dynamic> borrowing = [];
   int totalTransactions = 0;
@@ -170,8 +172,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   bool _txnHasMore = false;
   bool _loadingMore = false;
   static const int _txnPageSize = 20;
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
   Timer? _countdownTimer;
   Timer? _searchDebounceTimer;
@@ -187,7 +187,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     globalSearch = widget.initialGlobalSearch;
     showFavouritesOnly = widget.initialShowFavouritesOnly;
     fetchTransactions();
-    _loadDisplayCurrencies();
+    loadCurrencies(onError: (_) {
+      if (mounted) {
+        setState(() => _displayCurrencyError = AppLocalizations.of(context).t('currency_conversion_unavailable_message'));
+      }
+    });
     _counterpartyController.text = _searchCounterparty;
     _placeController.text = _searchPlace;
     _transactionIdController.text = _searchTransactionId;
@@ -211,30 +215,6 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
     _amountController.dispose();
     _globalSearchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        _displayCurrencyError = null;
-        if (!data.currencies.any(
-          (item) => item['code'] == _selectedDisplayCurrency,
-        )) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      final t = AppLocalizations.of(context).t;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError = t('currency_conversion_unavailable_message');
-      });
-    }
   }
 
   Widget _buildErrorState(String message, VoidCallback onRetry) {
@@ -309,90 +289,42 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
   String _formatDisplayAmount(num? amount, String? originalCurrency) {
     final numericAmount = (amount ?? 0).toDouble();
     final sourceCurrency = (originalCurrency ?? 'INR').toUpperCase();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final canConvert = currencyData?.canConvert(
           sourceCurrency,
           targetCurrency,
         ) ??
         (sourceCurrency == targetCurrency);
     if (!canConvert) {
       final originalSymbol =
-          _displayCurrencyData?.symbolFor(sourceCurrency) ?? sourceCurrency;
+          currencyData?.symbolFor(sourceCurrency) ?? sourceCurrency;
       return '$originalSymbol${numericAmount.toStringAsFixed(2)} $sourceCurrency';
     }
-    final converted = _displayCurrencyData?.convert(
+    final converted = currencyData?.convert(
           numericAmount,
           sourceCurrency,
           targetCurrency,
         ) ??
         numericAmount;
     final symbol =
-        _displayCurrencyData?.symbolFor(targetCurrency) ?? targetCurrency;
+        currencyData?.symbolFor(targetCurrency) ?? targetCurrency;
     return '$symbol${converted.toStringAsFixed(2)} $targetCurrency';
   }
 
   bool _hasMissingConversionForSecureTransactions() {
-    if (_selectedDisplayCurrency.toUpperCase() == 'INR') return false;
-    if (_displayCurrencyData == null) return true;
+    if (selectedCurrency.toUpperCase() == 'INR') return false;
+    if (currencyData == null) return true;
     final allTransactions = [...lending, ...borrowing];
     for (final transaction in allTransactions) {
       final sourceCurrency = (transaction['currency'] ?? 'INR').toString();
-      if (!_displayCurrencyData!.canConvert(
+      if (!currencyData!.canConvert(
         sourceCurrency,
-        _selectedDisplayCurrency,
+        selectedCurrency,
       )) {
         return true;
       }
     }
     return false;
-  }
-
-  Widget _buildCurrencySelector() {
-    final currencies = _displayCurrencyData?.currencies ??
-        const <Map<String, String>>[
-          {'code': 'INR', 'symbol': '₹', 'label': ''},
-        ];
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedDisplayCurrency,
-            borderRadius: BorderRadius.circular(14),
-            items: currencies
-                .map(
-                  (currency) => DropdownMenuItem(
-                    value: currency['code'],
-                    child: Text(
-                      '${currency['symbol']} ${currency['code']}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _selectedDisplayCurrency = value;
-              });
-            },
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> fetchTransactions({bool append = false}) async {
@@ -847,7 +779,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       Builder(builder: (context) {
                         final double dueAmt = _calculateRemainingWithInterest(t);
                         final bool hasInterest = t['interestType'] != null && t['interestRate'] != null;
-                        final String txSymbol = _displayCurrencyData?.symbolFor(
+                        final String txSymbol = currencyData?.symbolFor(
                               (t['currency'] ?? 'INR').toString(),
                             ) ?? currencySymbolFor(t['currency'] as String?);
                         return Column(
@@ -2293,6 +2225,8 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                       onViewMessages: () => Navigator.push(context,
                           MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
                     ),
+                    const SizedBox(height: 6),
+                    const FreeAttemptsBanner(featureKey: 'secure_transactions'),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: Container(
@@ -2364,7 +2298,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                               Expanded(
                                 child: Text(
                                   _displayCurrencyError ??
-                                      loc('conversion_not_available_secure_message').replaceFirst('{currency}', _selectedDisplayCurrency),
+                                      loc('conversion_not_available_secure_message').replaceFirst('{currency}', selectedCurrency),
                                   style: const TextStyle(
                                     color: Color(0xFFD62828),
                                     fontWeight: FontWeight.w600,
@@ -2386,7 +2320,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage> {
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(width: 10),
-                          _buildCurrencySelector(),
+                          buildCurrencySelector(),
                         ],
                       ),
                     ),

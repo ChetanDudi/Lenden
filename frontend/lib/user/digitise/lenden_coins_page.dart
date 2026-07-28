@@ -1,6 +1,10 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../session.dart';
 import '../../utils/api_client.dart';
+import '../../widgets/currency_display.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
@@ -17,7 +21,8 @@ class LenDenCoinsPage extends StatefulWidget {
   State<LenDenCoinsPage> createState() => _LenDenCoinsPageState();
 }
 
-class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
+class _LenDenCoinsPageState extends State<LenDenCoinsPage>
+    with CurrencyDisplayMixin<LenDenCoinsPage> {
   bool _isFetchingHistory = false;
   bool _hasFetchedHistory = false;
   String? _historyError;
@@ -30,6 +35,22 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
   void initState() {
     super.initState();
     _fetchBalance();
+    loadCurrencies();
+  }
+
+  String _formatCoinMoney(int coins) {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final pricing = session.coinPricingConfig;
+    final coinValue = (pricing['coinValue'] as num? ?? 0.10).toDouble();
+    final baseCurrency =
+        (pricing['coinValueCurrency'] as String? ?? 'INR').toUpperCase();
+    final amount = coins * coinValue;
+    return formatCurrencyAmount(
+      amount,
+      from: baseCurrency,
+      to: selectedCurrency,
+      data: currencyData,
+    );
   }
 
   Future<void> _fetchBalance() async {
@@ -84,6 +105,38 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
 
   int get _displayBalance => _fetchedBalance ?? widget.coins;
 
+  Future<void> _showBuyCoinsSheet() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final pricing = session.coinPricingConfig;
+    final coinValue = (pricing['coinValue'] as num? ?? 0.10).toDouble();
+    final coinCurrency = (pricing['coinValueCurrency'] as String?) ?? 'INR';
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BuyCoinsSheet(
+        coinValue: coinValue,
+        coinCurrency: coinCurrency,
+        displayCurrencyData: currencyData,
+        initialDisplayCurrency: selectedCurrency,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    final newBal = result['newCoinBalance'];
+    if (newBal != null) {
+      setState(() => _fetchedBalance = (newBal as num).toInt());
+      session.updateUserCoins((newBal as num).toInt());
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          'Bought ${result['coins']} coins for $coinCurrency ${result['totalCost']}!'),
+      backgroundColor: const Color(0xFF2E7D32),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
@@ -118,6 +171,8 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildBalanceCard(),
+                  const SizedBox(height: 12),
+                  _buildBuyCoinsButton(),
                   const SizedBox(height: 18),
                   _buildInfoCard(
                     title: t('history_tracking_title'),
@@ -151,6 +206,25 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBuyCoinsButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _showBuyCoinsSheet,
+        icon: const Icon(Icons.shopping_cart_rounded),
+        label: const Text('Buy Coins with Wallet'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFD4A017),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle:
+              const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }
@@ -574,12 +648,18 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          t('history_label'),
-          style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppThemeColors.primaryText(context)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              t('history_label'),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppThemeColors.primaryText(context)),
+            ),
+            buildCurrencySelector(),
+          ],
         ),
         const SizedBox(height: 12),
         if (_entries.isEmpty)
@@ -677,13 +757,27 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              '${isEarned ? '+' : '-'}${amount.toInt()}',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: accent,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${isEarned ? '+' : '-'}${amount.toInt()}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: accent,
+                  ),
+                ),
+                Text(
+                  '≈ ${_formatCoinMoney(amount.toInt())}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppThemeColors.mutedText(context),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -723,6 +817,308 @@ class _LenDenCoinsPageState extends State<LenDenCoinsPage> {
       'Dec',
     ];
     return names[month - 1];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Buy-coins bottom sheet — owns its own TextEditingController so Flutter's
+// normal dispose order handles the lifecycle: the sheet widget is disposed
+// (and the controller cleaned up) before showModalBottomSheet's Future
+// resolves, eliminating the "controller used after disposed" timing crash.
+// SingleChildScrollView prevents the 99702-pixel RenderFlex overflow when
+// the keyboard is open inside an isScrollControlled sheet.
+// ---------------------------------------------------------------------------
+
+class _BuyCoinsSheet extends StatefulWidget {
+  final double coinValue;
+  final String coinCurrency;
+  final DisplayCurrencyData? displayCurrencyData;
+  final String initialDisplayCurrency;
+
+  const _BuyCoinsSheet({
+    required this.coinValue,
+    required this.coinCurrency,
+    required this.displayCurrencyData,
+    required this.initialDisplayCurrency,
+  });
+
+  @override
+  State<_BuyCoinsSheet> createState() => _BuyCoinsSheetState();
+}
+
+class _BuyCoinsSheetState extends State<_BuyCoinsSheet>
+    with CurrencyDisplayMixin<_BuyCoinsSheet> {
+  late final TextEditingController _ctrl;
+  bool _buying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: '10');
+    loadCurrencies(
+      seedData: widget.displayCurrencyData,
+      seedCode: widget.initialDisplayCurrency,
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  int get _coins => int.tryParse(_ctrl.text.trim()) ?? 0;
+  double get _baseCost => _coins * widget.coinValue;
+  String get _displayCost => formatCurrencyAmount(
+        _baseCost,
+        from: widget.coinCurrency,
+        to: selectedCurrency,
+        data: currencyData,
+      );
+  String get _totalCost => _baseCost.toStringAsFixed(2);
+
+  Future<void> _buy() async {
+    if (_coins < 1) return;
+    setState(() => _buying = true);
+    try {
+      final res = await ApiClient.post('/api/coins/buy-with-wallet',
+          body: {'coinsToBuy': _coins});
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        if (mounted) {
+          Navigator.of(context).pop(<String, dynamic>{
+            'newCoinBalance': data['newCoinBalance'],
+            'coins': _coins,
+            'totalCost': _totalCost,
+          });
+        }
+      } else {
+        final err =
+            (data['error'] ?? data['message'] ?? 'Purchase failed.').toString();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(err),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _buying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final coins = _coins;
+    final displayCost = _displayCost;
+    final baseCost = '${widget.coinCurrency} ${_totalCost}';
+    final showConversion =
+        selectedCurrency.toUpperCase() != widget.coinCurrency.toUpperCase();
+
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.divider(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.monetization_on_rounded,
+                        color: Color(0xFFD4A017), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Buy LenDen Coins',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppThemeColors.primaryText(context),
+                          ),
+                        ),
+                        Text(
+                          '1 coin = ${widget.coinCurrency} ${widget.coinValue.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppThemeColors.secondaryText(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              buildSheetCurrencySelector(),
+              const SizedBox(height: 18),
+              Text(
+                'How many coins?',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppThemeColors.secondaryText(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _ctrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context),
+                ),
+                decoration: InputDecoration(
+                  suffixText: 'coins',
+                  suffixStyle: TextStyle(
+                    fontSize: 16,
+                    color: AppThemeColors.secondaryText(context),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.cyan),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide:
+                        const BorderSide(color: AppColors.cyan, width: 2),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [10, 25, 50, 100, 200].map((n) {
+                  return ActionChip(
+                    label: Text('+$n'),
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 12),
+                    backgroundColor: AppColors.cyan.withValues(alpha: 0.10),
+                    side: const BorderSide(color: AppColors.cyan),
+                    onPressed: () {
+                      _ctrl.text = '$n';
+                      setState(() {});
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFEAF5FF),
+                      dark: const Color(0xFF1B3A4A)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total cost',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppThemeColors.secondaryText(context),
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayCost,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.cyan,
+                          ),
+                        ),
+                        if (showConversion)
+                          Text(
+                            baseCost,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppThemeColors.mutedText(context),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: (_buying || coins < 1) ? null : _buy,
+                  icon: _buying
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.monetization_on_rounded),
+                  label: Text(_buying
+                      ? 'Buying…'
+                      : 'Buy $coins Coin${coins == 1 ? '' : 's'}'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4A017),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

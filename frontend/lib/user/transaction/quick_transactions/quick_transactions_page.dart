@@ -11,7 +11,7 @@ import '../../../utils/share_utils.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 import '../../../widgets/stylish_dialog.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../digitise/gift_card_page.dart';
@@ -69,7 +69,8 @@ class QuickTransactionsPage extends StatefulWidget {
   State<QuickTransactionsPage> createState() => _QuickTransactionsPageState();
 }
 
-class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
+class _QuickTransactionsPageState extends State<QuickTransactionsPage>
+    with CurrencyDisplayMixin<QuickTransactionsPage> {
   List<Map<String, dynamic>> transactions = [];
   List<Map<String, dynamic>> filteredTransactions = [];
   bool loading = true;
@@ -92,8 +93,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   Set<String> _pinnedTransactionIds = {};
   int _bannerRefreshTrigger = 0;
   Map<String, dynamic>? _dailyLimits;
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
   Timer? _searchDebounceTimer;
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -106,7 +105,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     fetchQuickTransactions();
     _loadBlockedUsers();
     _loadDailyLimits();
-    _loadDisplayCurrencies();
+    loadCurrencies(
+      onError: (_) {
+        if (mounted) {
+          setState(() => _displayCurrencyError =
+              AppLocalizations.of(context).t('currency_conversion_unavailable'));
+        }
+      },
+    );
     _loadPinnedTransactions();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.openCreateOnLoad &&
@@ -148,29 +154,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     } catch (_) {}
   }
 
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        _displayCurrencyError = null;
-        if (!data.currencies.any(
-          (item) => item['code'] == _selectedDisplayCurrency,
-        )) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError =
-            AppLocalizations.of(context).t('currency_conversion_unavailable');
-      });
-    }
-  }
 
   String? _currentUserEmail() {
     return Provider.of<SessionProvider>(context, listen: false)
@@ -357,25 +340,25 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         ? amount.toDouble()
         : double.tryParse((amount ?? 0).toString()) ?? 0.0;
     final sourceCurrency = (originalCurrency ?? 'INR').toUpperCase();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final canConvert = currencyData?.canConvert(
           sourceCurrency,
           targetCurrency,
         ) ??
         (sourceCurrency == targetCurrency);
     if (!canConvert) {
       final originalSymbol =
-          _displayCurrencyData?.symbolFor(sourceCurrency) ?? sourceCurrency;
+          currencyData?.symbolFor(sourceCurrency) ?? sourceCurrency;
       return '$originalSymbol${numericAmount.toStringAsFixed(2)}';
     }
-    final converted = _displayCurrencyData?.convert(
+    final converted = currencyData?.convert(
           numericAmount,
           sourceCurrency,
           targetCurrency,
         ) ??
         numericAmount;
     final symbol =
-        _displayCurrencyData?.symbolFor(targetCurrency) ?? targetCurrency;
+        currencyData?.symbolFor(targetCurrency) ?? targetCurrency;
     return '$symbol${converted.toStringAsFixed(2)}';
   }
 
@@ -384,14 +367,14 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
         double.tryParse('${transaction['amount']}') ??
         0.0;
     final sourceCurrency = (transaction['currency'] ?? 'INR').toString();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final canConvert = currencyData?.canConvert(
           sourceCurrency,
           targetCurrency,
         ) ??
         (sourceCurrency.toUpperCase() == targetCurrency);
     return canConvert
-        ? (_displayCurrencyData?.convert(
+        ? (currencyData?.convert(
                 amount, sourceCurrency, targetCurrency) ??
             amount)
         : amount;
@@ -428,13 +411,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
   }
 
   bool _hasMissingConversionForQuickTransactions() {
-    if (_selectedDisplayCurrency.toUpperCase() == 'INR') return false;
-    if (_displayCurrencyData == null) return true;
+    if (selectedCurrency.toUpperCase() == 'INR') return false;
+    if (currencyData == null) return true;
     for (final transaction in filteredTransactions) {
       final sourceCurrency = (transaction['currency'] ?? 'INR').toString();
-      if (!_displayCurrencyData!.canConvert(
+      if (!currencyData!.canConvert(
         sourceCurrency,
-        _selectedDisplayCurrency,
+        selectedCurrency,
       )) {
         return true;
       }
@@ -442,56 +425,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     return false;
   }
 
-  Widget _buildCurrencySelector() {
-    final currencies = _displayCurrencyData?.currencies ??
-        const <Map<String, String>>[
-          {'code': 'INR', 'symbol': '₹', 'label': ''},
-        ];
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedDisplayCurrency,
-            borderRadius: BorderRadius.circular(16),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-            items: currencies
-                .map(
-                  (currency) => DropdownMenuItem(
-                    value: currency['code'],
-                    child: Text(
-                      '${currency['symbol']} ${currency['code']}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppThemeColors.primaryText(context)),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _selectedDisplayCurrency = value;
-              });
-            },
-          ),
-        ),
-      ),
-    );
-  }
 
   bool _isBlockedEmail(String? email) {
     final target = email?.toLowerCase().trim();
@@ -1604,6 +1537,41 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
     [Color(0xFFF4B400), Color(0xFFFDE68A)],
   ];
 
+  Widget _buildAttemptsChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.30)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusChip(String label, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1670,19 +1638,19 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
           ),
           _buildSummaryCard(
             title: t('quick_value_label'),
-            value: _formatDisplayAmount(totalValue, _selectedDisplayCurrency),
+            value: _formatDisplayAmount(totalValue, selectedCurrency),
             icon: Icons.currency_rupee_rounded,
             colors: _quickStatPalette[1],
           ),
           _buildSummaryCard(
             title: t('pending_value_label'),
-            value: _formatDisplayAmount(pendingValue, _selectedDisplayCurrency),
+            value: _formatDisplayAmount(pendingValue, selectedCurrency),
             icon: Icons.pending_actions_rounded,
             colors: _quickStatPalette[2],
           ),
           _buildSummaryCard(
             title: t('largest_quick_label'),
-            value: _formatDisplayAmount(largest, _selectedDisplayCurrency),
+            value: _formatDisplayAmount(largest, selectedCurrency),
             icon: Icons.leaderboard_rounded,
             colors: _quickStatPalette[0],
           ),
@@ -1893,23 +1861,35 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                 Consumer<SessionProvider>(
                   builder: (context, session, child) {
                     if (session.hasFeature('quick_transactions')) {
-                      return Text(t('unlimited_quick_transactions_message'),
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppThemeColors.primaryText(context)));
+                      return _buildAttemptsChip(
+                        icon: Icons.all_inclusive_rounded,
+                        label: t('unlimited_quick_transactions_message'),
+                        color: const Color(0xFF2E7D32),
+                      );
                     }
-                    final remaining = session.freeQuickTransactionsRemaining;
-                    if (remaining == null) {
-                      return SizedBox.shrink();
-                    }
-                    return Text(
-                        t('free_quick_transactions_remaining_message')
-                            .replaceFirst('{count}', '$remaining'),
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppThemeColors.primaryText(context)));
+                    final free = session.freeQuickTransactionsRemaining ?? 0;
+                    final dailyRemaining = _dailyLimits?['limits']
+                        ?['quickTransactions']?['remaining'] as int?;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildAttemptsChip(
+                          icon: free > 0 ? Icons.confirmation_num_outlined : Icons.block_rounded,
+                          label: free > 0
+                              ? t('free_quick_transactions_remaining_message').replaceFirst('{count}', '$free')
+                              : 'Free attempts exhausted',
+                          color: free > 2 ? const Color(0xFF1976D2) : free > 0 ? Colors.orange : Colors.red,
+                        ),
+                        if (free <= 0 && dailyRemaining != null) ...[
+                          const SizedBox(height: 6),
+                          _buildAttemptsChip(
+                            icon: Icons.monetization_on_outlined,
+                            label: '$dailyRemaining coin-based attempts left today',
+                            color: dailyRemaining > 0 ? const Color(0xFF00695C) : Colors.red,
+                          ),
+                        ],
+                      ],
+                    );
                   },
                 ),
                 const SizedBox(height: 12),
@@ -2152,7 +2132,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               _displayCurrencyError ??
                                   t('conversion_not_available_quick_transactions_message')
                                       .replaceFirst('{currency}',
-                                          _selectedDisplayCurrency),
+                                          selectedCurrency),
                               style: const TextStyle(
                                 color: Color(0xFFD62828),
                                 fontWeight: FontWeight.w600,
@@ -2232,7 +2212,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          _buildCurrencySelector(),
+                          buildCurrencySelector(),
                         ],
                       ),
                     ],
@@ -2768,7 +2748,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage> {
                               // Added horizontal scroll for amount
                               scrollDirection: Axis.horizontal,
                               child: Text(
-                                '${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())} • ${(_displayCurrencyData?.canConvert((transaction['currency'] ?? 'INR').toString(), _selectedDisplayCurrency) ?? ((transaction['currency'] ?? 'INR').toString().toUpperCase() == _selectedDisplayCurrency.toUpperCase())) ? _selectedDisplayCurrency : (transaction['currency'] ?? 'INR')}',
+                                '${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())} • ${(currencyData?.canConvert((transaction['currency'] ?? 'INR').toString(), selectedCurrency) ?? ((transaction['currency'] ?? 'INR').toString().toUpperCase() == selectedCurrency.toUpperCase())) ? selectedCurrency : (transaction['currency'] ?? 'INR')}',
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,

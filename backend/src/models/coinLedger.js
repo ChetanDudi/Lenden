@@ -35,6 +35,7 @@ const coinLedgerSchema = new mongoose.Schema(
         'group_expense_with_coins',
         'birthday_gift_sent',
         'birthday_gift_received',
+        'wallet_purchase',
       ],
       required: true,
       index: true,

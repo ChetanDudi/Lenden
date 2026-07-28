@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../widgets/app_colors.dart';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
 

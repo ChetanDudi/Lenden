@@ -256,6 +256,7 @@ module.exports = (io) => {
   // Referral routes
   router.get('/referral/me', auth, referralController.getReferralInfo);
   router.get('/coins/history', auth, coinLedgerController.getMyCoinHistory);
+  router.post('/coins/buy-with-wallet', auth, coinLedgerController.buyCoinsWithWallet);
   router.get('/app-updates', auth, appContentController.listUpdates);
   router.post('/app-updates/:updateId/read', auth, appContentController.markUpdateRead);
   router.post('/app-updates/read-all', auth, appContentController.markAllUpdatesRead);

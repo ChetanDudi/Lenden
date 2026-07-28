@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../session.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../otp_input.dart';
@@ -14,6 +16,7 @@ import '../digitise/subscriptions_page.dart';
 import '../support/help_support_page.dart';
 import '../support/contact_page.dart';
 import '../../widgets/payment_success_page.dart';
+import '../../widgets/currency_display.dart';
 import '../../utils/theme_helper.dart';
 import '../../settings/set_wallet_pin_page.dart';
 import '../../l10n/app_localizations.dart';
@@ -30,8 +33,10 @@ class LendenWalletPage extends StatefulWidget {
   State<LendenWalletPage> createState() => _LendenWalletPageState();
 }
 
-class _LendenWalletPageState extends State<LendenWalletPage> {
+class _LendenWalletPageState extends State<LendenWalletPage>
+    with CurrencyDisplayMixin<LendenWalletPage> {
   bool _loading = true;
+  bool _networkError = false;
   double _walletBalance = 0;
   List<Map<String, dynamic>> _transactions = [];
   String? _razorpayPaymentLink;
@@ -75,6 +80,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
   @override
   void initState() {
     super.initState();
+    loadCurrencies();
     Future.wait([_fetchPaymentConfig(), _fetchWalletData()]).then((_) {
       if (!mounted) return;
       if (widget.autoOpenPayUser) _showPayToUserSheet();
@@ -102,10 +108,16 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
 
   Future<void> _fetchWalletData({bool resetPage = true}) async {
     if (resetPage) {
-      setState(() { _loading = true; _historyPage = 1; _transactions = []; });
+      setState(() {
+        _loading = true;
+        _networkError = false;
+        _historyPage = 1;
+        _transactions = [];
+      });
     } else {
       setState(() => _historyLoadingMore = true);
     }
+    bool hadError = false;
     try {
       final page = resetPage ? 1 : _historyPage;
       final histPath = '/api/wallet/history?page=$page&limit=$_historyLimit'
@@ -123,6 +135,8 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
         if (balRes.statusCode == 200) {
           final data = jsonDecode(balRes.body);
           _walletBalance = (data['balance'] ?? 0).toDouble();
+        } else {
+          hadError = true;
         }
         if (histRes.statusCode == 200) {
           final data = jsonDecode(histRes.body);
@@ -141,11 +155,14 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
           _historyTotal = (data['total'] ?? 0) as int;
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      hadError = true;
+    }
     if (!mounted) return;
     setState(() {
       _loading = false;
       _historyLoadingMore = false;
+      if (resetPage && hadError) _networkError = true;
     });
   }
 
@@ -231,6 +248,34 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
     );
   }
 
+  Future<void> _showBuyCoinsSheet() async {
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final pricing = session.coinPricingConfig;
+    final coinValue = (pricing['coinValue'] as num? ?? 0.10).toDouble();
+    final coinCurrency = (pricing['coinValueCurrency'] as String?) ?? 'INR';
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _WalletBuyCoinsSheet(
+        coinValue: coinValue,
+        coinCurrency: coinCurrency,
+        walletBalance: _walletBalance,
+        displayCurrencyData: currencyData,
+        initialDisplayCurrency: selectedCurrency,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    final newWalletBal = (result['newWalletBalance'] as num?)?.toDouble();
+    if (newWalletBal != null) setState(() => _walletBalance = newWalletBal);
+    final newCoinBal = (result['newCoinBalance'] as num?)?.toInt();
+    if (newCoinBal != null) session.updateUserCoins(newCoinBal);
+    showSnack(context,
+        'Bought ${result['coins']} coins for $coinCurrency ${result['totalCost']}!');
+  }
+
   void _showWithdrawSheet() {
     showModalBottomSheet(
       context: context,
@@ -245,6 +290,123 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
           showSnack(context, msg);
           _fetchWalletData();
         },
+      ),
+    );
+  }
+
+  Widget _buildNetworkErrorBadge() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.wifi_off_rounded, size: 15, color: Color(0xFFE53935)),
+        const SizedBox(width: 5),
+        Text(
+          t('no_connection_label'),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFFE53935),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _fetchWalletData,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE53935).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE53935).withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              t('retry_label'),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE53935),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNetworkErrorHistory() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFFE53935).withValues(alpha: 0.18),
+                  const Color(0xFFE53935).withValues(alpha: 0.04),
+                ],
+              ),
+            ),
+            child: const Icon(
+              Icons.cloud_off_rounded,
+              size: 40,
+              color: Color(0xFFE53935),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            t('no_internet_connection_title'),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppThemeColors.primaryText(context),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            t('check_connection_and_retry_message'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppThemeColors.secondaryText(context),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(
+                colors: [Colors.orange, Colors.white, Colors.green],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppThemeColors.cardBg(context),
+                  foregroundColor: const Color(0xFFE53935),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _fetchWalletData,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(
+                  t('retry_label'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -353,32 +515,38 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                       children: [
                                         Row(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
-                                              const Icon(
-                                                  Icons
-                                                      .account_balance_wallet_rounded,
-                                                  color: Color(0xFFFF8000),
-                                                  size: 20),
-                                              const SizedBox(width: 7),
-                                              Text(t('lenden_wallet_balance_label'),
-                                                  style: const TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: AppColors.cyan)),
+                                              Row(children: [
+                                                const Icon(
+                                                    Icons
+                                                        .account_balance_wallet_rounded,
+                                                    color: Color(0xFFFF8000),
+                                                    size: 20),
+                                                const SizedBox(width: 7),
+                                                Text(t('lenden_wallet_balance_label'),
+                                                    style: const TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: AppColors.cyan)),
+                                              ]),
+                                              buildCurrencySelector(),
                                             ]),
                                         const SizedBox(height: 10),
-                                        _loading
-                                            ? const CircularProgressIndicator(
-                                                color: AppColors.cyan)
-                                            : Text(
-                                                '₹${_walletBalance.toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                    fontSize: 40,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.cyan),
-                                              ),
+                                        if (_loading)
+                                          const CircularProgressIndicator(
+                                              color: AppColors.cyan)
+                                        else if (_networkError)
+                                          _buildNetworkErrorBadge()
+                                        else
+                                          Text(
+                                            formatAmount(_walletBalance),
+                                            style: const TextStyle(
+                                                fontSize: 40,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.cyan),
+                                          ),
                                         const SizedBox(height: 4),
                                         Text(t('available_to_send_or_pay'),
                                             style: TextStyle(
@@ -464,6 +632,24 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                                     fontWeight: FontWeight.bold,
                                                     color: Color(0xFF1B5E20))),
                                             onPressed: _showWithdrawSheet,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFFD4A017),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 13),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(14)),
+                                              elevation: 0,
+                                            ),
+                                            icon: const Icon(Icons.monetization_on_rounded, color: Colors.white),
+                                            label: const Text('Buy LenDen Coins',
+                                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                                            onPressed: _showBuyCoinsSheet,
                                           ),
                                         ),
                                       ],
@@ -925,6 +1111,8 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                       child: CircularProgressIndicator(
                                           color: AppColors.cyan)),
                                 )
+                              else if (_networkError)
+                                _buildNetworkErrorHistory()
                               else if (_transactions.isEmpty)
                                 Padding(
                                   padding:
@@ -1255,7 +1443,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                                       MainAxisSize.min,
                                                   children: [
                                                     Text(
-                                                      '${isCredit ? '+' : '-'}₹${amount.toStringAsFixed(2)}',
+                                                      '${isCredit ? '+' : '-'}${formatAmount(amount)}',
                                                       style: TextStyle(
                                                           fontWeight:
                                                               FontWeight.bold,
@@ -1266,7 +1454,7 @@ class _LendenWalletPageState extends State<LendenWalletPage> {
                                                         null) ...[
                                                       const SizedBox(height: 3),
                                                       Text(
-                                                        '${t('balance_colon_label')} ₹${balanceAfter.toStringAsFixed(2)}',
+                                                        '${t('balance_colon_label')} ${formatAmount(balanceAfter)}',
                                                         style: TextStyle(
                                                             fontSize: 10,
                                                             color: AppThemeColors
@@ -3558,5 +3746,291 @@ class _WalletAuthStepState extends State<_WalletAuthStep> {
         ]),
       ),
     ));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Wallet page buy-coins sheet — proper StatefulWidget so the controller
+// lifecycle is tied to the widget, not an outer function scope.
+// SingleChildScrollView prevents the 99702-pixel RenderFlex overflow when
+// the soft keyboard is open inside an isScrollControlled sheet.
+// ---------------------------------------------------------------------------
+
+class _WalletBuyCoinsSheet extends StatefulWidget {
+  final double coinValue;
+  final String coinCurrency;
+  final double walletBalance;
+  final DisplayCurrencyData? displayCurrencyData;
+  final String initialDisplayCurrency;
+
+  const _WalletBuyCoinsSheet({
+    required this.coinValue,
+    required this.coinCurrency,
+    required this.walletBalance,
+    required this.displayCurrencyData,
+    required this.initialDisplayCurrency,
+  });
+
+  @override
+  State<_WalletBuyCoinsSheet> createState() => _WalletBuyCoinsSheetState();
+}
+
+class _WalletBuyCoinsSheetState extends State<_WalletBuyCoinsSheet>
+    with CurrencyDisplayMixin<_WalletBuyCoinsSheet> {
+  late final TextEditingController _ctrl;
+  bool _buying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: '10');
+    loadCurrencies(
+      seedData: widget.displayCurrencyData,
+      seedCode: widget.initialDisplayCurrency,
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  int get _coins => int.tryParse(_ctrl.text.trim()) ?? 0;
+  double get _baseCost => _coins * widget.coinValue;
+  String get _totalCost => _baseCost.toStringAsFixed(2);
+  bool get _canAfford => widget.walletBalance >= _baseCost;
+
+  String get _displayCost => formatCurrencyAmount(
+        _baseCost,
+        from: widget.coinCurrency,
+        to: selectedCurrency,
+        data: currencyData,
+      );
+
+  String get _displayWalletBalance => formatCurrencyAmount(
+        widget.walletBalance,
+        from: 'INR',
+        to: selectedCurrency,
+        data: currencyData,
+      );
+
+  Future<void> _buy() async {
+    if (_coins < 1 || !_canAfford) return;
+    setState(() => _buying = true);
+    try {
+      final res = await ApiClient.post('/api/coins/buy-with-wallet',
+          body: {'coinsToBuy': _coins});
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        if (mounted) {
+          Navigator.of(context).pop(<String, dynamic>{
+            'newWalletBalance': data['newWalletBalance'],
+            'newCoinBalance': data['newCoinBalance'],
+            'coins': _coins,
+            'totalCost': _totalCost,
+          });
+        }
+      } else {
+        final err =
+            (data['error'] ?? data['message'] ?? 'Purchase failed.').toString();
+        if (mounted) showSnack(context, err, isError: true);
+      }
+    } catch (e) {
+      if (mounted) showSnack(context, 'Error: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _buying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final coins = _coins;
+    final totalCost = _totalCost;
+    final canAfford = _canAfford;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.cardBg(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.divider(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8E1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.monetization_on_rounded,
+                      color: Color(0xFFD4A017), size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Buy LenDen Coins',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppThemeColors.primaryText(context),
+                          )),
+                      Text(
+                        '1 coin = ${widget.coinCurrency} ${widget.coinValue.toStringAsFixed(2)}  •  Wallet: $_displayWalletBalance',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppThemeColors.secondaryText(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _ctrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context),
+                ),
+                decoration: InputDecoration(
+                  suffixText: 'coins',
+                  suffixStyle: TextStyle(
+                      fontSize: 16,
+                      color: AppThemeColors.secondaryText(context)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.cyan)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide:
+                          const BorderSide(color: AppColors.cyan, width: 2)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: [10, 25, 50, 100, 200].map((n) {
+                  return ActionChip(
+                    label: Text('+$n',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12)),
+                    backgroundColor: AppColors.cyan.withValues(alpha: 0.10),
+                    side: const BorderSide(color: AppColors.cyan),
+                    onPressed: () {
+                      _ctrl.text = '$n';
+                      setState(() {});
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              buildSheetCurrencySelector(),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFEAF5FF),
+                      dark: const Color(0xFF1B3A4A)),
+                  borderRadius: BorderRadius.circular(14),
+                  border: canAfford ? null : Border.all(color: Colors.red.shade300),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Total cost',
+                        style: TextStyle(
+                            color: AppThemeColors.secondaryText(context))),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(_displayCost,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: canAfford ? AppColors.cyan : Colors.red,
+                            )),
+                        if (selectedCurrency.toUpperCase() !=
+                            widget.coinCurrency.toUpperCase())
+                          Text(
+                            '${widget.coinCurrency} $totalCost',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppThemeColors.mutedText(context),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (!canAfford && coins > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Insufficient wallet balance',
+                  style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: (_buying || coins < 1 || !canAfford) ? null : _buy,
+                  icon: _buying
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.monetization_on_rounded),
+                  label: Text(_buying
+                      ? 'Buying…'
+                      : 'Buy $coins Coin${coins == 1 ? '' : 's'}'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4A017),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

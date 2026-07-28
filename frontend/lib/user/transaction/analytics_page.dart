@@ -1,11 +1,11 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../settings/privacy_settings_page.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
-import '../../utils/display_currency_helper.dart';
+import '../../widgets/currency_display.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'quick_transactions/quick_transactions_page.dart';
@@ -25,7 +25,7 @@ class AnalyticsPage extends StatefulWidget {
 }
 
 class _AnalyticsPageState extends State<AnalyticsPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, CurrencyDisplayMixin<AnalyticsPage> {
   late final TabController _tabController;
   Map<String, dynamic>? _secureAnalytics;
   Map<String, dynamic>? _quickAnalytics;
@@ -41,10 +41,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   String? _quickTransactionsError;
   String? _secureTransactionsError;
   bool? analyticsSharing;
-  DisplayCurrencyData? _displayCurrencyData;
   List<Map<String, dynamic>> _quickTransactions = [];
   List<Map<String, dynamic>> _secureTransactions = [];
-  String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
   bool _secureTabLoaded = false;
   bool _quickTabLoaded = false;
@@ -59,7 +57,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChange);
-    _loadDisplayCurrencies();
+    loadCurrencies(onError: (_) {
+      if (mounted) setState(() => _displayCurrencyError = AppLocalizations.of(context).t('currency_conversion_unavailable_message'));
+    });
     _ensureTabLoaded(0); // Overview — loads everything
   }
 
@@ -148,34 +148,10 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Future<void> _refreshActiveTab() async {
-    await _loadDisplayCurrencies();
+    await loadCurrencies(onError: (_) {
+      if (mounted) setState(() => _displayCurrencyError = AppLocalizations.of(context).t('currency_conversion_unavailable_message'));
+    });
     await _ensureTabLoaded(_tabController.index, force: true);
-  }
-
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        _displayCurrencyError = null;
-        final exists = data.currencies.any(
-          (item) => item['code'] == _selectedDisplayCurrency,
-        );
-        if (!exists) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      final t = AppLocalizations.of(context).t;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError =
-            t('currency_conversion_unavailable_message');
-      });
-    }
   }
 
   Future<void> _fetchSecureAnalytics(String email) async {
@@ -302,14 +278,14 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   String _fmtGroupAmt(double amtInr) {
-    final target = _selectedDisplayCurrency.toUpperCase();
+    final target = selectedCurrency.toUpperCase();
     if (target != 'INR' &&
-        !(_displayCurrencyData?.canConvert('INR', target) ?? false)) {
+        !(currencyData?.canConvert('INR', target) ?? false)) {
       return 'â‚¹${amtInr.toStringAsFixed(0)}';
     }
     final converted =
-        _displayCurrencyData?.convert(amtInr, 'INR', target) ?? amtInr;
-    final sym = _displayCurrencyData?.symbolFor(target) ?? 'â‚¹';
+        currencyData?.convert(amtInr, 'INR', target) ?? amtInr;
+    final sym = currencyData?.symbolFor(target) ?? 'â‚¹';
     return '$sym${converted.toStringAsFixed(0)}';
   }
 
@@ -629,84 +605,34 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   bool _hasMissingAnalyticsConversion() {
-    if (_selectedDisplayCurrency.toUpperCase() == 'INR') return false;
-    if (_displayCurrencyData == null) return true;
-    return !_displayCurrencyData!.canConvert('INR', _selectedDisplayCurrency);
+    if (selectedCurrency.toUpperCase() == 'INR') return false;
+    if (currencyData == null) return true;
+    return !currencyData!.canConvert('INR', selectedCurrency);
   }
 
   String _formatAmount(double value, {String originalCurrency = 'INR'}) {
     final sourceCurrency = originalCurrency.toUpperCase();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final canConvert = currencyData?.canConvert(
           sourceCurrency,
           targetCurrency,
         ) ??
         (sourceCurrency == targetCurrency);
     if (!canConvert) {
-      final sourceSymbol = _displayCurrencyData?.symbolFor(sourceCurrency) ??
+      final sourceSymbol = currencyData?.symbolFor(sourceCurrency) ??
           (sourceCurrency == 'INR' ? 'â‚¹' : sourceCurrency);
       return '$sourceSymbol${value.toStringAsFixed(2)}';
     }
 
-    final converted = _displayCurrencyData?.convert(
+    final converted = currencyData?.convert(
           value,
           sourceCurrency,
           targetCurrency,
         ) ??
         value;
-    final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ??
+    final symbol = currencyData?.symbolFor(targetCurrency) ??
         (targetCurrency == 'INR' ? 'â‚¹' : targetCurrency);
     return '$symbol${converted.toStringAsFixed(2)}';
-  }
-
-  Widget _buildCurrencySelector() {
-    final currencies = _displayCurrencyData?.currencies ??
-        const <Map<String, String>>[
-          {'code': 'INR', 'symbol': 'â‚¹', 'label': ''},
-        ];
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _selectedDisplayCurrency,
-            dropdownColor: AppThemeColors.cardBg(context),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-            borderRadius: BorderRadius.circular(16),
-            items: currencies
-                .map(
-                  (currency) => DropdownMenuItem<String>(
-                    value: currency['code'],
-                    child: Text(
-                      '${currency['symbol']} ${currency['code']}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _selectedDisplayCurrency = value;
-              });
-            },
-          ),
-        ),
-      ),
-    );
   }
 
   String _currentUserEmail() {
@@ -731,8 +657,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   String _formatSelectedCurrencyValue(num value) {
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ??
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final symbol = currencyData?.symbolFor(targetCurrency) ??
         (targetCurrency == 'INR' ? 'â‚¹' : targetCurrency);
     return '$symbol${value.toStringAsFixed(2)}';
   }
@@ -742,14 +668,14 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         double.tryParse('${transaction['amount']}') ??
         0.0;
     final sourceCurrency = (transaction['currency'] ?? 'INR').toString();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final canConvert = currencyData?.canConvert(
           sourceCurrency,
           targetCurrency,
         ) ??
         (sourceCurrency.toUpperCase() == targetCurrency);
     return canConvert
-        ? (_displayCurrencyData?.convert(
+        ? (currencyData?.convert(
                 amount, sourceCurrency, targetCurrency) ??
             amount)
         : amount;
@@ -858,14 +784,14 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         double.tryParse('${transaction['amount']}') ??
         0.0;
     final sourceCurrency = (transaction['currency'] ?? 'INR').toString();
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
-    final canConvert = _displayCurrencyData?.canConvert(
+    final targetCurrency = selectedCurrency.toUpperCase();
+    final canConvert = currencyData?.canConvert(
           sourceCurrency,
           targetCurrency,
         ) ??
         (sourceCurrency.toUpperCase() == targetCurrency);
     return canConvert
-        ? (_displayCurrencyData?.convert(amount, sourceCurrency, targetCurrency) ??
+        ? (currencyData?.convert(amount, sourceCurrency, targetCurrency) ??
             amount)
         : amount;
   }
@@ -1533,9 +1459,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         final addedBy = (e['addedBy'] ?? '').toString().toLowerCase();
         if (addedBy != userEmail) continue;
         final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
-        final target = _selectedDisplayCurrency.toUpperCase();
-        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
-            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+        final target = selectedCurrency.toUpperCase();
+        final amt = (target != 'INR' && (currencyData?.canConvert('INR', target) ?? false))
+            ? (currencyData?.convert(raw, 'INR', target) ?? raw)
             : raw;
         totalExpense += amt;
         pendingAmount += amt;
@@ -1580,9 +1506,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
         final cat = (e['category'] ?? 'other').toString();
         final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
-        final target = _selectedDisplayCurrency.toUpperCase();
-        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
-            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+        final target = selectedCurrency.toUpperCase();
+        final amt = (target != 'INR' && (currencyData?.canConvert('INR', target) ?? false))
+            ? (currencyData?.convert(raw, 'INR', target) ?? raw)
             : raw;
         cats[cat] = (cats[cat] ?? 0) + amt;
       }
@@ -1655,9 +1581,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         final date = DateTime.tryParse(dateStr);
         if (date == null) continue;
         final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
-        final target = _selectedDisplayCurrency.toUpperCase();
-        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
-            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+        final target = selectedCurrency.toUpperCase();
+        final amt = (target != 'INR' && (currencyData?.canConvert('INR', target) ?? false))
+            ? (currencyData?.convert(raw, 'INR', target) ?? raw)
             : raw;
         all.add({
           'date': date,
@@ -1722,8 +1648,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
 
     final t = AppLocalizations.of(context).t;
-    final sym = _displayCurrencyData?.symbolFor(_selectedDisplayCurrency.toUpperCase()) ??
-        (_selectedDisplayCurrency.toUpperCase() == 'INR' ? '₹' : _selectedDisplayCurrency);
+    final sym = currencyData?.symbolFor(selectedCurrency.toUpperCase()) ??
+        (selectedCurrency.toUpperCase() == 'INR' ? '₹' : selectedCurrency);
     final stats = _computeOverviewStats();
     final balance = stats['totalBalance'] ?? 0;
     final upcoming = _buildUpcomingPayments();
@@ -1755,7 +1681,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                         style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
                   ]),
                 ),
-                _buildCurrencySelector(),
+                buildCurrencySelector(),
               ],
             ),
             const SizedBox(height: 20),
@@ -1865,9 +1791,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
                   if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
                   final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
-                  final target = _selectedDisplayCurrency.toUpperCase();
-                  final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
-                      ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+                  final target = selectedCurrency.toUpperCase();
+                  final amt = (target != 'INR' && (currencyData?.canConvert('INR', target) ?? false))
+                      ? (currencyData?.convert(raw, 'INR', target) ?? raw)
                       : raw;
                   if (amt > biggestAmt) {
                     biggestAmt = amt;
@@ -2202,8 +2128,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     final t = AppLocalizations.of(context).t;
     final sorted = cats.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final total = sorted.fold(0.0, (s, e) => s + e.value);
-    final sym = _displayCurrencyData?.symbolFor(_selectedDisplayCurrency.toUpperCase()) ??
-        (_selectedDisplayCurrency.toUpperCase() == 'INR' ? '₹' : _selectedDisplayCurrency);
+    final sym = currencyData?.symbolFor(selectedCurrency.toUpperCase()) ??
+        (selectedCurrency.toUpperCase() == 'INR' ? '₹' : selectedCurrency);
     String fmt(double v) => '$sym${v.toStringAsFixed(2)}';
     return Container(
       padding: const EdgeInsets.all(20),
@@ -2275,9 +2201,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
       for (final e in List<dynamic>.from(g['expenses'] ?? [])) {
         if ((e['addedBy'] ?? '').toString().toLowerCase() != userEmail) continue;
         final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
-        final target = _selectedDisplayCurrency.toUpperCase();
-        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
-            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+        final target = selectedCurrency.toUpperCase();
+        final amt = (target != 'INR' && (currencyData?.canConvert('INR', target) ?? false))
+            ? (currencyData?.convert(raw, 'INR', target) ?? raw)
             : raw;
         total += amt;
         expenseCount++;
@@ -2292,8 +2218,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
     if (groupTotals.isEmpty) return const SizedBox.shrink();
     groupTotals.sort((a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
-    final sym = _displayCurrencyData?.symbolFor(_selectedDisplayCurrency.toUpperCase()) ??
-        (_selectedDisplayCurrency.toUpperCase() == 'INR' ? '₹' : _selectedDisplayCurrency);
+    final sym = currencyData?.symbolFor(selectedCurrency.toUpperCase()) ??
+        (selectedCurrency.toUpperCase() == 'INR' ? '₹' : selectedCurrency);
     String fmt(double v) => '$sym${v.toStringAsFixed(2)}';
     const cardColors = [
       [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
@@ -2392,9 +2318,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         final date = DateTime.tryParse(dateStr)?.toLocal();
         if (date == null) continue;
         final raw = ((e['amountInr'] ?? e['amount'] ?? 0) as num).toDouble();
-        final target = _selectedDisplayCurrency.toUpperCase();
-        final amt = (target != 'INR' && (_displayCurrencyData?.canConvert('INR', target) ?? false))
-            ? (_displayCurrencyData?.convert(raw, 'INR', target) ?? raw)
+        final target = selectedCurrency.toUpperCase();
+        final amt = (target != 'INR' && (currencyData?.canConvert('INR', target) ?? false))
+            ? (currencyData?.convert(raw, 'INR', target) ?? raw)
             : raw;
         addToMonthBucket(date, amt);
       }
@@ -2958,7 +2884,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     Expanded(
                       child: Text(
                         _displayCurrencyError ??
-                            t('conversion_unavailable_for_analytics_message').replaceFirst('{currency}', _selectedDisplayCurrency),
+                            t('conversion_unavailable_for_analytics_message').replaceFirst('{currency}', selectedCurrency),
                         style: const TextStyle(
                           color: Color(0xFFC62828),
                           fontWeight: FontWeight.w600,
@@ -3850,7 +3776,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     final total = ((analytics['total'] as num?) ?? 0).toInt();
     final displayCurrency = _hasMissingAnalyticsConversion()
         ? 'INR'
-        : _selectedDisplayCurrency.toUpperCase();
+        : selectedCurrency.toUpperCase();
     final monthlyCounts =
         (analytics['monthlyCounts'] as List<dynamic>? ?? const [])
             .map((value) => (value as num).toDouble())
@@ -3927,7 +3853,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       ),
                     ),
                     const SizedBox(width: 10),
-                    _buildCurrencySelector(),
+                    buildCurrencySelector(),
                   ],
                 ),
               ],
@@ -4193,8 +4119,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           metric: metric,
           analytics: analytics,
           allMetrics: allMetrics,
-          selectedDisplayCurrency: _selectedDisplayCurrency,
-          displayCurrencyData: _displayCurrencyData,
+          selectedDisplayCurrency: selectedCurrency,
+          displayCurrencyData: currencyData,
           hasMissingConversion: _hasMissingAnalyticsConversion(),
         ),
       ),

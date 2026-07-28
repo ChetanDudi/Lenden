@@ -1,5 +1,8 @@
 const CoinLedger = require('../models/coinLedger');
 const User = require('../models/user');
+const WalletTransaction = require('../models/walletTransaction');
+const mongoose = require('mongoose');
+const { getCoinPricing } = require('../utils/coinPricing');
 
 const formatSourceLabel = (source) =>
   source
@@ -74,5 +77,80 @@ exports.getMyCoinHistory = async (req, res) => {
   } catch (error) {
     console.error('Error fetching coin history:', error);
     res.status(500).json({ error: 'Failed to fetch coin history' });
+  }
+};
+
+exports.buyCoinsWithWallet = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const coinsToBuy = Math.floor(Number(req.body.coinsToBuy));
+    if (!coinsToBuy || coinsToBuy < 1 || coinsToBuy > 10000) {
+      return res.status(400).json({ error: 'coinsToBuy must be a whole number between 1 and 10000.' });
+    }
+
+    const pricing = await getCoinPricing();
+    if (!pricing.coinValue || pricing.coinValue <= 0) {
+      return res.status(503).json({ error: 'Coin pricing is not configured. Contact admin.' });
+    }
+    const amount = parseFloat((coinsToBuy * pricing.coinValue).toFixed(6));
+
+    let newWalletBalance, newCoinBalance;
+
+    await session.withTransaction(async () => {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: req.user._id, walletBalance: { $gte: amount } },
+        { $inc: { walletBalance: -amount, lenDenCoins: coinsToBuy } },
+        { new: true, session }
+      );
+      if (!updatedUser) {
+        const u = await User.findById(req.user._id).select('walletBalance').session(session);
+        const bal = u?.walletBalance ?? 0;
+        throw Object.assign(new Error('INSUFFICIENT'), {
+          code: 'INSUFFICIENT',
+          required: amount,
+          available: bal,
+        });
+      }
+      newWalletBalance = updatedUser.walletBalance;
+      newCoinBalance = updatedUser.lenDenCoins;
+
+      await WalletTransaction.create([{
+        user: req.user._id,
+        type: 'debit',
+        amount,
+        note: `Bought ${coinsToBuy} LenDen Coin${coinsToBuy > 1 ? 's' : ''}`,
+        status: 'processed',
+      }], { session });
+
+      await CoinLedger.create([{
+        user: req.user._id,
+        direction: 'earned',
+        coins: coinsToBuy,
+        source: 'wallet_purchase',
+        title: 'Coins Purchased',
+        description: `Bought ${coinsToBuy} coins for ${pricing.coinValueCurrency} ${amount.toFixed(2)}`,
+        metadata: { amount, currency: pricing.coinValueCurrency, coinValue: pricing.coinValue },
+        occurredAt: new Date(),
+      }], { session });
+    });
+
+    res.json({
+      message: `Successfully bought ${coinsToBuy} LenDen Coin${coinsToBuy > 1 ? 's' : ''}.`,
+      coinsAdded: coinsToBuy,
+      newCoinBalance,
+      newWalletBalance,
+      amountDeducted: amount,
+      currency: pricing.coinValueCurrency,
+    });
+  } catch (err) {
+    if (err.code === 'INSUFFICIENT') {
+      return res.status(400).json({
+        error: `Insufficient wallet balance. Required: ${err.required.toFixed(2)}, Available: ${err.available.toFixed(2)}.`,
+      });
+    }
+    console.error('buyCoinsWithWallet error:', err);
+    res.status(500).json({ error: 'Failed to purchase coins. Please try again.' });
+  } finally {
+    session.endSession();
   }
 };

@@ -314,11 +314,11 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
         final profileRes = await _fetchProfile(token, userType);
         if (profileRes != null) {
-          profileRes['role'] = 'user';
+          profileRes['role'] = userType == 'admin' ? 'admin' : 'user';
           session.setUser(profileRes);
         } else {
           final userData = Map<String, dynamic>.from(userOrAdmin);
-          userData['role'] = 'user';
+          userData['role'] = userType == 'admin' ? 'admin' : 'user';
           session.setUser(userData);
         }
         await session.checkSubscriptionStatus();
@@ -332,7 +332,10 @@ class _UserLoginPageState extends State<UserLoginPage> {
         }
 
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/user/dashboard');
+          Navigator.pushReplacementNamed(
+            context,
+            userType == 'admin' ? '/admin/dashboard' : '/user/dashboard',
+          );
         }
       } else if (result['requires2FA'] == true) {
         setState(() {

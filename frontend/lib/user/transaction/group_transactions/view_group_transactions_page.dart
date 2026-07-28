@@ -6,7 +6,7 @@ import 'dart:async';
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../widgets/app_widgets.dart';
-import '../../../utils/display_currency_helper.dart';
+import '../../../widgets/currency_display.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
@@ -26,7 +26,8 @@ class ViewGroupTransactionsPage extends StatefulWidget {
       _ViewGroupTransactionsPageState();
 }
 
-class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
+class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
+    with CurrencyDisplayMixin<ViewGroupTransactionsPage> {
   List<Map<String, dynamic>> userGroups = [];
   bool loading = true;
   String? error;
@@ -36,8 +37,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
       'All Groups'; // 'All Groups', 'Joined Groups', 'Left Groups'
   bool _showFavouritesOnly = false;
   int createdGroupsCount = 0; // Track groups created by user
-  DisplayCurrencyData? _displayCurrencyData;
-  String _selectedDisplayCurrency = 'INR';
   String? _displayCurrencyError;
   List<Map<String, String>> _currencies = [
     {'code': 'INR', 'symbol': '₹'},
@@ -56,7 +55,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   void initState() {
     super.initState();
     _loadSupportedCurrencies();
-    _loadDisplayCurrencies();
+    loadCurrencies(onError: (_) {
+      if (mounted) setState(() => _displayCurrencyError = AppLocalizations.of(context).t('currency_conversion_unavailable_message'));
+    });
     _fetchUserGroups();
   }
 
@@ -360,31 +361,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
     return months[month - 1];
   }
 
-  Future<void> _loadDisplayCurrencies() async {
-    try {
-      final data = await DisplayCurrencyHelper.load();
-      if (!mounted) return;
-      setState(() {
-        _displayCurrencyData = data;
-        _displayCurrencyError = null;
-        if (!data.currencies.any(
-          (item) => item['code'] == _selectedDisplayCurrency,
-        )) {
-          _selectedDisplayCurrency = 'INR';
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      final t = AppLocalizations.of(context).t;
-      setState(() {
-        _displayCurrencyData = null;
-        _selectedDisplayCurrency = 'INR';
-        _displayCurrencyError =
-            t('currency_conversion_unavailable_message');
-      });
-    }
-  }
-
   Future<void> _loadSupportedCurrencies() async {
     try {
       final res = await ApiClient.get('/api/currency-conversions/supported');
@@ -582,18 +558,18 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
   }
 
   String _formatDisplayAmountFromInr(num amount) {
-    final targetCurrency = _selectedDisplayCurrency.toUpperCase();
+    final targetCurrency = selectedCurrency.toUpperCase();
     if (targetCurrency != 'INR' &&
-        !(_displayCurrencyData?.canConvert('INR', targetCurrency) ?? false)) {
+        !(currencyData?.canConvert('INR', targetCurrency) ?? false)) {
       return _formatInr(amount);
     }
-    final converted = _displayCurrencyData?.convert(
+    final converted = currencyData?.convert(
           amount,
           'INR',
           targetCurrency,
         ) ??
         amount.toDouble();
-    final symbol = _displayCurrencyData?.symbolFor(targetCurrency) ?? '₹';
+    final symbol = currencyData?.symbolFor(targetCurrency) ?? '₹';
     return '$symbol${converted.toStringAsFixed(2)}';
   }
 
@@ -1359,10 +1335,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
               child: Center(
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _selectedDisplayCurrency,
+                    value: selectedCurrency,
                     dropdownColor: AppThemeColors.cardBg(context),
                     borderRadius: BorderRadius.circular(14),
-                    items: (_displayCurrencyData?.currencies ?? _currencies)
+                    items: (currencyData?.currencies ?? _currencies)
                         .map(
                           (currency) => DropdownMenuItem(
                             value: currency['code'],
@@ -1378,9 +1354,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                         .toList(),
                     onChanged: (value) {
                       if (value == null) return;
-                      setState(() {
-                        _selectedDisplayCurrency = value;
-                      });
+                      setCurrency(value);
                     },
                   ),
                 ),
@@ -1427,10 +1401,10 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                             child: Column(
                               children: [
                                 if (_displayCurrencyError != null ||
-                                    (_selectedDisplayCurrency != 'INR' &&
-                                        !(_displayCurrencyData?.canConvert(
+                                    (selectedCurrency != 'INR' &&
+                                        !(currencyData?.canConvert(
                                               'INR',
-                                              _selectedDisplayCurrency,
+                                              selectedCurrency,
                                             ) ??
                                             false)))
                                   Container(
@@ -1456,7 +1430,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage> {
                                         Expanded(
                                           child: Text(
                                             _displayCurrencyError ??
-                                                t('conversion_to_currency_unavailable_message').replaceFirst('{currency}', _selectedDisplayCurrency),
+                                                t('conversion_to_currency_unavailable_message').replaceFirst('{currency}', selectedCurrency),
                                             style: const TextStyle(
                                               color: Color(0xFFD62828),
                                               fontWeight: FontWeight.w600,
