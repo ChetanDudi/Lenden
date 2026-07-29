@@ -25,65 +25,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
-  // Strength computed live from _newPasswordController
-  int _strengthScore = 0; // 0–4
-
   @override
   void initState() {
     super.initState();
-    _newPasswordController.addListener(_updateStrength);
+    _newPasswordController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _newPasswordController.removeListener(_updateStrength);
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  void _updateStrength() {
-    final p = _newPasswordController.text;
-    int score = 0;
-    if (p.length >= 8) score++;
-    if (RegExp(r'[A-Z]').hasMatch(p)) score++;
-    if (RegExp(r'[0-9]').hasMatch(p)) score++;
-    if (RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(p)) score++;
-    setState(() => _strengthScore = score);
-  }
-
-  String get _strengthLabel {
-    final t = AppLocalizations.of(context).t;
-    switch (_strengthScore) {
-      case 0:
-      case 1:
-        return t('weak');
-      case 2:
-        return t('fair');
-      case 3:
-        return t('good');
-      case 4:
-        return t('strong');
-      default:
-        return '';
-    }
-  }
-
-  Color get _strengthColor {
-    switch (_strengthScore) {
-      case 0:
-      case 1:
-        return Colors.red;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.blue;
-      case 4:
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
   }
 
   Future<void> _changePassword() async {
@@ -209,18 +162,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   if (value.length < 8) {
                     return t('password_min_length_error');
                   }
-                  if (!RegExp(r'[A-Za-z]').hasMatch(value) ||
-                      !RegExp(r'[0-9]').hasMatch(value)) {
-                    return t('password_letter_number_error');
+                  if (value.length > 30) {
+                    return 'Password must be at most 30 characters.';
                   }
                   return null;
                 },
               ),
 
-              // Strength bar — only visible when something is typed
+              // Live strength meter
               if (newPwd.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _buildStrengthBar(),
+                const SizedBox(height: 10),
+                PasswordStrengthMeter(password: newPwd),
               ],
 
               const SizedBox(height: 16),
@@ -277,117 +229,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              // Requirements card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppThemeColors.tinted(context,
-                      light: Colors.blue.withValues(alpha: 0.1),
-                      dark: const Color(0xFF1A2733)),
-                  borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t('password_requirements'),
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue),
-                    ),
-                    const SizedBox(height: 8),
-                    _requirementRow(t('requirement_min_chars'),
-                        newPwd.length >= 8),
-                    _requirementRow(t('requirement_letter'),
-                        RegExp(r'[A-Za-z]').hasMatch(newPwd)),
-                    _requirementRow(t('requirement_number'),
-                        RegExp(r'[0-9]').hasMatch(newPwd)),
-                    _requirementRow(
-                        t('requirement_special_char_optional'),
-                        RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]')
-                            .hasMatch(newPwd),
-                        optional: true),
-                    _requirementRow(t('requirement_uppercase_optional'),
-                        RegExp(r'[A-Z]').hasMatch(newPwd),
-                        optional: true),
-                  ],
-                ),
-              ),
-
               const SizedBox(height: 24),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStrengthBar() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: List.generate(4, (i) {
-            final filled = i < _strengthScore;
-            return Expanded(
-              child: Container(
-                margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
-                height: 5,
-                decoration: BoxDecoration(
-                  color: filled ? _strengthColor : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${AppLocalizations.of(context).t('strength_label')}: $_strengthLabel',
-          style: TextStyle(
-              fontSize: 12,
-              color: _strengthColor,
-              fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  Widget _requirementRow(String text, bool met, {bool optional = false}) {
-    final active = _newPasswordController.text.isNotEmpty;
-    Color iconColor;
-    IconData icon;
-    if (!active) {
-      iconColor = Colors.grey;
-      icon = Icons.radio_button_unchecked;
-    } else if (met) {
-      iconColor = Colors.green;
-      icon = Icons.check_circle_rounded;
-    } else {
-      iconColor = optional ? Colors.grey : Colors.red;
-      icon = optional ? Icons.radio_button_unchecked : Icons.cancel_rounded;
-    }
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: iconColor),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: active
-                        ? (met ? Colors.green : (optional ? Colors.grey : Colors.red))
-                        : Colors.blue)),
-          ),
-        ],
       ),
     );
   }

@@ -322,3 +322,124 @@ void showStylishSnackBar(
     ),
   );
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PASSWORD STRENGTH METER
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Computes a 0–5 strength score for [password].
+/// Score of 0 means empty or below 8 chars.
+/// Score of 1–5 maps to High Risk → Weak → Fair → Good → Strong.
+int passwordStrengthScore(String password) {
+  if (password.length < 8) return 0;
+  int score = 1; // baseline: meets minimum length
+  if (password.length >= 12) score++;
+  if (RegExp(r'[A-Z]').hasMatch(password)) score++;
+  if (RegExp(r'[0-9]').hasMatch(password)) score++;
+  if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) score++;
+  return score; // 1–5
+}
+
+/// Inline strength label and color for a given score (1–5).
+String passwordStrengthLabel(int score) {
+  switch (score) {
+    case 1: return 'High Risk';
+    case 2: return 'Weak';
+    case 3: return 'Fair';
+    case 4: return 'Good';
+    case 5: return 'Strong';
+    default: return '';
+  }
+}
+
+Color passwordStrengthColor(int score) {
+  switch (score) {
+    case 1: return const Color(0xFFD32F2F);
+    case 2: return const Color(0xFFE65100);
+    case 3: return const Color(0xFFF59E0B);
+    case 4: return const Color(0xFF0077B6);
+    case 5: return const Color(0xFF22C55E);
+    default: return Colors.grey;
+  }
+}
+
+/// A 5-segment strength bar + label row shown below a password field.
+/// Pass the current password text and it renders itself.
+class PasswordStrengthMeter extends StatelessWidget {
+  final String password;
+
+  const PasswordStrengthMeter({super.key, required this.password});
+
+  @override
+  Widget build(BuildContext context) {
+    if (password.isEmpty) return const SizedBox.shrink();
+    final score = passwordStrengthScore(password);
+    final label = passwordStrengthLabel(score);
+    final color = passwordStrengthColor(score);
+    final isDark = AppThemeColors.isDark(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 5-segment bar
+        Row(
+          children: List.generate(5, (i) {
+            final filled = i < score;
+            return Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: EdgeInsets.only(right: i < 4 ? 4 : 0),
+                height: 5,
+                decoration: BoxDecoration(
+                  color: filled
+                      ? color
+                      : (isDark
+                          ? Colors.white.withValues(alpha: 0.10)
+                          : Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 5),
+        Row(
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                  color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                score <= 2
+                    ? 'Add uppercase, numbers or symbols to strengthen'
+                    : score == 3
+                        ? 'Getting better — try adding a symbol or number'
+                        : score == 4
+                            ? 'Almost there — a symbol makes it Strong'
+                            : 'Great password!',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppThemeColors.mutedText(context),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

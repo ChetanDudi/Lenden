@@ -71,6 +71,13 @@ const userSchema = new mongoose.Schema({
     expiry: { type: Date },
     sentAt: { type: Date },
   },
+  setPasswordOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+    attemptCount: { type: Number, default: 0 },
+    windowStart: { type: Date },
+  },
   walletPin: { type: String, default: null },
   walletPinAttempts: { type: Number, default: 0 },
   walletPinLockedUntil: { type: Date, default: null },

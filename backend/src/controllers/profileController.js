@@ -5,8 +5,12 @@ const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
 exports.getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id);
     const userObj = user.toObject();
+    // Expose whether a password is set (needed for Google users who may set one later)
+    // without sending the actual hash to the client.
+    userObj.hasPassword = !!userObj.password;
+    delete userObj.password;
     userObj.deactivatedAccount = user.deactivatedAccount;
     if (userObj.profileImage) {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;

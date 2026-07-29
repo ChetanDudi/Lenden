@@ -457,6 +457,8 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           children: [
             _summaryRow(ctx, t('name'), summary['name']?.toString() ?? '—'),
             _summaryRow(ctx, t('email'), summary['email']?.toString() ?? '—'),
+            if ((summary['altEmail'] as String?)?.isNotEmpty == true)
+              _summaryRow(ctx, t('alternative_email'), summary['altEmail']!.toString()),
             _summaryRow(ctx, t('wallet_balance_label'),
                 '₹${(summary['walletBalance'] ?? 0).toStringAsFixed(2)}'),
             _summaryRow(ctx, t('transactions_label'),

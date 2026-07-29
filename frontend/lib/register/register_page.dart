@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -52,16 +53,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   bool _usernameCheckFailed = false;
   bool _emailCheckFailed = false;
 
-  // Password validation
-  bool get _hasUpper => RegExp(r'[A-Z]').hasMatch(_passwordController.text);
-  bool get _hasLower => RegExp(r'[a-z]').hasMatch(_passwordController.text);
-  bool get _hasSpecial =>
-      RegExp(r'[^A-Za-z0-9]').hasMatch(_passwordController.text);
-  bool get _hasLength =>
+  // Only enforce length; strength is shown as a visual meter
+  bool get _isPasswordValid =>
       _passwordController.text.length >= 8 &&
       _passwordController.text.length <= 30;
-  bool get _isPasswordValid =>
-      _hasUpper && _hasLower && _hasSpecial && _hasLength;
 
   @override
   void initState() {
@@ -123,7 +118,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   void _register() async {
     if (!_isPasswordValid) {
       setState(() {
-        _errorMessage = 'Password does not meet all requirements.';
+        _errorMessage = 'Password must be 8–30 characters.';
       });
       return;
     }
@@ -412,26 +407,9 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     );
   }
 
-  List<Widget> _buildPasswordRules(BuildContext context) {
-    final rules = <Map<String, bool>>[
-      {'At least one uppercase letter': _hasUpper},
-      {'At least one lowercase letter': _hasLower},
-      {'At least one special character': _hasSpecial},
-      {'8-30 characters': _hasLength},
-    ];
-    if (_passwordController.text.isEmpty || _isPasswordValid) return [];
-    return rules
-        .where((rule) => !rule.values.first)
-        .map((rule) => Row(
-              children: [
-                Icon(Icons.cancel, color: Colors.red, size: context.sp(16)),
-                const SizedBox(width: 6),
-                Text(rule.keys.first,
-                    style: TextStyle(color: Colors.red, fontSize: context.sp(12))),
-              ],
-            ))
-        .toList();
-  }
+  // Strength meter replaces the old requirement-checklist.
+  Widget _buildStrengthMeter() =>
+      PasswordStrengthMeter(password: _passwordController.text);
 
   @override
   Widget build(BuildContext context) {
@@ -630,7 +608,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ..._buildPasswordRules(context),
+                    _buildStrengthMeter(),
                     const SizedBox(height: 18),
                     TricolorBorderTextField(
                       child: TextField(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
 import '../password_management/change_password_page.dart';
+import '../password_management/set_password_page.dart';
 import '../alternative_email/alternative_email_page.dart';
 import 'notification_settings_page.dart';
 import 'privacy_settings_page.dart';
@@ -168,14 +169,25 @@ class _SettingsPageState extends State<SettingsPage> {
                   // Account Settings
                   sectionLabel(t('account_settings')),
                   const SizedBox(height: 8),
-                  _buildTile(
-                    context,
-                    title: t('change_password'),
-                    icon: Icons.lock_outline,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const ChangePasswordPage()))
-                        .then((_) => setState(() {})),
-                  ),
+                  Builder(builder: (ctx) {
+                    final session = Provider.of<SessionProvider>(context, listen: false);
+                    final isGoogle = session.user?['authProvider'] == 'google';
+                    final hasPassword = session.user?['hasPassword'] == true;
+                    final showSetPassword = isGoogle && !hasPassword;
+                    return _buildTile(
+                      ctx,
+                      title: showSetPassword ? 'Set Password' : t('change_password'),
+                      icon: showSetPassword ? Icons.lock_person_rounded : Icons.lock_outline,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => showSetPassword
+                              ? const SetPasswordPage()
+                              : const ChangePasswordPage(),
+                        ),
+                      ).then((_) => setState(() {})),
+                    );
+                  }),
                   _buildTile(
                     context,
                     title: session.user?['altEmail'] != null &&

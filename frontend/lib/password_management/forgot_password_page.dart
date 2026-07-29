@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
+import '../widgets/app_widgets.dart' show PasswordStrengthMeter;
 import 'dart:convert';
 import '../otp_input.dart';
 import '../utils/api_client.dart';
@@ -47,6 +48,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
     if (widget.prefillEmail != null) {
       _emailController.text = widget.prefillEmail!;
     }
+    _newPasswordController.addListener(() => setState(() {}));
   }
 
   @override
@@ -507,35 +509,9 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
                             onToggleObscure: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                           ),
                           const SizedBox(height: 16),
-                          // Password rules hint
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.cyan.withValues(alpha: 0.07),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Password must include:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
-                                const SizedBox(height: 6),
-                                ...[
-                                  '8–30 characters',
-                                  'At least one uppercase letter (A–Z)',
-                                  'At least one lowercase letter (a–z)',
-                                  'At least one special character (!@#\$...)',
-                                ].map((r) => Padding(
-                                  padding: const EdgeInsets.only(top: 3),
-                                  child: Row(children: [
-                                    const Icon(Icons.check_circle_outline, size: 13, color: AppColors.cyan),
-                                    const SizedBox(width: 6),
-                                    Text(r, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
-                                  ]),
-                                )),
-                              ],
-                            ),
-                          ),
+                          // Live password strength meter
+                          PasswordStrengthMeter(
+                              password: _newPasswordController.text),
                           const SizedBox(height: 20),
                           _primaryButton(
                             context,

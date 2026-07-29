@@ -65,13 +65,8 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
     }
   }
 
-  bool isPasswordValid(String password) {
-    final lengthValid = password.length >= 8 && password.length <= 30;
-    final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
-    final hasLower = RegExp(r'[a-z]').hasMatch(password);
-    final hasSpecial = RegExp(r'[^A-Za-z0-9]').hasMatch(password);
-    return lengthValid && hasUpper && hasLower && hasSpecial;
-  }
+  bool isPasswordValid(String password) =>
+      password.length >= 8 && password.length <= 30;
 
   Future<void> addAdmin() async {
     final t = AppLocalizations.of(context).t;

@@ -7,6 +7,7 @@ const Subscription = require('../models/subscription');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendAlternativeEmailOTP: sendEmail } = require('../utils/alternativeEmailOtp');
+const { sendSetPasswordOTP: sendSetPasswordEmail } = require('../utils/setPasswordOtp');
 const { sendAccountDeletedEmail } = require('../utils/accountDeletedEmail');
 const Notification = require('../models/notification');
 
@@ -589,6 +590,7 @@ const exportUserData = async (req, res) => {
       summary: {
         name: user.name,
         email: user.email,
+        altEmail: user.altEmail || null,
         memberSince: user.memberSince,
         walletBalance: user.walletBalance ?? 0,
         transactionCount: txCount,
@@ -735,6 +737,101 @@ const updateAdminNotificationSettings = async (req, res) => {
   }
 };
 
+// Set Initial Password (Google-login users only) — Step 1: send OTP to primary email
+const sendSetPasswordOtp = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.authProvider !== 'google') {
+      return res.status(400).json({ message: 'Use Change Password for your account type.' });
+    }
+
+    const now = new Date();
+    const existing = user.setPasswordOTP;
+
+    // 60-second cooldown between sends
+    if (existing?.sentAt && (now - existing.sentAt) < 60 * 1000) {
+      const secondsLeft = Math.ceil((60 * 1000 - (now - existing.sentAt)) / 1000);
+      return res.status(429).json({ message: `Please wait ${secondsLeft} seconds before requesting another OTP.` });
+    }
+
+    // Max 3 sends per hour (rolling window)
+    const hourAgo = new Date(now - 60 * 60 * 1000);
+    const windowStart = existing?.windowStart && existing.windowStart > hourAgo ? existing.windowStart : now;
+    const attemptCount = existing?.windowStart && existing.windowStart > hourAgo ? (existing.attemptCount || 0) : 0;
+    if (attemptCount >= 3) {
+      return res.status(429).json({ message: 'Too many OTP requests. Please try again in an hour.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+
+    user.setPasswordOTP = {
+      code: otp,
+      expiry: otpExpiry,
+      sentAt: now,
+      attemptCount: attemptCount + 1,
+      windowStart,
+    };
+    await user.save();
+
+    await sendSetPasswordEmail(user.email, otp, user.name);
+    res.json({ message: 'OTP sent to your email.' });
+  } catch (error) {
+    console.error('Error sending set-password OTP:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Set Initial Password — Step 2: verify OTP and save new password
+const confirmSetPassword = async (req, res) => {
+  try {
+    const { otp, newPassword } = req.body;
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.authProvider !== 'google') {
+      return res.status(400).json({ message: 'Use Change Password for your account type.' });
+    }
+
+    const otpData = user.setPasswordOTP;
+    if (!otpData?.code || !otpData?.expiry) {
+      return res.status(400).json({ message: 'No OTP found. Please request a new one.' });
+    }
+    if (new Date() > otpData.expiry) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+    if (otpData.code !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP.' });
+    }
+    if (!newPassword || newPassword.length < 8 || newPassword.length > 30) {
+      return res.status(400).json({ message: 'Password must be 8–30 characters.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.setPasswordOTP = undefined;
+    await user.save();
+
+    res.json({ message: 'Password set successfully. You can now log in with your email and password.' });
+
+    if (user.privacySettings?.loginNotifications !== false) {
+      Notification.create({
+        sender: userId, senderModel: 'User', recipientType: 'specific-users',
+        recipients: [userId], recipientModel: 'User', category: 'system',
+        message: "A password has been set for your LenDen account. If this wasn't you, contact support immediately.",
+      }).catch(() => {});
+    }
+  } catch (error) {
+    console.error('Error confirming set-password:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   exportUserData,
   changePassword,
@@ -750,4 +847,6 @@ module.exports = {
   deleteAccount,
   getAdminNotificationSettings,
   updateAdminNotificationSettings,
+  sendSetPasswordOtp,
+  confirmSetPassword,
 };
