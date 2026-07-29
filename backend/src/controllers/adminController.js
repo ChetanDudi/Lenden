@@ -990,6 +990,7 @@ const getAllAdmins = async (req, res) => {
       admins: admins.map((admin) => ({
         ...admin.toObject(),
         permissions: normalizeAdminPermissions(admin.permissions || {}),
+        isProtected: admin.isProtectedAdmin(),
         canToggleSuperAdmin:
           currentAdmin?.isSuperAdmin === true &&
           !admin.isProtectedAdmin() &&

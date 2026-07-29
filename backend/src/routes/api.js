@@ -376,7 +376,10 @@ module.exports = (io) => {
   // Change Password
   router.post('/users/change-password', auth, settingsController.changePassword);
   router.post('/users/set-password/send-otp', auth, otpSendLimiter, settingsController.sendSetPasswordOtp);
-  router.post('/users/set-password/confirm', auth, otpVerifyLimiter, settingsController.confirmSetPassword);
+  router.post('/users/set-password/verify-identity', auth, otpVerifyLimiter, settingsController.verifySetPasswordIdentity);
+  router.post('/users/set-password/confirm', auth, settingsController.confirmSetPassword);
+  router.post('/users/change-password/send-otp', auth, otpSendLimiter, settingsController.sendChangePasswordOtp);
+  router.post('/users/change-password/verify-identity', auth, otpVerifyLimiter, settingsController.verifyChangePasswordIdentity);
 
   // Alternative Email
   router.post('/users/alternative-email/send-otp', auth, settingsController.sendAlternativeEmailOTP);

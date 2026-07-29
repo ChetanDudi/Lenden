@@ -6,6 +6,7 @@ const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
     const userObj = user.toObject();
     // Expose whether a password is set (needed for Google users who may set one later)
     // without sending the actual hash to the client.
@@ -48,11 +49,20 @@ exports.getAdminProfile = async (req, res) => {
   }
 };
 
+function detectImageMime(buf) {
+  if (!buf || buf.length < 4) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';
+  if (buf[0] === 0x47 && buf[1] === 0x49) return 'image/gif';
+  if (buf[0] === 0x52 && buf[1] === 0x49) return 'image/webp';
+  return 'image/jpeg';
+}
+
 exports.getUserProfileImage = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('profileImage');
     if (!user || !user.profileImage || user.profileImage.length === 0) return res.status(404).send('Not found');
-    res.set('Content-Type', 'image/jpeg'); // You may want to store the type in DB for flexibility
+    res.set('Content-Type', detectImageMime(user.profileImage));
+    res.set('Cache-Control', 'public, max-age=86400');
     res.send(user.profileImage);
   } catch (err) {
     res.status(500).send('Error');
@@ -63,7 +73,8 @@ exports.getAdminProfileImage = async (req, res) => {
   try {
     const admin = await Admin.findById(req.params.id).select('profileImage');
     if (!admin || !admin.profileImage) return res.status(404).send('Not found');
-    res.set('Content-Type', 'image/jpeg');
+    res.set('Content-Type', detectImageMime(admin.profileImage));
+    res.set('Cache-Control', 'public, max-age=86400');
     res.send(admin.profileImage);
   } catch (err) {
     res.status(500).send('Error');

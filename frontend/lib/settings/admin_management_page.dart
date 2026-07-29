@@ -56,6 +56,7 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
       _showStylishSnackBar(
         message: AppLocalizations.of(context).t('failed_to_fetch_admins'),
@@ -418,24 +419,21 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                           icon: Icons.person_add,
                                         );
                                       } else {
+                                        final msg = (responseData['message'] ??
+                                                responseData['error'] ??
+                                                t('failed_to_add_admin'))
+                                            .toString();
                                         setState(() {
                                           isSubmitting = false;
-                                          if (responseData['message']
-                                              .contains('email')) {
-                                            emailError =
-                                                responseData['message'];
-                                          } else if (responseData['message']
-                                              .contains('username')) {
-                                            usernameError =
-                                                responseData['message'];
+                                          if (msg.contains('email')) {
+                                            emailError = msg;
+                                          } else if (msg.contains('username')) {
+                                            usernameError = msg;
                                           } else {
-                                            // Show general error
                                             ScaffoldMessenger.of(dialogContext)
                                                 .showSnackBar(
                                               SnackBar(
-                                                content: Text(
-                                                    responseData['message'] ??
-                                                        t('failed_to_add_admin')),
+                                                content: Text(msg),
                                                 backgroundColor: Colors.red,
                                               ),
                                             );
@@ -1107,8 +1105,8 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                         final admin = isSearchMode
                                             ? filteredAdmins[index]
                                             : admins[index];
-                                        final isProtected = admin['email'] ==
-                                            'chetandudi791@gmail.com';
+                                        final isProtected =
+                                            admin['isProtected'] == true;
 
                                         return Container(
                                           margin: const EdgeInsets.only(bottom: 16),
@@ -1182,7 +1180,9 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                                                       backgroundColor:
                                                           AppColors.cyan,
                                                       child: Text(
-                                                        admin['name'][0]
+                                                        ((admin['name'] as String?)?.isNotEmpty == true
+                                                                ? admin['name'] as String
+                                                                : 'A')[0]
                                                             .toUpperCase(),
                                                         style: const TextStyle(
                                                           fontSize: 24,

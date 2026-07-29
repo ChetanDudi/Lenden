@@ -300,10 +300,35 @@ exports.sendPayOtp = async (req, res) => {
     }
 
     const now = new Date();
+
+    // 60-second cooldown
+    if (user.walletPayOTP?.sentAt) {
+      const elapsed = (now - new Date(user.walletPayOTP.sentAt)) / 1000;
+      if (elapsed < 60) {
+        return res.status(429).json({
+          error: `Please wait ${Math.ceil(60 - elapsed)} seconds before requesting another OTP.`,
+        });
+      }
+    }
+
+    // 5 sends per hour cap
+    const windowStart = user.walletPayOTP?.windowStart;
+    const withinWindow = windowStart && (now - new Date(windowStart)) < 60 * 60 * 1000;
+    const attemptCount = withinWindow ? (user.walletPayOTP.attemptCount || 0) : 0;
+    if (attemptCount >= 5) {
+      return res.status(429).json({ error: 'Too many OTP requests. Please try again later.' });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
 
-    user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now };
+    user.walletPayOTP = {
+      code: otp,
+      expiry: otpExpiry,
+      sentAt: now,
+      attemptCount: attemptCount + 1,
+      windowStart: withinWindow ? windowStart : now,
+    };
     await user.save();
 
     await sendWalletPayOTP(user.email, otp, user.name);
@@ -325,10 +350,35 @@ exports.sendWalletAuthOtp = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const now = new Date();
+
+    // 60-second cooldown
+    if (user.walletPayOTP?.sentAt) {
+      const elapsed = (now - new Date(user.walletPayOTP.sentAt)) / 1000;
+      if (elapsed < 60) {
+        return res.status(429).json({
+          error: `Please wait ${Math.ceil(60 - elapsed)} seconds before requesting another OTP.`,
+        });
+      }
+    }
+
+    // 5 sends per hour cap
+    const windowStart = user.walletPayOTP?.windowStart;
+    const withinWindow = windowStart && (now - new Date(windowStart)) < 60 * 60 * 1000;
+    const attemptCount = withinWindow ? (user.walletPayOTP.attemptCount || 0) : 0;
+    if (attemptCount >= 5) {
+      return res.status(429).json({ error: 'Too many OTP requests. Please try again later.' });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
 
-    user.walletPayOTP = { code: otp, expiry: otpExpiry, sentAt: now };
+    user.walletPayOTP = {
+      code: otp,
+      expiry: otpExpiry,
+      sentAt: now,
+      attemptCount: attemptCount + 1,
+      windowStart: withinWindow ? windowStart : now,
+    };
     await user.save();
 
     await sendWalletPinSetupOTP(user.email, otp, user.name);

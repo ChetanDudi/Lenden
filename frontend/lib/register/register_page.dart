@@ -42,6 +42,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   String _registerOtp = '';
   String? _selectedGender;
   bool _detailsLocked = false;
+  Timer? _otpTimer;
   // double _rating = 0.0; // Rating removed
 
   // Uniqueness check state
@@ -67,6 +68,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
 
   @override
   void dispose() {
+    _otpTimer?.cancel();
     _nameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
@@ -137,6 +139,12 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     if (!_isEmailUnique && !_emailCheckFailed) {
       setState(() {
         _errorMessage = 'Email already exists.';
+      });
+      return;
+    }
+    if (_selectedGender == null) {
+      setState(() {
+        _errorMessage = 'Please select your gender.';
       });
       return;
     }
@@ -221,16 +229,16 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   }
 
   void _startOtpTimer() {
-    _otpSecondsLeft = 120;
-    Future.doWhile(() async {
-      if (_otpSecondsLeft > 0 && mounted && _otpSent) {
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {
-          _otpSecondsLeft--;
-        });
-        return true;
+    _otpTimer?.cancel();
+    setState(() => _otpSecondsLeft = 120);
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
+      if (_otpSecondsLeft <= 1) {
+        t.cancel();
+        if (mounted) setState(() => _otpSecondsLeft = 0);
+        return;
       }
-      return false;
+      setState(() => _otpSecondsLeft--);
     });
   }
 
@@ -252,7 +260,6 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       setState(() {
         _errorMessage = res['data']['error'] ?? 'OTP verification failed.';
         _isVerifyingOtp = false;
-        _otpSecondsLeft = 0;
       });
     }
   }
@@ -729,7 +736,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                       ),
                       OtpInput(
                         onChanged: (val) => setState(() => _registerOtp = val),
-                        enabled: _otpSecondsLeft > 0,
+                        enabled: true,
                         autoFocus: true,
                       ),
                       const SizedBox(height: 10),

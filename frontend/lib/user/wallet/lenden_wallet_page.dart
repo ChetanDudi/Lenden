@@ -19,6 +19,8 @@ import '../../widgets/payment_success_page.dart';
 import '../../widgets/currency_display.dart';
 import '../../utils/theme_helper.dart';
 import '../../settings/set_wallet_pin_page.dart';
+import '../scanner/qr_scanner_page.dart';
+import '../scanner/user_qr_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../../api_config.dart';
 
@@ -168,8 +170,14 @@ class _LendenWalletPageState extends State<LendenWalletPage>
 
   Future<void> _loadMoreHistory() async {
     if (_historyLoadingMore || _transactions.length >= _historyTotal) return;
-    _historyPage++;
-    await _fetchWalletData(resetPage: false);
+    final nextPage = _historyPage + 1;
+    _historyPage = nextPage;
+    try {
+      await _fetchWalletData(resetPage: false);
+    } catch (_) {
+      // Revert page increment so a retry fetches the correct page
+      if (mounted) setState(() => _historyPage = nextPage - 1);
+    }
   }
 
   void _showAddMoneySheet() {
@@ -652,6 +660,38 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                                             onPressed: _showBuyCoinsSheet,
                                           ),
                                         ),
+                                        const SizedBox(height: 10),
+                                        Row(children: [
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              style: OutlinedButton.styleFrom(
+                                                side: const BorderSide(color: AppColors.cyan, width: 1.8),
+                                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              ),
+                                              icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.cyan),
+                                              label: const Text('Scan QR',
+                                                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.cyan)),
+                                              onPressed: () => Navigator.push(context,
+                                                  MaterialPageRoute(builder: (_) => const QrScannerPage())),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              style: OutlinedButton.styleFrom(
+                                                side: const BorderSide(color: AppColors.cyan, width: 1.8),
+                                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              ),
+                                              icon: const Icon(Icons.qr_code_rounded, color: AppColors.cyan),
+                                              label: const Text('My QR',
+                                                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.cyan)),
+                                              onPressed: () => Navigator.push(context,
+                                                  MaterialPageRoute(builder: (_) => const UserQrPage())),
+                                            ),
+                                          ),
+                                        ]),
                                       ],
                                     ),
                                   ),
@@ -1840,7 +1880,9 @@ class _AddMoneyConfirmSheetState extends State<_AddMoneyConfirmSheet> {
       if (mounted)
         setState(() {
           _verifying = false;
-          _errorText = '$e';
+          _errorText = e.toString().contains('SocketException')
+              ? 'No internet connection. Please try again.'
+              : 'Something went wrong. Please try again.';
         });
     }
   }

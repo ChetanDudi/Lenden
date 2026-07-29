@@ -262,7 +262,7 @@ void showSnack(
   String message, {
   bool isError = false,
 }) {
-  if (!Navigator.of(context).mounted) return;
+  if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(message),
@@ -281,6 +281,7 @@ void showStylishSnackBar(
   String message, {
   bool isError = false,
 }) {
+  if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Container(

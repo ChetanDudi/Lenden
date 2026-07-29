@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart' show PasswordStrengthMeter;
 import 'dart:convert';
@@ -38,6 +39,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
   late final FocusNode _confirmPasswordFocusNode;
   String _forgotOtp = '';
   int _otpKey = 0;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _emailController.dispose();
     _otpController.dispose();
     _newPasswordController.dispose();
@@ -68,83 +71,105 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final res = await _post('/api/users/send-reset-otp', {
-      'email': _emailController.text,
-    });
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter your email address.';
+        _isLoading = false;
+      });
+      return;
+    }
+    final res = await _post('/api/users/send-reset-otp', {'email': email});
+    if (!mounted) return;
     if (res['status'] == 200) {
       setState(() {
         _otpSent = true;
         _userType = res['data']['userType'];
-        _secondsLeft = 120;
         _errorMessage = null;
+        _isLoading = false;
       });
       _startTimer();
       FocusScope.of(context).requestFocus(_otpFocusNode);
     } else {
       setState(() {
-        _errorMessage = res['data']['error'] ?? AppLocalizations.of(context).t('failed_to_send_otp');
+        _errorMessage = res['data']['error'] ??
+            AppLocalizations.of(context).t('failed_to_send_otp');
+        _isLoading = false;
       });
     }
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   void _startTimer() {
-    _secondsLeft = 120;
-    Future.doWhile(() async {
-      if (_secondsLeft > 0 && mounted && !_otpVerified) {
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {
-          _secondsLeft--;
-        });
-        return true;
+    _countdownTimer?.cancel();
+    setState(() => _secondsLeft = 120);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
       }
-      return false;
+      if (_secondsLeft <= 1 || _otpVerified) {
+        t.cancel();
+        if (mounted) setState(() => _secondsLeft = 0);
+        return;
+      }
+      setState(() => _secondsLeft--);
     });
   }
 
   void _resendOtp() {
-    _sendOtp();
     _otpController.clear();
     setState(() {
       _otpVerified = false;
+      _forgotOtp = '';
+      _otpKey++;
     });
+    _sendOtp();
   }
 
   void _resetPassword() async {
+    final newPw = _newPasswordController.text;
+    final confirmPw = _confirmPasswordController.text;
+
+    if (newPw.isEmpty || newPw.length < 8) {
+      setState(() => _errorMessage = 'Password must be at least 8 characters.');
+      return;
+    }
+    if (newPw.length > 30) {
+      setState(() => _errorMessage = 'Password must be at most 30 characters.');
+      return;
+    }
+    if (!RegExp(r'[A-Za-z]').hasMatch(newPw) || !RegExp(r'[0-9]').hasMatch(newPw)) {
+      setState(() => _errorMessage = 'Password must contain at least one letter and one number.');
+      return;
+    }
+    if (newPw != confirmPw) {
+      setState(() => _errorMessage =
+          AppLocalizations.of(context).t('passwords_do_not_match'));
+      return;
+    }
+
     setState(() {
       _isResetting = true;
       _errorMessage = null;
     });
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _errorMessage = AppLocalizations.of(context).t('passwords_do_not_match');
-        _isResetting = false;
-      });
-      return;
-    }
     final res = await _post('/api/users/reset-password', {
-      'email': _emailController.text,
+      'email': _emailController.text.trim(),
       'userType': _userType,
-      'newPassword': _newPasswordController.text,
+      'newPassword': newPw,
     });
+    if (!mounted) return;
     if (res['status'] == 200) {
-      setState(() {
-        _errorMessage = null;
-      });
+      setState(() => _errorMessage = null);
       final t = AppLocalizations.of(context).t;
       _showSuccessDialog(
           t('password_reset_successful'), t('password_reset_successful_message'));
     } else {
       setState(() {
-        _errorMessage =
-            res['data']['error'] ?? AppLocalizations.of(context).t('failed_to_reset_password');
+        _errorMessage = res['data']['error'] ??
+            AppLocalizations.of(context).t('failed_to_reset_password');
       });
     }
-    setState(() {
-      _isResetting = false;
-    });
+    if (mounted) setState(() => _isResetting = false);
   }
 
   void _verifyOtpWithOtp(String otp) async {
@@ -153,49 +178,45 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
       _errorMessage = null;
     });
     final res = await _post('/api/users/verify-reset-otp', {
-      'email': _emailController.text,
+      'email': _emailController.text.trim(),
       'otp': otp,
     });
+    if (!mounted) return;
     if (res['status'] == 200) {
+      _countdownTimer?.cancel();
       setState(() {
         _otpVerified = true;
         _errorMessage = null;
+        _isVerifyingOtp = false;
       });
       FocusScope.of(context).requestFocus(_newPasswordFocusNode);
     } else {
       setState(() {
-        _errorMessage = res['data']['error'] ?? AppLocalizations.of(context).t('otp_verification_failed');
+        _errorMessage = res['data']['error'] ??
+            AppLocalizations.of(context).t('otp_verification_failed');
         _forgotOtp = '';
         _otpKey++;
+        _isVerifyingOtp = false;
       });
     }
-    setState(() { _isVerifyingOtp = false; });
   }
 
   Future<Map<String, dynamic>> _post(
       String path, Map<String, dynamic> body) async {
     try {
       final response = await ApiClient.post(path, body: body)
-          .timeout(const Duration(minutes: 2));
+          .timeout(const Duration(seconds: 30));
       final data = jsonDecode(response.body);
       return {'status': response.statusCode, 'data': data};
     } catch (e) {
-      print('❌ API call error: $e');
       if (e.toString().contains('SocketException')) {
-        return {
-          'status': 0,
-          'data': {'error': 'No internet connection'}
-        };
+        return {'status': 0, 'data': {'error': 'No internet connection'}};
       } else if (e.toString().contains('HandshakeException')) {
-        return {
-          'status': 0,
-          'data': {'error': 'SSL/TLS connection failed'}
-        };
+        return {'status': 0, 'data': {'error': 'SSL/TLS connection failed'}};
+      } else if (e.toString().contains('TimeoutException')) {
+        return {'status': 0, 'data': {'error': 'Request timed out. Please try again.'}};
       } else {
-        return {
-          'status': 500,
-          'data': {'error': e.toString()}
-        };
+        return {'status': 500, 'data': {'error': 'Something went wrong. Please try again.'}};
       }
     }
   }

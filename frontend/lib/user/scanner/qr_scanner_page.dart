@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../widgets/app_colors.dart';
+import '../../session.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/payment_success_page.dart';
+import 'user_qr_page.dart';
 
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
@@ -67,6 +71,94 @@ class _QrScannerPageState extends State<QrScannerPage> {
     showSnack(context, msg, isError: true);
   }
 
+  void _showSelfPayDialog(SessionProvider session) {
+    final name = session.user?['name']?.toString() ?? 'You';
+    final username = session.user?['username']?.toString() ?? '';
+    final email = session.user?['email']?.toString() ?? '';
+    final imageUrl = session.user?['profileImage']?.toString();
+    final gender = session.user?['gender']?.toString() ?? 'Other';
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
+
+    Widget avatar = CircleAvatar(
+      radius: 36,
+      backgroundImage: hasImage
+          ? NetworkImage('$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}')
+              as ImageProvider
+          : AssetImage(gender == 'Male'
+              ? 'assets/Male.png'
+              : gender == 'Female'
+                  ? 'assets/Female.png'
+                  : 'assets/Other.png'),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.person_pin_circle_rounded,
+                color: AppColors.cyan, size: 22),
+            const SizedBox(width: 8),
+            const Text("That's You!", style: TextStyle(fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            avatar,
+            const SizedBox(height: 12),
+            Text(name,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 16)),
+            if (username.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text('@$username',
+                  style: const TextStyle(
+                      fontSize: 13, color: AppColors.cyan)),
+            ],
+            if (email.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(email,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+            const SizedBox(height: 14),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.4), width: 1),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 16, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This is your own QR code. You cannot send money to yourself.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Got it',
+                style: TextStyle(color: AppColors.cyan)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── scanner callbacks ──────────────────────────────────────────────────────
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_processing) return;
@@ -97,54 +189,10 @@ class _QrScannerPageState extends State<QrScannerPage> {
     }
   }
 
-  void _openManualEntry() {
-    final ctrl = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Enter QR Content',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'lenden://pay?userId=…  or  upi://pay?pa=…',
-            hintStyle:
-                TextStyle(color: Colors.blueGrey.shade300, fontSize: 12),
-            filled: true,
-            fillColor: const Color(0xFFF8F6FA),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _sky, width: 1.8),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final val = ctrl.text.trim();
-              Navigator.pop(ctx);
-              if (val.isNotEmpty) {
-                setState(() => _processing = true);
-                _controller?.stop().then((_) => _handleQrValue(val));
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _sky,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child:
-                const Text('Use', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+  void _openMyQr() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UserQrPage()),
     );
   }
 
@@ -158,11 +206,134 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
     if (uri.scheme == 'lenden' && uri.host == 'pay') {
       await _handleLenDenPay(uri);
-    } else if (uri.scheme == 'upi') {
-      await _handleUpiPay(uri);
     } else {
-      _showError('Unsupported QR format. Only LenDen and UPI QR codes are supported.');
+      _resetProcessing();
+      _showUnknownQrDialog(raw);
     }
+  }
+
+  // ── Non-LenDen QR ─────────────────────────────────────────────────────────
+  void _showUnknownQrDialog(String raw) {
+    final uri = Uri.tryParse(raw);
+    final isUrl = uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Theme.of(context).cardColor,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.orange, size: 22),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Not a LenDen QR',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('This QR code is from another app or website.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Scanned Content',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  const SizedBox(height: 6),
+                  SelectableText(
+                    raw,
+                    style: const TextStyle(fontSize: 13),
+                    maxLines: 6,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: raw));
+                      Navigator.pop(ctx);
+                      showSnack(context, 'Copied to clipboard.');
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 16),
+                    label: const Text('Copy'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                if (isUrl) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        try {
+                          await launchUrl(Uri.parse(raw), mode: LaunchMode.externalApplication);
+                        } catch (_) {
+                          if (mounted) showSnack(context, 'Could not open this URL.', isError: true);
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_browser_rounded, size: 16, color: Colors.white),
+                      label: const Text('Open URL', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _sky,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── LenDen wallet-to-wallet ────────────────────────────────────────────────
@@ -173,6 +344,16 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
     if (userId.isEmpty) {
       _showError('Invalid QR: missing recipient ID.');
+      return;
+    }
+
+    // Self-pay guard — show own profile details instead of payment dialog
+    if (!mounted) return;
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    final myId = session.user?['_id']?.toString() ?? '';
+    if (userId == myId) {
+      _resetProcessing();
+      _showSelfPayDialog(session);
       return;
     }
 
@@ -189,7 +370,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
           (userData['name'] ?? userData['username'] ?? 'User').toString();
       final recipientEmail = (userData['email'] ?? '').toString();
 
-      final paid = await showDialog<bool>(
+      final paidAmount = await showDialog<double>(
         context: context,
         barrierDismissible: false,
         builder: (_) => _LenDenPaymentDialog(
@@ -203,8 +384,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
       );
 
       if (!mounted) return;
-      if (paid == true) {
-        final amt = amountStr != null ? double.tryParse(amountStr) : null;
+      if (paidAmount != null) {
         // Capture the NavigatorState before pushReplacement — once this page
         // is replaced, its own `context` becomes defunct, so onDone (invoked
         // later when the user taps "Done") must not look it up again.
@@ -213,7 +393,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
           MaterialPageRoute(
             builder: (_) => PaymentSuccessPage(
               title: 'Payment Successful!',
-              amount: amt,
+              amount: paidAmount,
               recipientName: recipientName,
               transactionType: 'Pay via LenDen',
               extraDetails: {
@@ -230,68 +410,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
       _showError('Request timed out. Check your connection.');
     } catch (_) {
       _showError('Failed to load recipient. Check your connection.');
-    }
-  }
-
-  // ── UPI QR (shops) ─────────────────────────────────────────────────────────
-  Future<void> _handleUpiPay(Uri uri) async {
-    final upiId = uri.queryParameters['pa'] ?? '';
-    final payeeName =
-        Uri.decodeComponent(uri.queryParameters['pn'] ?? 'Shop');
-    final amountStr = uri.queryParameters['am'];
-    final note =
-        Uri.decodeComponent(uri.queryParameters['tn'] ?? 'UPI Payment');
-
-    if (upiId.isEmpty) {
-      _showError('Invalid UPI QR: missing UPI ID.');
-      return;
-    }
-
-    final result = await showDialog<Map<String, dynamic>?>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _UpiPaymentDialog(
-        upiId: upiId,
-        payeeName: payeeName,
-        presetAmount:
-            amountStr != null ? double.tryParse(amountStr) : null,
-        note: note,
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (result == null) {
-      // User cancelled
-      _resetProcessing();
-      return;
-    }
-
-    if (result['type'] == 'submitted') {
-      // No RazorpayX payout account is configured, so — exactly like wallet
-      // withdrawals — this was debited immediately and queued for an admin to
-      // manually send to the shop's UPI ID, instead of an instant final payment.
-      final amt = (result['amount'] as num?)?.toDouble();
-      // Capture the NavigatorState before pushReplacement — once this page is
-      // replaced, its own `context` becomes defunct, so onDone (invoked later
-      // when the user taps "Done") must not look it up again.
-      final navigator = Navigator.of(context);
-      navigator.pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => PaymentSuccessPage(
-            title: 'Payment Submitted!',
-            amount: amt,
-            recipientName: payeeName,
-            transactionType: 'UPI via LenDen Wallet',
-            extraDetails: {
-              'UPI ID': upiId,
-              if ((note).isNotEmpty) 'Note': note,
-              'Status': 'Sent to admin for processing (24–48 hrs)',
-            },
-            onDone: () => navigator.pop(true),
-          ),
-        ),
-      );
     }
   }
 
@@ -327,15 +445,15 @@ class _QrScannerPageState extends State<QrScannerPage> {
                       fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               const Text(
-                'Use the Manual Entry button on Android or iOS.',
+                'Scanner not supported on this platform.',
                 style: TextStyle(color: Colors.white54, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _openManualEntry,
-                icon: const Icon(Icons.keyboard_rounded, size: 18),
-                label: const Text('Manual Entry'),
+                onPressed: _openMyQr,
+                icon: const Icon(Icons.qr_code_rounded, size: 18),
+                label: const Text('My QR Code'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _sky,
                   foregroundColor: Colors.white,
@@ -449,9 +567,9 @@ class _QrScannerPageState extends State<QrScannerPage> {
                           : Icons.flash_off_rounded,
                       color: _torchOn ? Colors.amber : Colors.white,
                     ),
-                    onPressed: () {
-                      _controller?.toggleTorch();
-                      setState(() => _torchOn = !_torchOn);
+                    onPressed: () async {
+                      await _controller?.toggleTorch();
+                      if (mounted) setState(() => _torchOn = !_torchOn);
                     },
                   ),
                 ],
@@ -473,7 +591,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
-                  'Supports LenDen QR  •  UPI QR (shops)',
+                  'Scan a LenDen user QR to pay',
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
@@ -493,7 +611,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   Text(
                     _processing
                         ? 'Processing…'
-                        : 'Point at a LenDen or UPI QR code',
+                        : 'Point at a LenDen user QR code',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -516,9 +634,9 @@ class _QrScannerPageState extends State<QrScannerPage> {
                             : () => _controller?.switchCamera(),
                       ),
                       _BottomBtn(
-                        icon: Icons.keyboard_rounded,
-                        label: 'Manual',
-                        onTap: _processing ? null : _openManualEntry,
+                        icon: Icons.qr_code_rounded,
+                        label: 'My QR',
+                        onTap: _processing ? null : _openMyQr,
                       ),
                     ],
                   ),
@@ -741,7 +859,7 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
       if (!mounted) return;
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(amount);
         showSnack(context, 'Paid ₹${amount.toStringAsFixed(2)} to ${widget.recipientName}. Balance: ₹${(body['balance'] ?? 0).toStringAsFixed(2)}');
       } else {
         final body = jsonDecode(res.body);
@@ -898,263 +1016,6 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
       );
 }
 
-// ── UPI shop payment dialog ───────────────────────────────────────────────────
-// Returns:
-//   null                          → cancelled
-//   {'type':'submitted', 'amount':x, 'balance':y}
-//
-// No RazorpayX payout account is configured, so paying debits the wallet
-// immediately and queues the payment for an admin to manually send to the
-// shop's UPI ID outside the app — exactly like wallet withdrawals.
-
-class _UpiPaymentDialog extends StatefulWidget {
-  final String upiId;
-  final String payeeName;
-  final double? presetAmount;
-  final String note;
-
-  const _UpiPaymentDialog({
-    required this.upiId,
-    required this.payeeName,
-    this.presetAmount,
-    this.note = '',
-  });
-
-  @override
-  State<_UpiPaymentDialog> createState() => _UpiPaymentDialogState();
-}
-
-class _UpiPaymentDialogState extends State<_UpiPaymentDialog> {
-  static const _sky = AppColors.cyan;
-  final _amountCtrl = TextEditingController();
-  bool _loadingWallet = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.presetAmount != null)
-      _amountCtrl.text = widget.presetAmount!.toStringAsFixed(2);
-  }
-
-  @override
-  void dispose() {
-    _amountCtrl.dispose();
-    super.dispose();
-  }
-
-  double? get _amount => double.tryParse(_amountCtrl.text.trim());
-
-  Future<void> _payWallet() async {
-    final amount = _amount;
-    if (amount == null || amount <= 0) {
-      setState(() => _error = 'Enter a valid amount greater than ₹0.');
-      return;
-    }
-    setState(() { _loadingWallet = true; _error = null; });
-    try {
-      final res = await ApiClient.post('/api/wallet/scan-payment', body: {
-        'amount': amount,
-        'upiId': widget.upiId,
-        'payeeName': widget.payeeName,
-        'note': widget.note.isEmpty ? 'UPI QR Payment' : widget.note,
-      }).timeout(const Duration(seconds: 15));
-
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final body = jsonDecode(res.body);
-        Navigator.of(context).pop({
-          'type': 'submitted',
-          'amount': amount.toStringAsFixed(2),
-          'balance': (body['balance'] ?? 0).toStringAsFixed(2),
-        });
-      } else {
-        final body = jsonDecode(res.body);
-        setState(() {
-          _error = body['error'] ?? 'Payment failed.';
-          _loadingWallet = false;
-        });
-      }
-    } on TimeoutException {
-      if (!mounted) return;
-      setState(() { _error = 'Request timed out.'; _loadingWallet = false; });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() { _error = 'Network error.'; _loadingWallet = false; });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final busy = _loadingWallet;
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(24)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Shop icon
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF1A6B4A), Color(0xFF2ECC71)]),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.storefront_rounded,
-                    color: Colors.white, size: 30),
-              ),
-              const SizedBox(height: 10),
-              Text(widget.payeeName,
-                  style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0B1F33)),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blueGrey.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(widget.upiId,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blueGrey.shade600,
-                        fontFamily: 'monospace')),
-              ),
-              const SizedBox(height: 18),
-
-              // Amount field
-              TextField(
-                controller: _amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true),
-                readOnly: widget.presetAmount != null,
-                enabled: !busy,
-                style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0B1F33)),
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  labelText: 'Amount (₹)',
-                  labelStyle: TextStyle(
-                      color: Colors.blueGrey.shade400, fontSize: 13),
-                  prefixIcon: const Icon(
-                      Icons.currency_rupee_rounded,
-                      color: _sky),
-                  filled: true,
-                  fillColor: const Color(0xFFF8F6FA),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: Colors.blueGrey.shade200)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: Colors.blueGrey.shade200)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          const BorderSide(color: _sky, width: 1.8)),
-                ),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                _errorBox(_error!),
-              ],
-
-              const SizedBox(height: 20),
-
-              // Payment method label
-              Text('Choose Payment Method',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blueGrey.shade400,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-              const SizedBox(height: 12),
-
-              // Wallet button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: busy ? null : _payWallet,
-                  icon: _loadingWallet
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          size: 18),
-                  label: Text(_loadingWallet
-                      ? 'Processing…'
-                      : 'Pay with LenDen Wallet'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _sky,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: _sky.withValues(alpha: 0.5),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Cancel
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed:
-                      busy ? null : () => Navigator.pop(context, null),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.blueGrey.shade300),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Cancel',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-              Text(
-                'Money will be deducted from your LenDen wallet now and '
-                'sent to the shop by our team within 24–48 hours.',
-                style: TextStyle(
-                    fontSize: 11, color: Colors.blueGrey.shade400),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 Widget _errorBox(String msg) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

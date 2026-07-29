@@ -3014,8 +3014,8 @@ class AppLocalizations {
       'review_and_process_wallet_withdrawals_desc':
           'Review and process pending wallet withdrawals',
       'scan_and_pay_title': 'Scan & Pay',
-      'scan_qr_code_label': 'Scan QR Code',
-      'scan_qr_code_desc': 'Pay a shop via UPI QR using your LenDen wallet',
+      'scan_qr_code_label': 'Scan User QR',
+      'scan_qr_code_desc': 'Scan another LenDen user\'s QR code to pay them instantly',
       'pay_user_desc': 'Send money directly to a LenDen user',
       'manage_scan_payments_label': 'Manage Scan Payments',
       'manage_scan_payments_title': 'Manage Scan Payments',
@@ -7152,9 +7152,9 @@ class AppLocalizations {
       'review_and_process_wallet_withdrawals_desc':
           'लंबित वॉलेट निकासी की समीक्षा और प्रक्रिया करें',
       'scan_and_pay_title': 'स्कैन करें और भुगतान करें',
-      'scan_qr_code_label': 'QR कोड स्कैन करें',
+      'scan_qr_code_label': 'यूज़र QR स्कैन करें',
       'scan_qr_code_desc':
-          'अपने LenDen वॉलेट से UPI QR के ज़रिए दुकान को भुगतान करें',
+          'किसी LenDen यूज़र का QR कोड स्कैन करके तुरंत पैसे भेजें',
       'pay_user_desc': 'किसी LenDen यूज़र को सीधे पैसे भेजें',
       'manage_scan_payments_label': 'स्कैन भुगतान प्रबंधित करें',
       'manage_scan_payments_title': 'स्कैन भुगतान प्रबंधित करें',

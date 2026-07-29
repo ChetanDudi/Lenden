@@ -77,6 +77,18 @@ const userSchema = new mongoose.Schema({
     sentAt: { type: Date },
     attemptCount: { type: Number, default: 0 },
     windowStart: { type: Date },
+    verified: { type: Boolean, default: false },
+    verifiedAt: { type: Date },
+  },
+  // OTP (or PIN) used when user taps "Forgot current password?" inside Change Password
+  changePasswordOTP: {
+    code: { type: String },
+    expiry: { type: Date },
+    sentAt: { type: Date },
+    attemptCount: { type: Number, default: 0 },
+    windowStart: { type: Date },
+    verified: { type: Boolean, default: false },
+    verifiedAt: { type: Date },
   },
   walletPin: { type: String, default: null },
   walletPinAttempts: { type: Number, default: 0 },

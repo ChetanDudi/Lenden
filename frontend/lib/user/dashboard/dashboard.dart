@@ -31,6 +31,7 @@ import '../ads_and_updates/ad_popup_dialog.dart';
 import '../wallet/lenden_wallet_page.dart';
 import '../../widgets/stylish_dialog.dart';
 import '../scanner/qr_scanner_page.dart';
+import '../scanner/user_qr_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
@@ -970,8 +971,78 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             children: [
               DrawerHeader(
                 decoration: const BoxDecoration(color: AppColors.cyan),
-                child: Text(t('menu_label'),
-                    style: TextStyle(color: Colors.white, fontSize: context.sp(22))),
+                padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(t('menu_label'),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: context.sp(22),
+                                fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        Tooltip(
+                          message: 'My QR Code',
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const UserQrPage()));
+                            },
+                            borderRadius: BorderRadius.circular(24),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.qr_code_rounded,
+                                  color: Colors.white, size: 22),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.white.withValues(alpha: 0.25),
+                          backgroundImage: _getUserAvatar(),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                Provider.of<SessionProvider>(context, listen: false)
+                                        .user?['name']?.toString() ?? '',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '@${Provider.of<SessionProvider>(context, listen: false).user?['username']?.toString() ?? ''}',
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 11),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               ListTile(
                 leading: const Icon(Icons.dashboard),
@@ -2879,6 +2950,21 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
               title: Text(t('pay_user_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
               subtitle: Text(t('pay_user_desc'), style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            const SizedBox(height: 6),
+            ListTile(
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const UserQrPage()));
+              },
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: const Color(0xFF6A0DAD).withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: const Icon(Icons.qr_code_rounded, color: Color(0xFF6A0DAD)),
+              ),
+              title: Text('My QR Code', style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(ctx))),
+              subtitle: Text('Show your QR so others can pay you instantly', style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx))),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ],

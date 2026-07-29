@@ -14,7 +14,7 @@ const Notification = require('../models/notification');
 // Change Password
 const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, forgotMode } = req.body;
     const userId = req.user._id;
 
     // Find user
@@ -23,10 +23,24 @@ const changePassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
+    if (forgotMode) {
+      // Forgot-current-password path: identity must have been verified via OTP/PIN
+      const v = user.changePasswordOTP;
+      const isVerified = v?.verified === true
+        && v?.verifiedAt
+        && (new Date() - new Date(v.verifiedAt)) < 15 * 60 * 1000;
+      if (!isVerified) {
+        return res.status(400).json({ message: 'Identity not verified. Please verify via OTP or PIN first.' });
+      }
+    } else {
+      // Normal path: verify current password
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required.' });
+      }
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
     }
 
     // Password strength: min 8 chars, at least one letter and one digit
@@ -50,6 +64,7 @@ const changePassword = async (req, res) => {
     // Update password and invalidate all outstanding access tokens immediately
     user.password = hashedNewPassword;
     user.forceLogoutAfter = new Date();
+    user.changePasswordOTP = undefined;
     await user.save();
 
     res.json({ message: 'Password changed successfully' });
@@ -785,10 +800,61 @@ const sendSetPasswordOtp = async (req, res) => {
   }
 };
 
-// Set Initial Password — Step 2: verify OTP and save new password
+// Set Initial Password — Step 2a: verify OTP or PIN and mark identity verified
+// The client calls this after OTP/PIN entry; on success the password fields unlock.
+const verifySetPasswordIdentity = async (req, res) => {
+  try {
+    const { otp, pin } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.authProvider !== 'google') {
+      return res.status(400).json({ message: 'Use Change Password for your account type.' });
+    }
+
+    if (pin) {
+      // PIN path
+      if (!user.walletPin) {
+        return res.status(400).json({ message: 'No transaction PIN is set on your account.' });
+      }
+      if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
+        return res.status(423).json({ message: 'PIN is locked due to too many wrong attempts. Try again later.' });
+      }
+      const pinOk = await bcrypt.compare(String(pin), user.walletPin);
+      if (!pinOk) {
+        user.walletPinAttempts = (user.walletPinAttempts || 0) + 1;
+        if (user.walletPinAttempts >= 5) {
+          user.walletPinLockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+          user.walletPinAttempts = 0;
+        }
+        await user.save();
+        return res.status(400).json({ message: 'Incorrect PIN.' });
+      }
+      user.walletPinAttempts = 0;
+    } else {
+      // OTP path
+      const otpData = user.setPasswordOTP;
+      if (!otpData?.code) return res.status(400).json({ message: 'No OTP pending. Please request one first.' });
+      if (new Date() > new Date(otpData.expiry)) return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+      if (otpData.code !== String(otp)) return res.status(400).json({ message: 'Invalid OTP.' });
+    }
+
+    user.setPasswordOTP = {
+      ...(user.setPasswordOTP?.toObject?.() || user.setPasswordOTP || {}),
+      verified: true,
+      verifiedAt: new Date(),
+    };
+    await user.save();
+    res.json({ verified: true });
+  } catch (error) {
+    console.error('Error verifying set-password identity:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Set Initial Password — Step 2b: set the password (identity already verified above)
 const confirmSetPassword = async (req, res) => {
   try {
-    const { otp, newPassword } = req.body;
+    const { newPassword } = req.body;
     const userId = req.user._id;
 
     const user = await User.findById(userId);
@@ -798,18 +864,21 @@ const confirmSetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Use Change Password for your account type.' });
     }
 
-    const otpData = user.setPasswordOTP;
-    if (!otpData?.code || !otpData?.expiry) {
-      return res.status(400).json({ message: 'No OTP found. Please request a new one.' });
+    // Identity must have been verified within the last 15 minutes
+    const verifiedAt = user.setPasswordOTP?.verifiedAt;
+    const isVerified = user.setPasswordOTP?.verified === true
+      && verifiedAt
+      && (new Date() - new Date(verifiedAt)) < 15 * 60 * 1000;
+
+    if (!isVerified) {
+      return res.status(400).json({ message: 'Identity not verified. Please verify your email OTP or PIN first.' });
     }
-    if (new Date() > otpData.expiry) {
-      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
-    }
-    if (otpData.code !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP.' });
-    }
+
     if (!newPassword || newPassword.length < 8 || newPassword.length > 30) {
       return res.status(400).json({ message: 'Password must be 8–30 characters.' });
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ message: 'Password must contain at least one letter and one number.' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -832,6 +901,92 @@ const confirmSetPassword = async (req, res) => {
   }
 };
 
+// Change Password — Forgot flow Step 1: send OTP to user's primary email
+const sendChangePasswordOtp = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const now = new Date();
+    const existing = user.changePasswordOTP;
+
+    if (existing?.sentAt && (now - existing.sentAt) < 60 * 1000) {
+      const wait = Math.ceil((60 * 1000 - (now - existing.sentAt)) / 1000);
+      return res.status(429).json({ message: `Please wait ${wait} seconds before requesting another OTP.` });
+    }
+
+    const hourAgo = new Date(now - 60 * 60 * 1000);
+    const windowStart = existing?.windowStart && existing.windowStart > hourAgo ? existing.windowStart : now;
+    const attemptCount = existing?.windowStart && existing.windowStart > hourAgo ? (existing.attemptCount || 0) : 0;
+    if (attemptCount >= 5) {
+      return res.status(429).json({ message: 'Too many OTP requests. Please try again later.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.changePasswordOTP = {
+      code: otp,
+      expiry: new Date(Date.now() + 2 * 60 * 1000),
+      sentAt: now,
+      attemptCount: attemptCount + 1,
+      windowStart,
+      verified: false,
+    };
+    await user.save();
+
+    // Reuse the set-password email template — same visual style
+    await sendSetPasswordEmail(user.email, otp, user.name);
+    res.json({ message: 'OTP sent to your email.' });
+  } catch (error) {
+    console.error('Error sending change-password OTP:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Change Password — Forgot flow Step 2: verify OTP or PIN
+const verifyChangePasswordIdentity = async (req, res) => {
+  try {
+    const { otp, pin } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (pin) {
+      if (!user.walletPin) {
+        return res.status(400).json({ message: 'No transaction PIN is set on your account.' });
+      }
+      if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
+        return res.status(423).json({ message: 'PIN is locked due to too many wrong attempts. Try again later.' });
+      }
+      const pinOk = await bcrypt.compare(String(pin), user.walletPin);
+      if (!pinOk) {
+        user.walletPinAttempts = (user.walletPinAttempts || 0) + 1;
+        if (user.walletPinAttempts >= 5) {
+          user.walletPinLockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+          user.walletPinAttempts = 0;
+        }
+        await user.save();
+        return res.status(400).json({ message: 'Incorrect PIN.' });
+      }
+      user.walletPinAttempts = 0;
+    } else {
+      const otpData = user.changePasswordOTP;
+      if (!otpData?.code) return res.status(400).json({ message: 'No OTP pending. Please request one first.' });
+      if (new Date() > new Date(otpData.expiry)) return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+      if (otpData.code !== String(otp)) return res.status(400).json({ message: 'Invalid OTP.' });
+    }
+
+    user.changePasswordOTP = {
+      ...(user.changePasswordOTP?.toObject?.() || user.changePasswordOTP || {}),
+      verified: true,
+      verifiedAt: new Date(),
+    };
+    await user.save();
+    res.json({ verified: true });
+  } catch (error) {
+    console.error('Error verifying change-password identity:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   exportUserData,
   changePassword,
@@ -848,5 +1003,8 @@ module.exports = {
   getAdminNotificationSettings,
   updateAdminNotificationSettings,
   sendSetPasswordOtp,
+  verifySetPasswordIdentity,
   confirmSetPassword,
+  sendChangePasswordOtp,
+  verifyChangePasswordIdentity,
 };

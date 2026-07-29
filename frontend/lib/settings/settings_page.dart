@@ -126,15 +126,19 @@ class _SettingsPageState extends State<SettingsPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  session.user?['email'] ?? 'user@example.com',
-                                  style: TextStyle(
-                                    fontSize: context.sp(13),
-                                    color: AppThemeColors.secondaryText(context),
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Text(
+                                    session.user?['email'] ?? 'user@example.com',
+                                    style: TextStyle(
+                                      fontSize: context.sp(13),
+                                      color: AppThemeColors.secondaryText(context),
+                                    ),
+                                    maxLines: 1,
+                                    softWrap: false,
                                   ),
                                 ),
-                                if (session.user?['altEmail'] != null &&
-                                    (session.user!['altEmail'] as String).isNotEmpty) ...[
+                                if ((session.user?['altEmail']?.toString() ?? '').isNotEmpty) ...[
                                   const SizedBox(height: 2),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -185,26 +189,23 @@ class _SettingsPageState extends State<SettingsPage> {
                               ? const SetPasswordPage()
                               : const ChangePasswordPage(),
                         ),
-                      ).then((_) => setState(() {})),
+                      ).then((_) { if (mounted) setState(() {}); }),
                     );
                   }),
                   _buildTile(
                     context,
-                    title: session.user?['altEmail'] != null &&
-                            (session.user!['altEmail'] as String).isNotEmpty
+                    title: (session.user?['altEmail']?.toString() ?? '').isNotEmpty
                         ? t('change_alternative_email')
                         : t('add_alternative_email'),
                     icon: Icons.email_outlined,
-                    subtitle: session.user?['altEmail'] != null &&
-                            (session.user!['altEmail'] as String).isNotEmpty
-                        ? session.user!['altEmail'] as String
+                    subtitle: (session.user?['altEmail']?.toString() ?? '').isNotEmpty
+                        ? session.user!['altEmail'].toString()
                         : t('add_backup_email_for_account_recovery'),
                     showStatus: true,
-                    isActive: session.user?['altEmail'] != null &&
-                        (session.user!['altEmail'] as String).isNotEmpty,
+                    isActive: (session.user?['altEmail']?.toString() ?? '').isNotEmpty,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const AlternativeEmailPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   _buildTile(
                     context,
@@ -212,7 +213,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.person_outline,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const AccountSettingsPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   _buildTile(
                     context,
@@ -220,7 +221,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.lock_outline,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const AppLockSetupPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   const SizedBox(height: 8),
                   _buildTile(
@@ -229,7 +230,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.dialpad_rounded,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const SetWalletPinPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
 
                   const SizedBox(height: 16),
@@ -243,7 +244,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.notifications_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const NotificationSettingsPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   _buildTile(
                     context,
@@ -251,7 +252,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.privacy_tip_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const PrivacySettingsPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   Consumer<ThemeProvider>(
                     builder: (context, themeProvider, _) {
@@ -350,7 +351,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.account_balance_wallet_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const LendingBudgetPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   _buildTile(
                     context,
@@ -358,7 +359,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.calendar_month_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const DueDateCalendarPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   _buildTile(
                     context,
@@ -366,7 +367,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.download_outlined,
                     onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const ExportStatementPage()))
-                        .then((_) => setState(() {})),
+                        .then((_) { if (mounted) setState(() {}); }),
                   ),
 
                   const SizedBox(height: 16),
