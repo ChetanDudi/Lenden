@@ -93,7 +93,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         _showErr(data['message'] ?? AppLocalizations.of(context).t('failed_to_change_password'));
       }
     } catch (_) {
-      if (mounted) _showErr('Network error. Please try again.');
+      if (mounted) _showErr(AppLocalizations.of(context).t('network_error_retry'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -108,13 +108,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       if (res.statusCode == 200) {
         setState(() { _otpSent = true; _otp = ''; _otpKey++; });
         _startTimer();
-        CustomWarningWidget.showAnimatedSuccess(context, 'OTP sent to your email.');
+        CustomWarningWidget.showAnimatedSuccess(context, AppLocalizations.of(context).t('otp_sent_to_email'));
       } else {
         final data = jsonDecode(res.body);
-        _showErr(data['message'] ?? 'Failed to send OTP.');
+        _showErr(data['message'] ?? AppLocalizations.of(context).t('failed_to_send_otp'));
       }
     } catch (_) {
-      if (mounted) _showErr('Network error. Please try again.');
+      if (mounted) _showErr(AppLocalizations.of(context).t('network_error_retry'));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -139,14 +139,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       if (res.statusCode == 200) {
         _timer?.cancel();
         setState(() { _forgotVerified = true; _verifying = false; });
-        CustomWarningWidget.showAnimatedSuccess(context, 'Identity verified! Set your new password below.');
+        CustomWarningWidget.showAnimatedSuccess(context, AppLocalizations.of(context).t('identity_verified_msg'));
       } else {
         final data = jsonDecode(res.body);
-        _showErr(data['message'] ?? 'Verification failed.');
+        _showErr(data['message'] ?? AppLocalizations.of(context).t('verification_failed'));
         setState(() => _verifying = false);
       }
     } catch (_) {
-      if (mounted) { _showErr('Network error.'); setState(() => _verifying = false); }
+      if (mounted) { _showErr(AppLocalizations.of(context).t('network_error_retry')); setState(() => _verifying = false); }
     }
   }
 
@@ -154,9 +154,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     final newPw = _newPasswordController.text;
     final confirmPw = _confirmPasswordController.text;
     final t = AppLocalizations.of(context).t;
-    if (newPw.length < 8 || newPw.length > 30) { _showErr('Password must be 8–30 characters.'); return; }
+    if (newPw.length < 8) { _showErr(t('password_min_length_error')); return; }
+    if (newPw.length > 30) { _showErr(t('password_max_length_error')); return; }
     if (!RegExp(r'[A-Za-z]').hasMatch(newPw) || !RegExp(r'[0-9]').hasMatch(newPw)) {
-      _showErr('Password must contain at least one letter and one number.'); return;
+      _showErr(t('password_letters_numbers_error')); return;
     }
     if (newPw != confirmPw) { _showErr(t('passwords_do_not_match')); return; }
 
@@ -175,7 +176,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         _showErr(data['message'] ?? t('failed_to_change_password'));
       }
     } catch (_) {
-      if (mounted) _showErr('Network error. Please try again.');
+      if (mounted) _showErr(AppLocalizations.of(context).t('network_error_retry'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -232,7 +233,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-              child: Text('Forgot current password?',
+              child: Text(t('forgot_current_password'),
                   style: const TextStyle(fontSize: 12, color: AppColors.cyan)),
             ),
           ),
@@ -248,9 +249,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             validator: (v) {
               if (v == null || v.isEmpty) return t('please_enter_new_password');
               if (v.length < 8) return t('password_min_length_error');
-              if (v.length > 30) return 'Password must be at most 30 characters.';
+              if (v.length > 30) return t('password_max_length_error');
               if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'[0-9]').hasMatch(v)) {
-                return 'Password must contain at least one letter and one number.';
+                return t('password_letters_numbers_error');
               }
               return null;
             },
@@ -279,7 +280,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           const SizedBox(height: 28),
 
           _submitButton(
-            label: _isLoading ? 'Changing…' : t('change_password'),
+            label: _isLoading ? t('changing_label') : t('change_password'),
             loading: _isLoading,
             onPressed: _isLoading ? null : _changePassword,
           ),
@@ -295,8 +296,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       children: [
         _headerCard(
           icon: Icons.lock_reset_rounded,
-          title: 'Forgot Current Password?',
-          subtitle: 'Verify your identity to set a new password without your current one.',
+          title: t('forgot_current_password_title'),
+          subtitle: t('forgot_current_password_subtitle'),
         ),
 
         const SizedBox(height: 8),
@@ -305,25 +306,25 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         TextButton.icon(
           onPressed: () => setState(() { _forgotMode = false; _forgotVerified = false; }),
           icon: const Icon(Icons.arrow_back, size: 14, color: AppColors.cyan),
-          label: const Text('Back — I remember my password',
-              style: TextStyle(fontSize: 12, color: AppColors.cyan)),
+          label: Text(t('back_i_remember_password'),
+              style: const TextStyle(fontSize: 12, color: AppColors.cyan)),
           style: TextButton.styleFrom(padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
         ),
 
         const SizedBox(height: 16),
 
         // ── Step 1: Verify identity ──────────────────────────────────────
-        _stepLabel('Step 1 — Verify Identity', done: _forgotVerified),
+        _stepLabel(t('step_verify_identity'), done: _forgotVerified),
         const SizedBox(height: 10),
 
         if (!_forgotVerified) ...[
           if (_hasPinSet) ...[
             Row(
               children: [
-                _modeTab('Email OTP', Icons.email_outlined, !_usePinMode,
+                _modeTab(t('mode_email_otp'), Icons.email_outlined, !_usePinMode,
                     () => setState(() { _usePinMode = false; })),
                 const SizedBox(width: 8),
-                _modeTab('Wallet PIN', Icons.dialpad_rounded, _usePinMode,
+                _modeTab(t('mode_wallet_pin'), Icons.dialpad_rounded, _usePinMode,
                     () => setState(() { _usePinMode = true; })),
               ],
             ),
@@ -333,7 +334,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           if (!_usePinMode) ...[
             if (!_otpSent)
               _submitButton(
-                label: _isSending ? 'Sending…' : 'Send OTP to Email',
+                label: _isSending ? t('sending_label') : t('send_otp_to_email'),
                 loading: _isSending,
                 onPressed: _isSending ? null : _sendOtp,
                 icon: Icons.send_rounded,
@@ -349,7 +350,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               _timerResendRow(),
               const SizedBox(height: 12),
               _submitButton(
-                label: _verifying ? 'Verifying…' : 'Verify OTP',
+                label: _verifying ? t('verifying_label') : t('verify_otp_button'),
                 loading: _verifying,
                 onPressed: _otp.length == 6 && !_verifying ? _verifyIdentity : null,
                 icon: Icons.verified_user_outlined,
@@ -358,7 +359,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           ],
 
           if (_usePinMode) ...[
-            Text('Enter your 6-digit Wallet PIN',
+            Text(t('enter_wallet_pin_6digit'),
                 style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
             const SizedBox(height: 10),
             OtpInput(
@@ -369,7 +370,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             ),
             const SizedBox(height: 14),
             _submitButton(
-              label: _verifying ? 'Verifying…' : 'Verify PIN',
+              label: _verifying ? t('verifying_label') : t('verify_pin_button'),
               loading: _verifying,
               onPressed: _pin.length == 6 && !_verifying ? _verifyIdentity : null,
               icon: Icons.dialpad_rounded,
@@ -383,11 +384,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
-                SizedBox(width: 8),
-                Text('Identity verified', style: TextStyle(fontSize: 13, color: Colors.green, fontWeight: FontWeight.w600)),
+                const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                const SizedBox(width: 8),
+                Text(t('identity_verified_label'), style: const TextStyle(fontSize: 13, color: Colors.green, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -396,13 +397,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         const SizedBox(height: 20),
 
         // ── Step 2: New password ─────────────────────────────────────────
-        _stepLabel('Step 2 — Set New Password', done: false),
+        _stepLabel(t('step_set_new_password'), done: false),
         const SizedBox(height: 10),
 
         _buildPasswordField(
           controller: _newPasswordController,
           label: t('new_password'),
-          hint: 'At least 8 characters, letters + numbers',
+          hint: t('new_password_hint_letters'),
           obscure: _obscureNew,
           enabled: _forgotVerified,
           onToggle: () => setState(() => _obscureNew = !_obscureNew),
@@ -427,7 +428,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         const SizedBox(height: 24),
 
         _submitButton(
-          label: _isLoading ? 'Changing…' : 'Change Password',
+          label: _isLoading ? t('changing_label') : t('change_password'),
           loading: _isLoading,
           onPressed: _forgotVerified && !_isLoading ? _changeForgotPassword : null,
         ),
@@ -452,7 +453,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           onPressed: _secondsLeft == 0 && !_isSending ? _sendOtp : null,
           icon: Icon(Icons.refresh_rounded, size: 14,
               color: _secondsLeft == 0 ? AppColors.cyan : AppThemeColors.mutedText(context)),
-          label: Text('Resend OTP',
+          label: Text(AppLocalizations.of(context).t('resend_otp_label'),
               style: TextStyle(fontSize: 12,
                   color: _secondsLeft == 0 ? AppColors.cyan : AppThemeColors.mutedText(context))),
           style: TextButton.styleFrom(

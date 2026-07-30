@@ -14,7 +14,6 @@ import 'terms_of_service_page.dart';
 import 'privacy_policy_page.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
-import '../user/budget/lending_budget_page.dart';
 import '../user/calendar/due_date_calendar_page.dart';
 import '../user/statements/export_statement_page.dart';
 import 'app_lock_setup_page.dart';
@@ -344,14 +343,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         },
                       );
                     },
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('monthly_lending_budget'),
-                    icon: Icons.account_balance_wallet_outlined,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const LendingBudgetPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
                   ),
                   _buildTile(
                     context,

@@ -44,9 +44,14 @@ class _MonthlyBudgetTabState extends State<MonthlyBudgetTab> {
     'secure': TextEditingController(),
     'group': TextEditingController(),
     'overall': TextEditingController(),
+    'quickLend': TextEditingController(),
+    'quickBorrow': TextEditingController(),
+    'secureLend': TextEditingController(),
+    'secureBorrow': TextEditingController(),
   };
   final _editing = <String, bool>{
     'quick': false, 'secure': false, 'group': false, 'overall': false,
+    'quickLend': false, 'quickBorrow': false, 'secureLend': false, 'secureBorrow': false,
   };
 
   @override
@@ -61,6 +66,8 @@ class _MonthlyBudgetTabState extends State<MonthlyBudgetTab> {
   }
   double _spentFor(String type) =>
       (widget.status?['spent']?[type] as num? ?? 0).toDouble();
+  double _spentForRole(String roleType) =>
+      (widget.status?['spentByRole']?[roleType] as num? ?? 0).toDouble();
   int _countFor(String type) =>
       (widget.status?['counts']?[type] as num? ?? 0).toInt();
 
@@ -136,6 +143,30 @@ class _MonthlyBudgetTabState extends State<MonthlyBudgetTab> {
     if (mounted) setState(() { _saving = false; _editing[type] = false; });
   }
 
+  Future<void> _saveRoleCap(String type) async {
+    final newVal = double.tryParse(_controllers[type]!.text.trim()) ?? 0;
+    if (newVal > 0) {
+      final parentType = type.startsWith('quick') ? 'quick' : 'secure';
+      final parentLimit = _limitFor(parentType);
+      final roleLabel = type.contains('Lend') ? 'Lend' : 'Borrow';
+      if (parentLimit > 0 && newVal > parentLimit) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            '$roleLabel cap (${widget.ca(newVal)}) cannot exceed the '
+            '${parentType[0].toUpperCase()}${parentType.substring(1)} limit (${widget.ca(parentLimit)}).',
+          ),
+          duration: const Duration(seconds: 4),
+        ));
+        return;
+      }
+    }
+    setState(() => _saving = true);
+    await widget.onSaveBudget(type, _controllers[type]!.text);
+    if (mounted) setState(() { _saving = false; _editing[type] = false; });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -172,6 +203,8 @@ class _MonthlyBudgetTabState extends State<MonthlyBudgetTab> {
         const SizedBox(height: 10),
         _buildBudgetCard(context, 'overall', Icons.account_balance_wallet_outlined, AppColors.cyan, 'Overall Cap'),
         _buildAllocationStrip(context),
+        const SizedBox(height: 14),
+        _buildRoleCapsSection(context),
         const SizedBox(height: 14),
         _buildTipsRow(context),
         const SizedBox(height: 14),
@@ -958,6 +991,164 @@ class _MonthlyBudgetTabState extends State<MonthlyBudgetTab> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildRoleCapsSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardBox(context),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.swap_horiz_rounded, size: 16, color: AppColors.cyan),
+          const SizedBox(width: 8),
+          Text('Lend & Borrow Caps',
+              style: TextStyle(fontSize: context.sp(14), fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context))),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('Per Role',
+                style: TextStyle(fontSize: context.sp(10), color: AppColors.cyan, fontWeight: FontWeight.w600)),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        Text('Set monthly caps on how much you can lend or borrow — enforced at transaction creation.',
+            style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.secondaryText(context), height: 1.4)),
+        const SizedBox(height: 14),
+        Row(children: [
+          const Icon(Icons.flash_on_outlined, size: 13, color: Colors.amber),
+          const SizedBox(width: 6),
+          Text('Quick Transactions',
+              style: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.w700,
+                  color: AppThemeColors.primaryText(context))),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: _roleCapMini(context, 'quickLend', Colors.green, Icons.arrow_upward_rounded, 'Lend Cap')),
+          const SizedBox(width: 10),
+          Expanded(child: _roleCapMini(context, 'quickBorrow', Colors.orange, Icons.arrow_downward_rounded, 'Borrow Cap')),
+        ]),
+        const SizedBox(height: 14),
+        Row(children: [
+          const Icon(Icons.shield_outlined, size: 13, color: Colors.teal),
+          const SizedBox(width: 6),
+          Text('Secure Transactions',
+              style: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.w700,
+                  color: AppThemeColors.primaryText(context))),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: _roleCapMini(context, 'secureLend', Colors.teal, Icons.arrow_upward_rounded, 'Lend Cap')),
+          const SizedBox(width: 10),
+          Expanded(child: _roleCapMini(context, 'secureBorrow', Colors.blue, Icons.arrow_downward_rounded, 'Borrow Cap',
+              note: 'Borrow side tracked from lender\'s perspective')),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _roleCapMini(BuildContext context, String type, Color color, IconData icon, String label, {String? note}) {
+    final limit = _limitFor(type);
+    final spent = _spentForRole(type);
+    final hasLimit = limit > 0;
+    final pct = hasLimit ? (spent / limit).clamp(0.0, 2.0) : 0.0;
+    final isEditing = _editing[type] ?? false;
+
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: hasLimit ? 0.3 : 0.15)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: context.sp(11), fontWeight: FontWeight.w700, color: color)),
+          const Spacer(),
+          if (!isEditing)
+            GestureDetector(
+              onTap: () {
+                _controllers[type]!.text = hasLimit ? limit.toStringAsFixed(0) : '';
+                setState(() => _editing[type] = true);
+              },
+              child: Icon(Icons.edit_rounded, size: 14, color: AppThemeColors.mutedText(context)),
+            ),
+        ]),
+        const SizedBox(height: 8),
+        if (isEditing) ...[
+          TextField(
+            controller: _controllers[type],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+            style: TextStyle(fontSize: context.sp(13), fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              hintText: 'Set cap',
+              prefixText: '₹',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color, width: 1.5)),
+              isDense: true,
+            ),
+            autofocus: true,
+          ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _saving ? null : () => _saveRoleCap(type),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+                  child: Center(child: _saving
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text('Save', style: TextStyle(fontSize: context.sp(11), color: Colors.white, fontWeight: FontWeight.bold))),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: () => setState(() => _editing[type] = false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+                decoration: BoxDecoration(color: AppThemeColors.border(context), borderRadius: BorderRadius.circular(8)),
+                child: Text('Cancel', style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.secondaryText(context))),
+              ),
+            ),
+          ]),
+        ] else ...[
+          if (hasLimit) ...[
+            _progressBar(context, pct),
+            const SizedBox(height: 6),
+            Row(children: [
+              Text(widget.ca(spent),
+                  style: TextStyle(fontSize: context.sp(11), fontWeight: FontWeight.bold, color: _progressColor(pct))),
+              const Spacer(),
+              Text('/ ${widget.ca(limit)}',
+                  style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.secondaryText(context))),
+            ]),
+            const SizedBox(height: 3),
+            Text('${(pct * 100).clamp(0.0, 200.0).toStringAsFixed(0)}% used',
+                style: TextStyle(fontSize: context.sp(10), color: _progressColor(pct))),
+          ] else ...[
+            Text('No cap set',
+                style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.mutedText(context))),
+            const SizedBox(height: 3),
+            Text('${widget.ca(spent)} this month',
+                style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.secondaryText(context))),
+          ],
+          if (note != null) ...[
+            const SizedBox(height: 5),
+            Text(note, style: TextStyle(fontSize: context.sp(9), color: AppThemeColors.mutedText(context), fontStyle: FontStyle.italic)),
+          ],
+        ],
+      ]),
     );
   }
 

@@ -130,7 +130,7 @@ exports.verifyManualPayment = async (req, res) => {
     });
 
     Promise.resolve().then(async () => {
-      const u = await User.findById(userId).select('notificationSettings').lean();
+      const u = await User.findById(userId).select('name email notificationSettings').lean();
       if (u?.notificationSettings?.subscriptionNotifications !== false) {
         await Notification.create({
           sender: userId, senderModel: 'User', recipientType: 'specific-users',
@@ -138,6 +138,15 @@ exports.verifyManualPayment = async (req, res) => {
           message: `Your "${created.subscriptionPlan}" subscription is now active until ${created.endDate.toLocaleDateString()}.`,
         });
       }
+      // Also notify all admins
+      await Notification.create({
+        sender: userId, senderModel: 'User',
+        recipientType: 'all-admins', recipientModel: 'Admin',
+        category: 'subscription',
+        message: `New subscription: "${created.subscriptionPlan}" purchased by ${u?.name || u?.email || 'a user'} for ₹${created.actualPrice} (Payment ID: ${paymentId}).`,
+        deliveryStatus: 'sent',
+        sentAt: new Date(),
+      });
     }).catch(() => {});
   } catch (err) {
     if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'This payment has already been used to activate a subscription.' });

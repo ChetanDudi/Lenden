@@ -56,7 +56,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
 
   void _submitFirstPin() {
     if (_currentPin.length != 6) {
-      _setMsg('Please enter all 6 digits.', error: true);
+      _setMsg(AppLocalizations.of(context).t('pin_must_be_6_digits'), error: true);
       return;
     }
     setState(() {
@@ -70,11 +70,11 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
 
   Future<void> _submitConfirmPin() async {
     if (_currentPin.length != 6) {
-      _setMsg('Please enter all 6 digits.', error: true);
+      _setMsg(AppLocalizations.of(context).t('pin_must_be_6_digits'), error: true);
       return;
     }
     if (_currentPin != _firstPin) {
-      _setMsg('PINs did not match. Please start over.', error: true);
+      _setMsg(AppLocalizations.of(context).t('pins_did_not_match_restart'), error: true);
       setState(() {
         _state = _AppLockState.enteringPin;
         _firstPin = '';
@@ -85,7 +85,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
     }
     await AppLockService.setPin(_currentPin);
     if (!mounted) return;
-    _setMsg('App lock enabled successfully.', error: false);
+    _setMsg(AppLocalizations.of(context).t('app_lock_enabled_success'), error: false);
     _load();
   }
 
@@ -115,7 +115,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
     if (confirmed != true) return;
     await AppLockService.disable();
     if (!mounted) return;
-    _setMsg('App lock has been disabled.', error: false);
+    _setMsg(AppLocalizations.of(context).t('app_lock_disabled_success'), error: false);
     _load();
   }
 
@@ -200,8 +200,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Protect your LenDen wallet and transactions with a 6-digit PIN. '
-          'You\'ll be asked for it each time you open the app.',
+          t('app_lock_hero_desc'),
           style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context), height: 1.5),
           textAlign: TextAlign.center,
         ),
@@ -234,7 +233,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _enabled ? 'App Lock is ON' : 'App Lock is OFF',
+                  _enabled ? t('app_lock_is_on') : t('app_lock_is_off'),
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -242,9 +241,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _enabled
-                      ? 'A 6-digit PIN is required to open the app.'
-                      : 'Anyone with your phone can access your wallet.',
+                  _enabled ? t('app_lock_on_desc') : t('app_lock_off_desc'),
                   style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
                 ),
               ],
@@ -259,7 +256,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              _enabled ? 'Active' : 'Inactive',
+              _enabled ? t('app_lock_active') : t('app_lock_inactive'),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -316,7 +313,7 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
       return Column(
         children: [
           _actionButton(
-            label: 'Enable App Lock',
+            label: t('enable_app_lock'),
             icon: Icons.lock_rounded,
             onPressed: _startSetup,
           ),
@@ -346,10 +343,10 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
   Widget _buildPinEntry(String Function(String) t) {
     return Column(
       children: [
-        _stepLabel('Step 1 of 2 — Enter your new PIN'),
+        _stepLabel(t('pin_step1_title')),
         const SizedBox(height: 6),
         Text(
-          'Choose a 6-digit PIN you\'ll remember. Do not share it with anyone.',
+          t('pin_step1_desc'),
           style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
           textAlign: TextAlign.center,
         ),
@@ -364,14 +361,14 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
         ),
         const SizedBox(height: 20),
         _actionButton(
-          label: 'Next',
+          label: t('next'),
           icon: Icons.arrow_forward_rounded,
           onPressed: _currentPin.length == 6 ? _submitFirstPin : null,
         ),
         const SizedBox(height: 10),
         TextButton(
           onPressed: _cancelSetup,
-          child: const Text('Cancel', style: TextStyle(color: AppColors.cyan)),
+          child: Text(t('cancel'), style: const TextStyle(color: AppColors.cyan)),
         ),
       ],
     );
@@ -380,10 +377,10 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
   Widget _buildPinConfirm(String Function(String) t) {
     return Column(
       children: [
-        _stepLabel('Step 2 of 2 — Confirm your PIN'),
+        _stepLabel(t('pin_step2_title')),
         const SizedBox(height: 6),
         Text(
-          'Re-enter the same PIN to confirm. This ensures you typed it correctly.',
+          t('pin_step2_desc'),
           style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)),
           textAlign: TextAlign.center,
         ),
@@ -398,14 +395,14 @@ class _AppLockSetupPageState extends State<AppLockSetupPage> {
         ),
         const SizedBox(height: 20),
         _actionButton(
-          label: 'Set PIN & Enable',
+          label: t('set_pin_enable'),
           icon: Icons.lock_rounded,
           onPressed: _currentPin.length == 6 ? _submitConfirmPin : null,
         ),
         const SizedBox(height: 10),
         TextButton(
           onPressed: _cancelSetup,
-          child: const Text('Cancel', style: TextStyle(color: AppColors.cyan)),
+          child: Text(t('cancel'), style: const TextStyle(color: AppColors.cyan)),
         ),
       ],
     );

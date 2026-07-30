@@ -22,21 +22,26 @@ module.exports = (type) => async (req, res, next) => {
     const budget = await Budget.findOne({ user: userId, year, month }).lean();
     const typeLimit = budget?.limits?.[type];
     const overallLimit = budget?.limits?.overall;
+    const quickLendLimit = budget?.limits?.quickLend;
+    const quickBorrowLimit = budget?.limits?.quickBorrow;
+    const secureLendLimit = budget?.limits?.secureLend;
 
-    if (!typeLimit && !overallLimit) return next();
+    const hasAnyLimit = typeLimit || overallLimit || quickLendLimit || quickBorrowLimit || secureLendLimit;
+    if (!hasAnyLimit) return next();
 
     const startDate = new Date(year, month - 1, 1);
     let spent = 0;
+    let u;
 
     if (type === 'quick') {
-      const u = await User.findById(userId).select('email').lean();
+      u = await User.findById(userId).select('email').lean();
       const [r] = await QuickTransaction.aggregate([
         { $match: { creatorEmail: u.email, date: { $gte: startDate } } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]);
       spent = r?.total ?? 0;
     } else if (type === 'secure') {
-      const u = await User.findById(userId).select('email').lean();
+      u = await User.findById(userId).select('email').lean();
       const [r] = await Transaction.aggregate([
         { $match: { userEmail: u.email, createdAt: { $gte: startDate } } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -75,6 +80,56 @@ module.exports = (type) => async (req, res, next) => {
         limit: overallLimit,
         spent: Math.round(spent),
       });
+    }
+
+    // Role-specific limit checks for quick transactions
+    if (type === 'quick' && u) {
+      const role = req.body.role; // 'lender' | 'borrower'
+      if (role === 'lender' && quickLendLimit) {
+        const [r2] = await QuickTransaction.aggregate([
+          { $match: { creatorEmail: u.email, role: 'lender', date: { $gte: startDate } } },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]);
+        const lentSpent = r2?.total ?? 0;
+        if (lentSpent + amount > quickLendLimit) {
+          return res.status(400).json({
+            message: `Monthly quick lending cap exceeded. Cap: ₹${quickLendLimit.toLocaleString('en-IN')}, Lent: ₹${Math.round(lentSpent).toLocaleString('en-IN')}.`,
+            budgetExceeded: true,
+            type: 'quick_lend',
+            limit: quickLendLimit,
+            spent: Math.round(lentSpent),
+          });
+        }
+      }
+      if (role === 'borrower' && quickBorrowLimit) {
+        const [r2] = await QuickTransaction.aggregate([
+          { $match: { creatorEmail: u.email, role: 'borrower', date: { $gte: startDate } } },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]);
+        const borrowedSpent = r2?.total ?? 0;
+        if (borrowedSpent + amount > quickBorrowLimit) {
+          return res.status(400).json({
+            message: `Monthly quick borrowing cap exceeded. Cap: ₹${quickBorrowLimit.toLocaleString('en-IN')}, Borrowed: ₹${Math.round(borrowedSpent).toLocaleString('en-IN')}.`,
+            budgetExceeded: true,
+            type: 'quick_borrow',
+            limit: quickBorrowLimit,
+            spent: Math.round(borrowedSpent),
+          });
+        }
+      }
+    }
+
+    // Secure lending limit check (creator of a secure transaction is always the lender)
+    if (type === 'secure' && u && secureLendLimit) {
+      if (spent + amount > secureLendLimit) {
+        return res.status(400).json({
+          message: `Monthly secure lending cap exceeded. Cap: ₹${secureLendLimit.toLocaleString('en-IN')}, Lent: ₹${Math.round(spent).toLocaleString('en-IN')}.`,
+          budgetExceeded: true,
+          type: 'secure_lend',
+          limit: secureLendLimit,
+          spent: Math.round(spent),
+        });
+      }
     }
 
     next();

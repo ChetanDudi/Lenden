@@ -12,6 +12,7 @@ import '../manage_users/user_management_page.dart';
 import '../transactions/manage_group_transactions_page.dart';
 import '../transactions/manage_quick_transactions_page.dart';
 import '../transactions/manage_withdrawals_page.dart';
+import '../transactions/admin_real_payments_page.dart';
 import '../transactions/manage_scan_payments_page.dart';
 import '../track_users/track_user_activity_page.dart';
 import '../support/manage_contact_page.dart';
@@ -385,6 +386,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ManageWithdrawalsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'real_payments',
+          permissionKey: 'canManageTransactions',
+          icon: Icons.currency_rupee_rounded,
+          label: 'Real Payments',
+          caption: 'Add money, withdrawals & subscriptions — all real-money flows in one place.',
+          actionLabel: 'Payments',
+          backgroundColor: const Color(0xFFFFF3E0),
+          iconColor: const Color(0xFFE65100),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminRealPaymentsPage()),
             );
           },
         ),

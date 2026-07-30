@@ -95,7 +95,6 @@ module.exports = (io) => {
   const adminCoinPricingController = require('../controllers/adminCoinPricingController');
   const disputeController = require('../controllers/disputeController');
   const fraudAlertController = require('../controllers/fraudAlertController');
-  const lendingBudgetController = require('../controllers/lendingBudgetController');
   const recurringTemplateController = require('../controllers/recurringTemplateController');
   const calendarController = require('../controllers/calendarController');
   const statementController = require('../controllers/statementController');
@@ -308,9 +307,6 @@ module.exports = (io) => {
   router.patch('/admin/fraud-alerts/:id', auth, isAdmin, fraudAlertController.updateFraudAlert);
   router.post('/admin/fraud-alerts/scan', auth, isAdmin, fraudAlertController.triggerFraudScan);
 
-  // Lending budget routes
-  router.get('/lending-budget', auth, lendingBudgetController.getLendingBudget);
-  router.put('/lending-budget', auth, lendingBudgetController.updateLendingBudget);
 
   // Recurring quick-transaction template routes
   router.post('/recurring-templates', auth, recurringTemplateController.createTemplate);
@@ -572,6 +568,9 @@ module.exports = (io) => {
   router.get('/admin/withdrawals', auth, isAdmin, withdrawalController.adminGetWithdrawals);
   router.post('/admin/withdrawals/:id/process', auth, isAdmin, withdrawalController.adminMarkProcessed);
   router.post('/admin/withdrawals/:id/reject', auth, isAdmin, withdrawalController.adminRejectWithdrawal);
+
+  // Admin: real-money payments overview
+  router.get('/admin/real-payments/topups', auth, isAdmin, walletController.adminGetTopUps);
 
   // QR/Scanner UPI payments — manual admin review (mirrors withdrawals; no
   // RazorpayX payout account is configured, so this replaces the old

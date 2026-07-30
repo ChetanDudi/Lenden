@@ -9,6 +9,10 @@ const budgetSchema = new mongoose.Schema({
     secure: { type: Number, default: null, min: 0 },
     group: { type: Number, default: null, min: 0 },
     overall: { type: Number, default: null, min: 0 },
+    quickLend: { type: Number, default: null, min: 0 },
+    quickBorrow: { type: Number, default: null, min: 0 },
+    secureLend: { type: Number, default: null, min: 0 },
+    secureBorrow: { type: Number, default: null, min: 0 },
   },
   categoryLimits: {
     food: { type: Number, default: null },

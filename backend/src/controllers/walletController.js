@@ -159,12 +159,82 @@ exports.verifyManualTopUp = async (req, res) => {
     });
 
     res.json({ message: 'Wallet topped up', addedAmount, balance: newBalance });
+
+    // Notify all admins — best-effort, does not affect the response
+    const capturedPaymentId = req.body.paymentId;
+    Promise.resolve().then(async () => {
+      const u = await User.findById(req.user._id).select('name email').lean();
+      await Notification.create({
+        sender: req.user._id,
+        senderModel: 'User',
+        recipientType: 'all-admins',
+        recipientModel: 'Admin',
+        message: `Wallet top-up: ₹${addedAmount} added by ${u?.name || u?.email || 'a user'} via Razorpay (Payment ID: ${capturedPaymentId}).`,
+        category: 'transaction',
+        deliveryStatus: 'sent',
+        sentAt: new Date(),
+      });
+    }).catch(() => {});
   } catch (err) {
     if (err.code === 'ALREADY_USED' || err.code === 11000) return res.status(409).json({ error: 'This payment has already been used.' });
     console.error('Error verifying manual top-up:', err);
     res.status(500).json({ error: 'Failed to top up wallet' });
   } finally {
     session.endSession();
+  }
+};
+
+// Admin: list all wallet top-ups (real-money Razorpay credits)
+exports.adminGetTopUps = async (req, res) => {
+  try {
+    const { search, startDate, endDate } = req.query;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
+
+    const filter = { type: 'topup' };
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const to = new Date(endDate);
+        to.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
+      }
+    }
+
+    if (search && search.trim()) {
+      const sr = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matchingUsers = await User.find({
+        $or: [{ name: sr }, { email: sr }, { username: sr }],
+      }).select('_id').lean();
+      filter.user = { $in: matchingUsers.map(u => u._id) };
+    }
+
+    const [topups, total, agg] = await Promise.all([
+      WalletTransaction.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('user', 'name email username phone')
+        .lean(),
+      WalletTransaction.countDocuments(filter),
+      WalletTransaction.aggregate([
+        { $match: { type: 'topup' } },
+        { $group: { _id: null, totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    res.json({
+      topups,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+      stats: agg[0] ? { totalAmount: agg[0].totalAmount, count: agg[0].count } : { totalAmount: 0, count: 0 },
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

@@ -54,7 +54,7 @@ exports.getBudget = async (req, res) => {
     const budget = await Budget.findOne({ user: userId, year, month }).lean();
     res.json(budget ?? {
       year, month,
-      limits: { quick: null, secure: null, group: null, overall: null },
+      limits: { quick: null, secure: null, group: null, overall: null, quickLend: null, quickBorrow: null, secureLend: null, secureBorrow: null },
       categoryLimits: {},
       alertThresholds: [75, 90, 100],
     });
@@ -71,10 +71,14 @@ exports.setBudget = async (req, res) => {
       return res.status(400).json({ message: 'Invalid year or month' });
     }
     const clean = {
-      quick:   limits?.quick   != null ? parseFloat(limits.quick)   : null,
-      secure:  limits?.secure  != null ? parseFloat(limits.secure)  : null,
-      group:   limits?.group   != null ? parseFloat(limits.group)   : null,
-      overall: limits?.overall != null ? parseFloat(limits.overall) : null,
+      quick:        limits?.quick        != null ? parseFloat(limits.quick)        : null,
+      secure:       limits?.secure       != null ? parseFloat(limits.secure)       : null,
+      group:        limits?.group        != null ? parseFloat(limits.group)        : null,
+      overall:      limits?.overall      != null ? parseFloat(limits.overall)      : null,
+      quickLend:    limits?.quickLend    != null ? parseFloat(limits.quickLend)    : null,
+      quickBorrow:  limits?.quickBorrow  != null ? parseFloat(limits.quickBorrow)  : null,
+      secureLend:   limits?.secureLend   != null ? parseFloat(limits.secureLend)   : null,
+      secureBorrow: limits?.secureBorrow != null ? parseFloat(limits.secureBorrow) : null,
     };
 
     // Server-side guard: overall cap must be >= sum of set sub-limits
@@ -85,6 +89,20 @@ exports.setBudget = async (req, res) => {
           message: `Overall cap (₹${clean.overall}) cannot be less than the sum of Quick + Secure + Group limits (₹${sumParts}). Increase the cap or reduce individual limits first.`,
         });
       }
+    }
+
+    // Role-specific caps must not exceed their type cap (if both are set)
+    if (clean.quick != null && clean.quickLend != null && clean.quickLend > clean.quick) {
+      return res.status(400).json({ message: `Quick Lend cap (₹${clean.quickLend}) cannot exceed Quick transaction cap (₹${clean.quick}).` });
+    }
+    if (clean.quick != null && clean.quickBorrow != null && clean.quickBorrow > clean.quick) {
+      return res.status(400).json({ message: `Quick Borrow cap (₹${clean.quickBorrow}) cannot exceed Quick transaction cap (₹${clean.quick}).` });
+    }
+    if (clean.secure != null && clean.secureLend != null && clean.secureLend > clean.secure) {
+      return res.status(400).json({ message: `Secure Lend cap (₹${clean.secureLend}) cannot exceed Secure transaction cap (₹${clean.secure}).` });
+    }
+    if (clean.secure != null && clean.secureBorrow != null && clean.secureBorrow > clean.secure) {
+      return res.status(400).json({ message: `Secure Borrow cap (₹${clean.secureBorrow}) cannot exceed Secure transaction cap (₹${clean.secure}).` });
     }
 
     const budget = await Budget.findOneAndUpdate(
@@ -198,6 +216,11 @@ exports.getBudgetStatus = async (req, res) => {
     const totalGroupCount = groupSpending.reduce((s, g) => s + g.expenseCount, 0);
     const spentOverall = spentQuick + spentSecure + spentGroup;
 
+    // Role-based split
+    const quickLentSpent = quickTxns.filter(t => t.role === 'lender').reduce((s, t) => s + (t.amount || 0), 0);
+    const quickBorrowedSpent = quickTxns.filter(t => t.role === 'borrower').reduce((s, t) => s + (t.amount || 0), 0);
+    const secureLentSpent = spentSecure; // all secure txns created by user are as lender
+
     // Category spending from quick + secure combined
     const catSpent = {};
     for (const key of CATEGORY_KEYS) catSpent[key] = 0;
@@ -213,6 +236,9 @@ exports.getBudgetStatus = async (req, res) => {
     if (limits.secure && spentSecure > limits.secure) overspent.push({ type: 'secure', limit: limits.secure, spent: spentSecure });
     if (limits.group && spentGroup > limits.group) overspent.push({ type: 'group', limit: limits.group, spent: spentGroup });
     if (limits.overall && spentOverall > limits.overall) overspent.push({ type: 'overall', limit: limits.overall, spent: spentOverall });
+    if (limits.quickLend && quickLentSpent > limits.quickLend) overspent.push({ type: 'quickLend', limit: limits.quickLend, spent: quickLentSpent });
+    if (limits.quickBorrow && quickBorrowedSpent > limits.quickBorrow) overspent.push({ type: 'quickBorrow', limit: limits.quickBorrow, spent: quickBorrowedSpent });
+    if (limits.secureLend && secureLentSpent > limits.secureLend) overspent.push({ type: 'secureLend', limit: limits.secureLend, spent: secureLentSpent });
     for (const key of CATEGORY_KEYS) {
       if (catLimits[key] && catSpent[key] > catLimits[key]) {
         overspent.push({ type: `cat_${key}`, limit: catLimits[key], spent: catSpent[key] });
@@ -235,6 +261,9 @@ exports.getBudgetStatus = async (req, res) => {
     checkAlert('Secure', spentSecure, limits.secure);
     checkAlert('Group', spentGroup, limits.group);
     checkAlert('Overall', spentOverall, limits.overall);
+    checkAlert('Quick Lend', quickLentSpent, limits.quickLend);
+    checkAlert('Quick Borrow', quickBorrowedSpent, limits.quickBorrow);
+    checkAlert('Secure Lend', secureLentSpent, limits.secureLend);
     for (const key of CATEGORY_KEYS) {
       if (catLimits[key]) checkAlert(key.charAt(0).toUpperCase() + key.slice(1), catSpent[key], catLimits[key]);
     }
@@ -249,10 +278,20 @@ exports.getBudgetStatus = async (req, res) => {
         secure: limits.secure ?? null,
         group: limits.group ?? null,
         overall: limits.overall ?? null,
+        quickLend: limits.quickLend ?? null,
+        quickBorrow: limits.quickBorrow ?? null,
+        secureLend: limits.secureLend ?? null,
+        secureBorrow: limits.secureBorrow ?? null,
       },
       categoryLimits: catLimits,
       alertThresholds,
       spent: { quick: spentQuick, secure: spentSecure, group: spentGroup, overall: spentOverall },
+      spentByRole: {
+        quickLend: Math.round(quickLentSpent),
+        quickBorrow: Math.round(quickBorrowedSpent),
+        secureLend: Math.round(secureLentSpent),
+        secureBorrow: 0,
+      },
       counts: {
         quick: quickTxns.length,
         secure: secureTxns.length,
