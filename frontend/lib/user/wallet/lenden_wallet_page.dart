@@ -1033,6 +1033,30 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                                 ),
                               ),
 
+                              const SizedBox(height: 10),
+
+                              // Quick-access: withdrawal tracker
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: OutlinedButton.icon(
+                                  onPressed: () => showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (_) => const _WithdrawalHistorySheet(),
+                                  ),
+                                  icon: const Icon(Icons.account_balance_rounded, size: 16),
+                                  label: Text(t('track_withdrawals_label')),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.orange,
+                                    side: const BorderSide(color: Colors.orange, width: 1.2),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    minimumSize: const Size(double.infinity, 42),
+                                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ),
+
                               const SizedBox(height: 16),
 
                               // Transaction history
@@ -1473,6 +1497,21 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                                                                 .mutedText(
                                                                     context))),
                                                   ]),
+                                                  if (isWithdrawal && (tx['failureReason'] ?? '').toString().isNotEmpty) ...[
+                                                    const SizedBox(height: 3),
+                                                    Row(children: [
+                                                      const Icon(Icons.info_outline_rounded, size: 11, color: Colors.red),
+                                                      const SizedBox(width: 3),
+                                                      Expanded(
+                                                        child: Text(
+                                                          tx['failureReason'].toString(),
+                                                          style: const TextStyle(fontSize: 10.5, color: Colors.red),
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ]),
+                                                  ],
                                                 ],
                                               )),
                                               const SizedBox(width: 8),
@@ -1578,6 +1617,285 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                       fontSize: 11, fontWeight: FontWeight.w700, color: color),
                   maxLines: 1)),
         ]),
+      ),
+    );
+  }
+}
+
+// ─────────────────────── Withdrawal History Sheet ───────────────────────
+
+class _WithdrawalHistorySheet extends StatefulWidget {
+  const _WithdrawalHistorySheet();
+
+  @override
+  State<_WithdrawalHistorySheet> createState() => _WithdrawalHistorySheetState();
+}
+
+class _WithdrawalHistorySheetState extends State<_WithdrawalHistorySheet> {
+  List<dynamic> _withdrawals = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final res = await ApiClient.get('/api/wallet/withdrawals');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() { _withdrawals = data['withdrawals'] ?? []; _loading = false; });
+      } else {
+        setState(() { _error = 'Failed to load withdrawals.'; _loading = false; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Network error.'; _loading = false; });
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'processed': return const Color(0xFF2E7D32);
+      case 'failed': return Colors.red;
+      case 'reversed': return Colors.deepOrange;
+      default: return Colors.orange;
+    }
+  }
+
+  String _statusLabel(String s) {
+    switch (s) {
+      case 'processed': return 'Processed';
+      case 'failed': return 'Rejected';
+      case 'reversed': return 'Reversed';
+      default: return 'Pending';
+    }
+  }
+
+  String _fmtDate(String? iso) {
+    if (iso == null || iso.isEmpty) return '—';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return iso.substring(0, 10);
+    final local = dt.toLocal();
+    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final h = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final m = local.minute.toString().padLeft(2, '0');
+    final ampm = local.hour < 12 ? 'AM' : 'PM';
+    return '${local.day} ${months[local.month - 1]} ${local.year}, $h:$m $ampm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.65,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      builder: (_, ctrl) => Container(
+        decoration: BoxDecoration(
+          color: AppThemeColors.scaffoldBg(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              width: 38, height: 4,
+              decoration: BoxDecoration(
+                color: AppThemeColors.divider(context),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.account_balance_rounded, color: Colors.orange, size: 20),
+                  const SizedBox(width: 10),
+                  Text('My Withdrawal Requests',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: AppThemeColors.primaryText(context))),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.refresh_rounded, color: AppThemeColors.secondaryText(context), size: 20),
+                    onPressed: _fetch,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
+                  : _error != null
+                      ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+                      : _withdrawals.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.inbox_rounded, size: 56, color: AppThemeColors.divider(context)),
+                                  const SizedBox(height: 12),
+                                  Text('No withdrawal requests yet.',
+                                      style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              color: AppColors.cyan,
+                              onRefresh: _fetch,
+                              child: ListView.builder(
+                                controller: ctrl,
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                                itemCount: _withdrawals.length,
+                                itemBuilder: (_, i) => _wCard(_withdrawals[i] as Map<String, dynamic>),
+                              ),
+                            ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _wCard(Map<String, dynamic> w) {
+    final amount = (w['amount'] as num?)?.toDouble() ?? 0;
+    final status = (w['status'] ?? 'processing').toString();
+    final mode = (w['mode'] ?? '').toString();
+    final isUpi = mode == 'upi';
+    final color = _statusColor(status);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.07),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(
+              children: [
+                Icon(isUpi ? Icons.qr_code_rounded : Icons.account_balance_rounded,
+                    size: 16, color: color),
+                const SizedBox(width: 8),
+                Text(isUpi ? 'UPI Withdrawal' : 'Bank Withdrawal',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+                const Spacer(),
+                Text('₹${amount.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)),
+              ],
+            ),
+          ),
+          // Body
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: color.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(_statusIcon(status), size: 12, color: color),
+                        const SizedBox(width: 5),
+                        Text(_statusLabel(status),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+                      ]),
+                    ),
+                    // Mode badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppThemeColors.surfaceBg(context),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(isUpi ? 'UPI' : 'Bank',
+                          style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (isUpi && (w['upiId'] ?? '').toString().isNotEmpty)
+                  _row(Icons.alternate_email_rounded, 'UPI ID', w['upiId'].toString()),
+                if (!isUpi) ...[
+                  if ((w['accountHolderName'] ?? '').toString().isNotEmpty)
+                    _row(Icons.person_outline_rounded, 'Account Holder', w['accountHolderName'].toString()),
+                  if ((w['accountNumber'] ?? '').toString().isNotEmpty)
+                    _row(Icons.credit_card_rounded, 'Account No.', w['accountNumber'].toString()),
+                  if ((w['ifsc'] ?? '').toString().isNotEmpty)
+                    _row(Icons.code_rounded, 'IFSC', w['ifsc'].toString()),
+                  if ((w['bankName'] ?? '').toString().isNotEmpty)
+                    _row(Icons.account_balance_rounded, 'Bank', w['bankName'].toString()),
+                ],
+                _row(Icons.schedule_rounded, 'Requested', _fmtDate((w['createdAt'] ?? '').toString())),
+                if ((w['processedAt'] ?? '').toString().isNotEmpty)
+                  _row(Icons.check_circle_outline_rounded, 'Processed', _fmtDate(w['processedAt'].toString()),
+                      valueColor: const Color(0xFF2E7D32)),
+                if (status == 'failed' && (w['failureReason'] ?? '').toString().isNotEmpty)
+                  _row(Icons.info_outline_rounded, 'Reason', w['failureReason'].toString(),
+                      valueColor: Colors.red),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _statusIcon(String s) {
+    switch (s) {
+      case 'processed': return Icons.check_circle_rounded;
+      case 'failed': return Icons.cancel_rounded;
+      case 'reversed': return Icons.replay_rounded;
+      default: return Icons.hourglass_top_rounded;
+    }
+  }
+
+  Widget _row(IconData icon, String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 13, color: AppThemeColors.mutedText(context)),
+          const SizedBox(width: 6),
+          SizedBox(width: 100,
+              child: Text(label,
+                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)))),
+          Expanded(
+            child: Text(value,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor ?? AppThemeColors.primaryText(context))),
+          ),
+        ],
       ),
     );
   }
@@ -2665,6 +2983,24 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
   final _bankCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _showAuthStep = false;
+  bool _hasPinSet = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPinStatus();
+  }
+
+  Future<void> _fetchPinStatus() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/pin/status');
+      if (mounted && res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() => _hasPinSet = data['hasPin'] == true);
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -2677,47 +3013,49 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  bool _validateForm() {
     final t = AppLocalizations.of(context).t;
     final amt = double.tryParse(_amountCtrl.text.trim());
     if (amt == null || amt < 100) {
       setState(() => _error = t('minimum_withdrawal_label'));
-      return;
+      return false;
     }
     if (amt > widget.walletBalance) {
       setState(() => _error =
           '${t('insufficient_balance_label')} (₹${widget.walletBalance.toStringAsFixed(2)})');
-      return;
+      return false;
     }
     if (_mode == 'upi' && _upiCtrl.text.trim().isEmpty) {
       setState(() => _error = t('enter_your_upi_id_message'));
-      return;
+      return false;
     }
     if (_mode == 'upi' && !_upiCtrl.text.trim().contains('@')) {
       setState(() => _error = t('invalid_upi_id_message'));
-      return;
+      return false;
     }
     if (_mode == 'bank_account') {
       if (_holderCtrl.text.trim().isEmpty) {
         setState(() => _error = t('enter_account_holder_name_message'));
-        return;
+        return false;
       }
       if (_accountCtrl.text.trim().isEmpty) {
         setState(() => _error = t('enter_account_number_message'));
-        return;
+        return false;
       }
       if (_ifscCtrl.text.trim().isEmpty) {
         setState(() => _error = t('enter_ifsc_code_message'));
-        return;
+        return false;
       }
     }
+    return true;
+  }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _submit(String authField, String credential) async {
+    final t = AppLocalizations.of(context).t;
+    final amt = double.parse(_amountCtrl.text.trim());
+    setState(() { _loading = true; _error = null; });
     try {
-      final body = <String, dynamic>{'amount': amt, 'mode': _mode};
+      final body = <String, dynamic>{'amount': amt, 'mode': _mode, authField: credential};
       if (_mode == 'upi') {
         body['upiId'] = _upiCtrl.text.trim();
       } else {
@@ -2737,6 +3075,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
         final err = jsonDecode(res.body);
         setState(() {
           _loading = false;
+          _showAuthStep = false;
           _error = err['error'] ?? t('withdrawal_failed_label');
         });
       }
@@ -2744,6 +3083,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
       if (mounted)
         setState(() {
           _loading = false;
+          _showAuthStep = false;
           _error = t('error_colon_label').replaceFirst('{error}', '$e');
         });
     }
@@ -2833,6 +3173,32 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
                           fontSize: 13)),
                 ]),
               ),
+              if (_showAuthStep) ...[
+                const SizedBox(height: 16),
+                _WalletAuthStep(
+                  hasPinSet: _hasPinSet,
+                  paying: _loading,
+                  onAuthenticated: _submit,
+                  onBack: () => setState(() { _showAuthStep = false; _error = null; }),
+                ),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                      ]),
+                    ),
+                  ),
+              ] else ...[
               const SizedBox(height: 16),
               // Mode toggle
               Container(
@@ -3055,9 +3421,17 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                           color: Colors.white)),
-                  onPressed: _loading ? null : _submit,
+                  onPressed: _loading
+                      ? null
+                      : () {
+                          setState(() => _error = null);
+                          if (_validateForm()) {
+                            setState(() => _showAuthStep = true);
+                          }
+                        },
                 ),
               ),
+              ], // closes else [...
             ],
           ),
         ),

@@ -572,6 +572,14 @@ module.exports = (io) => {
   // Admin: real-money payments overview
   router.get('/admin/real-payments/topups', auth, isAdmin, walletController.adminGetTopUps);
 
+  // Admin: in-app wallet transfer history (P2P, Quick, Secure, Group, QR, Subscription, Coins, Refunds)
+  // Specific sub-routes must be declared before the base route to avoid /:id conflicts
+  router.get('/admin/in-app-transactions/counts', auth, isAdmin, adminFeatureController.getInAppTransactionCounts);
+  router.get('/admin/in-app-transactions/volume', auth, isAdmin, adminFeatureController.getInAppVolumeData);
+  router.get('/admin/in-app-transactions/export', auth, isAdmin, adminFeatureController.exportInAppTransactions);
+  router.post('/admin/in-app-transactions/:id/flag', auth, isAdmin, adminFeatureController.flagInAppTransaction);
+  router.get('/admin/in-app-transactions', auth, isAdmin, adminFeatureController.getAdminInAppTransactions);
+
   // QR/Scanner UPI payments — manual admin review (mirrors withdrawals; no
   // RazorpayX payout account is configured, so this replaces the old
   // Razorpay-order test-key checkout flow entirely)

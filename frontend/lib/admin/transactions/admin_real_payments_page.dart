@@ -725,19 +725,127 @@ class _WithdrawalsTabState extends State<_WithdrawalsTab>
     );
   }
 
+  Future<void> _markProcessed(BuildContext context, String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(context),
+        title: Text('Mark as Processed',
+            style: TextStyle(color: AppThemeColors.primaryText(context))),
+        content: Text(
+          'Confirm you have transferred the funds to the user\'s account.',
+          style: TextStyle(color: AppThemeColors.secondaryText(context)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: TextStyle(color: AppThemeColors.mutedText(context)))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Yes, Processed', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final res = await ApiClient.post('/api/admin/withdrawals/$id/process', body: {});
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Withdrawal marked as processed'), backgroundColor: Colors.green));
+        _fetch();
+      } else {
+        final err = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(err['error'] ?? 'Failed'), backgroundColor: Colors.red));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Network error'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _rejectWithdrawal(BuildContext context, String id) async {
+    final reasonCtrl = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(context),
+        title: Text('Reject Withdrawal',
+            style: TextStyle(color: AppThemeColors.primaryText(context))),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('The amount will be refunded to the user\'s wallet.',
+                style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              decoration: InputDecoration(
+                hintText: 'Reason (optional)',
+                hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, null),
+              child: Text('Cancel', style: TextStyle(color: AppThemeColors.mutedText(context)))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, reasonCtrl.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reject & Refund', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    reasonCtrl.dispose();
+    if (reason == null || !mounted) return;
+    try {
+      final res = await ApiClient.post('/api/admin/withdrawals/$id/reject', body: {'reason': reason});
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Withdrawal rejected and refunded'), backgroundColor: Colors.orange));
+        _fetch();
+      } else {
+        final err = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(err['error'] ?? 'Failed'), backgroundColor: Colors.red));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Network error'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
   Widget _wCard(BuildContext context, Map<String, dynamic> w) {
     final user = (w['user'] is Map) ? w['user'] as Map<String, dynamic> : <String, dynamic>{};
     final amount = (w['amount'] as num?)?.toDouble() ?? 0;
     final status = (w['status'] ?? 'processing').toString();
     final mode = (w['mode'] ?? '').toString();
     final isUpi = mode == 'upi';
+    final id = (w['_id'] ?? '').toString();
+    final isPending = status == 'processing';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppThemeColors.divider(context)),
+        border: Border.all(
+            color: isPending
+                ? Colors.orange.withValues(alpha: 0.4)
+                : AppThemeColors.divider(context)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -812,6 +920,38 @@ class _WithdrawalsTabState extends State<_WithdrawalsTab>
                   _detailRow(context, 'Reason',
                       (w['failureReason'] ?? '').toString(),
                       valueColor: Colors.red),
+                if (isPending) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _rejectWithdrawal(context, id),
+                          icon: const Icon(Icons.cancel_outlined, size: 15, color: Colors.red),
+                          label: const Text('Reject', style: TextStyle(color: Colors.red, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _markProcessed(context, id),
+                          icon: const Icon(Icons.check_circle_outline, size: 15, color: Colors.white),
+                          label: const Text('Mark Processed', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

@@ -334,21 +334,43 @@ exports.adminMarkProcessed = async (req, res) => {
     );
 
     try {
-      const admin = await Admin.findById(req.user._id).select('_id');
-      await Notification.create({
-        sender: admin?._id || req.user._id,
-        senderModel: 'Admin',
-        recipientType: 'specific-users',
-        recipients: [withdrawal.user],
-        recipientModel: 'User',
-        message: `Your withdrawal of ₹${withdrawal.amount} has been processed and sent to your ${withdrawal.mode === 'upi' ? 'UPI ID' : 'bank account'}.`,
-        category: 'transaction',
-        deliveryStatus: 'sent',
-        sentAt: new Date(),
-        estimatedAudience: 1,
-      });
+      const [admin, userDoc] = await Promise.all([
+        Admin.findById(req.user._id).select('_id'),
+        User.findById(withdrawal.user).select('name email'),
+      ]);
+      const adminId = admin?._id || req.user._id;
+      const userLabel = userDoc
+        ? `${userDoc.name || userDoc.email} (${userDoc.email})`
+        : `User #${withdrawal.user}`;
+      const dest = withdrawal.mode === 'upi' ? 'UPI ID' : 'bank account';
+      await Promise.all([
+        // Notify the user
+        Notification.create({
+          sender: adminId,
+          senderModel: 'Admin',
+          recipientType: 'specific-users',
+          recipients: [withdrawal.user],
+          recipientModel: 'User',
+          message: `Your withdrawal of ₹${withdrawal.amount} has been processed and sent to your ${dest}.`,
+          category: 'transaction',
+          deliveryStatus: 'sent',
+          sentAt: new Date(),
+          estimatedAudience: 1,
+        }),
+        // Notify all admins with the user's identity
+        Notification.create({
+          sender: adminId,
+          senderModel: 'Admin',
+          recipientType: 'all-admins',
+          recipientModel: 'Admin',
+          message: `Withdrawal processed: ₹${withdrawal.amount} for ${userLabel} via ${dest}.`,
+          category: 'transaction',
+          deliveryStatus: 'sent',
+          sentAt: new Date(),
+        }),
+      ]);
     } catch (notifyErr) {
-      console.error('[Withdrawal] Failed to notify user of processed withdrawal:', notifyErr);
+      console.error('[Withdrawal] Failed to notify of processed withdrawal:', notifyErr);
     }
 
     res.json({ message: 'Withdrawal marked as processed', withdrawal });
@@ -378,7 +400,7 @@ exports.adminRejectWithdrawal = async (req, res) => {
       }], { session });
       await WalletTransaction.updateOne(
         { withdrawalRequestId: withdrawal._id },
-        { $set: { status: 'failed' } },
+        { $set: { status: 'failed', failureReason: reason || 'Rejected by admin' } },
         { session }
       );
       withdrawal.status = 'failed';
@@ -387,21 +409,42 @@ exports.adminRejectWithdrawal = async (req, res) => {
     });
 
     try {
-      const admin = await Admin.findById(req.user._id).select('_id');
-      await Notification.create({
-        sender: admin?._id || req.user._id,
-        senderModel: 'Admin',
-        recipientType: 'specific-users',
-        recipients: [withdrawal.user],
-        recipientModel: 'User',
-        message: `Your withdrawal of ₹${withdrawal.amount} was rejected and the amount has been refunded to your wallet.${reason ? ` Reason: ${reason}` : ''}`,
-        category: 'transaction',
-        deliveryStatus: 'sent',
-        sentAt: new Date(),
-        estimatedAudience: 1,
-      });
+      const [admin, userDoc] = await Promise.all([
+        Admin.findById(req.user._id).select('_id'),
+        User.findById(withdrawal.user).select('name email'),
+      ]);
+      const adminId = admin?._id || req.user._id;
+      const userLabel = userDoc
+        ? `${userDoc.name || userDoc.email} (${userDoc.email})`
+        : `User #${withdrawal.user}`;
+      await Promise.all([
+        // Notify the user
+        Notification.create({
+          sender: adminId,
+          senderModel: 'Admin',
+          recipientType: 'specific-users',
+          recipients: [withdrawal.user],
+          recipientModel: 'User',
+          message: `Your withdrawal of ₹${withdrawal.amount} was rejected and the amount has been refunded to your wallet.${reason ? ` Reason: ${reason}` : ''}`,
+          category: 'transaction',
+          deliveryStatus: 'sent',
+          sentAt: new Date(),
+          estimatedAudience: 1,
+        }),
+        // Notify all admins with the user's identity
+        Notification.create({
+          sender: adminId,
+          senderModel: 'Admin',
+          recipientType: 'all-admins',
+          recipientModel: 'Admin',
+          message: `Withdrawal rejected: ₹${withdrawal.amount} for ${userLabel}.${reason ? ` Reason: ${reason}` : ''} Refund issued.`,
+          category: 'transaction',
+          deliveryStatus: 'sent',
+          sentAt: new Date(),
+        }),
+      ]);
     } catch (notifyErr) {
-      console.error('[Withdrawal] Failed to notify user of rejected withdrawal:', notifyErr);
+      console.error('[Withdrawal] Failed to notify of rejected withdrawal:', notifyErr);
     }
 
     res.json({ message: 'Withdrawal rejected and wallet refunded', withdrawal });

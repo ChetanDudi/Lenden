@@ -3091,6 +3091,7 @@ class AppLocalizations {
       'withdrawal_rejected_refunded_message':
           'Withdrawal rejected and wallet refunded',
       'withdrawals_label': 'Withdrawals',
+      'track_withdrawals_label': 'Track My Withdrawals',
       'no_transactions_yet_message': 'No transactions yet',
       'note_optional_label': 'Note (optional)',
       'open_razorpay_upi_more_label': 'Open Razorpay  (UPI & more)',
@@ -7275,6 +7276,7 @@ class AppLocalizations {
       'withdrawal_rejected_refunded_message':
           'निकासी अस्वीकृत और वॉलेट रिफंड किया गया',
       'withdrawals_label': 'निकासी',
+      'track_withdrawals_label': 'मेरी निकासी ट्रैक करें',
       'no_transactions_yet_message': 'अभी तक कोई ट्रांज़ैक्शन नहीं',
       'note_optional_label': 'नोट (वैकल्पिक)',
       'open_razorpay_upi_more_label': 'Razorpay खोलें  (UPI और अधिक)',

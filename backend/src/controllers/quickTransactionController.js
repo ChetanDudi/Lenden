@@ -577,8 +577,8 @@ exports.payQuickTransaction = async (req, res) => {
       await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: amount } }, { session });
 
       await WalletTransaction.create([
-        { user: payer._id, type: 'debit', amount, toEmail: payee.email, note: quickTransaction.description || 'Quick transaction settlement' },
-        { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: quickTransaction.description || 'Quick transaction settlement' },
+        { user: payer._id, type: 'debit', amount, toEmail: payee.email, note: quickTransaction.description || 'Quick transaction settlement', sourceType: 'quick' },
+        { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: quickTransaction.description || 'Quick transaction settlement', sourceType: 'quick' },
       ], { session });
 
       quickTransaction.cleared = true;

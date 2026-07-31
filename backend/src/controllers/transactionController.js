@@ -1376,8 +1376,8 @@ exports.processPartialPayment = async (req, res) => {
       await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: amount } }, { session });
 
       await WalletTransaction.create([
-        { user: payer._id, type: 'debit', amount, toEmail: payee.email, note: description || 'Secure transaction repayment' },
-        { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: description || 'Secure transaction repayment' },
+        { user: payer._id, type: 'debit', amount, toEmail: payee.email, note: description || 'Secure transaction repayment', sourceType: 'secure' },
+        { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: description || 'Secure transaction repayment', sourceType: 'secure' },
       ], { session });
 
       // Process the partial payment — round to 2 dp to avoid floating-point

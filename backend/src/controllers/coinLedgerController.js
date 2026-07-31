@@ -120,6 +120,7 @@ exports.buyCoinsWithWallet = async (req, res) => {
         amount,
         note: `Bought ${coinsToBuy} LenDen Coin${coinsToBuy > 1 ? 's' : ''}`,
         status: 'processed',
+        sourceType: 'coins',
       }], { session });
 
       await CoinLedger.create([{

@@ -6,7 +6,7 @@ const SubscriptionPlan = require('../models/subscriptionPlan');
 const Subscription = require('../models/subscription');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const Admin = require('../models/admin');
-const { sendWalletPayOTP, sendWalletPinSetupOTP } = require('../utils/walletPayOtp');
+const { sendWalletPayOTP, sendWalletPinSetupOTP, sendWalletTransactionAuthOTP } = require('../utils/walletPayOtp');
 const Notification = require('../models/notification');
 
 exports.getBalance = async (req, res) => {
@@ -279,8 +279,8 @@ exports.pay = async (req, res) => {
       await User.findByIdAndUpdate(receiver._id, { $inc: { walletBalance: amount } }, { session });
 
       await WalletTransaction.create([
-        { user: sender._id, type: 'debit',  amount, toEmail: receiver.email, note: note || 'Wallet transfer' },
-        { user: receiver._id, type: 'credit', amount, fromEmail: sender.email, note: note || 'Wallet transfer' },
+        { user: sender._id, type: 'debit',  amount, toEmail: receiver.email, note: note || 'Wallet transfer', sourceType: 'p2p' },
+        { user: receiver._id, type: 'credit', amount, fromEmail: sender.email, note: note || 'Wallet transfer', sourceType: 'p2p' },
       ], { session });
 
       newBalance = sender.walletBalance; // already decremented by findOneAndUpdate with {new:true}
@@ -451,7 +451,7 @@ exports.sendWalletAuthOtp = async (req, res) => {
     };
     await user.save();
 
-    await sendWalletPinSetupOTP(user.email, otp, user.name);
+    await sendWalletTransactionAuthOTP(user.email, otp, user.name);
     res.json({ message: 'OTP sent to your registered email', email: user.email });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -657,8 +657,8 @@ exports.payToUserWithOtp = async (req, res) => {
       await User.findByIdAndUpdate(receiver._id, { $inc: { walletBalance: amount } }, { session });
 
       await WalletTransaction.create([
-        { user: sender._id, type: 'debit',  amount, toEmail: receiver.email, note: note || 'Wallet transfer' },
-        { user: receiver._id, type: 'credit', amount, fromEmail: sender.email, note: note || 'Wallet transfer' },
+        { user: sender._id, type: 'debit',  amount, toEmail: receiver.email, note: note || 'Wallet transfer', sourceType: 'p2p' },
+        { user: receiver._id, type: 'credit', amount, fromEmail: sender.email, note: note || 'Wallet transfer', sourceType: 'p2p' },
       ], { session });
 
       newBalance = sender.walletBalance;
@@ -730,8 +730,8 @@ exports.qrPay = async (req, res) => {
 
       await User.findByIdAndUpdate(receiver._id, { $inc: { walletBalance: parsedAmount } }, { session });
       await WalletTransaction.create([
-        { user: sender._id, type: 'debit',  amount: parsedAmount, toEmail: receiver.email, note: note || 'QR Payment' },
-        { user: receiver._id, type: 'credit', amount: parsedAmount, fromEmail: sender.email, note: note || 'QR Payment' },
+        { user: sender._id, type: 'debit',  amount: parsedAmount, toEmail: receiver.email, note: note || 'QR Payment', sourceType: 'qr_internal' },
+        { user: receiver._id, type: 'credit', amount: parsedAmount, fromEmail: sender.email, note: note || 'QR Payment', sourceType: 'qr_internal' },
       ], { session });
 
       newBalance = sender.walletBalance;
@@ -806,6 +806,7 @@ exports.paySubscription = async (req, res) => {
         type: 'debit',
         amount: actualPrice,
         note: `${plan.name} Subscription via LenDen Wallet`,
+        sourceType: 'subscription',
       }], { session });
 
       // Preserve remaining days if renewing before current subscription ends
@@ -843,7 +844,7 @@ exports.paySubscription = async (req, res) => {
     res.json({ message: 'Subscription activated via wallet', balance: newBalance });
 
     Promise.resolve().then(async () => {
-      const u = await User.findById(req.user._id).select('notificationSettings').lean();
+      const u = await User.findById(req.user._id).select('name email notificationSettings').lean();
       if (u?.notificationSettings?.subscriptionNotifications !== false) {
         await Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
@@ -851,6 +852,16 @@ exports.paySubscription = async (req, res) => {
           message: `Your "${plan.name}" subscription is now active.`,
         });
       }
+      await Notification.create({
+        sender: req.user._id,
+        senderModel: 'User',
+        recipientType: 'all-admins',
+        recipientModel: 'Admin',
+        message: `New subscription: ${u?.name || u?.email || 'A user'} purchased "${plan.name}" for ₹${actualPrice.toLocaleString('en-IN')} via wallet.`,
+        category: 'subscription',
+        deliveryStatus: 'sent',
+        sentAt: new Date(),
+      });
     }).catch(() => {});
   } catch (err) {
     res.status(err.status ?? 500).json({ error: err.userMessage || 'Server error' });

@@ -13,6 +13,7 @@ import '../transactions/manage_group_transactions_page.dart';
 import '../transactions/manage_quick_transactions_page.dart';
 import '../transactions/manage_withdrawals_page.dart';
 import '../transactions/admin_real_payments_page.dart';
+import '../transactions/admin_in_app_payments_page.dart';
 import '../transactions/manage_scan_payments_page.dart';
 import '../track_users/track_user_activity_page.dart';
 import '../support/manage_contact_page.dart';
@@ -402,6 +403,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AdminRealPaymentsPage()),
+            );
+          },
+        ),
+        _AdminDashboardItem(
+          id: 'in_app_payments',
+          permissionKey: 'canManageTransactions',
+          icon: Icons.swap_horiz_rounded,
+          label: 'In-App Transfers',
+          caption: 'P2P, Quick, Secure, Group, QR/Scan, Subscriptions & Coins — all internal wallet flows.',
+          actionLabel: 'Transfers',
+          backgroundColor: const Color(0xFFE0F7FA),
+          iconColor: const Color(0xFF00838F),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminInAppPaymentsPage()),
             );
           },
         ),

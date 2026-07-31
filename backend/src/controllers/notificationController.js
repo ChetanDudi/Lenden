@@ -264,7 +264,6 @@ exports.getNotifications = async (req, res) => {
                 $or: [
                     { recipientType: 'all-admins', recipientModel: 'Admin' },
                     { recipientType: 'specific-admins', recipientModel: 'Admin', recipients: userId },
-                    { sender: userId, deliveryStatus: 'sent' }
                 ],
                 deliveryStatus: 'sent',
             })

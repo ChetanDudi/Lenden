@@ -17,7 +17,16 @@ const walletTransactionSchema = new mongoose.Schema({
   // a separate refund entry.
   withdrawalRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'WithdrawalRequest', default: null },
   scanPaymentRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'ScanPaymentRequest', default: null },
+  // Stable category tag set at creation time so admin filters don't rely on
+  // note text (which can be a user-supplied description like "Lunch").
+  sourceType: {
+    type: String,
+    enum: ['p2p', 'qr_internal', 'qr_external', 'quick', 'secure', 'group', 'subscription', 'coins'],
+    default: null,
+  },
+  adminFlagged: { type: Boolean, default: false },
   status: { type: String, enum: ['processing', 'processed', 'failed', 'reversed'] },
+  failureReason: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

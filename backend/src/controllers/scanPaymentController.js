@@ -55,6 +55,7 @@ exports.initiateScanPayment = async (req, res) => {
         note: `QR payment to ${cleanPayeeName} (${cleanUpiId})`,
         scanPaymentRequestId: scanPayment._id,
         status: 'processing',
+        sourceType: 'qr_external',
       }], { session });
     });
 

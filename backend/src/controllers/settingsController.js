@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendAlternativeEmailOTP: sendEmail } = require('../utils/alternativeEmailOtp');
 const { sendSetPasswordOTP: sendSetPasswordEmail } = require('../utils/setPasswordOtp');
+const { sendChangePasswordOTP: sendChangePasswordEmail } = require('../utils/changePasswordOtp');
 const { sendAccountDeletedEmail } = require('../utils/accountDeletedEmail');
 const Notification = require('../models/notification');
 
@@ -933,8 +934,7 @@ const sendChangePasswordOtp = async (req, res) => {
     };
     await user.save();
 
-    // Reuse the set-password email template — same visual style
-    await sendSetPasswordEmail(user.email, otp, user.name);
+    await sendChangePasswordEmail(user.email, otp, user.name);
     res.json({ message: 'OTP sent to your email.' });
   } catch (error) {
     console.error('Error sending change-password OTP:', error);

@@ -1816,8 +1816,8 @@ exports.recordMemberPayment = async (req, res) => {
       await User.findByIdAndUpdate(payee._id, { $inc: { walletBalance: parsedAmount } }, { session });
 
       await WalletTransaction.create([
-        { user: payer._id, type: 'debit', amount: parsedAmount, toEmail: payee.email, note: `Group expense settlement — ${group.title}` },
-        { user: payee._id, type: 'credit', amount: parsedAmount, fromEmail: payer.email, note: `Group expense settlement — ${group.title}` },
+        { user: payer._id, type: 'debit', amount: parsedAmount, toEmail: payee.email, note: `Group expense settlement — ${group.title}`, sourceType: 'group' },
+        { user: payee._id, type: 'credit', amount: parsedAmount, fromEmail: payer.email, note: `Group expense settlement — ${group.title}`, sourceType: 'group' },
       ], { session });
 
       group.memberPayments.push({
