@@ -823,17 +823,18 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                                 ? null
                                 : _registerWithGoogle,
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade300),
+                          side: BorderSide(color: AppThemeColors.border(context)),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: _isGoogleLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.black54),
+                                    strokeWidth: 2,
+                                    color: AppThemeColors.secondaryText(context)),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

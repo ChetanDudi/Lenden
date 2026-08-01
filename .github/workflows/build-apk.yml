@@ -22,8 +22,12 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.24.5'
           cache: true
+
+      - name: Remove Windows-only JDK path from gradle.properties
+        working-directory: frontend/android
+        run: sed -i '/org.gradle.java.home/d' gradle.properties
 
       - name: Install dependencies
         working-directory: frontend

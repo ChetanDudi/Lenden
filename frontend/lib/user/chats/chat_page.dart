@@ -8,6 +8,7 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/stylish_dialog.dart';
 import '../../widgets/wave_widget.dart';
 import 'chat_encryption_service.dart';
@@ -642,7 +643,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -717,7 +718,8 @@ class _ChatPageState extends State<ChatPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF7FB),
+        color: AppThemeColors.tinted(context,
+            light: const Color(0xFFEAF7FB), dark: const Color(0xFF1A2E33)),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -1027,8 +1029,8 @@ class _ChatPageState extends State<ChatPage> {
                   Text(message['parentMessageId']['message'],
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54)),
+                      style: TextStyle(
+                          fontSize: 12, color: AppThemeColors.secondaryText(context))),
                 ],
               ),
             ),
@@ -1060,7 +1062,7 @@ class _ChatPageState extends State<ChatPage> {
                                 end: Alignment.bottomRight,
                               )
                             : null,
-                        color: isMe ? null : Colors.white,
+                        color: isMe ? null : AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(18),
                           topRight: const Radius.circular(18),
@@ -1083,7 +1085,7 @@ class _ChatPageState extends State<ChatPage> {
                           Text(
                             message['message'],
                             style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black87,
+                                color: isMe ? Colors.white : AppThemeColors.primaryText(context),
                                 fontSize: 15.5,
                                 height: 1.3),
                           ),
@@ -1096,7 +1098,7 @@ class _ChatPageState extends State<ChatPage> {
                                       fontSize: 10.5,
                                       color: isMe
                                           ? Colors.white70
-                                          : Colors.black45,
+                                          : AppThemeColors.mutedText(context),
                                       fontWeight: FontWeight.w500)),
                               if (message['isEdited'] == true)
                                 Text(' · edited',
@@ -1105,7 +1107,7 @@ class _ChatPageState extends State<ChatPage> {
                                         fontStyle: FontStyle.italic,
                                         color: isMe
                                             ? Colors.white70
-                                            : Colors.black45)),
+                                            : AppThemeColors.mutedText(context))),
                             ],
                           ),
                         ],
@@ -1161,9 +1163,9 @@ class _ChatPageState extends State<ChatPage> {
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFD9ECF2)),
+        border: Border.all(color: AppThemeColors.border(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),

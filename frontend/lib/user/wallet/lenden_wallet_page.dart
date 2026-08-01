@@ -4293,7 +4293,9 @@ class _WalletBuyCoinsSheetState extends State<_WalletBuyCoinsSheet>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
+                    color: AppThemeColors.tinted(context,
+                        light: const Color(0xFFFFF8E1),
+                        dark: const Color(0xFF3A2F12)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.monetization_on_rounded,

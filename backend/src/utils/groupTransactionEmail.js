@@ -1,28 +1,14 @@
 const { sendEmail } = require('./sendEmailApi');
 const User = require('../models/user');
-
-const _shell = (content) => `
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
-  <tr><td align="center">
-    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
-      <tr><td style="background:#003d75;padding:20px 32px;">
-        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
-      </td></tr>
-      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">${content}</td></tr>
-      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
-        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
-        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>`;
+const { shell } = require('./emailTemplate');
+const { shouldSendNotification } = require('./shouldSendNotification');
 
 const sendEmailToGroupMembers = async (group, subject, getBody, actorEmail) => {
   for (const member of group.members) {
     const user = await User.findById(member.user);
-    if (user && user.notificationSettings.emailNotifications && user.notificationSettings.groupNotifications) {
+    if (user && user.notificationSettings.emailNotifications && user.notificationSettings.groupNotifications && shouldSendNotification(user)) {
       const isActor = user.email === actorEmail;
-      await sendEmail({ to: user.email, subject, html: _shell(getBody(isActor)) });
+      await sendEmail({ to: user.email, subject, html: shell(getBody(isActor)) });
     }
   }
 };
@@ -60,7 +46,7 @@ exports.sendMemberRemovedEmail = (group, removedMemberEmail, removedByEmail) => 
 
 exports.sendYouHaveBeenRemovedEmail = (group, removedMemberEmail, removedByEmail) => {
   const subject = `LenDen – Removed from ${group.title}`;
-  const html = _shell(`
+  const html = shell(`
     <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">You Have Been Removed from a Group</p>
     <p style="margin:0 0 16px;">You have been removed from the group <strong>${group.title}</strong> by ${removedByEmail}.</p>
     <p style="margin:0;color:#555555;">If you believe this is an error, please contact the group administrator.</p>

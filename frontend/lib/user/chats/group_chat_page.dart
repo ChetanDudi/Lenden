@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/stylish_dialog.dart';
 import '../../widgets/wave_widget.dart';
 import 'chat_encryption_service.dart';
@@ -596,7 +597,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF9F6),
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -1199,7 +1200,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(16),
         ),
         child: child,
@@ -1235,7 +1236,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF9F6),
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -1720,7 +1721,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                                     end: Alignment.bottomRight,
                                   )
                                 : null,
-                            color: isMe ? null : Colors.white,
+                            color: isMe ? null : AppThemeColors.cardBg(context),
                             border: isMe
                                 ? null
                                 : Border.all(
@@ -1755,7 +1756,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                                   style: TextStyle(
                                       color: isMe
                                           ? Colors.white
-                                          : Colors.black87,
+                                          : AppThemeColors.primaryText(context),
                                       fontSize: 15.5,
                                       height: 1.3),
                                 ),
@@ -1769,7 +1770,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                                           fontSize: 10.5,
                                           color: isMe
                                               ? Colors.white70
-                                              : Colors.black45,
+                                              : AppThemeColors.mutedText(context),
                                           fontWeight: FontWeight.w500)),
                                   if (message['isEdited'] == true)
                                     Text(' · edited',
@@ -1837,9 +1838,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFD9ECF2)),
+        border: Border.all(color: AppThemeColors.border(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),

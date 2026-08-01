@@ -1324,7 +1324,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
           child: Container(
             padding: EdgeInsets.all(context.sw(22)),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F9FF),
+              color: AppThemeColors.tinted(context,
+                  light: const Color(0xFFF0F9FF),
+                  dark: const Color(0xFF0D2035)),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -1371,7 +1373,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                   style: TextStyle(
                     fontSize: context.sp(22),
                     fontWeight: FontWeight.w800,
-                    color: Colors.black87,
+                    color: AppThemeColors.primaryText(context),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1383,7 +1385,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       'You earned',
                       style: TextStyle(
                         fontSize: context.sp(15),
-                        color: Colors.black54,
+                        color: AppThemeColors.secondaryText(context),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1414,7 +1416,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                   'Keep logging in daily to earn more coins!',
                   style: TextStyle(
                     fontSize: context.sp(12),
-                    color: Colors.grey[600],
+                    color: AppThemeColors.secondaryText(context),
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,

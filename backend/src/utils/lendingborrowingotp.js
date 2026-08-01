@@ -1,50 +1,26 @@
 const { sendEmail } = require('./sendEmailApi');
 const User = require('../models/user');
 const { shouldSendNotification } = require('./shouldSendNotification');
-
-const otpStore = {};
+const { shell, otpBlock } = require('./emailTemplate');
+const OtpRecord = require('../models/otpRecord');
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-const _shell = (content) => `
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f2;padding:24px 0;">
-  <tr><td align="center">
-    <table width="580" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #cccccc;font-family:Arial,Helvetica,sans-serif;">
-      <tr><td style="background:#003d75;padding:20px 32px;">
-        <span style="font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">LenDen</span>
-      </td></tr>
-      <tr><td style="padding:32px;color:#333333;font-size:14px;line-height:1.7;">${content}</td></tr>
-      <tr><td style="background:#f9f9f9;border-top:1px solid #e5e5e5;padding:16px 32px;font-size:11px;color:#999999;">
-        <p style="margin:0;">This is an automated message. Please do not reply to this email.</p>
-        <p style="margin:6px 0 0;">&copy; 2024 LenDen. All rights reserved.</p>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>`;
-
-const _otpBlock = (otp) => `
-<div style="background:#f7f7f7;border:1px solid #dddddd;border-left:4px solid #003d75;margin:24px 0;padding:18px 24px;text-align:center;">
-  <p style="margin:0 0 8px;font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;">One-Time Password (OTP)</p>
-  <span style="font-family:'Courier New',Courier,monospace;font-size:30px;font-weight:bold;letter-spacing:8px;color:#111111;">${otp}</span>
-  <p style="margin:8px 0 0;font-size:12px;color:#999999;">This code expires in 2 minutes.</p>
-</div>`;
-
 exports.sendDualOtp = async (email1, email2) => {
   const otp1 = generateOtp();
   const otp2 = generateOtp();
-  const expires = Date.now() + 2 * 60 * 1000;
-  otpStore[email1] = { otp: otp1, expires };
-  otpStore[email2] = { otp: otp2, expires };
+  await OtpRecord.findOneAndUpdate({ key: email1 }, { otp: otp1, createdAt: new Date() }, { upsert: true });
+  await OtpRecord.findOneAndUpdate({ key: email2 }, { otp: otp2, createdAt: new Date() }, { upsert: true });
   await sendEmail({
     to: email1,
     subject: 'LenDen – Transaction Verification',
     text: `Your OTP for transaction confirmation is: ${otp1}\nThis OTP will expire in 2 minutes.`,
-    html: _shell(`
+    html: shell(`
       <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Verification</p>
       <p style="margin:0 0 16px;">A secure transaction requires your verification. Enter the code below in the app to confirm your participation.</p>
-      ${_otpBlock(otp1)}
+      ${otpBlock(otp1)}
       <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
       <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not initiate this transaction, please ignore this email.</p>
     `),
@@ -53,10 +29,10 @@ exports.sendDualOtp = async (email1, email2) => {
     to: email2,
     subject: 'LenDen – Transaction Verification',
     text: `Your OTP for transaction confirmation is: ${otp2}\nThis OTP will expire in 2 minutes.`,
-    html: _shell(`
+    html: shell(`
       <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Verification</p>
       <p style="margin:0 0 16px;">A secure transaction requires your verification. Enter the code below in the app to confirm your participation.</p>
-      ${_otpBlock(otp2)}
+      ${otpBlock(otp2)}
       <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
       <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not initiate this transaction, please ignore this email.</p>
     `),
@@ -64,15 +40,13 @@ exports.sendDualOtp = async (email1, email2) => {
   return { otp1, otp2 };
 };
 
-exports.verifyDualOtp = (email1, otp1, email2, otp2) => {
-  const rec1 = otpStore[email1];
-  const rec2 = otpStore[email2];
-  const now = Date.now();
+exports.verifyDualOtp = async (email1, otp1Input, email2, otp2Input) => {
+  const rec1 = await OtpRecord.findOne({ key: email1 });
+  const rec2 = await OtpRecord.findOne({ key: email2 });
   if (!rec1 || !rec2) return { valid: false, reason: 'OTP not found' };
-  if (now > rec1.expires || now > rec2.expires) return { valid: false, reason: 'OTP expired' };
-  if (rec1.otp === otp1 && rec2.otp === otp2) {
-    delete otpStore[email1];
-    delete otpStore[email2];
+  if (rec1.otp === otp1Input && rec2.otp === otp2Input) {
+    await OtpRecord.deleteOne({ key: email1 });
+    await OtpRecord.deleteOne({ key: email2 });
     return { valid: true };
   }
   return { valid: false, reason: 'OTP invalid' };
@@ -80,16 +54,15 @@ exports.verifyDualOtp = (email1, otp1, email2, otp2) => {
 
 exports.resendOtp = async (email) => {
   const otp = generateOtp();
-  const expires = Date.now() + 2 * 60 * 1000;
-  otpStore[email] = { otp, expires };
+  await OtpRecord.findOneAndUpdate({ key: email }, { otp, createdAt: new Date() }, { upsert: true });
   await sendEmail({
     to: email,
     subject: 'LenDen – Transaction Verification (Resend)',
     text: `Your OTP for transaction confirmation is: ${otp}\nThis OTP will expire in 2 minutes.`,
-    html: _shell(`
+    html: shell(`
       <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Verification</p>
       <p style="margin:0 0 16px;">A new verification code has been sent as requested.</p>
-      ${_otpBlock(otp)}
+      ${otpBlock(otp)}
       <p style="margin:0 0 8px;">Do not share this code with anyone.</p>
       <p style="margin:16px 0 0;color:#888888;font-size:13px;">If you did not initiate this transaction, please ignore this email.</p>
     `),
@@ -97,11 +70,11 @@ exports.resendOtp = async (email) => {
   return otp;
 };
 
-exports.verifyLendingBorrowingOtp = (email, otp) => {
-  const record = otpStore[email];
+exports.verifyLendingBorrowingOtp = async (email, otp) => {
+  const record = await OtpRecord.findOne({ key: email });
   if (!record) return false;
-  if (record.otp === otp && Date.now() < record.expires) {
-    delete otpStore[email];
+  if (record.otp === otp) {
+    await OtpRecord.deleteOne({ key: email });
     return true;
   }
   return false;
@@ -190,7 +163,7 @@ exports.sendTransactionReceipt = async (email, transaction, counterpartyNameOrEm
   await sendEmail({
     to: email,
     subject: `LenDen – Transaction Receipt (${transactionId})`,
-    html: _shell(`
+    html: shell(`
       <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Receipt</p>
       <p style="margin:0 0 24px;">Your transaction has been recorded. Below is a summary for your reference.</p>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:16px;">
@@ -218,7 +191,7 @@ exports.sendTransactionClearedNotification = async (email, transaction, clearedB
   await sendEmail({
     to: email,
     subject: `LenDen – Transaction Clearance Update (${transactionId})`,
-    html: _shell(`
+    html: shell(`
       <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Transaction Clearance Update</p>
       <p style="margin:0 0 24px;">The clearance status of your transaction has been updated.</p>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:24px;">
@@ -255,7 +228,7 @@ exports.sendReminderEmail = async (email, transaction, daysLeft) => {
   await sendEmail({
     to: email,
     subject,
-    html: _shell(`
+    html: shell(`
       <p style="margin:0 0 16px;font-size:16px;font-weight:bold;color:#111;">Payment Reminder</p>
       <p style="margin:0 0 16px;">This is a reminder that your transaction of <strong>&#8377;${transaction.amount}</strong> (${transaction.type}) is due <strong>${dueLabel}</strong>.</p>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e0e0e0;margin-bottom:24px;">
