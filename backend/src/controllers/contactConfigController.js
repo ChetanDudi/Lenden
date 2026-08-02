@@ -2,7 +2,9 @@ const ContactConfig = require('../models/contactConfig');
 const ContactMessage = require('../models/contactMessage');
 const { CONTACT_CATEGORIES } = require('../models/contactMessage');
 const Notification = require('../models/notification');
+const User = require('../models/user');
 const { sendEmail } = require('../utils/sendEmailApi');
+const { sendToUser } = require('../services/notificationService');
 
 const ensureContactConfig = async () =>
   ContactConfig.findOneAndUpdate(
@@ -245,6 +247,7 @@ exports.replyToMessage = async (req, res) => {
         deliveryStatus: 'sent',
         sentAt: new Date(),
       });
+      sendToUser(User, doc.userId, { title: 'Support Reply 📩', body: 'Your message has been replied to.', data: { type: 'support_reply' } });
     }
 
     res.json({ success: true, message: updated });

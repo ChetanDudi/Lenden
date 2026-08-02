@@ -7,6 +7,7 @@ const Admin = require('../models/admin');
 const Notification = require('../models/notification');
 const WalletTransaction = require('../models/walletTransaction');
 const { ALL_FEATURE_KEYS } = require('../utils/subscriptionFeatures');
+const { sendToUser } = require('../services/notificationService');
 
 const sanitizeAllowedFeatures = (allowedFeatures) =>
     Array.isArray(allowedFeatures)
@@ -436,6 +437,7 @@ exports.grantSubscription = async (req, res) => {
                 category: 'subscription',
                 message: `An admin has granted you the "${planName}" subscription, active until ${endDate.toDateString()}.`,
             });
+        sendToUser(User, user._id, { title: 'Subscription Activated 🎉', body: `An admin has granted you the "${planName}" subscription.`, data: { type: 'subscription_granted' } });
         } catch (notifyError) {
             console.error('Failed to notify user of granted subscription:', notifyError);
         }

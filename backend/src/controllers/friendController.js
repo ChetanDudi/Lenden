@@ -840,6 +840,7 @@ exports.sendBirthdayWish = async (req, res) => {
       message: wishText,
       category: 'general',
     });
+    sendToUser(User, target._id, { title: `Birthday wish from ${senderName} 🎂`, body: wishText, data: { type: 'birthday_wish' } });
 
     res.status(201).json({ success: true });
   } catch (error) {
@@ -917,6 +918,7 @@ exports.sendBirthdayGift = async (req, res) => {
         metadata: { coins },
       }),
     ]);
+    sendToUser(User, target._id, { title: `Birthday gift from ${senderName} 🎁`, body: `${senderName} sent you ${coins} LenDen coins as a birthday gift!`, data: { type: 'birthday_gift' } });
 
     res.status(201).json({ success: true, remainingCoins: sender.lenDenCoins - coins });
   } catch (error) {

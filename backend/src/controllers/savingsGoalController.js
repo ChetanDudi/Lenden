@@ -1,5 +1,7 @@
 const SavingsGoal = require('../models/savingsGoal');
 const Notification = require('../models/notification');
+const User = require('../models/user');
+const { sendToUser } = require('../services/notificationService');
 
 exports.getGoals = async (req, res) => {
   try {
@@ -89,6 +91,7 @@ exports.addSavings = async (req, res) => {
         title: 'Goal Achieved!',
         message: `You've reached your savings goal "${goal.name}" — ₹${goal.targetAmount.toLocaleString('en-IN')} saved!`,
       }).catch(() => {});
+      sendToUser(User, goal.user, { title: 'Savings Goal Reached 🎯', body: `You've reached your goal "${goal.name}"!`, data: { type: 'savings_goal' } });
     }
 
     res.json(goal);

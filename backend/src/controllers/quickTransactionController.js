@@ -10,6 +10,7 @@ const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const Notification = require('../models/notification');
 const { getCoinPricing } = require('../utils/coinPricing');
+const { sendToUser } = require('../services/notificationService');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -131,6 +132,7 @@ exports.createQuickTransaction = async (req, res) => {
         });
       }
     }).catch(() => {});
+    sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -271,6 +273,7 @@ exports.createQuickTransactionWithCoins = async (req, res) => {
         });
       }
     }).catch(() => {});
+    sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

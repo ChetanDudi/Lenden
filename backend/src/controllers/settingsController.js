@@ -11,6 +11,7 @@ const { sendSetPasswordOTP: sendSetPasswordEmail } = require('../utils/setPasswo
 const { sendChangePasswordOTP: sendChangePasswordEmail } = require('../utils/changePasswordOtp');
 const { sendAccountDeletedEmail } = require('../utils/accountDeletedEmail');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 // Change Password
 const changePassword = async (req, res) => {
@@ -76,6 +77,7 @@ const changePassword = async (req, res) => {
         recipients: [userId], recipientModel: 'User', category: 'system',
         message: "Your password was changed successfully. If this wasn't you, contact support immediately.",
       }).catch(() => {});
+      sendToUser(User, userId, { title: 'Password Changed 🔐', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
     }
   } catch (error) {
     console.error('Error changing password:', error);
@@ -895,6 +897,7 @@ const confirmSetPassword = async (req, res) => {
         recipients: [userId], recipientModel: 'User', category: 'system',
         message: "A password has been set for your LenDen account. If this wasn't you, contact support immediately.",
       }).catch(() => {});
+      sendToUser(User, userId, { title: 'Password Changed 🔐', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
     }
   } catch (error) {
     console.error('Error confirming set-password:', error);

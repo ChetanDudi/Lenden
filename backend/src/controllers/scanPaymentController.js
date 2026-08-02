@@ -4,6 +4,7 @@ const Admin = require('../models/admin');
 const WalletTransaction = require('../models/walletTransaction');
 const ScanPaymentRequest = require('../models/scanPaymentRequest');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 const MIN_SCAN_PAYMENT = 1; // ₹1
 
@@ -154,6 +155,7 @@ exports.adminMarkProcessed = async (req, res) => {
         sentAt: new Date(),
         estimatedAudience: 1,
       });
+      sendToUser(User, scanPayment.user, { title: 'QR Payment Processed ✅', body: `Your QR payment of ₹${scanPayment.amount} has been processed.`, data: { type: 'scan_payment_approved' } });
     } catch (notifyErr) {
       console.error('[ScanPayment] Failed to notify user of processed payment:', notifyErr);
     }
@@ -207,6 +209,7 @@ exports.adminRejectScanPayment = async (req, res) => {
         sentAt: new Date(),
         estimatedAudience: 1,
       });
+      sendToUser(User, scanPayment.user, { title: 'QR Payment Rejected ❌', body: `Your QR payment of ₹${scanPayment.amount} was rejected and refunded.`, data: { type: 'scan_payment_rejected' } });
     } catch (notifyErr) {
       console.error('[ScanPayment] Failed to notify user of rejected payment:', notifyErr);
     }

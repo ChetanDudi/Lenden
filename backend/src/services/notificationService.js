@@ -1,35 +1,29 @@
-const admin = require('firebase-admin');
-const path  = require('path');
-const fs    = require('fs');
+const path = require('path');
+const fs   = require('fs');
 
 let _initialized = false;
 
 function _init() {
   if (_initialized) return;
-  let credential;
 
-  // Priority 1: JSON string in env var (good for hosting platforms)
+  let serviceAccount;
+
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
-      const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      credential = admin.credential.cert(sa);
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } catch (e) {
       console.error('[FCM] Failed to parse FIREBASE_SERVICE_ACCOUNT env var:', e.message);
       return;
     }
-  }
-  // Priority 2: path to service account JSON file
-  else {
+  } else {
     const filePath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
       || path.join(__dirname, '../../firebase-service-account.json');
-
     if (!fs.existsSync(filePath)) {
-      console.warn('[FCM] No Firebase service account found. Push notifications are disabled.');
-      console.warn('[FCM] Set FIREBASE_SERVICE_ACCOUNT env var or place firebase-service-account.json in backend/');
+      console.warn('[FCM] No Firebase service account found. Push notifications disabled.');
       return;
     }
     try {
-      credential = admin.credential.cert(require(filePath));
+      serviceAccount = require(filePath);
     } catch (e) {
       console.error('[FCM] Failed to load service account file:', e.message);
       return;
@@ -37,7 +31,8 @@ function _init() {
   }
 
   try {
-    admin.initializeApp({ credential });
+    const { initializeApp, cert } = require('firebase-admin/app');
+    initializeApp({ credential: cert(serviceAccount) });
     _initialized = true;
     console.log('[FCM] Firebase Admin initialized successfully.');
   } catch (e) {
@@ -45,15 +40,12 @@ function _init() {
   }
 }
 
-/**
- * Send a push notification to a single FCM token.
- * Silently ignores invalid/expired tokens.
- */
 async function sendToToken(fcmToken, { title, body, data = {} }) {
   _init();
   if (!_initialized || !fcmToken) return;
   try {
-    await admin.messaging().send({
+    const { getMessaging } = require('firebase-admin/messaging');
+    await getMessaging().send({
       token: fcmToken,
       notification: { title, body },
       data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
@@ -63,7 +55,6 @@ async function sendToToken(fcmToken, { title, body, data = {} }) {
       },
     });
   } catch (err) {
-    // Expired / unregistered tokens — nothing to do
     if (err.code !== 'messaging/registration-token-not-registered' &&
         err.code !== 'messaging/invalid-registration-token') {
       console.error('[FCM] sendToToken error:', err.message);
@@ -71,10 +62,6 @@ async function sendToToken(fcmToken, { title, body, data = {} }) {
   }
 }
 
-/**
- * Look up a user's FCM token from the DB and send a push notification.
- * Pass `User` model to avoid circular imports.
- */
 async function sendToUser(UserModel, userId, payload) {
   try {
     const user = await UserModel.findById(userId).select('fcmToken');

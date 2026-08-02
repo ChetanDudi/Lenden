@@ -41,16 +41,16 @@ import 'widgets/wave_widget.dart' show DeepTopWaveClipper;
 import 'widgets/no_internet_banner.dart';
 import 'user/digitise/subscriptions_page.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await ConnectivityService().init();
-  await FirebaseService.initialize();
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    debugPrint('Flutter error: ${details.exceptionAsString()}');
-  };
-  runZonedGuarded(
-    () => runApp(
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await ConnectivityService().init();
+    await FirebaseService.initialize();
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      debugPrint('Flutter error: ${details.exceptionAsString()}');
+    };
+    runApp(
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => SessionProvider()),
@@ -59,9 +59,8 @@ void main() async {
         ],
         child: const AppInitializer(),
       ),
-    ),
-    (error, stack) => debugPrint('Uncaught error: $error\n$stack'),
-  );
+    );
+  }, (error, stack) => debugPrint('Uncaught error: $error\n$stack'));
 }
 
 class AppInitializer extends StatefulWidget {

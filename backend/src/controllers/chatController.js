@@ -10,6 +10,7 @@ const {
 } = require('../utils/chatCodec');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { getCoinPricing } = require('../utils/coinPricing');
+const { sendToUser } = require('../services/notificationService');
 
 function hasEncryptedPayloads(encryptedPayloads) {
     return Array.isArray(encryptedPayloads) && encryptedPayloads.length > 0;
@@ -188,6 +189,7 @@ module.exports = (io) => {
                         category: 'general',
                         message: `New message from ${sender.name || sender.username || sender.email}`,
                     }).catch(() => {});
+                    sendToUser(User, receiver._id, { title: 'New Message 💬', body: `${sender.name || sender.username || sender.email} sent you a message.`, data: { type: 'chat_message' } });
                 }
             } catch (error) {
                 console.error('Error in createMessage socket handler:', error);

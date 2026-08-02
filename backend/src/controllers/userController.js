@@ -15,6 +15,7 @@ const {
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const Notification = require('../models/notification');
 const { getCoinPricing } = require('../utils/coinPricing');
+const { sendToUser } = require('../services/notificationService');
 
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
 
@@ -317,6 +318,7 @@ exports.login = async (req, res) => {
           recipients: [user._id], recipientModel: 'User', category: 'system',
           message: `New login to your account from ${req.ip || 'unknown location'}.`,
         }).catch(() => {});
+        sendToUser(User, user._id, { title: 'New Login Detected 🔐', body: `New login from ${req.ip || 'unknown'}.`, data: { type: 'security_login' } });
       }
 
       // Device management: enforce single-device login if needed
@@ -742,6 +744,7 @@ exports.verifyLoginOtp = async (req, res) => {
           recipients: [user._id], recipientModel: 'User', category: 'system',
           message: `New login to your account from ${ipAddress || 'unknown location'}.`,
         }).catch(() => {});
+        sendToUser(User, user._id, { title: 'New Login Detected 🔐', body: `New login from ${ipAddress || 'unknown'}.`, data: { type: 'security_login' } });
       }
 
       // Register device

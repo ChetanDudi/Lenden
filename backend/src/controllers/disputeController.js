@@ -6,6 +6,7 @@ const Transaction = require('../models/transaction');
 const QuickTransaction = require('../models/quickTransaction');
 const GroupTransaction = require('../models/groupTransaction');
 const { logAdminAudit } = require('../utils/adminAuditLogger');
+const { sendToUser } = require('../services/notificationService');
 
 const MODEL_BY_TYPE = {
   secure: Transaction,
@@ -142,6 +143,7 @@ exports.adminResolveDispute = async (req, res) => {
         category: 'transaction',
         message: `Your dispute (${dispute.reason}) has been marked as ${status.replace('_', ' ')}.${resolution ? ` Resolution: ${resolution}` : ''}`,
       });
+      recipients.forEach(r => sendToUser(User, r._id, { title: 'Dispute Updated', body: `Your dispute has been marked as ${status.replace('_', ' ')}.`, data: { type: 'dispute_resolved' } }));
     }
 
     await logAdminAudit({

@@ -21,6 +21,7 @@ const {
 } = require('../utils/currencyConverter');
 const { getSupportedCurrencyCodes } = require('../utils/supportedCurrencies');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -349,6 +350,7 @@ exports.createGroup = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${creator.email} added you to the group "${title}".`,
           })));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Added to Group 👥', body: `${creator.email} added you to the group "${title}".`, data: { type: 'group_created' } }));
         }
       }
     } catch (e) {
@@ -435,6 +437,7 @@ exports.addMember = async (req, res) => {
           message: `${req.user.email} added you to the group "${group.title}".`,
         });
       }
+      sendToUser(User, user._id, { title: 'Added to Group 👥', body: `${req.user.email} added you to the group "${group.title}".`, data: { type: 'group_member_added' } });
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -516,6 +519,7 @@ exports.removeMember = async (req, res) => {
           message: `You were removed from the group "${group.title}" by ${req.user.email}.`,
         });
       }
+      sendToUser(User, user._id, { title: 'Removed from Group', body: `You were removed from the group "${group.title}".`, data: { type: 'group_member_removed' } });
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
     }
@@ -809,6 +813,7 @@ exports.addExpense = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${userEmail} added an expense "${description}" of ₹${amount} to group "${group.title}".`,
           })));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'New Group Expense 💸', body: `${userEmail} added an expense "${description}" of ₹${amount} to group "${group.title}".`, data: { type: 'group_expense_added' } }));
         }
       }
     } catch (e) {
@@ -901,6 +906,7 @@ exports.otpVerifySettle = async (req, res) => {
         });
       }
     }).catch(() => {});
+    sendToUser(User, userId, { title: 'Balance Settled ✅', body: 'Your group balance has been settled by the group admin.', data: { type: 'group_balance_settled' } });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1234,11 +1240,12 @@ exports.deleteGroup = async (req, res) => {
       User.find({ _id: { $in: activeMemberIds }, 'notificationSettings.groupNotifications': { $ne: false } })
         .select('_id').then(eligible => {
           if (eligible.length > 0) {
-            return Notification.create(eligible.map(u => ({
+            Notification.create(eligible.map(u => ({
               sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
               recipients: [u._id], recipientModel: 'User', category: 'group',
               message: `The group "${group.title}" was deleted by ${req.user.email}.`,
             })));
+            eligible.forEach(u => sendToUser(User, u._id, { title: 'Group Deleted', body: `The group "${group.title}" was deleted by ${req.user.email}.`, data: { type: 'group_deleted' } }));
           }
         }).catch(() => {});
     }
@@ -1322,6 +1329,7 @@ exports.leaveGroup = async (req, res) => {
           });
         }
       }).catch(() => {});
+      sendToUser(User, group.creator, { title: 'Member Left Group', body: `${req.user.email} left the group "${group.title}".`, data: { type: 'group_member_left' } });
     } catch (e) {
       console.error('Failed to send member left email:', e);
     }
@@ -1397,6 +1405,7 @@ exports.deleteExpense = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${req.user.email} deleted the expense "${deletedExpense.description}" from group "${group.title}".`,
           })));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Expense Deleted', body: `${req.user.email} deleted the expense "${deletedExpense.description}" from group "${group.title}".`, data: { type: 'group_expense_deleted' } }));
         }
       }
     } catch (e) {
@@ -1616,6 +1625,7 @@ exports.editExpense = async (req, res) => {
             recipients: [u._id], recipientModel: 'User', category: 'group',
             message: `${userEmail} edited the expense "${description}" in group "${group.title}".`,
           })));
+          eligible.forEach(u => sendToUser(User, u._id, { title: 'Expense Edited ✏️', body: `${userEmail} edited the expense "${description}" in group "${group.title}".`, data: { type: 'group_expense_edited' } }));
         }
       }
     } catch (e) {
@@ -1736,6 +1746,7 @@ exports.settleMemberExpenses = async (req, res) => {
           message: `${req.user.email} marked your expenses as settled in group "${group.title}".`,
         });
       }
+      sendToUser(User, user._id, { title: 'Expenses Settled ✅', body: `${req.user.email} marked your expenses as settled in group "${group.title}".`, data: { type: 'group_expenses_settled' } });
     } catch (e) {
       console.error('Failed to log group activity:', e);
     }
@@ -1867,6 +1878,7 @@ exports.recordMemberPayment = async (req, res) => {
           message: `Group settlement: You received ₹${parsedAmount} from ${req.user.email} for group "${group.title}".`,
         }));
       }
+      sendToUser(User, payee._id, { title: 'Group Settlement Received 💰', body: `You received ₹${parsedAmount} from ${req.user.email} for group "${group.title}".`, data: { type: 'group_settlement_received' } });
       return Promise.all(notifs);
     }).catch(() => {});
   } catch (err) {
@@ -2068,6 +2080,7 @@ exports.settleExpenseSplits = async (req, res) => {
           recipients: [u._id], recipientModel: 'User', category: 'group',
           message: `${req.user.email} settled your split for expense "${expense.description}" in group "${group.title}".`,
         })));
+        settledUsers.forEach(u => sendToUser(User, u._id, { title: 'Split Settled ✅', body: `${req.user.email} settled your split for expense "${expense.description}" in group "${group.title}".`, data: { type: 'group_split_settled' } }));
       }
     } catch (e) {
       console.error('Failed to log group activity or send email:', e);
@@ -2157,6 +2170,7 @@ exports.sendLeaveRequest = async (req, res) => {
           });
         }
       }).catch(() => {});
+      sendToUser(User, group.creator._id, { title: 'Leave Request 🚪', body: `${user.email} requested to leave the group "${group.title}".`, data: { type: 'group_leave_request' } });
     } else {
       res.status(500).json({ error: 'Failed to send leave request email' });
     }
@@ -2586,6 +2600,7 @@ exports.joinByCode = async (req, res) => {
         });
       }
     }).catch(() => {});
+    sendToUser(User, group.creator, { title: 'New Member Joined 👋', body: `${userEmail} joined the group "${group.title}" via invite link.`, data: { type: 'group_member_joined' } });
   } catch (err) {
     res.status(500).json({ error: 'Failed to join group' });
   }

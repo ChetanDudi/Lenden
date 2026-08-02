@@ -17,6 +17,7 @@ const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const { getCoinPricing } = require('../utils/coinPricing');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 const isBlockedBy = (user, other) =>
   (user.blockedUsers || []).some(
@@ -685,6 +686,7 @@ exports.createTransaction = async (req, res) => {
             message: `${userEmail} recorded a ${role} transaction of ₹${amount} with you.`,
           });
         }
+        sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
       }
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
@@ -1028,6 +1030,7 @@ exports.clearTransaction = async (req, res) => {
               message: `${email} cleared their side of the transaction. It is now ${transaction.userCleared && transaction.counterpartyCleared ? 'fully cleared' : 'partially cleared'}.`,
             });
           }
+          sendToUser(User, otherPartyDoc._id, { title: 'New Transaction 📝', body: `${email} cleared their side of the transaction.`, data: { type: 'quick_transaction' } });
         }
       } catch (e) {
         console.error('Failed to log transaction activity:', e);
@@ -1452,6 +1455,7 @@ exports.processPartialPayment = async (req, res) => {
           message: `You received a partial payment of ₹${amount} from ${payerEmail}.`,
         }));
       }
+      sendToUser(User, payee._id, { title: 'New Transaction 📝', body: `You received a partial payment of ₹${amount} from ${payerEmail}.`, data: { type: 'quick_transaction' } });
       return Promise.all(notifs);
     }).catch(() => {});
 

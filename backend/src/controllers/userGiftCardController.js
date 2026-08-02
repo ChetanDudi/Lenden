@@ -3,6 +3,7 @@ const GiftCard = require('../models/giftCard');
 const User = require('../models/user');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 // Helper: Check if user should get gift card (guaranteed once per window)
 // Uses deterministic hash based on userId + windowNumber to pick random position
@@ -61,6 +62,7 @@ exports.awardGiftCard = async (userId, awardedFrom) => {
         });
       }
     }).catch(() => {});
+    sendToUser(User, userId, { title: 'You Earned a Gift Card 🎁', body: 'Scratch and reveal your LenDen coins!', data: { type: 'gift_card' } });
 
     return userGiftCard;
   } catch (error) {

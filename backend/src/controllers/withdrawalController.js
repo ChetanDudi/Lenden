@@ -198,6 +198,7 @@ exports.initiateWithdrawal = async (req, res) => {
           type: 'credit',
           amount: parsedAmount,
           note: 'Withdrawal failed — auto refund',
+          sourceType: 'withdrawal',
         });
         await WithdrawalRequest.findByIdAndUpdate(withdrawal._id, {
           status: 'failed',
