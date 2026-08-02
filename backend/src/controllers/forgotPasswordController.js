@@ -52,6 +52,9 @@ exports.verifyResetOtp = async (req, res) => {
     }
     if (stored.code !== otp) return res.status(400).json({ error: 'Invalid OTP' });
 
+    record.resetOTP.verified = true;
+    await record.save();
+
     const userType = user ? 'user' : 'admin';
     res.status(200).json({ message: 'OTP verified', userType });
   } catch (err) {
@@ -74,9 +77,10 @@ exports.resetPassword = async (req, res) => {
     const record = await Model.findOne({ email });
     if (!record) return res.status(404).json({ error: 'User not found' });
 
-    // Verify the OTP was actually confirmed (stored code must exist and be unexpired)
+    // Verify the OTP was actually confirmed via verifyResetOtp (stored code must exist,
+    // be unexpired, and the verified flag must have been set by verifyResetOtp).
     const stored = record.resetOTP;
-    if (!stored || !stored.code || new Date() > stored.expiry) {
+    if (!stored || !stored.code || new Date() > stored.expiry || !stored.verified) {
       return res.status(400).json({ error: 'OTP not verified or expired. Please restart the reset flow.' });
     }
 

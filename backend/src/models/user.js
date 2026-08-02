@@ -70,6 +70,7 @@ const userSchema = new mongoose.Schema({
     code: { type: String },
     expiry: { type: Date },
     sentAt: { type: Date },
+    verified: { type: Boolean, default: false },
   },
   setPasswordOTP: {
     code: { type: String },

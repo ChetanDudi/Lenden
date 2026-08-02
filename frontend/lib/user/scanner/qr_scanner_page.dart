@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
 import '../../session.dart';
 import 'package:image_picker/image_picker.dart';
@@ -894,7 +895,7 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
           decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(24)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -910,10 +911,10 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
               ),
               const SizedBox(height: 10),
               Text(widget.recipientName,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0B1F33))),
+                      color: AppThemeColors.primaryText(context))),
               const SizedBox(height: 2),
               Text(widget.recipientEmail,
                   style: TextStyle(
@@ -980,10 +981,10 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
             const TextInputType.numberWithOptions(decimal: true),
         readOnly: widget.presetAmount != null,
         enabled: !_paying,
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF0B1F33)),
+            color: AppThemeColors.primaryText(context)),
         textAlign: TextAlign.center,
         decoration: _fieldDeco('Amount (₹)',
             const Icon(Icons.currency_rupee_rounded, color: _sky)),
@@ -1003,7 +1004,7 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
             TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
         prefixIcon: prefix,
         filled: true,
-        fillColor: const Color(0xFFF8F6FA),
+        fillColor: AppThemeColors.surfaceBg(context),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: Colors.blueGrey.shade200)),

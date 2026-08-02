@@ -849,7 +849,7 @@ class _ManageQuickTransactionsPageState
                         light: const Color(0xFFEDF4FF),
                         dark: const Color(0xFF1B3A57)),
                     labelStyle:
-                        const TextStyle(color: Color(0xFF2563EB)),
+                        TextStyle(color: AppThemeColors.tinted(context, light: const Color(0xFF2563EB), dark: AppColors.cyan)),
                   ),
               ],
             ),

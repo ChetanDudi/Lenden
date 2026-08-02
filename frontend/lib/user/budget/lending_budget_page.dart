@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 
@@ -88,13 +89,13 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
     final isNearLimit = _budget?['isNearLimit'] == true;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Monthly Lending Budget',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('Monthly Lending Budget',
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -108,14 +109,14 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('This Month',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                              style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                           const SizedBox(height: 6),
                           Text(
                             '₹${currentMonthLent.toStringAsFixed(0)}'
@@ -149,7 +150,7 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
                                     ? Colors.red
                                     : isNearLimit
                                         ? Colors.orange[800]
-                                        : Colors.grey[600],
+                                        : AppThemeColors.mutedText(context),
                                 fontSize: 13,
                                 fontWeight: isOverLimit || isNearLimit
                                     ? FontWeight.w600
@@ -158,7 +159,7 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
                             ),
                           ] else
                             Text('No monthly limit set. Set one below to track your lending.',
-                                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                                style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                         ],
                       ),
                     ),
@@ -169,7 +170,7 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
                   const SizedBox(height: 8),
                   Text(
                     'Get warned when your total lending this month approaches this amount. Leave empty to disable.',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
                   ),
                   const SizedBox(height: 12),
                   TextField(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
 
 class MyDisputesPage extends StatefulWidget {
@@ -68,13 +69,13 @@ class _MyDisputesPageState extends State<MyDisputesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('My Disputes',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('My Disputes',
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -106,7 +107,7 @@ class _MyDisputesPageState extends State<MyDisputesPage> {
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppThemeColors.cardBg(context),
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
@@ -144,12 +145,12 @@ class _MyDisputesPageState extends State<MyDisputesPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text((d['description'] ?? '').toString(),
-                                    style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                                    style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Transaction type: ${(d['transactionType'] ?? '').toString()}'
                                   '${createdAt != null ? ' • ${DateFormat('MMM dd, yyyy').format(createdAt)}' : ''}',
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                                  style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
                                 ),
                                 if (d['resolution'] != null &&
                                     (d['resolution'] as String).isNotEmpty) ...[
@@ -157,13 +158,13 @@ class _MyDisputesPageState extends State<MyDisputesPage> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF0F7FF),
+                                      color: AppThemeColors.tinted(context, light: Color(0xFFF0F7FF), dark: Color(0xFF0A1929)),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       'Admin resolution: ${d['resolution']}',
-                                      style: const TextStyle(
-                                          fontSize: 12, color: Color(0xFF0B4E8A)),
+                                      style: TextStyle(
+                                          fontSize: 12, color: AppThemeColors.primaryText(context)),
                                     ),
                                   ),
                                 ],

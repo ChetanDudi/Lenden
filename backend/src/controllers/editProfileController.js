@@ -24,6 +24,10 @@ exports.updateUserProfile = async (req, res) => {
     if (req.body.removeImage) {
       update.$unset = { profileImage: 1 };
     } else if (req.file) {
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedImageTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: 'Profile image must be a JPEG, PNG, GIF, or WebP file.' });
+      }
       update.profileImage = req.file.buffer;
     }
 
@@ -54,9 +58,13 @@ exports.updateAdminProfile = async (req, res) => {
     if (req.body.removeImage) {
       update.$unset = { profileImage: 1 };
     } else if (req.file) {
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedImageTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: 'Profile image must be a JPEG, PNG, GIF, or WebP file.' });
+      }
       update.profileImage = req.file.buffer;
     }
-    
+
     const admin = await Admin.findByIdAndUpdate(adminId, update, { new: true, runValidators: true }).select('-password');
     // Return admin object with profileImage as URL if exists
     const adminObj = admin.toObject();

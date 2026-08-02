@@ -123,7 +123,7 @@ async function detectSharedDevices() {
   const byDeviceId = new Map();
   for (const user of users) {
     for (const device of user.devices || []) {
-      if (!device.deviceId || device.lastActive < windowStart) continue;
+      if (!device.deviceId || !device.lastActive || device.lastActive < windowStart) continue;
       if (!byDeviceId.has(device.deviceId)) byDeviceId.set(device.deviceId, new Set());
       byDeviceId.get(device.deviceId).add(user.email);
     }

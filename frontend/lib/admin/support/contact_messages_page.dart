@@ -404,7 +404,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.green.shade50,
+                            color: AppThemeColors.tinted(context, light: Colors.green.shade50, dark: const Color(0xFF1A2E1F)),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                                 color: Colors.green.withValues(alpha: 0.3)),
@@ -433,7 +433,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                                     : '—',
                                 style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey[800],
+                                    color: AppThemeColors.primaryText(context),
                                     height: 1.5),
                               ),
                             ],

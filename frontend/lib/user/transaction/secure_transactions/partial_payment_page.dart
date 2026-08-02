@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../utils/theme_helper.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../utils/api_client.dart';
 import '../../../session.dart';
@@ -492,7 +493,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                 boxShadow: [
@@ -598,7 +599,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.cyan : Colors.white,
+          color: selected ? AppColors.cyan : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
               color: selected ? AppColors.cyan : Colors.grey.shade300),
@@ -632,7 +633,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         boxShadow: [
@@ -785,7 +786,7 @@ class _PartialPaymentPageState extends State<PartialPaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,

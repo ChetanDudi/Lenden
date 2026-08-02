@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/theme_helper.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/currency_display.dart';
 import '../../../widgets/wave_widget.dart';
@@ -134,7 +135,7 @@ class PaymentTimelinePage extends StatelessWidget {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -182,11 +183,11 @@ class PaymentTimelinePage extends StatelessWidget {
                     const Icon(Icons.timeline, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text('Payment Timeline',
+              Text('Payment Timeline',
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0077B6))),
+                      color: AppThemeColors.primaryText(context))),
             ]),
             const SizedBox(height: 24),
             _timelineItem(

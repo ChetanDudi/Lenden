@@ -448,6 +448,11 @@ exports.updateQuickTransaction = async (req, res) => {
     const { amount, currency, date, time, description, role } = req.body;
     const userEmail = req.user.email;
 
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0 || !isFinite(parsedAmount)) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+
     const quickTransaction = await QuickTransaction.findById(id);
 
     if (!quickTransaction) {
@@ -462,7 +467,7 @@ exports.updateQuickTransaction = async (req, res) => {
       return res.status(403).json({ error: 'User not authorized to update this transaction' });
     }
 
-    quickTransaction.amount = amount;
+    quickTransaction.amount = parsedAmount;
     quickTransaction.currency = currency;
     quickTransaction.date = date;
     quickTransaction.time = time;

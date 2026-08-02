@@ -1234,7 +1234,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: item.backgroundColor,
+              color: AppThemeColors.isDark(context) ? AppThemeColors.cardBg(context) : item.backgroundColor,
               borderRadius: BorderRadius.circular(20),
             ),
             child: SizedBox(
@@ -1262,8 +1262,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       item.label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black87,
+                      style: TextStyle(
+                        color: AppThemeColors.primaryText(context),
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         height: 1.18,
@@ -1286,7 +1286,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[700],
+                          color: AppThemeColors.secondaryText(context),
                           height: 1.25,
                         ),
                       ),
@@ -1748,7 +1748,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Container(
               margin: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: backgroundColor,
+                color: AppThemeColors.isDark(context) ? AppThemeColors.cardBg(context) : backgroundColor,
                 borderRadius: BorderRadius.circular(20),
               ),
               padding: const EdgeInsets.all(14),
@@ -1769,10 +1769,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                          color: AppThemeColors.primaryText(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1782,7 +1782,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[700],
+                          color: AppThemeColors.secondaryText(context),
                         ),
                       ),
                     ],
@@ -1800,14 +1800,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: AppThemeColors.cardBg(context),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
         '$label: $value',
         style: const TextStyle(
           fontWeight: FontWeight.w700,
-          color: Color(0xFF24657A),
+          color: AppColors.cyan,
         ),
       ),
     );
@@ -1822,7 +1822,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF4F1),
+        color: AppThemeColors.tinted(context, light: const Color(0xFFFFF4F1), dark: const Color(0xFF2D1A17)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -1832,7 +1832,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context)),
             ),
           ),
           TextButton(

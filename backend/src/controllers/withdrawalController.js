@@ -22,7 +22,7 @@ exports.initiateWithdrawal = async (req, res) => {
 
   // Input validation
   const parsedAmount = parseFloat(amount);
-  if (!parsedAmount || parsedAmount < MIN_WITHDRAWAL) {
+  if (!parsedAmount || !isFinite(parsedAmount) || parsedAmount < MIN_WITHDRAWAL) {
     return res.status(400).json({ error: `Minimum withdrawal is ₹${MIN_WITHDRAWAL}` });
   }
   if (!mode || !['bank_account', 'upi'].includes(mode)) {

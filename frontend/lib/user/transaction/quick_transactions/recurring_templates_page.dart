@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../../utils/api_client.dart';
+import '../../../utils/theme_helper.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
 
@@ -71,9 +72,9 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
             minChildSize: 0.4,
             maxChildSize: 0.92,
             builder: (_, scrollController) => Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              decoration: BoxDecoration(
+                color: AppThemeColors.cardBg(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: Column(
                 children: [
@@ -95,11 +96,11 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                         ),
                         const SizedBox(width: 12),
                         Text('Select Friend',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[900])),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
                         const Spacer(),
                         IconButton(
                           onPressed: () => Navigator.pop(ctx),
-                          icon: Icon(Icons.close, color: Colors.grey[600], size: 22),
+                          icon: Icon(Icons.close, color: AppThemeColors.mutedText(ctx), size: 22),
                         ),
                       ],
                     ),
@@ -122,7 +123,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                   const Divider(height: 1),
                   Expanded(
                     child: filtered.isEmpty
-                        ? Center(child: Text('No friends found', style: TextStyle(color: Colors.grey[500])))
+                        ? Center(child: Text('No friends found', style: TextStyle(color: AppThemeColors.mutedText(ctx))))
                         : ListView.separated(
                             controller: scrollController,
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -141,9 +142,9 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: AppThemeColors.surfaceBg(ctx),
                                     borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.grey[200]!),
+                                    border: Border.all(color: AppThemeColors.border(ctx)),
                                   ),
                                   child: Row(
                                     children: [
@@ -162,7 +163,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                                             if (name.isNotEmpty)
                                               Text(email,
-                                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                                  style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(ctx)),
                                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                                           ],
                                         ),
@@ -267,7 +268,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          backgroundColor: Colors.white,
+          backgroundColor: AppThemeColors.cardBg(context),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: SingleChildScrollView(
@@ -304,9 +305,9 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                     const SizedBox(height: 4),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppThemeColors.surfaceBg(context),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
+                        border: Border.all(color: AppThemeColors.border(context)),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -480,13 +481,13 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Recurring Templates',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('Recurring Templates',
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.cyan,
@@ -523,7 +524,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
@@ -554,24 +555,24 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                             ),
                             if ((t['description'] ?? '').toString().isNotEmpty) ...[
                               const SizedBox(height: 4),
-                              Text(t['description'], style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                              Text(t['description'], style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13)),
                             ],
                             const SizedBox(height: 8),
                             Text(
                               '${_label((t['role'] ?? '').toString())} • ${_label((t['frequency'] ?? '').toString())}'
                               '${nextRun != null ? ' • Next: ${DateFormat('MMM dd, yyyy').format(nextRun)}' : ''}',
-                              style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                              style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
                             ),
                             if (!isActive && (t['pausedReason'] ?? '').toString().isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF3E0),
+                                  color: AppThemeColors.tinted(context, light: const Color(0xFFFFF3E0), dark: const Color(0xFF2B1A00)),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text('Paused: ${t['pausedReason']}',
-                                    style: const TextStyle(fontSize: 12, color: Color(0xFF8A5A00))),
+                                    style: TextStyle(fontSize: 12, color: AppThemeColors.isDark(context) ? Colors.orange[400]! : const Color(0xFF8A5A00))),
                               ),
                             ],
                             const SizedBox(height: 8),

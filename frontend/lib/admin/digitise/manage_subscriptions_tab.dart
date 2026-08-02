@@ -89,7 +89,7 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab>
         '$label: $value',
         style: const TextStyle(
           fontWeight: FontWeight.bold,
-          color: Color(0xFF0077B5),
+          color: AppColors.cyan,
         ),
       ),
     );

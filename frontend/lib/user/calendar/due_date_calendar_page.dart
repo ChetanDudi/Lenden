@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
+import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
 
 class DueDateCalendarPage extends StatefulWidget {
@@ -74,13 +75,13 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
     final selectedItems = _itemsByDay[_dayKey(_selectedDay)] ?? [];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F6FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: const Text('Due Date Calendar',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('Due Date Calendar',
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -92,7 +93,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -132,7 +133,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
                                     child: Center(
                                       child: Text(d,
                                           style: TextStyle(
-                                              color: Colors.grey[500],
+                                              color: AppThemeColors.mutedText(context),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 12)),
                                     ),
@@ -179,7 +180,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
                                             ? Colors.grey[400]
                                             : isSelected
                                                 ? Colors.white
-                                                : Colors.black87,
+                                                : AppThemeColors.primaryText(context),
                                         fontWeight:
                                             isToday || isSelected ? FontWeight.bold : FontWeight.normal,
                                         fontSize: 13,
@@ -224,7 +225,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Center(
                         child: Text('No due dates on this day.',
-                            style: TextStyle(color: Colors.grey[500])),
+                            style: TextStyle(color: AppThemeColors.mutedText(context))),
                       ),
                     )
                   else
@@ -234,7 +235,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppThemeColors.cardBg(context),
                           borderRadius: BorderRadius.circular(14),
                           border: Border(left: BorderSide(color: _dotColor(item), width: 4)),
                         ),
@@ -257,7 +258,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
                                       isTemplate
                                           ? 'Recurring (${item['frequency']})'
                                           : (item['cleared'] == true ? 'Cleared' : 'Due • ${item['role']}'),
-                                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                      style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12),
                                     ),
                                   ],
                                 ),

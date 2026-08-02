@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../utils/theme_helper.dart';
 import '../../../widgets/currency_display.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../utils/responsive.dart';
@@ -58,7 +59,7 @@ class PartialPaymentHistoryPage extends StatelessWidget {
         0, (s, p) => s + ((p['amount'] as num?) ?? 0).toDouble());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -169,7 +170,7 @@ class PartialPaymentHistoryPage extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppThemeColors.cardBg(context),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -222,14 +223,14 @@ class PartialPaymentHistoryPage extends StatelessWidget {
                               DateFormat('MMM d, yyyy  hh:mm a')
                                   .format(parsedDate.toLocal()),
                               style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[500]),
+                                  fontSize: 11, color: AppThemeColors.mutedText(context)),
                             ),
                           if (paidByEmail.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text('Paid by: $paidByEmail',
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[700])),
+                                    color: AppThemeColors.secondaryText(context))),
                           ],
                           if (method.isNotEmpty) ...[
                             const SizedBox(height: 4),
@@ -241,7 +242,7 @@ class PartialPaymentHistoryPage extends StatelessWidget {
                                         ? Icons.credit_card
                                         : Icons.receipt_long,
                                 size: 12,
-                                color: Colors.grey[500],
+                                color: AppThemeColors.mutedText(context),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -260,7 +261,7 @@ class PartialPaymentHistoryPage extends StatelessWidget {
                             Text('Note: $desc',
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[600])),
+                                    color: AppThemeColors.secondaryText(context))),
                           ],
                         ],
                       ),

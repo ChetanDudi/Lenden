@@ -436,8 +436,8 @@ class _FraudAlertsPageState extends State<FraudAlertsPage> {
                                                 ),
                                                 child: Text(
                                                   '${t('note_label_colon')} ${a['reviewNote']}',
-                                                  style: const TextStyle(
-                                                      fontSize: 12, color: Color(0xFF0B4E8A)),
+                                                  style: TextStyle(
+                                                      fontSize: 12, color: AppThemeColors.primaryText(context)),
                                                 ),
                                               ),
                                             ],

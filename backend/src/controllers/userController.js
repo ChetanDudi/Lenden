@@ -91,6 +91,10 @@ exports.register = async (req, res) => {
     if (!name || !username || !email || !password || !gender || !['Male', 'Female', 'Other'].includes(gender)) {
       return res.status(400).json({ error: 'All fields including gender are required and must be valid.' });
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format.' });
+    }
     
   // Rating validation removed
     
@@ -579,7 +583,7 @@ exports.googleLogin = async (req, res) => {
     user.devices = (user.devices || []).filter((d) => d.deviceId !== deviceId);
     user.devices.push({ deviceId, userAgent: deviceName, ipAddress, lastActive: now, createdAt: now });
 
-    const dailyReward = applyDailyLoginReward(user);
+    const dailyReward = await applyDailyLoginReward(user);
     await user.save();
     await recordDailyLoginRewardIfNeeded(user, dailyReward);
 
@@ -836,11 +840,11 @@ exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('name email gender chatEncryptionDevices');
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

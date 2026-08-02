@@ -368,8 +368,8 @@ class _ManageDisputesPageState extends State<ManageDisputesPage> {
                                                 ),
                                                 child: Text(
                                                   '${t('resolution_label_colon')} ${d['resolution']}',
-                                                  style: const TextStyle(
-                                                      fontSize: 12, color: Color(0xFF0B4E8A)),
+                                                  style: TextStyle(
+                                                      fontSize: 12, color: AppThemeColors.primaryText(context)),
                                                 ),
                                               ),
                                             ],

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../utils/theme_helper.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/currency_display.dart';
 import '../../../widgets/wave_widget.dart';
@@ -55,7 +56,7 @@ class RepaymentSchedulePage extends StatelessWidget {
     final interestType = t['interestType']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppThemeColors.scaffoldBg(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -104,11 +105,11 @@ class RepaymentSchedulePage extends StatelessWidget {
                     color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text('Repayment Schedule',
+              Text('Repayment Schedule',
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0077B6))),
+                      color: AppThemeColors.primaryText(context))),
             ]),
             const SizedBox(height: 16),
 
@@ -117,7 +118,7 @@ class RepaymentSchedulePage extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppThemeColors.cardBg(context),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: const [
                   BoxShadow(
@@ -145,12 +146,12 @@ class RepaymentSchedulePage extends StatelessWidget {
                             fontWeight: FontWeight.bold, fontSize: 14)),
                   ]),
                   const SizedBox(height: 12),
-                  _summaryRow('Interest Type',
+                  _summaryRow(context, 'Interest Type',
                       interestType == 'simple' ? 'Simple' : 'Compound'),
                   const SizedBox(height: 6),
-                  _summaryRow('Interest Rate', '$rate%'),
+                  _summaryRow(context, 'Interest Rate', '$rate%'),
                   const SizedBox(height: 6),
-                  _summaryRow('Current Remaining',
+                  _summaryRow(context, 'Current Remaining',
                       _formatDisplayAmount(remainingAmount, currency)),
                 ],
               ),
@@ -158,7 +159,7 @@ class RepaymentSchedulePage extends StatelessWidget {
             const SizedBox(height: 16),
 
             Text('Amount owed grows over time if not cleared.',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context)),
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
 
@@ -173,10 +174,10 @@ class RepaymentSchedulePage extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: isEarly
-                      ? Colors.green.shade50
+                      ? AppThemeColors.tinted(context, light: Colors.green.shade50, dark: const Color(0xFF0D2B0D))
                       : isMid
-                          ? Colors.orange.shade50
-                          : Colors.red.shade50,
+                          ? AppThemeColors.tinted(context, light: Colors.orange.shade50, dark: const Color(0xFF2B1A00))
+                          : AppThemeColors.tinted(context, light: Colors.red.shade50, dark: const Color(0xFF2B0A0A)),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                       color: isEarly
@@ -235,13 +236,13 @@ class RepaymentSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _summaryRow(String label, String value) {
+  Widget _summaryRow(BuildContext context, String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
             style:
-                TextStyle(fontSize: 13, color: Colors.grey[600])),
+                TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context))),
         Text(value,
             style: const TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w600)),
