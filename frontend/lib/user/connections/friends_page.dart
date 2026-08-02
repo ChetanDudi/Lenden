@@ -634,12 +634,10 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     setState(() => _pendingOutgoingIds.add(uid));
     final res = await ApiClient.post('/api/friends/request', body: {'userId': uid});
     if (res.statusCode == 201) {
-      await _fetchFriends();
       if (!mounted) return;
       _showSuccessDialog(t('request_sent_title'), t('friend_request_sent_success'), Icons.check_circle, Colors.green);
     } else if (res.statusCode == 200) {
-      // Already pending from a prior send — refresh to sync state
-      await _fetchFriends();
+      // Already pending — optimistic state is already correct
     } else {
       setState(() => _pendingOutgoingIds.remove(uid));
       showSnack(context, t('failed_to_send_request'), isError: true);
