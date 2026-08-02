@@ -14,6 +14,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/payment_success_page.dart';
+import '../../otp_input.dart';
+import '../../settings/set_wallet_pin_page.dart';
 import 'user_qr_page.dart';
 
 class QrScannerPage extends StatefulWidget {
@@ -72,93 +74,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
     showSnack(context, msg, isError: true);
   }
 
-  void _showSelfPayDialog(SessionProvider session) {
-    final name = session.user?['name']?.toString() ?? 'You';
-    final username = session.user?['username']?.toString() ?? '';
-    final email = session.user?['email']?.toString() ?? '';
-    final imageUrl = session.user?['profileImage']?.toString();
-    final gender = session.user?['gender']?.toString() ?? 'Other';
-    final hasImage = imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
-
-    Widget avatar = CircleAvatar(
-      radius: 36,
-      backgroundImage: hasImage
-          ? NetworkImage('$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}')
-              as ImageProvider
-          : AssetImage(gender == 'Male'
-              ? 'assets/Male.png'
-              : gender == 'Female'
-                  ? 'assets/Female.png'
-                  : 'assets/Other.png'),
-    );
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.person_pin_circle_rounded,
-                color: AppColors.cyan, size: 22),
-            const SizedBox(width: 8),
-            const Text("That's You!", style: TextStyle(fontSize: 18)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            avatar,
-            const SizedBox(height: 12),
-            Text(name,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
-            if (username.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text('@$username',
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColors.cyan)),
-            ],
-            if (email.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(email,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
-            const SizedBox(height: 14),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.4), width: 1),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline_rounded,
-                      size: 16, color: Colors.amber),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'This is your own QR code. You cannot send money to yourself.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Got it',
-                style: TextStyle(color: AppColors.cyan)),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── scanner callbacks ──────────────────────────────────────────────────────
   Future<void> _onDetect(BarcodeCapture capture) async {
@@ -353,8 +268,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
     final session = Provider.of<SessionProvider>(context, listen: false);
     final myId = session.user?['_id']?.toString() ?? '';
     if (userId == myId) {
-      _resetProcessing();
-      _showSelfPayDialog(session);
+      if (mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => _QrSelfPayPage(session: session)),
+        );
+        if (mounted) _resetProcessing();
+      }
       return;
     }
 
@@ -370,27 +290,31 @@ class _QrScannerPageState extends State<QrScannerPage> {
       final recipientName =
           (userData['name'] ?? userData['username'] ?? 'User').toString();
       final recipientEmail = (userData['email'] ?? '').toString();
+      final recipientUsername = (userData['username'] ?? '').toString();
+      final recipientGender = (userData['gender'] ?? 'Other').toString();
+      final recipientImageUrl = userData['profileImage']?.toString();
 
-      final paidAmount = await showDialog<double>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => _LenDenPaymentDialog(
-          recipientName: recipientName,
-          recipientEmail: recipientEmail,
-          userId: userId,
-          presetAmount:
-              amountStr != null ? double.tryParse(amountStr) : null,
-          note: note,
+      if (!mounted) return;
+      final paidAmount = await Navigator.push<double>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => _QrPaymentPage(
+            recipientName: recipientName,
+            recipientEmail: recipientEmail,
+            recipientUsername: recipientUsername,
+            recipientGender: recipientGender,
+            recipientImageUrl: recipientImageUrl,
+            userId: userId,
+            presetAmount: amountStr != null ? double.tryParse(amountStr) : null,
+            note: note,
+          ),
         ),
       );
 
       if (!mounted) return;
       if (paidAmount != null) {
-        // Capture the NavigatorState before pushReplacement — once this page
-        // is replaced, its own `context` becomes defunct, so onDone (invoked
-        // later when the user taps "Done") must not look it up again.
-        final navigator = Navigator.of(context);
-        navigator.pushReplacement(
+        await Navigator.push(
+          context,
           MaterialPageRoute(
             builder: (_) => PaymentSuccessPage(
               title: 'Payment Successful!',
@@ -400,10 +324,12 @@ class _QrScannerPageState extends State<QrScannerPage> {
               extraDetails: {
                 if (note.isNotEmpty) 'Note': note,
               },
-              onDone: () => navigator.pop(true),
+              onDone: () => Navigator.of(context).pop(),
             ),
           ),
         );
+        // Success page dismissed — bring scanner back to ready state
+        if (mounted) _resetProcessing();
       } else {
         _resetProcessing();
       }
@@ -796,33 +722,56 @@ class _BottomBtn extends StatelessWidget {
   }
 }
 
-// ── LenDen wallet-to-wallet dialog ───────────────────────────────────────────
+// ── Auth mode enum ────────────────────────────────────────────────────────────
 
-class _LenDenPaymentDialog extends StatefulWidget {
+// ── QR Payment full page ──────────────────────────────────────────────────────
+
+class _QrPaymentPage extends StatefulWidget {
   final String recipientName;
   final String recipientEmail;
+  final String recipientUsername;
+  final String recipientGender;
+  final String? recipientImageUrl;
   final String userId;
   final double? presetAmount;
   final String note;
 
-  const _LenDenPaymentDialog({
+  const _QrPaymentPage({
     required this.recipientName,
     required this.recipientEmail,
+    required this.recipientUsername,
+    required this.recipientGender,
     required this.userId,
+    this.recipientImageUrl,
     this.presetAmount,
     this.note = '',
   });
 
   @override
-  State<_LenDenPaymentDialog> createState() => _LenDenPaymentDialogState();
+  State<_QrPaymentPage> createState() => _QrPaymentPageState();
 }
 
-class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
+class _QrPaymentPageState extends State<_QrPaymentPage> {
   static const _sky = AppColors.cyan;
   static const _deep = Color(0xFF0077B6);
 
   final _amountCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
+  final _noteCtrl   = TextEditingController();
+
+  // Two-step flow
+  bool _showAuth    = false;
+  double? _balance;
+
+  // Auth state — mirrors _WalletAuthStep in lenden_wallet_page.dart
+  bool _hasPinSet    = false;
+  bool _usePinMode   = true;
+  String _code       = '';
+  bool _sendingOtp   = false;
+  bool _otpSent      = false;
+  String _otpEmail   = '';
+  int _timeRemaining = 120;
+  Timer? _timer;
+
   bool _paying = false;
   String? _error;
 
@@ -832,42 +781,130 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
     if (widget.presetAmount != null)
       _amountCtrl.text = widget.presetAmount!.toStringAsFixed(2);
     if (widget.note.isNotEmpty) _noteCtrl.text = widget.note;
+    _loadPinStatus();
+    _loadBalance();
   }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
-  Future<void> _pay() async {
+  Future<void> _loadBalance() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/balance');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() => _balance = (data['balance'] ?? 0).toDouble());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadPinStatus() async {
+    try {
+      final res = await ApiClient.get('/api/wallet/pin/status');
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _hasPinSet   = data['hasPin'] == true;
+          _usePinMode  = _hasPinSet;
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) { timer.cancel(); return; }
+      setState(() {
+        if (_timeRemaining > 0) _timeRemaining--;
+        else timer.cancel();
+      });
+    });
+  }
+
+  String _formatTime(int s) =>
+      '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
+
+  void _goToAuth() {
     final amount = double.tryParse(_amountCtrl.text.trim());
     if (amount == null || amount <= 0) {
       setState(() => _error = 'Enter a valid amount greater than ₹0.');
       return;
     }
-    setState(() { _paying = true; _error = null; });
-    try {
-      final res = await ApiClient.post('/api/wallet/qr-pay', body: {
-        'toUserId': widget.userId,
-        'amount': amount,
-        'note': _noteCtrl.text.trim().isEmpty
-            ? 'QR Payment'
-            : _noteCtrl.text.trim(),
-      }).timeout(const Duration(seconds: 15));
+    if (_balance != null && amount > _balance!) {
+      setState(() => _error =
+          'Insufficient balance. Your wallet has ₹${_balance!.toStringAsFixed(2)}.');
+      return;
+    }
+    setState(() { _showAuth = true; _error = null; });
+  }
 
+  void _backToDetails() {
+    _timer?.cancel();
+    setState(() {
+      _showAuth = false;
+      _error    = null;
+      _code     = '';
+      _otpSent  = false;
+    });
+  }
+
+  Future<void> _sendOtp() async {
+    setState(() { _sendingOtp = true; _error = null; });
+    try {
+      final res = await ApiClient.post('/api/wallet/auth/send-otp', body: {});
       if (!mounted) return;
       if (res.statusCode == 200) {
-        final body = jsonDecode(res.body);
-        Navigator.of(context).pop(amount);
-        showSnack(context, 'Paid ₹${amount.toStringAsFixed(2)} to ${widget.recipientName}. Balance: ₹${(body['balance'] ?? 0).toStringAsFixed(2)}');
-      } else {
-        final body = jsonDecode(res.body);
+        final data = jsonDecode(res.body);
         setState(() {
-          _error = body['error'] ?? 'Payment failed.';
-          _paying = false;
+          _sendingOtp    = false;
+          _otpSent       = true;
+          _otpEmail      = (data['email'] ?? '').toString();
+          _timeRemaining = 120;
+          _code          = '';
         });
+        _startTimer();
+      } else {
+        final b = jsonDecode(res.body);
+        setState(() { _error = b['error'] ?? 'Failed to send OTP.'; _sendingOtp = false; });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() { _error = 'Network error. Try again.'; _sendingOtp = false; });
+    }
+  }
+
+  Future<void> _confirm() async {
+    if (_code.length != 6) {
+      setState(() => _error = 'Please enter a valid 6-digit code.');
+      return;
+    }
+    _timer?.cancel();
+    setState(() { _paying = true; _error = null; });
+    try {
+      final amount = double.parse(_amountCtrl.text.trim());
+      final body   = <String, dynamic>{
+        'toUserId': widget.userId,
+        'amount'  : amount,
+        'note'    : _noteCtrl.text.trim().isEmpty ? 'QR Payment' : _noteCtrl.text.trim(),
+        if (_usePinMode)  'authPin': _code,
+        if (!_usePinMode) 'authOtp': _code,
+      };
+      final res = await ApiClient.post('/api/wallet/qr-pay', body: body)
+          .timeout(const Duration(seconds: 15));
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        Navigator.of(context).pop(amount);
+      } else {
+        final b = jsonDecode(res.body);
+        setState(() { _error = b['error'] ?? 'Payment failed.'; _paying = false; });
       }
     } on TimeoutException {
       if (!mounted) return;
@@ -880,155 +917,623 @@ class _LenDenPaymentDialogState extends State<_LenDenPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        padding: const EdgeInsets.all(2),
+    final hasImage  = widget.recipientImageUrl != null &&
+        widget.recipientImageUrl!.isNotEmpty &&
+        widget.recipientImageUrl != 'null';
+    final genderIcon = widget.recipientGender == 'Male'
+        ? Icons.person_rounded
+        : widget.recipientGender == 'Female'
+            ? Icons.person_2_rounded
+            : Icons.person_outline_rounded;
+
+    return PopScope(
+      canPop: !_showAuth,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _showAuth && !_paying) _backToDetails();
+      },
+      child: Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 230,
+            backgroundColor: _deep,
+            foregroundColor: Colors.white,
+            leading: _showAuth
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    onPressed: _paying ? null : _backToDetails,
+                  )
+                : null,
+            title: Text(
+              _showAuth ? 'Authorise Payment' : 'Pay via QR',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_deep, _sky],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 44),
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 40,
+                          backgroundColor: _deep,
+                          backgroundImage: hasImage
+                              ? NetworkImage(widget.recipientImageUrl!) as ImageProvider
+                              : null,
+                          child: !hasImage
+                              ? Icon(genderIcon, color: Colors.white, size: 38)
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(widget.recipientName,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold)),
+                      if (widget.recipientUsername.isNotEmpty)
+                        Text('@${widget.recipientUsername}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      Text(widget.recipientEmail,
+                          style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                _showAuth ? _buildAuthStep() : _buildPaymentStep(),
+              ),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  // ── Step 1: amount + note ────────────────────────────────────────────────────
+
+  List<Widget> _buildPaymentStep() => [
+    _fieldBox('Amount (₹)', Icons.currency_rupee_rounded,
+        TextField(
+          controller: _amountCtrl,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          readOnly: widget.presetAmount != null,
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppThemeColors.primaryText(context)),
+          textAlign: TextAlign.center,
+          decoration: _inputDeco('Enter amount'),
+        )),
+    const SizedBox(height: 12),
+    _fieldBox('Note (optional)', Icons.note_outlined,
+        TextField(
+          controller: _noteCtrl,
+          style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context)),
+          decoration: _inputDeco('e.g. Lunch split'),
+        )),
+    const SizedBox(height: 16),
+    if (_balance != null)
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: AppThemeColors.tinted(context,
+              light: const Color(0xFFF0F7FF),
+              dark: const Color(0xFF16323A)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          const Icon(Icons.account_balance_wallet_rounded,
+              size: 15, color: AppColors.cyan),
+          const SizedBox(width: 8),
+          Text('Wallet balance: ',
+              style: TextStyle(
+                  fontSize: 13, color: AppThemeColors.secondaryText(context))),
+          Text('₹${_balance!.toStringAsFixed(2)}',
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.cyan)),
+        ]),
+      ),
+    if (_error != null) ...[
+      const SizedBox(height: 12),
+      _errorBox(_error!),
+    ],
+    const SizedBox(height: 20),
+    SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _goToAuth,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _sky,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+        label: const Text('Continue',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      ),
+    ),
+  ];
+
+  // ── Step 2: PIN / OTP auth — identical look to _WalletAuthStep ───────────────
+
+  List<Widget> _buildAuthStep() {
+    final busy = _sendingOtp || _paying;
+    return [
+      Row(children: [
+        _modeTab('Use PIN', Icons.dialpad_rounded, true),
+        const SizedBox(width: 8),
+        _modeTab('Use Email OTP', Icons.email_outlined, false),
+      ]),
+      const SizedBox(height: 16),
+
+      if (_usePinMode) ...[
+        if (!_hasPinSet) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [
+                Icon(Icons.info_outline_rounded, color: Colors.orange, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                    child: Text("You haven't set a transaction PIN yet.",
+                        style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500))),
+              ]),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cyan,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.dialpad_rounded, color: Colors.white, size: 16),
+                  label: const Text('Set Up PIN',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  onPressed: () async {
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SetWalletPinPage()));
+                    _loadPinStatus();
+                  },
+                ),
+              ),
+            ]),
+          ),
+        ] else ...[
+          Text('Enter your wallet PIN',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppThemeColors.secondaryText(context))),
+          const SizedBox(height: 10),
+          Center(
+              child: OtpInput(
+            key: const ValueKey('pin'),
+            onChanged: (code) => setState(() { _code = code; _error = null; }),
+            enabled: !busy,
+            autoFocus: true,
+            obscureText: true,
+            showVisibilityToggle: true,
+          )),
+        ],
+      ],
+
+      if (!_usePinMode) ...[
+        if (!_otpSent) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.cyan,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: _sendingOtp
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.email_outlined, color: Colors.white),
+              label: Text(_sendingOtp ? 'Sending…' : 'Send OTP to Email',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              onPressed: busy ? null : _sendOtp,
+            ),
+          ),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppThemeColors.tinted(context,
+                  light: const Color(0xFFF0F7FF),
+                  dark: const Color(0xFF16323A)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('OTP sent to',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppThemeColors.secondaryText(context))),
+              const SizedBox(height: 3),
+              Text(_otpEmail,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.cyan,
+                      fontSize: 13)),
+            ]),
+          ),
+          Center(
+              child: OtpInput(
+            key: const ValueKey('otp'),
+            onChanged: (code) => setState(() { _code = code; _error = null; }),
+            enabled: !busy,
+            autoFocus: true,
+          )),
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: (_timeRemaining > 30 ? Colors.green : Colors.orange)
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: (_timeRemaining > 30 ? Colors.green : Colors.orange)
+                        .withValues(alpha: 0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.timer,
+                    size: 14,
+                    color: _timeRemaining > 30 ? Colors.green : Colors.orange),
+                const SizedBox(width: 4),
+                Text(_formatTime(_timeRemaining),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: _timeRemaining > 30 ? Colors.green : Colors.orange)),
+              ]),
+            ),
+            TextButton(
+              onPressed: (_timeRemaining == 0 && !busy) ? _sendOtp : null,
+              child: Text('Resend OTP',
+                  style: TextStyle(
+                      color: (_timeRemaining == 0 && !busy)
+                          ? AppColors.cyan
+                          : Colors.grey,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ]),
+        ],
+      ],
+
+      if (_error != null) ...[
+        const SizedBox(height: 10),
+        _errorBox(_error!),
+      ],
+      const SizedBox(height: 16),
+
+      if ((_usePinMode && _hasPinSet) || _otpSent)
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.cyan,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+            ),
+            icon: _paying
+                ? const SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.verified_user_rounded, color: Colors.white),
+            label: Text(_paying ? 'Processing…' : 'Verify & Pay',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Colors.white)),
+            onPressed: busy ? null : _confirm,
           ),
         ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
-          decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(24)),
+      const SizedBox(height: 8),
+      Center(
+          child: TextButton(
+        onPressed: busy ? null : _backToDetails,
+        child: Text('Back',
+            style: TextStyle(color: AppThemeColors.secondaryText(context))),
+      )),
+    ];
+  }
+
+  Widget _modeTab(String label, IconData icon, bool isPinMode) {
+    final selected = _usePinMode == isPinMode;
+    return Expanded(
+        child: GestureDetector(
+      onTap: () => setState(() {
+        _usePinMode = isPinMode;
+        _code       = '';
+        _error      = null;
+        _otpSent    = false;
+        _timer?.cancel();
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: selected ? AppColors.cyan : AppThemeColors.divider(context)),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon,
+              size: 15,
+              color: selected
+                  ? Colors.white
+                  : AppThemeColors.secondaryText(context)),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? Colors.white
+                      : AppThemeColors.secondaryText(context))),
+        ]),
+      ),
+    ));
+  }
+
+  Widget _fieldBox(String label, IconData icon, Widget field) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(icon, size: 14, color: AppThemeColors.mutedText(context)),
+            const SizedBox(width: 6),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppThemeColors.mutedText(context))),
+          ]),
+          const SizedBox(height: 6),
+          field,
+        ],
+      );
+
+  InputDecoration _inputDeco(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle:
+            TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+        filled: true,
+        fillColor: AppThemeColors.surfaceBg(context),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppThemeColors.border(context))),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppThemeColors.border(context))),
+        focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: _sky, width: 1.8)),
+      );
+
+  Widget _errorBox(String msg) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 16),
+          const SizedBox(width: 8),
+          Flexible(
+              child: Text(msg,
+                  style: const TextStyle(color: Colors.red, fontSize: 13))),
+        ]),
+      );
+}
+
+// ── Self-pay full page ────────────────────────────────────────────────────────
+
+class _QrSelfPayPage extends StatelessWidget {
+  final SessionProvider session;
+  const _QrSelfPayPage({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final name     = session.user?['name']?.toString() ?? 'You';
+    final username = session.user?['username']?.toString() ?? '';
+    final email    = session.user?['email']?.toString() ?? '';
+    final imageUrl = session.user?['profileImage']?.toString();
+    final gender   = session.user?['gender']?.toString() ?? 'Other';
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
+    final genderIcon = gender == 'Male'
+        ? Icons.person_rounded
+        : gender == 'Female'
+            ? Icons.person_2_rounded
+            : Icons.person_outline_rounded;
+
+    return Scaffold(
+      backgroundColor: AppThemeColors.scaffoldBg(context),
+      appBar: AppBar(
+        title: const Text('Scan & Pay',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppThemeColors.primaryText(context),
+        elevation: 0,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [_deep, _sky]),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.person_rounded,
-                    color: Colors.white, size: 30),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFFF9933),
+                          Colors.white,
+                          Color(0xFF138808)
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: AppColors.cyan,
+                      backgroundImage: hasImage
+                          ? NetworkImage(imageUrl!) as ImageProvider
+                          : null,
+                      child: !hasImage
+                          ? Icon(genderIcon, color: Colors.white, size: 46)
+                          : null,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: const BoxDecoration(
+                        color: Colors.amber,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.warning_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(widget.recipientName,
+              const SizedBox(height: 20),
+              Text(name,
                   style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                       color: AppThemeColors.primaryText(context))),
-              const SizedBox(height: 2),
-              Text(widget.recipientEmail,
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.blueGrey.shade500)),
-              const SizedBox(height: 18),
-              _amountField(),
-              const SizedBox(height: 10),
-              _noteField(),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                _errorBox(_error!),
+              if (username.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text('@$username',
+                    style: const TextStyle(
+                        fontSize: 14, color: AppColors.cyan)),
               ],
-              const SizedBox(height: 18),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed:
-                        _paying ? null : () => Navigator.pop(context, false),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.blueGrey.shade300),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
+              if (email.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(email,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppThemeColors.mutedText(context))),
+              ],
+              const SizedBox(height: 28),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.tinted(context,
+                      light: const Color(0xFFFFFBE6),
+                      dark: const Color(0xFF2B1A00)),
+                  borderRadius: BorderRadius.circular(16),
+                  border:
+                      Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                ),
+                child: Column(children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.info_rounded,
+                        color: Colors.amber, size: 20),
+                    const SizedBox(width: 8),
+                    Text("That's You!",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context))),
+                  ]),
+                  const SizedBox(height: 10),
+                  Text(
+                    'You cannot send money to yourself. Scan another user\'s QR code to make a payment.',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppThemeColors.secondaryText(context),
+                        height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                  label: const Text('Back to Scanner',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cyan,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _paying ? null : _pay,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _sky,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: _sky.withValues(alpha: 0.5),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                    ),
-                    child: _paying
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Text('Pay Now',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14)),
-                  ),
-                ),
-              ]),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _amountField() => TextField(
-        controller: _amountCtrl,
-        keyboardType:
-            const TextInputType.numberWithOptions(decimal: true),
-        readOnly: widget.presetAmount != null,
-        enabled: !_paying,
-        style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppThemeColors.primaryText(context)),
-        textAlign: TextAlign.center,
-        decoration: _fieldDeco('Amount (₹)',
-            const Icon(Icons.currency_rupee_rounded, color: _sky)),
-      );
-
-  Widget _noteField() => TextField(
-        controller: _noteCtrl,
-        enabled: !_paying,
-        style: const TextStyle(fontSize: 14),
-        decoration: _fieldDeco('Note (optional)',
-            const Icon(Icons.note_outlined, color: _sky, size: 20)),
-      );
-
-  InputDecoration _fieldDeco(String label, Widget prefix) => InputDecoration(
-        labelText: label,
-        labelStyle:
-            TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
-        prefixIcon: prefix,
-        filled: true,
-        fillColor: AppThemeColors.surfaceBg(context),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.blueGrey.shade200)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.blueGrey.shade200)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: _sky, width: 1.8)),
-      );
 }
-
-
-Widget _errorBox(String msg) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.red.shade200),
-      ),
-      child: Text(msg,
-          style: TextStyle(
-              color: Colors.red.shade700,
-              fontSize: 12,
-              fontWeight: FontWeight.w600),
-          textAlign: TextAlign.center),
-    );
