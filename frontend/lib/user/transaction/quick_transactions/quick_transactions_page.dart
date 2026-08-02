@@ -380,36 +380,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         : amount;
   }
 
-  String _topQuickCounterpartyName(
-      List<Map<String, dynamic>> transactionsList) {
-    final t = AppLocalizations.of(context).t;
-    final totals = <String, double>{};
-    final names = <String, String>{};
-    final currentEmail = _currentUserEmail();
-
-    for (final transaction in transactionsList) {
-      final users = List<Map<String, dynamic>>.from(transaction['users'] ?? []);
-      final counterparty = users.firstWhere(
-        (user) =>
-            (user['email'] ?? '').toString().toLowerCase().trim() !=
-            currentEmail,
-        orElse: () => {},
-      );
-      final email = (counterparty['email'] ?? '').toString();
-      final name = (counterparty['name'] ?? email).toString();
-      if (email.isEmpty) continue;
-      totals[email] =
-          (totals[email] ?? 0.0) + _displayNumericAmount(transaction).abs();
-      names[email] = name;
-    }
-
-    if (totals.isEmpty) return t('no_counterparty_label');
-    final topEntry = totals.entries.reduce(
-      (a, b) => a.value >= b.value ? a : b,
-    );
-    return names[topEntry.key] ?? topEntry.key;
-  }
-
   bool _hasMissingConversionForQuickTransactions() {
     if (selectedCurrency.toUpperCase() == 'INR') return false;
     if (currencyData == null) return true;
@@ -672,46 +642,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         }
         transaction['favourite'] = favourites;
       });
-    }
-  }
-
-  String _filterSummaryLabel() {
-    final t = AppLocalizations.of(context).t;
-    final labels = <String>[];
-    if (filterBy == 'cleared') labels.add(t('cleared'));
-    if (filterBy == 'not_cleared') labels.add(t('pending_label'));
-    if (_dateFilter == 'today') labels.add(t('today'));
-    if (_dateFilter == 'week') labels.add(t('this_week'));
-    if (_dateFilter == 'month') labels.add(t('this_month'));
-    if (_selectedCounterparty != 'all') {
-      final match = _counterpartyOptions().firstWhere(
-        (item) => item['email'] == _selectedCounterparty,
-        orElse: () => {'label': t('person_label')},
-      );
-      labels.add(match['label'] ?? t('person_label'));
-    }
-    if (_categoryFilter != 'all') labels.add(_catLabel(_categoryFilter));
-    if (labels.isEmpty) return t('filter');
-    if (labels.length == 1) return labels.first;
-    return '${labels.first} +${labels.length - 1}';
-  }
-
-  String _sortSummaryLabel() {
-    final t = AppLocalizations.of(context).t;
-    switch (sortBy) {
-      case 'created_asc':
-        return t('oldest_label');
-      case 'updated_desc':
-        return t('updated');
-      case 'updated_asc':
-        return t('old_updated_label');
-      case 'amount_asc':
-        return t('amt_low_label');
-      case 'amount_desc':
-        return t('amt_high_label');
-      case 'created_desc':
-      default:
-        return t('newest_label');
     }
   }
 
@@ -1403,140 +1333,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     }
   }
 
-  Widget _buildRoleChip(String label, String value, IconData icon) {
-    final isSelected = _roleFilter == value;
-    return GestureDetector(
-      onTap: () => _applyRoleFilter(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.cyan : AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected ? AppColors.cyan : AppThemeColors.border(context),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon,
-                size: 18,
-                color: isSelected
-                    ? Colors.white
-                    : AppThemeColors.secondaryText(context)),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : AppThemeColors.primaryText(context),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClearedChip() {
-    final t = AppLocalizations.of(context).t;
-    final isSelected = filterBy == 'cleared';
-    return GestureDetector(
-      onTap: () {
-        setState(() => filterBy = isSelected ? 'all' : 'cleared');
-        fetchQuickTransactions();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.green : AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected ? Colors.green : AppThemeColors.border(context),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.check_circle_rounded,
-                size: 18,
-                color: isSelected
-                    ? Colors.white
-                    : AppThemeColors.secondaryText(context)),
-            const SizedBox(width: 6),
-            Text(
-              t('cleared'),
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : AppThemeColors.primaryText(context),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required List<Color> colors,
-  }) {
-    return Container(
-      width: 165,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colors.first.withValues(alpha: 0.25),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static const List<List<Color>> _quickStatPalette = [
-    [Color(0xFFFF6B6B), Color(0xFFFFA3A3)],
-    [Color(0xFF8B5CF6), Color(0xFFC4B5FD)],
-    [Color(0xFFF4B400), Color(0xFFFDE68A)],
-  ];
-
   Widget _buildAttemptsChip({
     required IconData icon,
     required String label,
@@ -1592,79 +1388,6 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
               fontWeight: FontWeight.w700,
               fontSize: 12,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStatCards() {
-    final t = AppLocalizations.of(context).t;
-    final visibleTransactions =
-        filteredTransactions.isEmpty ? transactions : filteredTransactions;
-    final total = visibleTransactions.length;
-    final lent =
-        visibleTransactions.where((t) => _roleForViewer(t) == 'lender').length;
-    final totalValue = visibleTransactions.fold<double>(
-      0.0,
-      (sum, transaction) => sum + _displayNumericAmount(transaction),
-    );
-    final pendingValue = visibleTransactions.fold<double>(
-      0.0,
-      (sum, transaction) => transaction['cleared'] == true
-          ? sum
-          : sum + _displayNumericAmount(transaction),
-    );
-    final largest = visibleTransactions.fold<double>(
-      0.0,
-      (maxAmount, transaction) {
-        final amount = _displayNumericAmount(transaction);
-        return amount > maxAmount ? amount : maxAmount;
-      },
-    );
-    final topCounterparty = _topQuickCounterpartyName(visibleTransactions);
-
-    return SizedBox(
-      height: 140,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          _buildSummaryCard(
-            title: t('transactions_label'),
-            value: '$total',
-            icon: Icons.receipt_long_rounded,
-            colors: _quickStatPalette[0],
-          ),
-          _buildSummaryCard(
-            title: t('quick_value_label'),
-            value: _formatDisplayAmount(totalValue, selectedCurrency),
-            icon: Icons.currency_rupee_rounded,
-            colors: _quickStatPalette[1],
-          ),
-          _buildSummaryCard(
-            title: t('pending_value_label'),
-            value: _formatDisplayAmount(pendingValue, selectedCurrency),
-            icon: Icons.pending_actions_rounded,
-            colors: _quickStatPalette[2],
-          ),
-          _buildSummaryCard(
-            title: t('largest_quick_label'),
-            value: _formatDisplayAmount(largest, selectedCurrency),
-            icon: Icons.leaderboard_rounded,
-            colors: _quickStatPalette[0],
-          ),
-          _buildSummaryCard(
-            title: t('top_counterparty_label'),
-            value: topCounterparty,
-            icon: Icons.person_search_rounded,
-            colors: _quickStatPalette[1],
-          ),
-          _buildSummaryCard(
-            title: t('you_lent_label'),
-            value: '$lent',
-            icon: Icons.arrow_upward_rounded,
-            colors: _quickStatPalette[2],
           ),
         ],
       ),
@@ -1762,19 +1485,223 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     return colors[index % colors.length];
   }
 
+  // ─── Compact filter bar ────────────────────────────────────────────────────
+  Widget _buildFilterBar(String Function(String) t) {
+    final counterpartyOptions = _counterpartyOptions();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+      decoration: BoxDecoration(
+        color: AppThemeColors.scaffoldBg(context),
+        border: Border(bottom: BorderSide(color: AppThemeColors.divider(context), width: 0.5)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row 1: search + filter + sort
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppThemeColors.divider(context)),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      Icon(Icons.search, size: 17, color: AppThemeColors.mutedText(context)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context)),
+                          decoration: InputDecoration(
+                            hintText: t('search_by_description_amount_user_hint'),
+                            hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            isDense: true,
+                          ),
+                          onChanged: (v) {
+                            setState(() => searchQuery = v);
+                            _searchDebounceTimer?.cancel();
+                            _searchDebounceTimer = Timer(const Duration(milliseconds: 300), fetchQuickTransactions);
+                          },
+                        ),
+                      ),
+                      if (searchQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() => searchQuery = '');
+                            fetchQuickTransactions();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Icon(Icons.close_rounded, size: 16, color: AppThemeColors.mutedText(context)),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Filter button
+              _buildBarIconBtn(
+                icon: _hasActiveFilters() ? Icons.filter_alt_rounded : Icons.filter_alt_outlined,
+                color: _hasActiveFilters() ? AppColors.cyan : AppThemeColors.secondaryText(context),
+                onTap: _showFilterOptions,
+                badge: _hasActiveFilters(),
+              ),
+              const SizedBox(width: 6),
+              // Sort button
+              _buildBarIconBtn(
+                icon: Icons.sort_rounded,
+                color: sortBy != 'created_desc' ? AppColors.cyan : AppThemeColors.secondaryText(context),
+                onTap: _showSortOptions,
+              ),
+              const SizedBox(width: 6),
+              // Currency selector
+              buildCurrencySelector(),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Row 2: role chips + person filter + favourites + reset
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildMiniChip(t('all'), _roleFilter == 'all', Icons.apps_rounded, () => _applyRoleFilter('all')),
+                const SizedBox(width: 6),
+                _buildMiniChip(t('they_owe_label'), _roleFilter == 'lent', Icons.north_east_rounded, () => _applyRoleFilter('lent'), activeColor: const Color(0xFF1B58B8)),
+                const SizedBox(width: 6),
+                _buildMiniChip(t('i_owe_label'), _roleFilter == 'borrowed', Icons.south_west_rounded, () => _applyRoleFilter('borrowed'), activeColor: const Color(0xFFD95F02)),
+                const SizedBox(width: 6),
+                _buildMiniChip(t('cleared'), filterBy == 'cleared', Icons.check_circle_rounded, () {
+                  setState(() => filterBy = filterBy == 'cleared' ? 'all' : 'cleared');
+                  fetchQuickTransactions();
+                }, activeColor: Colors.green),
+                const SizedBox(width: 6),
+                _buildMiniChip(t('favourites_label'), _showFavouritesOnly, Icons.favorite_rounded, _toggleShowFavourites, activeColor: Colors.redAccent),
+                if (counterpartyOptions.length > 1) ...[
+                  const SizedBox(width: 6),
+                  _buildPersonFilter(t, counterpartyOptions),
+                ],
+                if (_hasActiveFilters()) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: _resetFilters,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.restart_alt_rounded, size: 13, color: Colors.red),
+                        const SizedBox(width: 4),
+                        Text(t('reset_label'), style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBarIconBtn({required IconData icon, required Color color, required VoidCallback onTap, bool badge = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: badge ? AppColors.cyan.withValues(alpha: 0.1) : AppThemeColors.cardBg(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: badge ? AppColors.cyan.withValues(alpha: 0.4) : AppThemeColors.divider(context)),
+            ),
+            child: Icon(icon, size: 19, color: color),
+          ),
+          if (badge)
+            Positioned(
+              top: -3, right: -3,
+              child: Container(
+                width: 9, height: 9,
+                decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniChip(String label, bool selected, IconData icon, VoidCallback onTap, {Color? activeColor}) {
+    final color = activeColor ?? AppColors.cyan;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : AppThemeColors.divider(context)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 13, color: selected ? color : AppThemeColors.secondaryText(context)),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: selected ? color : AppThemeColors.secondaryText(context))),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildPersonFilter(String Function(String) t, List<Map<String, String>> options) {
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: _selectedCounterparty != 'all' ? AppColors.cyan.withValues(alpha: 0.1) : AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _selectedCounterparty != 'all' ? AppColors.cyan : AppThemeColors.divider(context)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCounterparty,
+          isDense: true,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _selectedCounterparty != 'all' ? AppColors.cyan : AppThemeColors.secondaryText(context)),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: _selectedCounterparty != 'all' ? AppColors.cyan : AppThemeColors.secondaryText(context)),
+          items: options.map((item) => DropdownMenuItem<String>(
+            value: item['email'],
+            child: Text(item['label'] ?? t('all_people_label'), style: TextStyle(fontSize: 11, color: AppThemeColors.primaryText(context))),
+          )).toList(),
+          onChanged: (v) { if (v != null) _applyCounterpartyFilter(v); },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
     final displayedTransactions =
         _showAll ? filteredTransactions : filteredTransactions.take(3).toList();
-    final counterpartyOptions = _counterpartyOptions();
     final groupedTransactions =
         _groupDisplayedTransactions(displayedTransactions);
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.sh(156)),
+        preferredSize: Size.fromHeight(context.sh(78)),
         child: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -1806,6 +1733,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           ),
           iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
           actions: [
+            // Stats button
+            if (!loading && error == null && transactions.isNotEmpty)
+              IconButton(
+                icon: Icon(Icons.analytics_outlined, color: AppThemeColors.primaryText(context)),
+                tooltip: t('open_quick_analytics_label'),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsPage())),
+              ),
             IconButton(
               icon: Icon(Icons.schedule_rounded, color: AppThemeColors.primaryText(context)),
               tooltip: t('scheduled_transactions_title'),
@@ -1817,11 +1751,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
               icon: Icon(Icons.repeat_rounded, color: AppThemeColors.primaryText(context)),
               tooltip: t('recurring_templates_title'),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const RecurringTemplatesPage()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringTemplatesPage()));
               },
             ),
           ],
@@ -1829,7 +1759,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
             clipper: const TopWaveClipper(),
             child: Container(
               height: context.sh(156),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.cyan, Color(0xFF48CAE4)],
                   begin: Alignment.topLeft,
@@ -1841,762 +1771,144 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
         ),
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: fetchQuickTransactions,
-          color: AppColors.cyan,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 110),
-            child: Column(
-              children: [
-                BudgetLimitBanner(
-                  type: 'quick',
-                  refreshTrigger: _bannerRefreshTrigger,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const BudgetPlanningPage())),
-                  onViewMessages: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
-                ),
-                Consumer<SessionProvider>(
-                  builder: (context, session, child) {
-                    if (session.hasFeature('quick_transactions')) {
-                      return _buildAttemptsChip(
-                        icon: Icons.all_inclusive_rounded,
-                        label: t('unlimited_quick_transactions_message'),
-                        color: const Color(0xFF2E7D32),
-                      );
-                    }
-                    final free = session.freeQuickTransactionsRemaining ?? 0;
-                    final dailyRemaining = _dailyLimits?['limits']
-                        ?['quickTransactions']?['remaining'] as int?;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildAttemptsChip(
+        child: Column(
+          children: [
+            // ── Compact filter bar ──
+            _buildFilterBar(t),
+
+            // ── Budget banner + subscription badge (slim) ──
+            BudgetLimitBanner(
+              type: 'quick',
+              refreshTrigger: _bannerRefreshTrigger,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetPlanningPage())),
+              onViewMessages: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetMessagesPage())),
+            ),
+            Consumer<SessionProvider>(
+              builder: (context, session, child) {
+                if (session.hasFeature('quick_transactions')) return const SizedBox.shrink();
+                final free = session.freeQuickTransactionsRemaining ?? 0;
+                final dailyRemaining = _dailyLimits?['limits']?['quickTransactions']?['remaining'] as int?;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: _buildAttemptsChip(
                           icon: free > 0 ? Icons.confirmation_num_outlined : Icons.block_rounded,
                           label: free > 0
                               ? t('free_quick_transactions_remaining_message').replaceFirst('{count}', '$free')
                               : 'Free attempts exhausted',
                           color: free > 2 ? const Color(0xFF1976D2) : free > 0 ? Colors.orange : Colors.red,
                         ),
-                        if (free <= 0 && dailyRemaining != null) ...[
-                          const SizedBox(height: 6),
-                          _buildAttemptsChip(
+                      ),
+                      if (free <= 0 && dailyRemaining != null) ...[
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: _buildAttemptsChip(
                             icon: Icons.monetization_on_outlined,
-                            label: '$dailyRemaining coin-based attempts left today',
+                            label: '$dailyRemaining coin attempts left',
                             color: dailyRemaining > 0 ? const Color(0xFF00695C) : Colors.red,
                           ),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                if (!loading && error == null && transactions.isNotEmpty) ...[
-                  _buildQuickStatCards(),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AnalyticsPage(),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.analytics_outlined),
-                        label: Text(t('open_quick_analytics_label')),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.cyan,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
-                          ),
                         ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            // ── Currency error ──
+            if (_displayCurrencyError != null || _hasMissingConversionForQuickTransactions())
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF1F1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFF6B6B)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.error_outline, color: Color(0xFFD62828), size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _displayCurrencyError ?? t('conversion_not_available_quick_transactions_message').replaceFirst('{currency}', selectedCurrency),
+                        style: const TextStyle(color: Color(0xFFD62828), fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
+                  ]),
+                ),
+              ),
+
+            // ── Transaction list (fills remaining space) ──
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: fetchQuickTransactions,
+                color: AppColors.cyan,
+                child: loading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
+                  : error != null
+                    ? _buildErrorState(error!, fetchQuickTransactions)
+                    : filteredTransactions.isEmpty
+                      ? _buildEmptyStateWidget(t)
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 120),
                           children: [
-                            _buildRoleChip(t('all'), 'all', Icons.apps_rounded),
-                            const SizedBox(width: 8),
-                            _buildRoleChip(t('they_owe_label'), 'lent',
-                                Icons.arrow_upward_rounded),
-                            const SizedBox(width: 8),
-                            _buildRoleChip(t('i_owe_label'), 'borrowed',
-                                Icons.arrow_downward_rounded),
-                            const SizedBox(width: 8),
-                            _buildClearedChip(),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: _toggleShowFavourites,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: _showFavouritesOnly
-                                      ? AppColors.cyan
-                                      : AppThemeColors.cardBg(context),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: _showFavouritesOnly
-                                        ? AppColors.cyan
-                                        : AppThemeColors.border(context),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.favorite,
-                                      size: 18,
-                                      color: _showFavouritesOnly
-                                          ? Colors.white
-                                          : AppThemeColors.secondaryText(
-                                              context),
+                            // Stats strip (compact, shown inline at the top of list)
+                            if (transactions.isNotEmpty)
+                              _buildCompactStatsStrip(t),
+                            const SizedBox(height: 10),
+                            ...groupedTransactions.entries.expand((entry) {
+                              final sectionIndex = groupedTransactions.keys.toList().indexOf(entry.key);
+                              return <Widget>[
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                                  child: Row(children: [
+                                    Container(
+                                      width: 3, height: 14,
+                                      decoration: BoxDecoration(color: AppColors.cyan, borderRadius: BorderRadius.circular(2)),
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      t('favourites_label'),
-                                      style: TextStyle(
-                                        color: _showFavouritesOnly
-                                            ? Colors.white
-                                            : AppThemeColors.primaryText(
-                                                context),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
+                                    Text(entry.key, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppThemeColors.secondaryText(context), letterSpacing: 0.5)),
+                                  ]),
+                                ),
+                                ...entry.value.asMap().entries.map((item) => Padding(
+                                  key: ValueKey((item.value['_id'] ?? '').toString()),
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _buildQuickTransactionCard(item.value, sectionIndex + item.key),
+                                )),
+                              ];
+                            }),
+                            if (filteredTransactions.length > 3)
+                              TextButton(
+                                onPressed: () => setState(() => _showAll = !_showAll),
+                                child: Text(
+                                  _showAll ? t('show_less_label') : t('see_all_transactions_label'),
+                                  style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 28),
+                            if (_qtHasMore && _showAll)
+                              Center(
+                                child: _qtLoadingMore
+                                  ? const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: AppColors.cyan))
+                                  : OutlinedButton.icon(
+                                      onPressed: () => fetchQuickTransactions(append: true),
+                                      icon: const Icon(Icons.expand_more, color: AppColors.cyan),
+                                      label: Text(t('load_more_label'), style: const TextStyle(color: AppColors.cyan)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: AppColors.cyan),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                                      ),
+                                    ),
+                              ),
                           ],
                         ),
-                      ),
-                      IgnorePointer(
-                        child: Container(
-                          width: 34,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppThemeColors.cardBg(context)
-                                    .withValues(alpha: 0.0),
-                                AppThemeColors.cardBg(context)
-                                    .withValues(alpha: 0.86),
-                                AppThemeColors.cardBg(context),
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Text(
-                              '->',
-                              style: TextStyle(
-                                color: AppThemeColors.secondaryText(context),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Search Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(27),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search,
-                              color: AppThemeColors.mutedText(context),
-                              size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (value) {
-                                setState(() => searchQuery = value);
-                                _searchDebounceTimer?.cancel();
-                                _searchDebounceTimer = Timer(
-                                  const Duration(milliseconds: 300),
-                                  fetchQuickTransactions,
-                                );
-                              },
-                              onSubmitted: (_) =>
-                                  FocusScope.of(context).unfocus(),
-                              decoration: InputDecoration(
-                                hintText:
-                                    t('search_by_description_amount_user_hint'),
-                                hintStyle: TextStyle(
-                                    color: AppThemeColors.mutedText(context),
-                                    fontSize: 15),
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              style: TextStyle(
-                                  fontSize: 15,
-                                  color: AppThemeColors.primaryText(context)),
-                            ),
-                          ),
-                          if (searchQuery.isNotEmpty)
-                            IconButton(
-                              icon: Icon(Icons.clear,
-                                  color: AppThemeColors.mutedText(context),
-                                  size: 20),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => searchQuery = '');
-                                _searchDebounceTimer?.cancel();
-                                fetchQuickTransactions();
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-                if (_displayCurrencyError != null ||
-                    _hasMissingConversionForQuickTransactions())
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1F1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFFF6B6B)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: Color(0xFFD62828), size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _displayCurrencyError ??
-                                  t('conversion_not_available_quick_transactions_message')
-                                      .replaceFirst('{currency}',
-                                          selectedCurrency),
-                              style: const TextStyle(
-                                color: Color(0xFFD62828),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Colors.orange,
-                                Colors.white,
-                                Colors.green
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: AppThemeColors.cardBg(context),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: _selectedCounterparty,
-                                icon: const Icon(
-                                    Icons.keyboard_arrow_down_rounded),
-                                items: counterpartyOptions
-                                    .map(
-                                      (item) => DropdownMenuItem<String>(
-                                        value: item['email'],
-                                        child: Text(
-                                          item['label'] ??
-                                              t('all_people_label'),
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              color: AppThemeColors.primaryText(
-                                                  context)),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  _applyCounterpartyFilter(value);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            t('show_in_label'),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: AppThemeColors.primaryText(context),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          buildCurrencySelector(),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Filter and Sort buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Filter button
-                      GestureDetector(
-                        onTap: _showFilterOptions,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Colors.orange,
-                                Colors.white,
-                                Colors.green
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppThemeColors.cardBg(context),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  filterBy == 'all'
-                                      ? Icons.filter_alt_outlined
-                                      : Icons.filter_alt,
-                                  color: filterBy == 'all'
-                                      ? AppThemeColors.primaryText(context)
-                                      : AppColors.cyan,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  _filterSummaryLabel(),
-                                  style: TextStyle(
-                                    color: !_hasActiveFilters()
-                                        ? AppThemeColors.primaryText(context)
-                                        : AppColors.cyan,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Sort button
-                      GestureDetector(
-                        onTap: _showSortOptions,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Colors.orange,
-                                Colors.white,
-                                Colors.green
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppThemeColors.cardBg(context),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.sort,
-                                    color: AppThemeColors.primaryText(context),
-                                    size: 18),
-                                SizedBox(width: 6),
-                                Text(
-                                  _sortSummaryLabel(),
-                                  style: TextStyle(
-                                    color: AppThemeColors.primaryText(context),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_hasActiveFilters()) ...[
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _resetFilters,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Colors.orange,
-                                  Colors.white,
-                                  Colors.green
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.restart_alt_rounded,
-                                      color: Color(0xFFD62828), size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    t('reset_label'),
-                                    style: const TextStyle(
-                                      color: Color(0xFFD62828),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Transactions List
-                loading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                            color: AppThemeColors.primaryText(context)))
-                    : error != null
-                        ? _buildErrorState(error!, fetchQuickTransactions)
-                        : filteredTransactions.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                        _showFavouritesOnly
-                                            ? Icons.star_border_rounded
-                                            : Icons.receipt_long,
-                                        size: 80,
-                                        color:
-                                            AppThemeColors.mutedText(context)),
-                                    const SizedBox(height: 20),
-                                    Text(
-                                      _showFavouritesOnly
-                                          ? t(
-                                              'no_favourite_transactions_found_message')
-                                          : searchQuery.isNotEmpty ||
-                                                  filterBy != 'all' ||
-                                                  _roleFilter != 'all' ||
-                                                  _dateFilter != 'all' ||
-                                                  _selectedCounterparty != 'all' ||
-                                                  _categoryFilter != 'all'
-                                              ? t('no_transactions_found_message')
-                                              : t('no_quick_transactions_yet_message'),
-                                      style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppThemeColors.secondaryText(
-                                              context)),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      _showFavouritesOnly
-                                          ? t(
-                                              'mark_transaction_favourite_to_see_here_message')
-                                          : searchQuery.isNotEmpty ||
-                                                  filterBy != 'all' ||
-                                                  _roleFilter != 'all' ||
-                                                  _dateFilter != 'all' ||
-                                                  _selectedCounterparty != 'all' ||
-                                                  _categoryFilter != 'all'
-                                              ? t('try_adjusting_search_or_filters_message')
-                                              : t('tap_plus_button_to_create_first_one_message'),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          color: AppThemeColors.mutedText(
-                                              context)),
-                                    ),
-                                    if (_hasActiveFilters()) ...[
-                                      const SizedBox(height: 18),
-                                      GestureDetector(
-                                        onTap: _resetFilters,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(24),
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                Colors.orange,
-                                                Colors.white,
-                                                Colors.green,
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 18,
-                                              vertical: 10,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppThemeColors.cardBg(
-                                                  context),
-                                              borderRadius:
-                                                  BorderRadius.circular(22),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(
-                                                  Icons.refresh_rounded,
-                                                  color: AppColors.cyan,
-                                                  size: 18,
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  t('reset_filters_label'),
-                                                  style: TextStyle(
-                                                    color: AppThemeColors
-                                                        .primaryText(context),
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              )
-                            : Column(
-                                children: [
-                                  ListView(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.fromLTRB(
-                                        20.0, 8, 20.0, 20.0),
-                                    children: groupedTransactions.entries
-                                        .expand((entry) {
-                                      final sectionIndex = groupedTransactions
-                                          .keys
-                                          .toList()
-                                          .indexOf(entry.key);
-                                      return <Widget>[
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              top: 6, bottom: 10),
-                                          child: Text(
-                                            entry.key,
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppThemeColors.primaryText(
-                                                  context),
-                                            ),
-                                          ),
-                                        ),
-                                        ...entry.value
-                                            .asMap()
-                                            .entries
-                                            .map((item) {
-                                          return Padding(
-                                            key: ValueKey(
-                                                (item.value['_id'] ?? '')
-                                                    .toString()),
-                                            padding: const EdgeInsets.only(
-                                                bottom: 16),
-                                            child: _buildQuickTransactionCard(
-                                              item.value,
-                                              sectionIndex + item.key,
-                                            ),
-                                          );
-                                        }),
-                                      ];
-                                    }).toList(),
-                                  ),
-                                  if (filteredTransactions.length > 3)
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 8.0),
-                                      child: TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _showAll = !_showAll;
-                                          });
-                                        },
-                                        child: Text(
-                                          _showAll
-                                              ? t('show_less_label')
-                                              : t('see_all_transactions_label'),
-                                          style: TextStyle(
-                                            color: AppThemeColors.primaryText(
-                                                context),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  if (_qtHasMore && _showAll)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 20.0),
-                                      child: Center(
-                                        child: _qtLoadingMore
-                                            ? const CircularProgressIndicator(color: AppColors.cyan)
-                                            : OutlinedButton.icon(
-                                                onPressed: () => fetchQuickTransactions(append: true),
-                                                icon: const Icon(Icons.expand_more, color: AppColors.cyan),
-                                                label: Text(
-                                                  t('load_more_label'),
-                                                  style: const TextStyle(color: AppColors.cyan),
-                                                ),
-                                                style: OutlinedButton.styleFrom(
-                                                  side: const BorderSide(color: AppColors.cyan),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(16),
-                                                  ),
-                                                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-              ],
+              ),
             ),
-          ), // closes SingleChildScrollView
-        ), // closes RefreshIndicator
+          ],
+        ),
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
@@ -2621,6 +1933,335 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),
+    );
+  }
+
+  Widget _buildEmptyStateWidget(String Function(String) t) {
+    final hasFilters = _hasActiveFilters();
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _showFavouritesOnly ? Icons.star_border_rounded : hasFilters ? Icons.search_off_rounded : Icons.receipt_long_rounded,
+              size: 38, color: AppColors.cyan,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _showFavouritesOnly
+              ? t('no_favourite_transactions_found_message')
+              : hasFilters ? t('no_transactions_found_message') : t('no_quick_transactions_yet_message'),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _showFavouritesOnly
+              ? t('mark_transaction_favourite_to_see_here_message')
+              : hasFilters ? t('try_adjusting_search_or_filters_message') : t('tap_plus_button_to_create_first_one_message'),
+            style: TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context)),
+            textAlign: TextAlign.center,
+          ),
+          if (hasFilters) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _resetFilters,
+              icon: const Icon(Icons.refresh_rounded, color: AppColors.cyan, size: 16),
+              label: Text(t('reset_filters_label'), style: const TextStyle(color: AppColors.cyan)),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.cyan), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _qtInitials(String name) {
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  Widget _buildCompactStatsStrip(String Function(String) t) {
+    final total = filteredTransactions.length;
+    final pending = filteredTransactions.where((x) => x['cleared'] != true).length;
+    final lentCount = filteredTransactions.where((x) => _roleForViewer(x) == 'lender').length;
+    final totalVal = filteredTransactions.fold<double>(0, (s, x) => s + _displayNumericAmount(x));
+
+    // Compute largest transaction
+    Map<String, dynamic>? largestTx;
+    double largestAmt = 0;
+    for (final tx in filteredTransactions) {
+      final amt = _displayNumericAmount(tx).abs();
+      if (amt > largestAmt) { largestAmt = amt; largestTx = tx; }
+    }
+
+    // Compute top counterparty
+    final cpTotals = <String, double>{};
+    final cpNames = <String, String>{};
+    final cpAvatars = <String, String?>{};
+    final cpTxCounts = <String, int>{};
+    final currentEmail = _currentUserEmail();
+    for (final tx in filteredTransactions) {
+      final users = List<Map<String, dynamic>>.from(tx['users'] ?? []);
+      final cp = users.firstWhere(
+        (u) => (u['email'] ?? '').toString().toLowerCase().trim() != currentEmail,
+        orElse: () => {},
+      );
+      final email = (cp['email'] ?? '').toString();
+      if (email.isEmpty) continue;
+      cpTotals[email] = (cpTotals[email] ?? 0) + _displayNumericAmount(tx).abs();
+      cpNames[email] = (cp['name'] ?? email).toString();
+      cpAvatars[email] ??= cp['avatar']?.toString();
+      cpTxCounts[email] = (cpTxCounts[email] ?? 0) + 1;
+    }
+    String? topEmail;
+    if (cpTotals.isNotEmpty) {
+      topEmail = cpTotals.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    }
+    final topName = topEmail != null ? (cpNames[topEmail] ?? topEmail) : '';
+    final topAvatar = topEmail != null ? cpAvatars[topEmail] : null;
+    final topAmt = topEmail != null ? (cpTotals[topEmail] ?? 0) : 0.0;
+    final topTxCount = topEmail != null ? (cpTxCounts[topEmail] ?? 0) : 0;
+
+    return SizedBox(
+      height: 82,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        children: [
+          _buildStripCard('$total', t('transactions_label'), Icons.receipt_long_rounded, [const Color(0xFF0077B6), const Color(0xFF48CAE4)], null),
+          _buildStripCard(_formatDisplayAmount(totalVal, selectedCurrency), t('quick_value_label'), Icons.currency_rupee_rounded, [const Color(0xFF06A77D), const Color(0xFF4ECDC4)], null),
+          _buildStripCard('$pending', t('pending_label'), Icons.pending_actions_rounded, [const Color(0xFFF4B400), const Color(0xFFD97706)], null),
+          _buildStripCard('$lentCount', t('you_lent_label'), Icons.north_east_rounded, [const Color(0xFF1B58B8), const Color(0xFF4B8EFD)], null),
+          if (largestTx != null)
+            _buildStripCard(
+              _formatDisplayAmount(largestAmt, selectedCurrency),
+              t('largest_quick_label'),
+              Icons.leaderboard_rounded,
+              [const Color(0xFFD95F02), const Color(0xFFFFA069)],
+              () => _showLargestTxSheet(t, largestTx!),
+            ),
+          if (topEmail != null)
+            _buildTopCpCard(t, topName, topAvatar, topAmt, topTxCount),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStripCard(String value, String label, IconData icon, List<Color> colors, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 108,
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: colors.first.withValues(alpha: 0.30), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(icon, size: 13, color: Colors.white70),
+              if (onTap != null) ...[const Spacer(), const Icon(Icons.open_in_new_rounded, size: 11, color: Colors.white54)],
+            ]),
+            const Spacer(),
+            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(fontSize: 9, color: Colors.white70, letterSpacing: 0.2), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopCpCard(String Function(String) t, String name, String? avatar, double amount, int txCount) {
+    const colors = [Color(0xFF7C3AED), Color(0xFFA78BFA)];
+    return GestureDetector(
+      onTap: () => _showTopCpSheet(t, name, avatar, amount, txCount),
+      child: Container(
+        width: 148,
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: colors[0].withValues(alpha: 0.30), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundImage: avatar != null && avatar.isNotEmpty ? NetworkImage(avatar) : null,
+              backgroundColor: Colors.white24,
+              child: (avatar == null || avatar.isEmpty)
+                ? Text(_qtInitials(name), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white))
+                : null,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(t('top_counterparty_label'), style: const TextStyle(fontSize: 9, color: Colors.white70)),
+                Text('$txCount txns', style: const TextStyle(fontSize: 9, color: Colors.white60)),
+              ]),
+            ),
+            const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.white54),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLargestTxSheet(String Function(String) t, Map<String, dynamic> tx) {
+    final cp = _counterpartyForViewer(tx);
+    final role = _roleForViewer(tx);
+    final isLender = role == 'lender';
+    final amt = _formatDisplayAmount(_displayNumericAmount(tx).abs(), selectedCurrency);
+    final desc = (tx['description'] ?? '').toString();
+    final date = tx['date']?.toString().split('T').first ?? '';
+    final cpName = (cp?['name'] ?? cp?['email'] ?? '').toString();
+    final cpAvatar = cp?['avatar']?.toString();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppThemeColors.cardBg(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(context), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: const Color(0xFFD95F02).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.leaderboard_rounded, color: Color(0xFFD95F02), size: 22),
+            ),
+            const SizedBox(width: 12),
+            Text(t('largest_quick_label'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+          ]),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isLender ? const Color(0xFF1B58B8).withValues(alpha: 0.08) : const Color(0xFFD95F02).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isLender ? const Color(0xFF1B58B8).withValues(alpha: 0.2) : const Color(0xFFD95F02).withValues(alpha: 0.2)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundImage: cpAvatar != null && cpAvatar.isNotEmpty ? NetworkImage(cpAvatar) : null,
+                  backgroundColor: isLender ? const Color(0xFF1B58B8) : const Color(0xFFD95F02),
+                  child: (cpAvatar == null || cpAvatar.isEmpty) ? Text(_qtInitials(cpName), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)) : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(cpName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+                  if (date.isNotEmpty) Text(date, style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                ])),
+                Text(
+                  '${isLender ? '+' : '-'} $amt',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isLender ? const Color(0xFF1B58B8) : const Color(0xFFD95F02)),
+                ),
+              ]),
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(desc, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () { Navigator.pop(context); createOrEditQuickTransaction(transaction: tx); },
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: Text(t('edit_label')),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.cyan), foregroundColor: AppColors.cyan, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _showTopCpSheet(String Function(String) t, String name, String? avatar, double amount, int txCount) {
+    final lentToThem = filteredTransactions.where((x) => _roleForViewer(x) == 'lender' && _counterpartyForViewer(x)?['name']?.toString() == name).length;
+    final borrowedFromThem = filteredTransactions.where((x) => _roleForViewer(x) == 'borrower' && _counterpartyForViewer(x)?['name']?.toString() == name).length;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppThemeColors.cardBg(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppThemeColors.divider(context), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          // Profile header
+          Row(children: [
+            CircleAvatar(
+              radius: 32,
+              backgroundImage: avatar != null && avatar.isNotEmpty ? NetworkImage(avatar) : null,
+              backgroundColor: const Color(0xFF7C3AED),
+              child: (avatar == null || avatar.isEmpty)
+                ? Text(_qtInitials(name), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white))
+                : null,
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+              Text(t('top_counterparty_label'), style: const TextStyle(fontSize: 12, color: Color(0xFF7C3AED), fontWeight: FontWeight.w600)),
+            ])),
+          ]),
+          const SizedBox(height: 20),
+          // Stats row
+          Row(children: [
+            Expanded(child: _cpStatBox(t('total_label'), '$txCount ${t('transactions_label')}', Icons.receipt_long_rounded, const Color(0xFF7C3AED))),
+            const SizedBox(width: 10),
+            Expanded(child: _cpStatBox(t('quick_value_label'), _formatDisplayAmount(amount, selectedCurrency), Icons.currency_rupee_rounded, const Color(0xFF06A77D))),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _cpStatBox(t('you_lent_label'), '$lentToThem txns', Icons.north_east_rounded, const Color(0xFF1B58B8))),
+            const SizedBox(width: 10),
+            Expanded(child: _cpStatBox(t('i_owe_label'), '$borrowedFromThem txns', Icons.south_west_rounded, const Color(0xFFD95F02))),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _cpStatBox(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(context))),
+        ])),
+      ]),
     );
   }
 

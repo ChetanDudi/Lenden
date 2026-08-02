@@ -1325,11 +1325,6 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
             ),
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.link_rounded),
-              tooltip: 'Join Group',
-              onPressed: _showJoinGroupDialog,
-            ),
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
@@ -2238,21 +2233,36 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                       ),
                       ),
                     ),
-      floatingActionButton: Container(
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [Colors.orange, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'join_group',
+            onPressed: _showJoinGroupDialog,
+            backgroundColor: AppThemeColors.cardBg(context),
+            elevation: 2,
+            tooltip: 'Join Group',
+            child: Icon(Icons.link_rounded, color: AppColors.cyan),
           ),
-        ),
-        child: FloatingActionButton(
-          onPressed: _openCreateGroup,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
+          const SizedBox(width: 12),
+          Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Colors.orange, Colors.green],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: FloatingActionButton(
+              heroTag: 'add_group',
+              onPressed: _openCreateGroup,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            ),
+          ),
+        ],
       ),
     );
   }

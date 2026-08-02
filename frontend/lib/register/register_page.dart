@@ -14,7 +14,7 @@ import 'package:provider/provider.dart';
 import '../session.dart';
 import '../login/google_auth_service.dart';
 import '../widgets/google_logo_icon.dart';
-import '../widgets/wave_widget.dart' show AltBottomWaveClipper, ScaledDeepTopWaveClipper;
+import '../widgets/wave_widget.dart' show ScaledDeepTopWaveClipper;
 import '../widgets/login_illustration.dart';
 
 class UserRegisterPage extends StatefulWidget {
@@ -452,19 +452,6 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                     // Remove the IconButton with Icons.arrow_back from the top blue shape
                   ),
                 ),
-              ),
-            ),
-          ),
-          // Bottom blue shape
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: const AltBottomWaveClipper(),
-              child: Container(
-                height: context.sh(80),
-                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),

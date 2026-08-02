@@ -18,7 +18,7 @@ import '../utils/http_interceptor.dart';
 import '../utils/responsive.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
-import '../widgets/wave_widget.dart' show AltBottomWaveClipper, ScaledDeepTopWaveClipper;
+import '../widgets/wave_widget.dart' show ScaledDeepTopWaveClipper;
 import '../widgets/login_illustration.dart';
 
 class UserLoginPage extends StatefulWidget {
@@ -1187,18 +1187,6 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       const SizedBox(height: 100),
                     ],
                   ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: ClipPath(
-                clipper: const AltBottomWaveClipper(),
-                child: Container(
-                  height: context.sh(75),
-                  color: AppColors.cyan,
                 ),
               ),
             ),
