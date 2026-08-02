@@ -7,6 +7,7 @@ const QuickTransaction = require('../models/quickTransaction');
 const GroupTransaction = require('../models/groupTransaction');
 const { logFriendActivity } = require('./userActivityController');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
+const { sendToUser } = require('../services/notificationService');
 
 const sanitizeQuery = (q) => (q || '').toString().trim();
 
@@ -332,6 +333,11 @@ exports.sendFriendRequest = async (req, res) => {
         category: 'friend',
         message: `Friend request from ${user.name || user.username || user.email}`,
       });
+      sendToUser(User, target._id, {
+        title: 'New Friend Request 👋',
+        body: `${user.name || user.username || user.email} sent you a friend request.`,
+        data: { type: 'friend_request' },
+      });
     }
 
     res.status(201).json({ message: 'Request sent', requestId: request._id });
@@ -388,6 +394,11 @@ exports.acceptFriendRequest = async (req, res) => {
         recipientModel: 'User',
         category: 'friend',
         message: `${user.name || user.username || user.email} accepted your friend request`,
+      });
+      sendToUser(User, other._id, {
+        title: 'Friend Request Accepted 🎉',
+        body: `${user.name || user.username || user.email} accepted your friend request.`,
+        data: { type: 'friend_accepted' },
       });
     }
 

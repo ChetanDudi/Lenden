@@ -5,6 +5,7 @@ const Admin = require('../models/admin');
 const WalletTransaction = require('../models/walletTransaction');
 const WithdrawalRequest = require('../models/withdrawalRequest');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 const MIN_WITHDRAWAL = 100; // ₹100
 
@@ -369,6 +370,11 @@ exports.adminMarkProcessed = async (req, res) => {
           sentAt: new Date(),
         }),
       ]);
+      sendToUser(User, withdrawal.user, {
+        title: 'Withdrawal Processed ✅',
+        body: `₹${withdrawal.amount} has been sent to your ${dest}.`,
+        data: { type: 'withdrawal_approved', amount: String(withdrawal.amount) },
+      });
     } catch (notifyErr) {
       console.error('[Withdrawal] Failed to notify of processed withdrawal:', notifyErr);
     }
@@ -443,6 +449,11 @@ exports.adminRejectWithdrawal = async (req, res) => {
           sentAt: new Date(),
         }),
       ]);
+      sendToUser(User, withdrawal.user, {
+        title: 'Withdrawal Rejected ❌',
+        body: `₹${withdrawal.amount} withdrawal was rejected and refunded to your wallet.${reason ? ` Reason: ${reason}` : ''}`,
+        data: { type: 'withdrawal_rejected', amount: String(withdrawal.amount) },
+      });
     } catch (notifyErr) {
       console.error('[Withdrawal] Failed to notify of rejected withdrawal:', notifyErr);
     }

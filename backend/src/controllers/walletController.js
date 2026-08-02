@@ -692,6 +692,13 @@ exports.payToUserWithOtp = async (req, res) => {
           message: `You received ₹${amount} from ${senderDoc.email}.`,
         }));
       }
+      if (receiverUser?.notificationSettings?.pushNotifications !== false) {
+        sendToUser(User, receiver._id, {
+          title: 'Payment Received 💸',
+          body: `You received ₹${amount} from ${senderDoc.email}.`,
+          data: { type: 'wallet_credit', amount: String(amount) },
+        });
+      }
       return Promise.all(notifs);
     }).catch(() => {});
 
