@@ -588,10 +588,15 @@ exports.setWalletPin = async (req, res) => {
 
     User.findById(req.user._id).select('privacySettings').then(u => {
       if (u?.privacySettings?.loginNotifications !== false) {
-        return Notification.create({
+        Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'system',
           message: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
+        });
+        sendToUser(User, req.user._id, {
+          title: 'Transaction PIN Updated 🔐',
+          body: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
+          data: { type: 'security' },
         });
       }
     }).catch(() => {});
@@ -872,6 +877,11 @@ exports.paySubscription = async (req, res) => {
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'subscription',
           message: `Your "${plan.name}" subscription is now active.`,
+        });
+        sendToUser(User, req.user._id, {
+          title: 'Subscription Activated 🎉',
+          body: `Your "${plan.name}" plan is now active.`,
+          data: { type: 'subscription_activated' },
         });
       }
       await Notification.create({

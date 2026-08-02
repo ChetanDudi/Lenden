@@ -21,7 +21,7 @@ const walletTransactionSchema = new mongoose.Schema({
   // note text (which can be a user-supplied description like "Lunch").
   sourceType: {
     type: String,
-    enum: ['p2p', 'qr_internal', 'qr_external', 'quick', 'secure', 'group', 'subscription', 'coins'],
+    enum: ['p2p', 'qr_internal', 'qr_external', 'quick', 'secure', 'group', 'subscription', 'coins', 'withdrawal'],
     default: null,
   },
   adminFlagged: { type: Boolean, default: false },

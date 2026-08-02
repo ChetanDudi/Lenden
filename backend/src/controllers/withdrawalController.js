@@ -93,6 +93,7 @@ exports.initiateWithdrawal = async (req, res) => {
         type: 'withdrawal',
         amount: parsedAmount,
         note: noteText,
+        sourceType: 'withdrawal',
         withdrawalRequestId: withdrawal._id,
         status: 'processing',
       }], { session });
@@ -288,6 +289,7 @@ exports.handlePayoutWebhook = async (req, res) => {
               type: 'credit',
               amount: withdrawal.amount,
               note: `Withdrawal ${newStatus} — refund`,
+              sourceType: 'withdrawal',
             });
           }
         }
@@ -404,6 +406,7 @@ exports.adminRejectWithdrawal = async (req, res) => {
         type: 'credit',
         amount: withdrawal.amount,
         note: `Withdrawal rejected — refund${reason ? `: ${reason}` : ''}`,
+        sourceType: 'withdrawal',
       }], { session });
       await WalletTransaction.updateOne(
         { withdrawalRequestId: withdrawal._id },

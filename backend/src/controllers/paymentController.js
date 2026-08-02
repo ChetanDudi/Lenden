@@ -5,6 +5,7 @@ const SubscriptionPlan = require('../models/subscriptionPlan');
 const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const User = require('../models/user');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 // Returns the endDate for a new subscription, preserving any remaining days
 // if the user renews before their current subscription expires.
@@ -136,6 +137,11 @@ exports.verifyManualPayment = async (req, res) => {
           sender: userId, senderModel: 'User', recipientType: 'specific-users',
           recipients: [userId], recipientModel: 'User', category: 'subscription',
           message: `Your "${created.subscriptionPlan}" subscription is now active until ${created.endDate.toLocaleDateString()}.`,
+        });
+        sendToUser(User, userId, {
+          title: 'Subscription Activated 🎉',
+          body: `Your "${created.subscriptionPlan}" plan is now active.`,
+          data: { type: 'subscription_activated' },
         });
       }
       // Also notify all admins
