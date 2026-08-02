@@ -516,7 +516,10 @@ const COIN_LEDGER_SOURCES = {
   rewards:     null,
   gift_cards:  'gift_card_scratch',
   offer_coins: 'offer_claim',
+  referrals:   ['referral_inviter', 'referral_referee'],
 };
+// Build a Mongo source filter from a string, array, or null (all)
+const _srcFilter = (s) => s == null ? {} : Array.isArray(s) ? { source: { $in: s } } : { source: s };
 
 const _stOr = (sourceTypes, noteRegex, extra = {}) => ({
   $or: [
@@ -571,11 +574,11 @@ exports.getAdminInAppTransactions = async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip  = Math.max(0, parseInt(req.query.skip, 10) || 0);
 
-    // ── CoinLedger tabs: Rewards, Gift Cards, Offer Coins ────────────────────
+    // ── CoinLedger tabs: Rewards, Gift Cards, Offer Coins, Referrals ─────────
     if (Object.prototype.hasOwnProperty.call(COIN_LEDGER_SOURCES, category)) {
       const coinSource = COIN_LEDGER_SOURCES[category]; // null = all sources
       const andClauses = [];
-      if (coinSource) andClauses.push({ source: coinSource });
+      if (coinSource) andClauses.push(_srcFilter(coinSource));
       if (startDate || endDate) {
         const df = {};
         if (startDate) df.$gte = new Date(startDate);
@@ -599,7 +602,7 @@ exports.getAdminInAppTransactions = async (req, res) => {
       const [entries, total, agg] = await Promise.all([
         CoinLedger.find(rewardFilter).sort({ occurredAt: -1 }).skip(skip).limit(limit).populate('user', 'name email').lean(),
         CoinLedger.countDocuments(rewardFilter),
-        CoinLedger.aggregate([{ $match: coinSource ? { source: coinSource } : {} }, { $group: { _id: '$direction', total: { $sum: '$coins' }, count: { $sum: 1 } } }]),
+        CoinLedger.aggregate([{ $match: _srcFilter(coinSource) }, { $group: { _id: '$direction', total: { $sum: '$coins' }, count: { $sum: 1 } } }]),
       ]);
 
       const globalStats = {};
@@ -739,7 +742,7 @@ exports.getInAppTransactionCounts = async (req, res) => {
     const base = { type: { $in: ['debit', 'credit'] }, withdrawalRequestId: null, note: { $not: /withdrawal/i } };
     const refBase = { type: 'credit', note: { $regex: 'refund|reversed', $options: 'i' } };
 
-    const [p2p, quick, secure, group, qr, subscription, coins, rewards, refunds, gift_cards, offer_coins] = await Promise.all([
+    const [p2p, quick, secure, group, qr, subscription, coins, rewards, refunds, gift_cards, offer_coins, referrals] = await Promise.all([
       WalletTransaction.countDocuments({ $and: [base, IN_APP_CATEGORIES.p2p] }),
       QuickTransaction.countDocuments({}),
       WalletTransaction.countDocuments({ $and: [base, IN_APP_CATEGORIES.secure] }),
@@ -751,9 +754,10 @@ exports.getInAppTransactionCounts = async (req, res) => {
       WalletTransaction.countDocuments(refBase),
       CoinLedger.countDocuments({ source: 'gift_card_scratch' }),
       CoinLedger.countDocuments({ source: 'offer_claim' }),
+      CoinLedger.countDocuments({ source: { $in: ['referral_inviter', 'referral_referee'] } }),
     ]);
 
-    res.json({ all: p2p + secure + group + qr + subscription + coins, p2p, quick, secure, group, qr, subscription, coins, rewards, refunds, gift_cards, offer_coins });
+    res.json({ all: p2p + secure + group + qr + subscription + coins, p2p, quick, secure, group, qr, subscription, coins, rewards, refunds, gift_cards, offer_coins, referrals });
   } catch (err) {
     console.error('[AdminInApp] Counts error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -772,7 +776,7 @@ exports.getInAppVolumeData = async (req, res) => {
     // CoinLedger-backed categories
     if (Object.prototype.hasOwnProperty.call(COIN_LEDGER_SOURCES, category)) {
       const coinSource = COIN_LEDGER_SOURCES[category];
-      const matchStage = { occurredAt: { $gte: since }, ...(coinSource ? { source: coinSource } : {}) };
+      const matchStage = { occurredAt: { $gte: since }, ..._srcFilter(coinSource) };
       const results = await CoinLedger.aggregate([
         { $match: matchStage },
         { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$occurredAt' } }, count: { $sum: 1 }, amount: { $sum: '$coins' } } },
@@ -814,10 +818,10 @@ exports.exportInAppTransactions = async (req, res) => {
     const { category = 'all', search, startDate, endDate, flagged } = req.query;
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
-    // CoinLedger categories (rewards, gift_cards, offer_coins)
+    // CoinLedger categories (rewards, gift_cards, offer_coins, referrals)
     if (Object.prototype.hasOwnProperty.call(COIN_LEDGER_SOURCES, category)) {
       const coinSource = COIN_LEDGER_SOURCES[category];
-      const andClauses = coinSource ? [{ source: coinSource }] : [];
+      const andClauses = coinSource ? [_srcFilter(coinSource)] : [];
       if (startDate || endDate) {
         const df = {};
         if (startDate) df.$gte = new Date(startDate);

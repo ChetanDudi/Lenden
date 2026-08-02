@@ -31,6 +31,7 @@ const List<_Cat> _kCats = [
   _Cat('rewards',      'Rewards',      Icons.stars_rounded,                 Color(0xFF6A1B9A)),
   _Cat('gift_cards',   'Gift Cards',   Icons.card_giftcard_rounded,         Color(0xFFE91E63)),
   _Cat('offer_coins',  'Offer Coins',  Icons.local_offer_rounded,           Color(0xFF009688)),
+  _Cat('referrals',    'Referrals',    Icons.group_add_rounded,             Color(0xFF9C27B0)),
   _Cat('refunds',      'Refunds',      Icons.undo_rounded,                  Color(0xFF00BCD4)),
 ];
 
