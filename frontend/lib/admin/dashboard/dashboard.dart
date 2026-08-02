@@ -949,7 +949,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: Text(t('logout')),
-                onTap: () => _confirmLogout(context),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  showLogoutDialog(context, onConfirm: () async {
+                    await Provider.of<SessionProvider>(context, listen: false).logout();
+                    Navigator.of(context).pushReplacementNamed('/');
+                  });
+                },
               ),
             ],
           ),
@@ -1190,7 +1196,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             icon: Icon(Icons.logout,
                                 color: AppThemeColors.primaryText(context), size: 28),
                             tooltip: t('logout'),
-                            onPressed: () => _confirmLogout(context),
+                            onPressed: () => showLogoutDialog(context, onConfirm: () async {
+                              await Provider.of<SessionProvider>(context, listen: false).logout();
+                              Navigator.of(context).pushReplacementNamed('/');
+                            }),
                           ),
                         ],
                       ),
@@ -2027,157 +2036,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        final t = AppLocalizations.of(context).t;
-        return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: AppThemeColors.cardBg(context),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
-                child: ClipPath(
-                  clipper: LogoutDialogWaveClipper(),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.cyan, Color(0xFF0096CC)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text(
-                      t('are_you_sure_title'),
-                      style: TextStyle(
-                        color: AppThemeColors.primaryText(context),
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      t('do_you_want_to_logout_message'),
-                      style: TextStyle(
-                        color: AppThemeColors.secondaryText(context),
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            margin: EdgeInsets.only(right: 8),
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppThemeColors.surfaceBg(context),
-                                foregroundColor: AppThemeColors.secondaryText(context),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: AppThemeColors.divider(context)),
-                                ),
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                elevation: 0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.close, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    t('no').toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            margin: EdgeInsets.only(left: 8),
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.cyan,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                elevation: 2,
-                                shadowColor:
-                                    AppColors.cyan.withValues(alpha: 0.3),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.logout, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    t('yes').toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-      },
-    );
-    if (confirmed == true) {
-      await Provider.of<SessionProvider>(context, listen: false).logout();
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  }
 }
 
 class _AdminDashboardItem {
@@ -2204,23 +2062,3 @@ class _AdminDashboardItem {
   });
 }
 
-class LogoutDialogWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height);
-
-    // Create wavy effect
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.8, size.width * 0.5, size.height);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height * 0.8, 0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}

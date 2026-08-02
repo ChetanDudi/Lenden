@@ -30,6 +30,7 @@ import '../ads_and_updates/updates_page.dart';
 import '../ads_and_updates/ad_popup_dialog.dart';
 import '../wallet/lenden_wallet_page.dart';
 import '../../widgets/stylish_dialog.dart';
+import '../../widgets/app_widgets.dart';
 import '../scanner/qr_scanner_page.dart';
 import '../scanner/user_qr_page.dart';
 import 'package:elegant_notification/elegant_notification.dart';
@@ -1130,7 +1131,13 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: Text(t('logout')),
-                onTap: () => _confirmLogout(context),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  showLogoutDialog(context, onConfirm: () {
+                    Provider.of<SessionProvider>(context, listen: false).logout();
+                    Navigator.of(context).pushReplacementNamed('/');
+                  });
+                },
               ),
             ],
           ),
@@ -1209,7 +1216,10 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 builder: (_) => const LendenWalletPage()));
                       }, accent: const Color(0xFFFF9F45)),
                       _navBarItem(Icons.logout_rounded, t('logout'),
-                          () => _confirmLogout(context)),
+                          () => showLogoutDialog(context, onConfirm: () {
+                            Provider.of<SessionProvider>(context, listen: false).logout();
+                            Navigator.of(context).pushReplacementNamed('/');
+                          })),
                     ],
                   ),
                 ),
@@ -3023,214 +3033,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     ));
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
-    bool isLoggingOut = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black54,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(context),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 28,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Wave header + floating icon badge
-                Stack(
-                  alignment: Alignment.bottomCenter,
-                  clipBehavior: Clip.none,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        topRight: Radius.circular(24),
-                      ),
-                      child: ClipPath(
-                        clipper: LogoutWaveClipper(),
-                        child: Container(
-                          height: context.sh(80),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: AppThemeColors.waveGradient(context),
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Floating logout icon — sits at wave/content boundary
-                    Positioned(
-                      bottom: -28,
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFE53935), Color(0xFFFF7043)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.red.withValues(alpha: 0.35),
-                              blurRadius: 14,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.logout_rounded,
-                            color: Colors.white, size: 26),
-                      ),
-                    ),
-                  ],
-                ),
-                // Content area
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                      context.sw(24), context.sh(42), context.sw(24), context.sh(24)),
-                  child: Column(
-                    children: [
-                      if (isLoggingOut) ...[
-                        const CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.cyan),
-                        ),
-                        SizedBox(height: context.sh(16)),
-                        Text(t('logging_out_label'),
-                            style: TextStyle(
-                              fontSize: context.sp(16),
-                              fontWeight: FontWeight.w600,
-                              color: AppThemeColors.primaryText(context),
-                            )),
-                      ] else ...[
-                        Text(t('are_you_sure_title'),
-                            style: TextStyle(
-                              fontSize: context.sp(22),
-                              fontWeight: FontWeight.bold,
-                              color: AppThemeColors.primaryText(context),
-                            )),
-                        SizedBox(height: context.sh(8)),
-                        Text(
-                          t('logout_confirm_message'),
-                          style: TextStyle(
-                            fontSize: context.sp(14),
-                            color: AppThemeColors.secondaryText(context),
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: context.sh(28)),
-                        Row(
-                          children: [
-                            // Cancel button
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.cyan,
-                                  side: const BorderSide(
-                                      color: AppColors.cyan, width: 1.5),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14)),
-                                  padding: EdgeInsets.symmetric(
-                                      vertical: context.sh(14)),
-                                ),
-                                child: Text(t('cancel'),
-                                    style: TextStyle(
-                                        fontSize: context.sp(14),
-                                        fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                            SizedBox(width: context.sw(12)),
-                            // Logout button — red gradient
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFFE53935),
-                                      Color(0xFFFF7043)
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.red.withValues(alpha: 0.3),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    setState(() => isLoggingOut = true);
-                                    await Provider.of<SessionProvider>(context,
-                                            listen: false)
-                                        .logout();
-                                    Navigator.of(context).pop(true);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(14)),
-                                    padding: EdgeInsets.symmetric(
-                                        vertical: context.sh(14)),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.logout_rounded, size: 18),
-                                      const SizedBox(width: 6),
-                                      Text(t('logout'),
-                                          style: TextStyle(
-                                              fontSize: context.sp(14),
-                                              fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (confirmed == true && context.mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  }
 }
 
 
@@ -3254,24 +3056,6 @@ class _BottomNavWaveClipper extends CustomClipper<Path> {
   bool shouldReclip(_BottomNavWaveClipper oldClipper) => false;
 }
 
-class LogoutWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.8, size.width * 0.5, size.height);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height * 0.8, 0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
 
 Color _getBoxColor(int index, BuildContext context) {
   if (AppThemeColors.isDark(context)) {

@@ -210,35 +210,144 @@ void showLogoutDialog(BuildContext context, {required VoidCallback onConfirm}) {
   final t = AppLocalizations.of(context).t;
   showDialog(
     context: context,
-    builder: (ctx) => AlertDialog(
-      backgroundColor: AppThemeColors.cardBg(ctx),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(
-        t('logout'),
-        style: TextStyle(
-            fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx)),
-      ),
-      content: Text(
-        t('logout_confirm'),
-        style: TextStyle(color: AppThemeColors.secondaryText(ctx)),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(ctx).pop();
-            onConfirm();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    barrierColor: Colors.black54,
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: tricolorBorder(
+        radius: 22,
+        margin: EdgeInsets.zero,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppThemeColors.cardBg(ctx),
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(t('logout'), style: const TextStyle(color: Colors.white)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 32),
+              // Red gradient logout icon
+              Container(
+                width: 66,
+                height: 66,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE53935), Color(0xFFFF7043)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withValues(alpha: 0.30),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.logout_rounded, color: Colors.white, size: 30),
+              ),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  t('are_you_sure_title'),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeColors.primaryText(ctx),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Text(
+                  t('logout_confirm_message'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppThemeColors.secondaryText(ctx),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Divider(height: 1, color: AppThemeColors.divider(ctx)),
+              // Split button row
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          foregroundColor: AppThemeColors.secondaryText(ctx),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          t('cancel'),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: AppThemeColors.secondaryText(ctx),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ),
+                    VerticalDivider(width: 1, color: AppThemeColors.divider(ctx)),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          onConfirm();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          foregroundColor: Colors.red,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.logout_rounded, size: 16, color: Colors.red),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                t('logout'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.red,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     ),
   );
 }

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
 import '../utils/http_interceptor.dart';
 import '../widgets/app_colors.dart';
@@ -35,6 +36,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _addressController;
   String? _gender;
   Uint8List? _newImageBytes;
+  String? _newImageMime;
   bool _removeImage = false;
   int _imageRefreshKey = 0;
   ImageProvider? _cachedNetworkAvatar;
@@ -448,6 +450,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         setState(() {
           _newImageBytes = imageBytes;
+          _newImageMime = image.mimeType ?? 'image/jpeg';
           _removeImage = false;
           _imageRefreshKey++; // Force avatar rebuild
         });
@@ -561,9 +564,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (_removeImage) {
         request.fields['removeImage'] = 'true';
       } else if (_newImageBytes != null) {
+        final mime = (_newImageMime ?? 'image/jpeg').split('/');
         request.files.add(http.MultipartFile.fromBytes(
             'profileImage', _newImageBytes!,
-            filename: 'profile.png'));
+            filename: 'profile.${mime.last}',
+            contentType: MediaType(mime[0], mime[1])));
       }
 
       final response = await request.send();
