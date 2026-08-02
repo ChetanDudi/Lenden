@@ -35,6 +35,7 @@ import 'l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'utils/theme_helper.dart';
 import 'utils/connectivity_service.dart';
+import 'services/firebase_service.dart';
 import 'screens/maintenance_screen.dart';
 import 'widgets/wave_widget.dart' show DeepTopWaveClipper;
 import 'widgets/no_internet_banner.dart';
@@ -43,6 +44,7 @@ import 'user/digitise/subscriptions_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ConnectivityService().init();
+  await FirebaseService.initialize();
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     debugPrint('Flutter error: ${details.exceptionAsString()}');
@@ -100,6 +102,10 @@ class _AppInitializerState extends State<AppInitializer>
     };
     final startedAt = DateTime.now();
     await session.initSession();
+    // Upload FCM token now if the user is already logged in (cold start / token persisted)
+    if (session.token != null && !session.isAdmin) {
+      unawaited(FirebaseService.uploadToken());
+    }
     unawaited(_maybeQueueDailyReward(session));
 
     // App version check — force-update if server says current version is too old
@@ -200,6 +206,13 @@ class _AppInitializerState extends State<AppInitializer>
     _activeUserId = newUserId;
     Provider.of<ThemeProvider>(context, listen: false).loadThemeMode(newUserId);
     Provider.of<LocaleProvider>(context, listen: false).loadLocale(newUserId);
+    // Upload FCM token on login, delete it on logout
+    final isUser = _session?.isAdmin == false;
+    if (newUserId != null && isUser) {
+      FirebaseService.uploadToken();
+    } else if (newUserId == null) {
+      FirebaseService.deleteToken();
+    }
   }
 
   Future<void> _maybeQueueDailyReward(SessionProvider session) async {

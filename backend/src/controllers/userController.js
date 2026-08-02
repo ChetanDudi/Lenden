@@ -934,6 +934,17 @@ exports.refreshToken = async (req, res) => {
 };
 
 // Logout user by revoking refresh token
+exports.saveFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    if (!fcmToken) return res.status(400).json({ error: 'fcmToken is required' });
+    await User.findByIdAndUpdate(req.user._id, { fcmToken });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 exports.logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;

@@ -8,6 +8,7 @@ const RazorpayCapturedPayment = require('../models/razorpayCapturedPayment');
 const Admin = require('../models/admin');
 const { sendWalletPayOTP, sendWalletPinSetupOTP, sendWalletTransactionAuthOTP } = require('../utils/walletPayOtp');
 const Notification = require('../models/notification');
+const { sendToUser } = require('../services/notificationService');
 
 exports.getBalance = async (req, res) => {
   try {
@@ -305,6 +306,13 @@ exports.pay = async (req, res) => {
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
           message: `You received ₹${amount} from ${req.user.email}.`,
         }));
+      }
+      if (receiverUser?.notificationSettings?.pushNotifications !== false) {
+        sendToUser(User, receiver._id, {
+          title: 'Payment Received 💸',
+          body: `You received ₹${amount} from ${req.user.email}.`,
+          data: { type: 'wallet_credit', amount: String(amount) },
+        });
       }
       return Promise.all(notifs);
     }).catch(() => {});
@@ -756,6 +764,13 @@ exports.qrPay = async (req, res) => {
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
           message: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
         }));
+      }
+      if (receiverUser?.notificationSettings?.pushNotifications !== false) {
+        sendToUser(User, receiver._id, {
+          title: 'Payment Received 💸',
+          body: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
+          data: { type: 'wallet_credit', amount: String(parsedAmount) },
+        });
       }
       return Promise.all(notifs);
     }).catch(() => {});

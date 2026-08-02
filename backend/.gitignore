@@ -54,5 +54,8 @@ web_modules/
 .env.production
 .env.local
 
+# Firebase service account — contains private credentials, never commit
+firebase-service-account.json
+
 # Mac files
 .DS_Store

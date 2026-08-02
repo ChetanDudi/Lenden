@@ -137,6 +137,7 @@ module.exports = (io) => {
   
   // Token management routes
   router.post('/users/refresh-token', userController.refreshToken);
+  router.post('/users/fcm-token', auth, userController.saveFcmToken);
   router.post('/users/logout', userController.logout);
   router.post('/users/logout-all-devices', auth, userController.logoutAllDevices);
   router.get('/users/active-sessions', auth, userController.getActiveSessions);

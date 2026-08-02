@@ -39,6 +39,7 @@ const userSchema = new mongoose.Schema({
   },
   phoneCountryCode: { type: String, default: '+91' },
   walletBalance: { type: Number, default: 0 },
+  fcmToken: { type: String, default: null },
   altEmail: { type: String },
   altEmailOTP: {
     code: { type: String },
