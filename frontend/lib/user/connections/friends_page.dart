@@ -124,7 +124,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
         final data = jsonDecode(reqRes.body);
         _incoming = List<Map<String, dynamic>>.from(data['incoming'] ?? []);
         _outgoing = List<Map<String, dynamic>>.from(data['outgoing'] ?? []);
-        _pendingOutgoingIds.clear();
+        // Rebuild _pendingOutgoingIds from live API data so optimistic state
+        // is preserved for any request the API confirms is still pending.
+        _pendingOutgoingIds
+          ..clear()
+          ..addAll(_outgoing.map((r) {
+            final to = r['to'];
+            return (to is Map ? to['_id'] : to)?.toString() ?? '';
+          }).where((id) => id.isNotEmpty));
       }
       // Fire non-critical calls in parallel without blocking the UI
       _loadInteractionCounts();
@@ -635,10 +642,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final res = await ApiClient.post('/api/friends/request', body: {'userId': uid});
     if (!mounted) return;
     if (res.statusCode == 201) {
-      // Show success — uid stays in _pendingOutgoingIds so the button shows "Pending"
-      _showSuccessDialog(t('request_sent_title'), t('friend_request_sent_success'), Icons.check_circle, Colors.green);
+      showSnack(context, t('friend_request_sent_success'));
     } else if (res.statusCode == 200) {
-      // Backend says already pending — pending chip already showing, nothing to do
+      // Already friends or already pending — keep Pending chip showing
     } else {
       setState(() => _pendingOutgoingIds.remove(uid));
       showSnack(context, t('failed_to_send_request'), isError: true);
@@ -723,36 +729,6 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     );
     return result == true;
   }
-
-  void _showSuccessDialog(String title, String msg, IconData icon, Color color) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
-          child: Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, color: color, size: 52),
-              const SizedBox(height: 12),
-              Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-              const SizedBox(height: 8),
-              Text(msg, textAlign: TextAlign.center, style: TextStyle(color: AppThemeColors.secondaryText(context))),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: color),
-                onPressed: () => Navigator.pop(context),
-                child: Text(t('ok'), style: const TextStyle(color: Colors.white)),
-              ),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-
 
   void _openQuickTransaction(String email) {
     if (_isBlockedEmail(email)) { showBlockedUserDialog(context); return; }
