@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/api_client.dart';
 
@@ -20,6 +21,8 @@ class FirebaseService {
   static const _channelDesc = 'Payment alerts and important updates from LenDen';
 
   static Future<void> initialize() async {
+    if (kIsWeb) return;
+
     await Firebase.initializeApp();
 
     // Register the background/terminated handler
@@ -80,6 +83,7 @@ class FirebaseService {
   /// Upload the current FCM token to our backend.
   /// Call this right after a successful login and on cold-start if already logged in.
   static Future<void> uploadToken() async {
+    if (kIsWeb) return;
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;
@@ -89,6 +93,7 @@ class FirebaseService {
 
   /// Delete the FCM token on logout so the device stops receiving notifications.
   static Future<void> deleteToken() async {
+    if (kIsWeb) return;
     try {
       await FirebaseMessaging.instance.deleteToken();
     } catch (_) {}
