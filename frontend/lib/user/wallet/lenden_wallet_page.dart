@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/avatar_helpers.dart' as ah;
 import '../../otp_input.dart';
 import '../../utils/api_client.dart';
 import '../transaction/quick_transactions/quick_transactions_page.dart';
@@ -2506,32 +2507,6 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
     }
   }
 
-  Color _avatarColor(String name) {
-    const colors = [
-      Color(0xFF0077B6),
-      Color(0xFF2E7D32),
-      Color(0xFF6A1B9A),
-      Color(0xFFD32F2F),
-      Color(0xFF00838F),
-      Color(0xFFE65100),
-      Color(0xFF1565C0),
-      Color(0xFF558B2F),
-    ];
-    if (name.isEmpty) return colors[0];
-    return colors[name.codeUnitAt(0) % colors.length];
-  }
-
-  String _initials(String name, String username) {
-    final n = name.trim();
-    if (n.isNotEmpty) {
-      final parts = n.split(' ');
-      if (parts.length >= 2)
-        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      return n[0].toUpperCase();
-    }
-    if (username.trim().isNotEmpty) return username[0].toUpperCase();
-    return '?';
-  }
 
   bool _validateDetails(String t(String key)) {
     final to = _emailCtrl.text.trim();
@@ -2712,8 +2687,8 @@ class _PayToUserSheetState extends State<_PayToUserSheet> {
                       final email = (f['email'] ?? '').toString();
                       final selected = _emailCtrl.text.trim().toLowerCase() ==
                           email.toLowerCase();
-                      final avatarColor = _avatarColor(name.isNotEmpty ? name : username);
-                      final initials = _initials(name, username);
+                      final avatarColor = ah.avatarColor(name.isNotEmpty ? name : username);
+                      final initials = ah.initials(name, username);
                       return GestureDetector(
                         onTap: () => setState(() {
                           _emailCtrl.text = email;

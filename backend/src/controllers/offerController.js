@@ -6,6 +6,7 @@ const Notification = require('../models/notification');
 const Admin = require('../models/admin');
 const { createActivityLog } = require('./activityController');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const { getTodayRange } = require('../utils/dateHelpers');
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -87,14 +88,6 @@ const validateOfferConstraints = async ({ coins, status }) => {
   }
 };
 
-const getTodayRange = () => {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-};
 
 const normalizePermissions = (permissions = {}) => ({
   canManageUsers: permissions.canManageUsers !== false,

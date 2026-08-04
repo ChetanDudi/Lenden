@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../utils/avatar_helpers.dart' as ah;
 import 'package:flutter/material.dart';
 import '../../../utils/api_client.dart';
 import '../../../api_config.dart';
@@ -364,17 +365,6 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     );
   }
 
-  Color _avatarColor(String email) {
-    const colors = [
-      Color(0xFF1565C0),
-      Color(0xFF6A1B9A),
-      Color(0xFF2E7D32),
-      Color(0xFFC62828),
-      Color(0xFFE65100),
-      Color(0xFF00838F),
-    ];
-    return colors[email.codeUnitAt(0) % colors.length];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -534,7 +524,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                         radius: 22,
                                         backgroundColor: isLeft
                                             ? Colors.grey[400]
-                                            : _avatarColor(email),
+                                            : ah.avatarColor(email),
                                         child: ClipOval(
                                           child: memberId.isNotEmpty
                                               ? Image.network(

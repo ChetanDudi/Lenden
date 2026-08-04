@@ -658,6 +658,23 @@ module.exports = (io) => {
   router.put('/budget/categories', auth, budgetController.setCategoryBudget);
   router.put('/budget/alerts', auth, budgetController.setAlertThresholds);
 
+  // Personal Budget routes
+  const personalBudgetController = require('../controllers/personalBudgetController');
+  const personalBudgetExpenseController = require('../controllers/personalBudgetExpenseController');
+  router.get('/personal-budget/access',      auth, personalBudgetController.getAccessStatus);
+  router.get('/personal-budget/active',      auth, personalBudgetController.getActive);
+  router.get('/personal-budget/history',     auth, personalBudgetController.getHistory);
+  router.get('/personal-budget/predictions', auth, personalBudgetController.getPredictions);
+  router.post('/personal-budget',            auth, personalBudgetController.create);
+  router.put('/personal-budget/:id',         auth, personalBudgetController.update);
+  router.delete('/personal-budget/:id',      auth, personalBudgetController.remove);
+  router.delete('/personal-budget/history/:id', auth, personalBudgetController.removeHistory);
+  // Expense sub-routes
+  router.get('/personal-budget/:budgetId/expenses',                  auth, personalBudgetExpenseController.getExpenses);
+  router.post('/personal-budget/:budgetId/expenses',                 auth, personalBudgetExpenseController.addExpense);
+  router.put('/personal-budget/:budgetId/expenses/:expenseId',       auth, personalBudgetExpenseController.updateExpense);
+  router.delete('/personal-budget/:budgetId/expenses/:expenseId',    auth, personalBudgetExpenseController.deleteExpense);
+
   // Savings goals routes
   const savingsGoalController = require('../controllers/savingsGoalController');
   router.get('/savings-goals', auth, savingsGoalController.getGoals);
@@ -689,6 +706,11 @@ module.exports = (io) => {
   router.get('/admin/budget/subscriptions',                 auth, isAdmin, adminBudgetController.getAllSubscriptions);
   router.get('/admin/budget/user/:userId',                  auth, isAdmin, adminBudgetController.getUserBudgetDetail);
   router.patch('/admin/budget/user/:userId/limits',         auth, isAdmin, adminBudgetController.setUserBudgetLimits);
+  router.get('/admin/personal-budget/all-active',          auth, isAdmin, adminBudgetController.getAllActivePersonalBudgets);
+  router.get('/admin/personal-budget/all-history',         auth, isAdmin, adminBudgetController.getAllPersonalBudgetHistory);
+  router.get('/admin/personal-budget/:budgetId/expenses',  auth, isAdmin, adminBudgetController.getAdminBudgetExpenses);
+  router.get('/admin/personal-budget/users',               auth, isAdmin, adminBudgetController.getPersonalBudgetUsers);
+  router.get('/admin/personal-budget/user/:userId',        auth, isAdmin, adminBudgetController.getPersonalBudgetUser);
 
   // Admin — Insights
   const adminInsightsController = require('../controllers/adminInsightsController');

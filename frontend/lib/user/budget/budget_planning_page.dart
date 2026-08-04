@@ -11,6 +11,7 @@ import '../../widgets/currency_display.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../widgets/premium_gate.dart';
+import 'tabs/personal_budget_tab.dart';
 import 'tabs/monthly_budget_tab.dart';
 import 'tabs/category_budgets_tab.dart';
 import 'tabs/group_budgets_tab.dart';
@@ -54,8 +55,8 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this,
-        initialIndex: widget.initialTabIndex.clamp(0, 6));
+    _tabController = TabController(length: 8, vsync: this,
+        initialIndex: widget.initialTabIndex.clamp(0, 7));
     _fetchData();
     loadCurrencies(onError: (_) {
       if (mounted) setState(() => _displayCurrencyError = 'Currency conversion unavailable');
@@ -377,6 +378,7 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                   labelStyle: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.bold),
                   unselectedLabelStyle: TextStyle(fontSize: context.sp(12)),
                   tabs: const [
+                    Tab(text: 'Personal'),
                     Tab(text: 'Monthly'),
                     Tab(text: 'Categories'),
                     Tab(text: 'Groups'),
@@ -410,6 +412,7 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                               : TabBarView(
                                   controller: _tabController,
                                   children: [
+                                    const PersonalBudgetTab(),
                                     MonthlyBudgetTab(
                                       budget: _budget,
                                       status: _status,

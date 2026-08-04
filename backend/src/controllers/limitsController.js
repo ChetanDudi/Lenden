@@ -6,13 +6,7 @@ const Chat = require('../models/chat');
 const GroupChat = require('../models/groupChat');
 const User = require('../models/user');
 
-const getTodayRange = () => {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-};
+const { getTodayRange } = require('../utils/dateHelpers');
 
 const isSubscribed = async (userId) => {
   const subscription = await Subscription.findOne({

@@ -333,7 +333,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Widget _buildPhoneField() {
     final flag = _flagEmoji(_phoneCountryIso);
-    return _tricolorBorder(
+    return tricolorBorder(margin: const EdgeInsets.symmetric(vertical: 6),
       child: Container(
         color: AppThemeColors.cardBg(context),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -914,25 +914,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 // ...existing code...
   }
 
-  Widget _tricolorBorder({required Widget child, double radius = 16}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      padding: const EdgeInsets.all(2),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 2),
-        child: child,
-      ),
-    );
-  }
-
   Widget _editField(
       IconData icon, String label, TextEditingController controller,
       {TextInputType keyboardType = TextInputType.text,
@@ -940,7 +921,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       bool isBirthday = false,
       bool isOptional = false}) {
     final t = AppLocalizations.of(context).t;
-    return _tricolorBorder(
+    return tricolorBorder(margin: const EdgeInsets.symmetric(vertical: 6),
       child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: AppThemeColors.cardBg(context),
@@ -1009,7 +990,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Widget _editGenderField() {
     final t = AppLocalizations.of(context).t;
-    return _tricolorBorder(
+    return tricolorBorder(margin: const EdgeInsets.symmetric(vertical: 6),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: AppThemeColors.cardBg(context),

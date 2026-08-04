@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/avatar_helpers.dart' as ah;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../../utils/api_client.dart';
@@ -37,21 +38,6 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
     } catch (_) {}
   }
 
-  Color _avatarColor(String name) {
-    const colors = [
-      Color(0xFF00BCD4), Color(0xFF4CAF50), Color(0xFFFF9800),
-      Color(0xFF9C27B0), Color(0xFFE91E63), Color(0xFF2196F3),
-    ];
-    if (name.isEmpty) return colors[0];
-    return colors[name.codeUnitAt(0) % colors.length];
-  }
-
-  String _initials(String name, String email) {
-    final src = name.isNotEmpty ? name : email;
-    final parts = src.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return src.isNotEmpty ? src[0].toUpperCase() : '?';
-  }
 
   Future<void> _pickFriend(TextEditingController ctrl, StateSetter setDialogState) async {
     if (_friends.isEmpty) return;
@@ -133,7 +119,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                               final f = filtered[idx];
                               final email = (f['email'] ?? '').toString();
                               final name = (f['name'] ?? f['username'] ?? '').toString();
-                              final color = _avatarColor(name.isNotEmpty ? name : email);
+                              final color = ah.avatarColor(name.isNotEmpty ? name : email);
                               return GestureDetector(
                                 onTap: () {
                                   setDialogState(() => ctrl.text = email);
@@ -150,7 +136,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                                     children: [
                                       CircleAvatar(
                                         backgroundColor: color.withValues(alpha: 0.18),
-                                        child: Text(_initials(name, email),
+                                        child: Text(ah.initials(name, email),
                                             style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 15)),
                                       ),
                                       const SizedBox(width: 14),
@@ -314,13 +300,13 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                         children: suggestions.map((f) {
                           final email = (f['email'] ?? '').toString();
                           final name = (f['name'] ?? f['username'] ?? '').toString();
-                          final color = _avatarColor(name.isNotEmpty ? name : email);
+                          final color = ah.avatarColor(name.isNotEmpty ? name : email);
                           return ListTile(
                             dense: true,
                             leading: CircleAvatar(
                               radius: 18,
                               backgroundColor: color.withValues(alpha: 0.18),
-                              child: Text(_initials(name, email),
+                              child: Text(ah.initials(name, email),
                                   style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
                             ),
                             title: Text(name.isNotEmpty ? name : email,

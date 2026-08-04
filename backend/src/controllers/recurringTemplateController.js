@@ -1,8 +1,7 @@
 const RecurringQuickTransactionTemplate = require('../models/recurringQuickTransactionTemplate');
 const User = require('../models/user');
 
-const isBlockedBy = (user, otherId) =>
-  (user.blockedUsers || []).some((id) => id.toString() === otherId.toString());
+const { isBlockedBy } = require('../utils/userHelpers');
 
 exports.createTemplate = async (req, res) => {
   try {

@@ -37,6 +37,25 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
 
   // Set Override tab state
   final _overrideSearchCtrl = TextEditingController();
+
+  // Collapsible state for personal budget cards
+  final Set<String> _expandedPBIds = {};
+
+  // Personal Budgets tab (tab 4)
+  List<dynamic> _pbActive = [];
+  bool _loadingPBActive = false;
+  String? _pbActiveErr;
+  int _pbActiveSkip = 0;
+  bool _pbActiveHasMore = false;
+  final _pbActiveSearch = TextEditingController();
+
+  // Personal Budget History tab (tab 5)
+  List<dynamic> _pbHistory = [];
+  bool _loadingPBHistory = false;
+  String? _pbHistoryErr;
+  int _pbHistorySkip = 0;
+  bool _pbHistoryHasMore = false;
+  final _pbHistorySearch = TextEditingController();
   List<dynamic> _overrideResults = [];
   bool _overrideSearching = false;
   Map<String, dynamic>? _overrideUser;
@@ -45,13 +64,15 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 6, vsync: this);
     _tabs.addListener(() {
       if (!_tabs.indexIsChanging) {
         switch (_tabs.index) {
           case 0: if (_overview == null) _fetchOverview(); break;
           case 1: if (_userRows.isEmpty) _fetchUsers(); break;
           case 3: if (_subscriptions.isEmpty) _fetchSubscriptions(); break;
+          case 4: if (_pbActive.isEmpty) _fetchPBActive(reset: true); break;
+          case 5: if (_pbHistory.isEmpty) _fetchPBHistory(reset: true); break;
         }
       }
     });
@@ -63,7 +84,63 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
     _tabs.dispose();
     _searchController.dispose();
     _overrideSearchCtrl.dispose();
+    _pbActiveSearch.dispose();
+    _pbHistorySearch.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchPBActive({bool reset = false}) async {
+    if (reset) { _pbActiveSkip = 0; _pbActive = []; }
+    setState(() { _loadingPBActive = true; _pbActiveErr = null; });
+    try {
+      final q = _pbActiveSearch.text.trim();
+      final url = '/api/admin/personal-budget/all-active?limit=10&skip=$_pbActiveSkip'
+          '${q.isNotEmpty ? '&search=${Uri.encodeComponent(q)}' : ''}';
+      final r = await ApiClient.get(url);
+      if (!mounted) return;
+      if (r.statusCode == 200) {
+        final d = jsonDecode(r.body) as Map<String, dynamic>;
+        final list = (d['budgets'] as List? ?? []);
+        setState(() {
+          if (reset) _pbActive = list; else _pbActive.addAll(list);
+          _pbActiveSkip = _pbActive.length;
+          _pbActiveHasMore = d['hasMore'] == true;
+        });
+      } else {
+        setState(() => _pbActiveErr = 'Failed to load.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _pbActiveErr = 'Error: $e');
+    } finally {
+      if (mounted) setState(() => _loadingPBActive = false);
+    }
+  }
+
+  Future<void> _fetchPBHistory({bool reset = false}) async {
+    if (reset) { _pbHistorySkip = 0; _pbHistory = []; }
+    setState(() { _loadingPBHistory = true; _pbHistoryErr = null; });
+    try {
+      final q = _pbHistorySearch.text.trim();
+      final url = '/api/admin/personal-budget/all-history?limit=10&skip=$_pbHistorySkip'
+          '${q.isNotEmpty ? '&search=${Uri.encodeComponent(q)}' : ''}';
+      final r = await ApiClient.get(url);
+      if (!mounted) return;
+      if (r.statusCode == 200) {
+        final d = jsonDecode(r.body) as Map<String, dynamic>;
+        final list = (d['budgets'] as List? ?? []);
+        setState(() {
+          if (reset) _pbHistory = list; else _pbHistory.addAll(list);
+          _pbHistorySkip = _pbHistory.length;
+          _pbHistoryHasMore = d['hasMore'] == true;
+        });
+      } else {
+        setState(() => _pbHistoryErr = 'Failed to load.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _pbHistoryErr = 'Error: $e');
+    } finally {
+      if (mounted) setState(() => _loadingPBHistory = false);
+    }
   }
 
   Future<void> _fetchOverview() async {
@@ -394,6 +471,8 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
                 Tab(text: 'User Budgets'),
                 Tab(text: 'Set Override'),
                 Tab(text: 'Subscriptions'),
+                Tab(text: 'Personal Budgets'),
+                Tab(text: 'PB History'),
               ],
             ),
           ),
@@ -406,6 +485,8 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
                 _buildUsersTab(),
                 _buildOverrideTab(),
                 _buildSubscriptionsTab(),
+                _buildPersonalBudgetsTab(),
+                _buildPersonalBudgetHistoryTab(),
               ],
             ),
           ),
@@ -799,6 +880,302 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
     );
   }
 
+  // ─── Personal Budgets tab (active, all users) ────────────────────────────
+
+  Widget _buildPersonalBudgetsTab() {
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child: TextField(
+          controller: _pbActiveSearch,
+          decoration: InputDecoration(
+            hintText: 'Search by user name or email…',
+            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
+            suffixIcon: _pbActiveSearch.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 18),
+                    onPressed: () { _pbActiveSearch.clear(); _fetchPBActive(reset: true); })
+                : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.cyan)),
+          ),
+          onSubmitted: (_) => _fetchPBActive(reset: true),
+          onChanged: (v) { if (v.isEmpty) _fetchPBActive(reset: true); setState(() {}); },
+        ),
+      ),
+      const SizedBox(height: 8),
+      if (_loadingPBActive && _pbActive.isEmpty)
+        const Expanded(child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
+      else if (_pbActiveErr != null)
+        Expanded(child: _errorView(_pbActiveErr!, () => _fetchPBActive(reset: true)))
+      else if (_pbActive.isEmpty)
+        Expanded(child: _emptyView('No active personal budgets', Icons.savings_outlined))
+      else
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColors.cyan,
+            onRefresh: () => _fetchPBActive(reset: true),
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
+              itemCount: _pbActive.length + (_pbActiveHasMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                if (i == _pbActive.length) {
+                  return TextButton(
+                    onPressed: _loadingPBActive ? null : _fetchPBActive,
+                    child: _loadingPBActive
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                        : const Text('Load more', style: TextStyle(color: AppColors.cyan)),
+                  );
+                }
+                return _pbBudgetCard(_pbActive[i] as Map<String, dynamic>, isHistory: false);
+              },
+            ),
+          ),
+        ),
+    ]);
+  }
+
+  // ─── Personal Budget History tab (completed/expired, all users) ──────────
+
+  Widget _buildPersonalBudgetHistoryTab() {
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child: TextField(
+          controller: _pbHistorySearch,
+          decoration: InputDecoration(
+            hintText: 'Search by user name or email…',
+            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
+            suffixIcon: _pbHistorySearch.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 18),
+                    onPressed: () { _pbHistorySearch.clear(); _fetchPBHistory(reset: true); })
+                : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.cyan)),
+          ),
+          onSubmitted: (_) => _fetchPBHistory(reset: true),
+          onChanged: (v) { if (v.isEmpty) _fetchPBHistory(reset: true); setState(() {}); },
+        ),
+      ),
+      const SizedBox(height: 8),
+      if (_loadingPBHistory && _pbHistory.isEmpty)
+        const Expanded(child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
+      else if (_pbHistoryErr != null)
+        Expanded(child: _errorView(_pbHistoryErr!, () => _fetchPBHistory(reset: true)))
+      else if (_pbHistory.isEmpty)
+        Expanded(child: _emptyView('No budget history found', Icons.history_rounded))
+      else
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColors.cyan,
+            onRefresh: () => _fetchPBHistory(reset: true),
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
+              itemCount: _pbHistory.length + (_pbHistoryHasMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                if (i == _pbHistory.length) {
+                  return TextButton(
+                    onPressed: _loadingPBHistory ? null : _fetchPBHistory,
+                    child: _loadingPBHistory
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan))
+                        : const Text('Load more', style: TextStyle(color: AppColors.cyan)),
+                  );
+                }
+                return _pbBudgetCard(_pbHistory[i] as Map<String, dynamic>, isHistory: true);
+              },
+            ),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _pbBudgetCard(Map<String, dynamic> b, {required bool isHistory}) {
+    final user      = b['user'] as Map<String, dynamic>? ?? {};
+    final budgetId  = b['_id'] as String? ?? '';
+    final name      = b['name'] as String? ?? '';
+    final currency  = b['currency'] as String? ?? 'INR';
+    final limit     = (b['limit'] as num?)?.toDouble() ?? 0;
+    final spent     = (b['spentAmount'] as num?)?.toDouble() ?? 0;
+    final pct       = (b['percentSpent'] as num?)?.toDouble() ?? 0;
+    final status    = b['status'] as String? ?? '';
+    final period    = b['period'] as String? ?? '';
+    final daysLeft  = (b['daysLeft'] as num?)?.toInt();
+    final notes     = b['notes'] as String? ?? '';
+    final df        = DateFormat('dd MMM yyyy');
+    final startRaw  = b['startDate'] as String?;
+    final endRaw    = b['endDate'] as String?;
+    final startStr  = startRaw != null ? df.format(DateTime.parse(startRaw).toLocal()) : '';
+    final endStr    = endRaw   != null ? df.format(DateTime.parse(endRaw).toLocal())   : '';
+    final color     = pct >= 100 ? Colors.red.shade600 : pct >= 80 ? Colors.orange.shade600 : Colors.green.shade600;
+    final stColor   = status == 'completed' ? Colors.green.shade600 : status == 'expired' ? Colors.orange.shade700 : AppColors.cyan;
+    final expanded    = _expandedPBIds.contains(budgetId);
+    final budgetColor = _colorFromBudget(budgetId);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: budgetColor.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: budgetColor.withValues(alpha: 0.45), width: 2),
+        boxShadow: [BoxShadow(color: budgetColor.withValues(alpha: 0.12),
+            blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // ── Always visible ──────────────────────────────────────────────────
+      Row(children: [
+        const Icon(Icons.account_circle_rounded, color: AppColors.cyan, size: 20),
+        const SizedBox(width: 6),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(user['name'] as String? ?? '–',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                  color: AppThemeColors.primaryText(context))),
+          Text(user['email'] as String? ?? '',
+              style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context))),
+        ])),
+        _pbChip(_capFirst(period), AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan),
+        const SizedBox(width: 4),
+        if (isHistory)
+          _pbChip(_capFirst(status), stColor.withValues(alpha: 0.12), stColor),
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: Text(name,
+            style: TextStyle(fontWeight: FontWeight.bold,
+                color: AppThemeColors.primaryText(context)))),
+        if (!isHistory && daysLeft != null)
+          Text('$daysLeft days left',
+              style: TextStyle(fontSize: 11,
+                  color: daysLeft <= 3 ? Colors.red : AppThemeColors.secondaryText(context))),
+        if (isHistory && endStr.isNotEmpty)
+          Text('Ended $endStr',
+              style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context))),
+      ]),
+      const SizedBox(height: 8),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text('$currency ${_fmtN(spent)} / ${_fmtN(limit)}',
+            style: TextStyle(fontSize: 12, color: AppThemeColors.primaryText(context))),
+        Text('${pct.toStringAsFixed(1)}%',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+      ]),
+      const SizedBox(height: 6),
+      ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(
+        value: (pct / 100).clamp(0.0, 1.0), minHeight: 6,
+        color: color, backgroundColor: AppThemeColors.border(context),
+      )),
+
+      // ── Expanded section ────────────────────────────────────────────────
+      AnimatedCrossFade(
+        duration: const Duration(milliseconds: 220),
+        crossFadeState: expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+        firstChild: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+          // Date range
+          if (startStr.isNotEmpty || endStr.isNotEmpty)
+            Row(children: [
+              const Icon(Icons.date_range_rounded, size: 13, color: AppColors.cyan),
+              const SizedBox(width: 4),
+              Text('$startStr → $endStr',
+                  style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
+            ]),
+          // Notes
+          if (notes.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.notes_rounded, size: 13, color: AppColors.cyan),
+              const SizedBox(width: 4),
+              Expanded(child: Text(notes, maxLines: 3, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context),
+                      fontStyle: FontStyle.italic))),
+            ]),
+          ],
+          // Over/under summary
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(children: [
+              Icon(pct >= 100 ? Icons.warning_rounded : Icons.check_circle_rounded,
+                  size: 14, color: color),
+              const SizedBox(width: 6),
+              Expanded(child: Text(
+                pct >= 100
+                    ? 'Over budget by $currency ${_fmtN(spent - limit)}'
+                    : 'Under budget — $currency ${_fmtN(limit - spent)} remaining',
+                style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
+              )),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          // View All Expenses button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.receipt_long_rounded, size: 16, color: AppColors.cyan),
+              label: const Text('View All Expenses & Audit Trail',
+                  style: TextStyle(color: AppColors.cyan, fontSize: 12, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.cyan),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              onPressed: () => _showAdminExpensesSheet(budgetId, name, currency),
+            ),
+          ),
+        ]),
+        secondChild: const SizedBox.shrink(),
+      ),
+
+      // ── View More / View Less toggle ────────────────────────────────────
+      const SizedBox(height: 6),
+      GestureDetector(
+        onTap: () => setState(() {
+          if (expanded) _expandedPBIds.remove(budgetId);
+          else _expandedPBIds.add(budgetId);
+        }),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Text(expanded ? 'View Less' : 'View More',
+              style: const TextStyle(fontSize: 12, color: AppColors.cyan,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(width: 4),
+          Icon(expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+              size: 16, color: AppColors.cyan),
+        ]),
+      ),
+      ]),
+    );
+  }
+
+  // ─── Admin expense sheet ─────────────────────────────────────────────────
+
+  void _showAdminExpensesSheet(String budgetId, String budgetName, String currency) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppThemeColors.cardBg(context),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => _AdminExpenseSheet(
+          budgetId: budgetId, budgetName: budgetName, currency: currency),
+    );
+  }
+
+  Widget _pbChip(String label, Color bg, Color fg) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+    child: Text(label, style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.w600)),
+  );
+
   Widget _kpi(String label, String value, IconData icon, Color color) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.2))),
@@ -814,6 +1191,16 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
     padding: const EdgeInsets.only(bottom: 10),
     child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.cyan)),
   );
+
+  Color _colorFromBudget(String id) {
+    const palette = [
+      Color(0xFF4CAF50), Color(0xFF2196F3), Color(0xFF9C27B0),
+      Color(0xFFFF9800), Color(0xFFE91E63), Color(0xFF00BCD4),
+      Color(0xFFFF5722), Color(0xFF607D8B), Color(0xFF795548), Color(0xFF3F51B5),
+    ];
+    final hash = id.codeUnits.fold(0, (prev, el) => prev + el);
+    return palette[hash % palette.length];
+  }
 
   Widget _card(Widget child) => Container(
     margin: const EdgeInsets.only(bottom: 2),
@@ -835,4 +1222,303 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
     const SizedBox(height: 16),
     Text(msg, style: TextStyle(color: AppThemeColors.secondaryText(context))),
   ]));
+}
+
+// ─── Admin expense sheet (separate StatefulWidget) ───────────────────────────
+
+class _AdminExpenseSheet extends StatefulWidget {
+  final String budgetId;
+  final String budgetName;
+  final String currency;
+  const _AdminExpenseSheet({
+    required this.budgetId,
+    required this.budgetName,
+    required this.currency,
+  });
+
+  @override
+  State<_AdminExpenseSheet> createState() => _AdminExpenseSheetState();
+}
+
+class _AdminExpenseSheetState extends State<_AdminExpenseSheet>
+    with SingleTickerProviderStateMixin {
+  bool _loading = true;
+  String? _error;
+  List<dynamic> _active  = [];
+  List<dynamic> _deleted = [];
+  double _total = 0;
+  late TabController _tabs;
+
+  final _dtFmt = DateFormat('dd MMM yyyy, hh:mm a');
+  final _numFmt = NumberFormat('#,##0.##', 'en_IN');
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final r = await ApiClient.get('/api/admin/personal-budget/${widget.budgetId}/expenses');
+      if (!mounted) return;
+      if (r.statusCode == 200) {
+        final d = jsonDecode(r.body) as Map<String, dynamic>;
+        setState(() {
+          _active  = (d['active']  as List? ?? []);
+          _deleted = (d['deleted'] as List? ?? []);
+          _total   = (d['total']   as num?)?.toDouble() ?? 0;
+        });
+      } else {
+        setState(() => _error = 'Failed to load expenses.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _fmt(num? v) => '${widget.currency} ${_numFmt.format(v ?? 0)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.88,
+      maxChildSize: 0.95,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (_, sc) => Column(children: [
+        // Handle
+        Container(margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2))),
+        // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(children: [
+            const Icon(Icons.receipt_long_rounded, color: AppColors.cyan, size: 22),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.budgetName,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15,
+                      color: AppThemeColors.primaryText(context))),
+              Text('All expenses — ${_active.length} active · ${_deleted.length} deleted',
+                  style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
+            ])),
+            if (!_loading)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text('Total: ${_fmt(_total)}',
+                    style: const TextStyle(fontSize: 12, color: AppColors.cyan,
+                        fontWeight: FontWeight.bold)),
+              ),
+          ]),
+        ),
+        // Tabs
+        TabBar(
+          controller: _tabs,
+          labelColor: AppColors.cyan,
+          unselectedLabelColor: AppThemeColors.secondaryText(context),
+          indicatorColor: AppColors.cyan,
+          tabs: [
+            Tab(text: 'Active (${_active.length})'),
+            Tab(text: 'Deleted (${_deleted.length})'),
+          ],
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
+              : _error != null
+                  ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 8),
+                      ElevatedButton(onPressed: _load,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
+                          child: const Text('Retry', style: TextStyle(color: Colors.white))),
+                    ]))
+                  : TabBarView(controller: _tabs, children: [
+                      _buildExpenseList(_active, deleted: false),
+                      _buildExpenseList(_deleted, deleted: true),
+                    ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildExpenseList(List<dynamic> list, {required bool deleted}) {
+    if (list.isEmpty) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(deleted ? Icons.delete_outline_rounded : Icons.receipt_long_rounded,
+            size: 48, color: AppThemeColors.secondaryText(context).withValues(alpha: 0.4)),
+        const SizedBox(height: 12),
+        Text(deleted ? 'No deleted expenses' : 'No expenses yet',
+            style: TextStyle(color: AppThemeColors.secondaryText(context))),
+      ]));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+      itemCount: list.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, i) => _buildExpenseCard(list[i] as Map<String, dynamic>, deleted: deleted),
+    );
+  }
+
+  Widget _buildExpenseCard(Map<String, dynamic> e, {required bool deleted}) {
+    final amount   = (e['amount'] as num?)?.toDouble() ?? 0;
+    final category = e['category'] as String? ?? '';
+    final desc     = e['description'] as String? ?? '';
+    final history  = (e['editHistory'] as List? ?? []);
+    final dateRaw  = e['date'] as String?;
+    final createdRaw  = e['createdAt'] as String?;
+    final updatedRaw  = e['updatedAt'] as String?;
+    final deletedRaw  = e['deletedAt'] as String?;
+    final hasHistory  = history.isNotEmpty;
+
+    final cardColor = deleted
+        ? Colors.red.withValues(alpha: 0.06)
+        : AppThemeColors.cardBg(context);
+    final borderColor = deleted
+        ? Colors.red.withValues(alpha: 0.3)
+        : AppThemeColors.border(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Top row
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(category,
+                style: const TextStyle(fontSize: 11, color: AppColors.cyan,
+                    fontWeight: FontWeight.w600)),
+          ),
+          const Spacer(),
+          Text(_fmt(amount),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
+                  color: deleted ? Colors.red.shade700 : AppThemeColors.primaryText(context))),
+          if (deleted) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10)),
+              child: const Text('DELETED',
+                  style: TextStyle(fontSize: 9, color: Colors.red, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ]),
+        if (desc.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(desc, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
+        ],
+        const SizedBox(height: 6),
+        // Timestamps
+        _tsRow(Icons.calendar_today_rounded, 'Expense date',
+            dateRaw != null ? _dtFmt.format(DateTime.parse(dateRaw).toLocal()) : '–'),
+        _tsRow(Icons.add_circle_outline_rounded, 'Created',
+            createdRaw != null ? _dtFmt.format(DateTime.parse(createdRaw).toLocal()) : '–'),
+        if (updatedRaw != null && updatedRaw != createdRaw)
+          _tsRow(Icons.edit_rounded, 'Last edited',
+              _dtFmt.format(DateTime.parse(updatedRaw).toLocal())),
+        if (deletedRaw != null)
+          _tsRow(Icons.delete_rounded, 'Deleted at',
+              _dtFmt.format(DateTime.parse(deletedRaw).toLocal()), color: Colors.red),
+
+        // Edit history
+        if (hasHistory) ...[
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          Row(children: [
+            const Icon(Icons.history_rounded, size: 13, color: AppColors.cyan),
+            const SizedBox(width: 4),
+            Text('Edit History (${history.length} version${history.length == 1 ? '' : 's'})',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                    color: AppColors.cyan)),
+          ]),
+          const SizedBox(height: 6),
+          ...history.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final h   = entry.value as Map<String, dynamic>;
+            final editedAt = h['editedAt'] as String?;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.15)),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8)),
+                    child: Text('v${idx + 1}',
+                        style: const TextStyle(fontSize: 9, color: AppColors.cyan,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(_fmt(h['amount'] as num?),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  Text(h['category'] as String? ?? '',
+                      style: const TextStyle(fontSize: 11, color: AppColors.cyan)),
+                  const Spacer(),
+                  if (editedAt != null)
+                    Text(_dtFmt.format(DateTime.parse(editedAt).toLocal()),
+                        style: TextStyle(fontSize: 9,
+                            color: AppThemeColors.secondaryText(context))),
+                ]),
+                if ((h['description'] as String? ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(h['description'] as String,
+                      style: TextStyle(fontSize: 11,
+                          color: AppThemeColors.secondaryText(context))),
+                ],
+              ]),
+            );
+          }),
+        ],
+      ]),
+    );
+  }
+
+  Widget _tsRow(IconData icon, String label, String value, {Color? color}) {
+    final c = color ?? AppThemeColors.secondaryText(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(children: [
+        Icon(icon, size: 11, color: c),
+        const SizedBox(width: 4),
+        Text('$label: ', style: TextStyle(fontSize: 10, color: c, fontWeight: FontWeight.w500)),
+        Expanded(child: Text(value, style: TextStyle(fontSize: 10, color: c),
+            overflow: TextOverflow.ellipsis)),
+      ]),
+    );
+  }
 }

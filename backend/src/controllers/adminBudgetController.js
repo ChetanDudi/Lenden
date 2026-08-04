@@ -1,8 +1,10 @@
-const Budget         = require('../models/budget');
-const BudgetRecurring = require('../models/budgetRecurring');
-const User           = require('../models/user');
-const QuickTransaction = require('../models/quickTransaction');
-const Transaction    = require('../models/transaction');
+const Budget               = require('../models/budget');
+const BudgetRecurring      = require('../models/budgetRecurring');
+const PersonalBudget       = require('../models/personalBudget');
+const PersonalBudgetExpense = require('../models/personalBudgetExpense');
+const User                 = require('../models/user');
+const QuickTransaction     = require('../models/quickTransaction');
+const Transaction          = require('../models/transaction');
 
 // GET /admin/budget/overview
 exports.getBudgetOverview = async (req, res) => {
@@ -295,5 +297,149 @@ exports.getAllSubscriptions = async (req, res) => {
   } catch (err) {
     console.error('Admin subscriptions error:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ─── Personal Budget – Admin ──────────────────────────────────────────────────
+
+// GET /admin/personal-budget/users — list users who have personal budgets
+exports.getPersonalBudgetUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+
+    const [grouped, total] = await Promise.all([
+      PersonalBudget.aggregate([
+        { $group: { _id: '$user', count: { $sum: 1 }, latest: { $max: '$createdAt' }, activeCount: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } } } },
+        { $sort: { latest: -1 } },
+        { $skip: skip },
+        { $limit: parseInt(limit, 10) },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+        { $unwind: '$user' },
+        { $project: { userId: '$_id', name: '$user.name', email: '$user.email', count: 1, activeCount: 1, latest: 1 } },
+      ]),
+      PersonalBudget.distinct('user').then(ids => ids.length),
+    ]);
+
+    res.json({ rows: grouped, total, page: parseInt(page, 10), pages: Math.ceil(total / parseInt(limit, 10)) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /admin/personal-budget/all-active?page=1&limit=20&search=
+exports.getAllActivePersonalBudgets = async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit  = Math.min(50, parseInt(req.query.limit, 10) || 20);
+    const search = (req.query.search || '').trim();
+    const skip   = (page - 1) * limit;
+
+    const filter = { status: 'active' };
+    if (search) {
+      const matched = await User.find({
+        role: { $ne: 'admin' },
+        $or: [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }],
+      }).select('_id').lean();
+      filter.user = { $in: matched.map(u => u._id) };
+    }
+
+    const [total, budgets] = await Promise.all([
+      PersonalBudget.countDocuments(filter),
+      PersonalBudget.find(filter).populate('user', 'name email')
+        .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    ]);
+
+    const now = new Date();
+    const enriched = await Promise.all(budgets.map(async (b) => {
+      const result = await PersonalBudgetExpense.aggregate([
+        { $match: { budget: b._id, isDeleted: { $ne: true } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]);
+      const spent      = result[0]?.total ?? 0;
+      const pct        = b.limit > 0 ? Math.round((spent / b.limit) * 100) : 0;
+      const daysLeft   = Math.max(0, Math.ceil((new Date(b.endDate) - now) / 86400000));
+      return { ...b, spentAmount: spent, percentSpent: pct, daysLeft };
+    }));
+
+    res.json({ budgets: enriched, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error('Admin all-active personal budgets error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /admin/personal-budget/all-history?page=1&limit=20&search=&status=
+exports.getAllPersonalBudgetHistory = async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit  = Math.min(50, parseInt(req.query.limit, 10) || 20);
+    const search = (req.query.search || '').trim();
+    const skip   = (page - 1) * limit;
+    const statusFilter = req.query.status;
+
+    const filter = { status: { $in: statusFilter ? [statusFilter] : ['expired', 'completed'] } };
+    if (search) {
+      const matched = await User.find({
+        role: { $ne: 'admin' },
+        $or: [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }],
+      }).select('_id').lean();
+      filter.user = { $in: matched.map(u => u._id) };
+    }
+
+    const [total, budgets] = await Promise.all([
+      PersonalBudget.countDocuments(filter),
+      PersonalBudget.find(filter).populate('user', 'name email')
+        .sort({ endDate: -1 }).skip(skip).limit(limit).lean(),
+    ]);
+
+    const enriched = await Promise.all(budgets.map(async (b) => {
+      const spent = b.spentAtClose ?? (await PersonalBudgetExpense.aggregate([
+        { $match: { budget: b._id, isDeleted: { $ne: true } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]).then(r => r[0]?.total ?? 0));
+      return { ...b, spentAmount: spent, percentSpent: b.limit > 0 ? Math.round((spent / b.limit) * 100) : 0 };
+    }));
+
+    res.json({ budgets: enriched, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error('Admin personal budget history error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /admin/personal-budget/:budgetId/expenses — all expenses (incl. deleted) with audit history
+exports.getAdminBudgetExpenses = async (req, res) => {
+  try {
+    const { budgetId } = req.params;
+    const budget = await PersonalBudget.findById(budgetId).populate('user', 'name email').lean();
+    if (!budget) return res.status(404).json({ error: 'Budget not found.' });
+
+    const expenses = await PersonalBudgetExpense.find({ budget: budgetId })
+      .sort({ date: -1 }).lean();
+
+    const active  = expenses.filter(e => !e.isDeleted);
+    const deleted = expenses.filter(e => e.isDeleted);
+    const total   = active.reduce((s, e) => s + e.amount, 0);
+
+    res.json({ budget, expenses, active, deleted, total });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /admin/personal-budget/user/:userId — specific user's personal budgets
+exports.getPersonalBudgetUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { showAll = 'false', status } = req.query;
+    const lim = showAll === 'true' ? 50 : 3;
+    const filter = { user: userId };
+    if (status) filter.status = status;
+    const budgets = await PersonalBudget.find(filter).sort({ createdAt: -1 }).limit(lim).lean();
+    const total   = await PersonalBudget.countDocuments({ user: userId });
+    res.json({ budgets, total });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

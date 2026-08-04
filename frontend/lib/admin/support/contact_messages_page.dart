@@ -653,24 +653,6 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
     );
   }
 
-  Widget _tricolorBorder({required Widget child, double radius = 16}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 2),
-        child: child,
-      ),
-    );
-  }
-
   Widget _buildMessageCard(Map<String, dynamic> msg) {
     final t = AppLocalizations.of(context).t;
     final status = (msg['status'] as String?) ?? 'new';
@@ -681,7 +663,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
       onTap: () => _showMessageDetail(msg),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 10),
-        child: _tricolorBorder(
+        child: tricolorBorder(
           radius: 16,
           child: Container(
             padding: const EdgeInsets.all(14),

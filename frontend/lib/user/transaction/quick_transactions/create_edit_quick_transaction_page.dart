@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../utils/avatar_helpers.dart' as ah;
 import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
@@ -176,29 +177,6 @@ class _CreateEditQuickTransactionPageState
     setState(() => _suggestions = matches.take(5).toList());
   }
 
-  Color _avatarColor(String name) {
-    final colors = [
-      const Color(0xFF00BCD4),
-      const Color(0xFF4CAF50),
-      const Color(0xFFFF9800),
-      const Color(0xFF9C27B0),
-      const Color(0xFFE91E63),
-      const Color(0xFF2196F3),
-      const Color(0xFF009688),
-      const Color(0xFFFF5722),
-    ];
-    if (name.isEmpty) return colors[0];
-    return colors[name.codeUnitAt(0) % colors.length];
-  }
-
-  String _initials(String name, String email) {
-    final src = name.isNotEmpty ? name : email;
-    final parts = src.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return src.isNotEmpty ? src[0].toUpperCase() : '?';
-  }
 
   Future<void> _pickFriend() async {
     final t = AppLocalizations.of(context).t;
@@ -383,9 +361,9 @@ class _CreateEditQuickTransactionPageState
                                       final displayName =
                                           name.isNotEmpty ? name : email;
                                       final initials =
-                                          _initials(name, email);
+                                          ah.initials(name, email);
                                       final color =
-                                          _avatarColor(displayName);
+                                          ah.avatarColor(displayName);
 
                                       return GestureDetector(
                                         onTap: () {

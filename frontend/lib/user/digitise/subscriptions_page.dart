@@ -1486,32 +1486,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     );
   }
 
-  Widget _buildErrorState(String message, VoidCallback onRetry) {
-    final t = AppLocalizations.of(context).t;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(
-        children: [
-          Icon(Icons.error_outline_rounded, size: 46, color: Colors.red[300]),
-          const SizedBox(height: 12),
-          Text(message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red)),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded),
-            label: Text(t('retry')),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.cyan,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEmptyState(String title, String subtitle) {
     return Padding(
@@ -1594,7 +1568,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(child: CircularProgressIndicator()))
               : _plansError != null
-                  ? _buildErrorState(_plansError!, _fetchPlans)
+                  ? errorStateWidget(context,_plansError!, _fetchPlans)
                   : _plans.isEmpty
                       ? _buildEmptyState(
                           t('nothing_here'), t('add_first_subscription_plan'))
@@ -1883,7 +1857,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()))
           : _benefitsError != null
-              ? _buildErrorState(_benefitsError!, _fetchBenefits)
+              ? errorStateWidget(context,_benefitsError!, _fetchBenefits)
               : _benefits.isEmpty
                   ? _buildEmptyState(
                       t('nothing_here'), t('no_benefits_listed_message'))
@@ -1904,7 +1878,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()))
           : _faqsError != null
-              ? _buildErrorState(_faqsError!, _fetchFaqs)
+              ? errorStateWidget(context,_faqsError!, _fetchFaqs)
               : _faqs.isEmpty
                   ? _buildEmptyState(t('nothing_here'), t('no_faqs_listed_message'))
                   : Column(

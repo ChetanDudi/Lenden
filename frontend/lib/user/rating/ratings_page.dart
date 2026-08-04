@@ -373,22 +373,6 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     );
   }
 
-  Widget _tricolorBorder({required Widget child, double radius = 20}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 12, offset: const Offset(0, 4))],
-      ),
-      child: child,
-    );
-  }
-
   Widget _ratingCard(Map<String, dynamic> r, {required bool isGiven}) {
     final t = AppLocalizations.of(context).t;
     final rating = (r['rating'] ?? 0).toDouble();
@@ -399,7 +383,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     final starColor = rating >= 4 ? Colors.green : rating >= 3 ? Colors.orange : Colors.orange;
     final comment = r['comment']?.toString() ?? '';
 
-    return _tricolorBorder(
+    return tricolorBorder(
       radius: 16,
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -587,7 +571,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             child: Column(
                               children: [
-                                _tricolorBorder(
+                                tricolorBorder(radius: 20,
                                   child: Container(
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -801,7 +785,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                             child: Consumer<SessionProvider>(
                               builder: (context, session, _) {
                                 if (!session.hasFeature('view_rankings')) {
-                                  return _tricolorBorder(
+                                  return tricolorBorder(radius: 20,
                                     child: Container(
                                       padding: const EdgeInsets.all(22),
                                       decoration: BoxDecoration(color: AppThemeColors.tinted(context, light: const Color(0xFFFFF8F0), dark: const Color(0xFF3A3420)), borderRadius: BorderRadius.circular(18)),
@@ -832,7 +816,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                 }
                                 return Column(
                                   children: [
-                                    _tricolorBorder(
+                                    tricolorBorder(radius: 20,
                                       child: Container(
                                         padding: const EdgeInsets.all(18),
                                         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -936,7 +920,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                                     ],
                                     if (_searchedAvgRating != null) ...[
                                       const SizedBox(height: 16),
-                                      _tricolorBorder(
+                                      tricolorBorder(radius: 20,
                                         child: Container(
                                           padding: const EdgeInsets.all(22),
                                           decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),

@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/app_widgets.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({Key? key}) : super(key: key);
@@ -171,24 +172,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
     }
   }
 
-  Widget _tricolorBorder({required Widget child, double radius = 16}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      padding: const EdgeInsets.all(2),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 2),
-        child: child,
-      ),
-    );
-  }
-
   Widget _buildAppRatingStars() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -252,7 +235,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _tricolorBorder(
+          child: tricolorBorder(
             child: Container(
               color: AppThemeColors.scaffoldBg(context),
               padding:
@@ -366,7 +349,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   const SizedBox(height: 20),
 
                   // ── Rate the app card ──────────────────────────────────────
-                  _tricolorBorder(
+                  tricolorBorder(
                     child: Container(
                       color: AppThemeColors.cardBg(context),
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -431,7 +414,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   const SizedBox(height: 16),
 
                   // ── Feedback text field ────────────────────────────────────
-                  _tricolorBorder(
+                  tricolorBorder(
                     child: Container(
                       color: AppThemeColors.cardBg(context),
                       child: TextField(

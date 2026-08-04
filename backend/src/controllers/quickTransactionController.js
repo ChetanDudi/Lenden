@@ -12,20 +12,10 @@ const Notification = require('../models/notification');
 const { getCoinPricing } = require('../utils/coinPricing');
 const { sendToUser } = require('../services/notificationService');
 
-const isBlockedBy = (user, other) =>
-  (user.blockedUsers || []).some(
-    (id) => id.toString() === other._id.toString()
-  );
+const { isBlockedBy } = require('../utils/userHelpers');
+const { getTodayRange } = require('../utils/dateHelpers');
 
 const isSubscribed = (userId) => hasFeature(userId, FEATURES.QUICK_TRANSACTIONS);
-
-const getTodayRange = () => {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-};
 
 const resetSettlementState = (quickTransaction) => {
   quickTransaction.settlementStatus = 'none';

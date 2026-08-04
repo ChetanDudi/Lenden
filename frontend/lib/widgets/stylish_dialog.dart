@@ -2,23 +2,7 @@ import 'package:flutter/material.dart';
 import '../user/digitise/subscriptions_page.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-Widget _tricolorBorder({required Widget child}) {
-  return Container(
-    padding: const EdgeInsets.all(2),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(22),
-      gradient: const LinearGradient(
-        colors: [Colors.orange, Colors.white, Colors.green],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-    ),
-    child: child,
-  );
-}
+import 'app_widgets.dart';
 
 Widget _subscribeBtn(BuildContext context) {
   final t = AppLocalizations.of(context).t;
@@ -70,7 +54,7 @@ void showDailyLimitDialog(BuildContext context, {String? message}) {
       final t = AppLocalizations.of(ctx).t;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 22,
           child: Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(
@@ -167,7 +151,7 @@ Future<bool?> showFreeAttemptsExhaustedDialog(
       final t = AppLocalizations.of(ctx).t;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 22,
           child: Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(
@@ -278,7 +262,7 @@ void showInsufficientCoinsDialog(BuildContext context) {
       final t = AppLocalizations.of(ctx).t;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 22,
           child: Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(
@@ -338,7 +322,7 @@ void showZeroCoinsDialog(BuildContext context) {
       final t = AppLocalizations.of(ctx).t;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 22,
           child: Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(
@@ -397,7 +381,7 @@ void showBlockedUserDialog(BuildContext context, {String? message}) {
       final t = AppLocalizations.of(ctx).t;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 22,
           child: Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(
@@ -448,7 +432,7 @@ void showTotalLimitDialog(BuildContext context, {String? message}) {
       final t = AppLocalizations.of(ctx).t;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 22,
           child: Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
             decoration: BoxDecoration(

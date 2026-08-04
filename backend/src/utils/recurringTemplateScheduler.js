@@ -13,8 +13,7 @@ async function getSystemSenderId() {
   return systemSenderId;
 }
 
-const isBlockedBy = (user, otherId) =>
-  (user.blockedUsers || []).some((id) => id.toString() === otherId.toString());
+const { isBlockedBy } = require('./userHelpers');
 
 function advanceNextRun(template) {
   const next = new Date(template.nextRunAt);

@@ -390,7 +390,7 @@ class _ContactPageState extends State<ContactPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Hero card ──────────────────────────────────────────
-          _tricolorBorder(
+          tricolorBorder(
             radius: 26,
             child: Container(
               padding: const EdgeInsets.all(24),
@@ -497,7 +497,7 @@ class _ContactPageState extends State<ContactPage> {
           ...channels.map(
             (ch) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _tricolorBorder(
+              child: tricolorBorder(
                 radius: 22,
                 child: _ChannelCard(
                   entry: ch,
@@ -516,7 +516,7 @@ class _ContactPageState extends State<ContactPage> {
           // ── Send a message form ────────────────────────────────
           _sectionLabel(t('send_a_message_label')),
           const SizedBox(height: 12),
-          _tricolorBorder(
+          tricolorBorder(
             radius: 24,
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -597,7 +597,7 @@ class _ContactPageState extends State<ContactPage> {
               child: Center(child: CircularProgressIndicator(color: _sky)),
             )
           else if (_visibleMessages.isEmpty)
-            _tricolorBorder(
+            tricolorBorder(
               radius: 20,
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -625,7 +625,7 @@ class _ContactPageState extends State<ContactPage> {
           // ── FAQ section ────────────────────────────────────────
           _sectionLabel(t('frequently_asked_label')),
           const SizedBox(height: 12),
-          _tricolorBorder(
+          tricolorBorder(
             radius: 24,
             child: Container(
               decoration: BoxDecoration(
@@ -667,7 +667,7 @@ class _ContactPageState extends State<ContactPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: _tricolorBorder(
+      child: tricolorBorder(
         radius: 20,
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -1083,23 +1083,6 @@ class _ContactPageState extends State<ContactPage> {
     );
   }
 
-  Widget _tricolorBorder({required Widget child, double radius = 24}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 2),
-        child: child,
-      ),
-    );
-  }
 }
 
 // ── Channel Entry ─────────────────────────────────────────────────────────────

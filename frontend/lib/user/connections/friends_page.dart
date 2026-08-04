@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../utils/avatar_helpers.dart' as ah;
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -72,27 +73,6 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     _friendsDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Color _avatarColor(String name) {
-    const colors = [
-      Color(0xFF0077B6), Color(0xFF2E7D32), Color(0xFF6A1B9A),
-      Color(0xFFD32F2F), Color(0xFF00838F), Color(0xFFE65100),
-      Color(0xFF1565C0), Color(0xFF558B2F),
-    ];
-    if (name.isEmpty) return colors[0];
-    return colors[name.codeUnitAt(0) % colors.length];
-  }
-
-  String _initials(String name, String username) {
-    final n = name.trim();
-    if (n.isNotEmpty) {
-      final parts = n.split(' ');
-      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      return n[0].toUpperCase();
-    }
-    if (username.trim().isNotEmpty) return username[0].toUpperCase();
-    return '?';
   }
 
   Future<void> _fetchFriends() async {
@@ -650,7 +630,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       context: context,
       builder: (_) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 20,
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -717,7 +697,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: _tricolorBorder(
+        child: tricolorBorder(radius: 20,
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -880,33 +860,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       builder: (_) => _MutualFriendsSheet(
         userId: userId,
         displayName: displayName,
-        avatarColor: _avatarColor(displayName),
-        initials: _initials(displayName, ''),
+        avatarColor: ah.avatarColor(displayName),
+        initials: ah.initials(displayName, ''),
       ),
-    );
-  }
-
-  Widget _tricolorBorder({required Widget child, double radius = 20, bool glow = false}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 12, offset: const Offset(0, 4)),
-          if (glow) BoxShadow(color: Colors.amber.withValues(alpha: 0.55), blurRadius: 22, spreadRadius: 2),
-        ],
-      ),
-      child: child,
     );
   }
 
   Widget _profileAvatar(String userId, String displayName, String username, {double radius = 24}) {
-    final color = _avatarColor(displayName.isNotEmpty ? displayName : username);
+    final color = ah.avatarColor(displayName.isNotEmpty ? displayName : username);
     final size = radius * 2;
     return Container(
       width: size,
@@ -918,7 +879,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
           children: [
             Center(
               child: Text(
-                _initials(displayName, username),
+                ah.initials(displayName, username),
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: radius * 0.65),
               ),
             ),
@@ -945,14 +906,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final interactions = _interactionCounts[email.toLowerCase().trim()] ?? 0;
     final mutualCount = _mutualCounts[friendId] ?? 0;
     final displayName = name.isNotEmpty ? name : username;
-    final color = _avatarColor(displayName);
+    final color = ah.avatarColor(displayName);
     final avgRating = friend['avgRating'] as num?;
     final session = Provider.of<SessionProvider>(context, listen: false);
     final canSeeRatings = session.hasFeature('view_rankings') && !session.subscriptionAdminDeactivated;
     final isBirthdayToday = _birthdayFriends.any(
         (b) => b['_id']?.toString() == friendId && (b['daysUntil'] ?? 99) == 0);
 
-    return _tricolorBorder(
+    return tricolorBorder(radius: 20,
       glow: isBirthdayToday,
       child: Container(
         decoration: BoxDecoration(
@@ -1301,7 +1262,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final session = Provider.of<SessionProvider>(context, listen: false);
     final canSeeRatings = session.hasFeature('view_rankings') && !session.subscriptionAdminDeactivated;
 
-    return _tricolorBorder(
+    return tricolorBorder(radius: 20,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -1350,7 +1311,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       return (from is Map ? from['_id'] : from)?.toString() == uid;
     });
 
-    return _tricolorBorder(
+    return tricolorBorder(radius: 20,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -1418,7 +1379,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
           return (to is Map ? to['_id'] : to)?.toString() == suid;
         });
 
-    return _tricolorBorder(
+    return tricolorBorder(radius: 20,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
@@ -2198,7 +2159,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                             });
                                             return Padding(
                                               padding: const EdgeInsets.only(bottom: 8),
-                                              child: _tricolorBorder(
+                                              child: tricolorBorder(radius: 20,
                                                 child: Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                                   decoration: BoxDecoration(
@@ -2334,8 +2295,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                           final label = owesYou
                                               ? t('friend_owes_you_label').replaceAll('{name}', firstName)
                                               : t('you_owe_friend_label').replaceAll('{name}', firstName);
-                                          final initials = _initials(name, (b['email'] ?? '').toString());
-                                          final avatarColor = _avatarColor(name);
+                                          final initials = ah.initials(name, (b['email'] ?? '').toString());
+                                          final avatarColor = ah.avatarColor(name);
                                           final avatar = (b['avatar'] as String?);
                                           return Container(
                                             padding: const EdgeInsets.all(14),
@@ -2441,27 +2402,6 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
     }
   }
 
-  Color _avatarColor(String name) {
-    const colors = [
-      Color(0xFF0077B6), Color(0xFF2E7D32), Color(0xFF6A1B9A),
-      Color(0xFFD32F2F), Color(0xFF00838F), Color(0xFFE65100),
-      Color(0xFF1565C0), Color(0xFF558B2F),
-    ];
-    if (name.isEmpty) return colors[0];
-    return colors[name.codeUnitAt(0) % colors.length];
-  }
-
-  String _initials(String name, String username) {
-    final n = name.trim();
-    if (n.isNotEmpty) {
-      final parts = n.split(' ');
-      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      return n[0].toUpperCase();
-    }
-    if (username.trim().isNotEmpty) return username[0].toUpperCase();
-    return '?';
-  }
-
   @override
   Widget build(BuildContext context) {
     final maxH = MediaQuery.of(context).size.height * 0.6;
@@ -2557,7 +2497,7 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                   final mUsername = (m['username'] ?? '').toString();
                   final mEmail = (m['email'] ?? '').toString();
                   final displayN = mName.isNotEmpty ? mName : mUsername;
-                  final col = _avatarColor(displayN);
+                  final col = ah.avatarColor(displayN);
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
@@ -2566,7 +2506,7 @@ class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
                           radius: 22,
                           backgroundColor: col,
                           child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                            Center(child: Text(_initials(mName, mUsername),
+                            Center(child: Text(ah.initials(mName, mUsername),
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
                             if ((m['_id']?.toString() ?? '').isNotEmpty)
                               Image.network(
