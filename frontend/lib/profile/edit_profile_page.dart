@@ -11,6 +11,7 @@ import '../utils/http_interceptor.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
 import '../utils/theme_helper.dart';
+import '../utils/responsive.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/avatar_action_sheet.dart';
 
@@ -755,15 +756,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ],
                       ),
                       const SizedBox(height: 24),
+                      _sectionHeader(t('personal_information')),
                       _editField(Icons.person, t('name'), _nameController),
                       _editField(Icons.account_circle, t('username'),
                           TextEditingController(text: user?['username'] ?? ''),
-                          readOnly: true),
-                      _editField(Icons.email, t('email'), _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          readOnly: true),
-                      _editField(Icons.alternate_email, t('alternate_email'),
-                          TextEditingController(text: user?['altEmail'] ?? ''),
                           readOnly: true),
                       _editGenderField(),
                       _editField(Icons.cake, t('birthday'), _birthdayController,
@@ -800,9 +796,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ]),
                         );
                       }),
+                      _sectionHeader(t('contact')),
+                      _editField(Icons.email, t('email'), _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          readOnly: true),
+                      _editField(Icons.alternate_email, t('alternate_email'),
+                          TextEditingController(text: user?['altEmail'] ?? ''),
+                          readOnly: true),
+                      _buildPhoneField(),
+                      _sectionHeader(t('account_information')),
                       _editField(Icons.home, t('address'), _addressController,
                           isOptional: true),
-                      _buildPhoneField(),
                       _editField(
                           Icons.calendar_today,
                           t('member_since'),
@@ -911,7 +915,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ],
       ),
     );
-// ...existing code...
+  }
+
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 18, 0, 8),
+      child: Row(children: [
+        Container(width: 3, height: 14,
+            decoration: BoxDecoration(color: AppColors.cyan, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text(title.toUpperCase(),
+            style: TextStyle(fontSize: context.sp(11), fontWeight: FontWeight.bold,
+                color: AppColors.cyan, letterSpacing: 1.0)),
+      ]),
+    );
   }
 
   Widget _editField(
@@ -921,103 +938,134 @@ class _EditProfilePageState extends State<EditProfilePage> {
       bool isBirthday = false,
       bool isOptional = false}) {
     final t = AppLocalizations.of(context).t;
-    return tricolorBorder(margin: const EdgeInsets.symmetric(vertical: 6),
-      child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppThemeColors.cardBg(context),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.cyan),
-          const SizedBox(width: 16),
-          Expanded(
-            child: TextFormField(
-              controller: controller,
-              keyboardType: keyboardType,
-              readOnly: readOnly || isBirthday,
-              style: TextStyle(color: AppThemeColors.primaryText(context)),
-              decoration: InputDecoration(
-                labelText: label,
-                border: InputBorder.none,
-                suffixIcon: isBirthday
-                    ? IconButton(
-                        icon: Icon(Icons.calendar_today, color: AppColors.cyan),
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: controller.text.isNotEmpty
-                                ? DateTime.tryParse(controller.text) ?? DateTime(2000)
-                                : DateTime(2000),
-                            firstDate: DateTime(1900),
-                            lastDate: DateTime.now(),
-                            builder: (context, child) {
-                              return Theme(
-                                data: Theme.of(context).copyWith(
-                                  colorScheme: Theme.of(context).colorScheme.copyWith(
-                                    primary: AppColors.cyan,
-                                    onPrimary: Colors.white,
-                                  ),
-                                  textButtonTheme: TextButtonThemeData(
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: AppColors.cyan,
-                                    ),
-                                  ),
-                                ),
-                                child: child!,
-                              );
-                            },
-                          );
-                          if (picked != null) {
-                            controller.text = picked.toIso8601String().split('T').first;
-                          }
-                        },
-                      )
-                    : null,
-              ),
-              validator: (val) {
-                if (readOnly || isBirthday || isOptional) {
-                  return null; // Not required
-                }
-                return val == null || val.isEmpty ? t('required') : null;
-              },
-              onTap: null,
-            ),
+    final isDisabled = readOnly || isBirthday;
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      decoration: BoxDecoration(
+        color: isDisabled
+            ? AppThemeColors.scaffoldBg(context)
+            : AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDisabled
+              ? AppThemeColors.border(context).withValues(alpha: 0.4)
+              : AppThemeColors.border(context),
+        ),
+      ),
+      child: Row(children: [
+        const SizedBox(width: 14),
+        Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            color: isDisabled
+                ? AppThemeColors.border(context).withValues(alpha: 0.3)
+                : AppColors.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(10),
           ),
-        ],
-      ),
-      ),
+          child: Icon(icon, color: isDisabled ? AppThemeColors.secondaryText(context) : AppColors.cyan, size: 17),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            readOnly: isDisabled,
+            style: TextStyle(
+              color: isDisabled
+                  ? AppThemeColors.secondaryText(context)
+                  : AppThemeColors.primaryText(context),
+              fontSize: 15,
+            ),
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: TextStyle(
+                color: isDisabled
+                    ? AppThemeColors.secondaryText(context).withValues(alpha: 0.7)
+                    : AppThemeColors.secondaryText(context),
+                fontSize: 13,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              suffixIcon: isBirthday
+                  ? IconButton(
+                      icon: Icon(Icons.calendar_today, color: AppColors.cyan, size: 18),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: controller.text.isNotEmpty
+                              ? DateTime.tryParse(controller.text) ?? DateTime(2000)
+                              : DateTime(2000),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                          builder: (context, child) => Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: Theme.of(context).colorScheme.copyWith(
+                                primary: AppColors.cyan, onPrimary: Colors.white),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(foregroundColor: AppColors.cyan)),
+                            ),
+                            child: child!,
+                          ),
+                        );
+                        if (picked != null) {
+                          controller.text = picked.toIso8601String().split('T').first;
+                        }
+                      },
+                    )
+                  : null,
+            ),
+            validator: (val) {
+              if (readOnly || isBirthday || isOptional) return null;
+              return val == null || val.isEmpty ? t('required') : null;
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+      ]),
     );
   }
 
   Widget _editGenderField() {
     final t = AppLocalizations.of(context).t;
-    return tricolorBorder(margin: const EdgeInsets.symmetric(vertical: 6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
-        child: Row(
-          children: [
-            const Icon(Icons.transgender, color: AppColors.cyan),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _gender,
-                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                decoration: InputDecoration(
-                  labelText: t('gender'),
-                  border: InputBorder.none,
-                ),
-                items: [
-                  DropdownMenuItem(value: 'Male', child: Text(t('male'))),
-                  DropdownMenuItem(value: 'Female', child: Text(t('female'))),
-                  DropdownMenuItem(value: 'Other', child: Text(t('other'))),
-                ],
-                onChanged: (val) => setState(() => _gender = val),
-                validator: (val) => val == null ? t('required') : null,
-              ),
-            ),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppThemeColors.border(context)),
       ),
+      child: Row(children: [
+        const SizedBox(width: 14),
+        Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            color: AppColors.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.transgender, color: AppColors.cyan, size: 17),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _gender,
+            style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 15),
+            decoration: InputDecoration(
+              labelText: t('gender'),
+              labelStyle: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            items: [
+              DropdownMenuItem(value: 'Male', child: Text(t('male'))),
+              DropdownMenuItem(value: 'Female', child: Text(t('female'))),
+              DropdownMenuItem(value: 'Other', child: Text(t('other'))),
+            ],
+            onChanged: (val) => setState(() => _gender = val),
+            validator: (val) => val == null ? t('required') : null,
+          ),
+        ),
+        const SizedBox(width: 8),
+      ]),
     );
   }
 }

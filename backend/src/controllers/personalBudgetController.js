@@ -26,12 +26,17 @@ async function _notifyUser(userId, title, message, data = {}) {
 const TRIAL_DAYS = 30;
 
 async function getUserWithAccess(userId) {
-  const user = await User.findById(userId).select('email createdAt').lean();
+  const user = await User.findById(userId).select('email memberSince').lean();
   if (!user) return null;
-  const daysSinceReg = (Date.now() - new Date(user.createdAt)) / 86400000;
-  const isTrial = daysSinceReg <= TRIAL_DAYS;
-  const hasSubscription = await hasFeature(userId, FEATURES.PERSONAL_BUDGET);
-  return { user, isTrial, hasSubscription, hasAccess: isTrial || hasSubscription };
+  const daysSince = (Date.now() - new Date(user.memberSince)) / 86400000;
+  const isInTrial = daysSince <= TRIAL_DAYS;
+  const hasSubscription = await hasFeature(userId, FEATURES.BUDGET_PLANNING);
+  const hasAccess = isInTrial || hasSubscription;
+  // Only surface trial info when the user isn't already subscribed — no need
+  // to show a "trial" banner to someone who has an active paid plan.
+  const isTrial = isInTrial && !hasSubscription;
+  const trialDaysLeft = isTrial ? Math.max(0, Math.ceil(TRIAL_DAYS - daysSince)) : 0;
+  return { user, hasAccess, isTrial, trialDaysLeft };
 }
 
 async function computeSpent(budgetId) {
@@ -63,14 +68,8 @@ exports.getAccessStatus = async (req, res) => {
   try {
     const info = await getUserWithAccess(req.user._id);
     if (!info) return res.status(404).json({ error: 'User not found' });
-    const { isTrial, hasSubscription, hasAccess, user } = info;
-    const daysSinceReg = (Date.now() - new Date(user.createdAt)) / 86400000;
-    res.json({
-      hasAccess,
-      isTrial,
-      hasSubscription,
-      trialDaysLeft: isTrial ? Math.ceil(TRIAL_DAYS - daysSinceReg) : 0,
-    });
+    const { hasAccess, isTrial, trialDaysLeft } = info;
+    res.json({ hasAccess, isTrial, trialDaysLeft });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

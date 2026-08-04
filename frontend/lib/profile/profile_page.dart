@@ -193,62 +193,54 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   SizedBox(height: context.sh(16)),
                   Center(
-                    child: Text(
-                      userName,
-                      style: TextStyle(
-                          fontSize: context.sp(22),
-                          fontWeight: FontWeight.bold,
-                          color: AppThemeColors.primaryText(context)),
-                    ),
-                  ),
-                  SizedBox(height: context.sh(22)),
-                  if (userName.isNotEmpty)
-                    _profileField(Icons.person, t('name'), userName),
-                  if (username.isNotEmpty)
-                    _profileField(
-                        Icons.account_circle, t('username'), username),
-                  if (email.isNotEmpty)
-                    _profileField(Icons.email, t('email'), email),
-                  if (altEmail.isNotEmpty)
-                    _profileField(
-                        Icons.alternate_email, t('alternate_email'), altEmail),
-                  if (gender.isNotEmpty)
-                    _profileField(Icons.transgender, t('gender'), gender),
-                  if (birthday.isNotEmpty)
-                    _profileField(Icons.cake, t('birthday'), birthdayDisplay),
-                  BirthdayBanner(birthdayRaw: birthday.isNotEmpty ? birthday : null),
-                  if (address.isNotEmpty)
-                    _profileField(Icons.home, t('address'), address),
-                  if (phone.isNotEmpty) _buildPhoneDisplay(phone, user?['phoneCountryCode']?.toString() ?? '+91'),
-                  if (memberSince.isNotEmpty)
-                    _profileField(Icons.calendar_today, t('member_since'),
-                        memberSinceDisplay),
-                  if (avgRating.isNotEmpty && (isViewingOwnProfile || session.hasFeature('view_rankings')))
-                    Row(
-                      children: [
-                        Expanded(
-                            child: _profileField(
-                                Icons.star, t('avg_rating'), avgRating)),
-                        Row(
-                          children: List.generate(5, (i) {
-                            if (i < avgRatingNum.floor()) {
-                              return Icon(Icons.star,
-                                  color: const Color(0xFFFFC107), size: context.sp(20));
-                            } else if (i == avgRatingNum.floor() &&
-                                (avgRatingNum - avgRatingNum.floor()) >= 0.25) {
-                              return Icon(Icons.star_half,
-                                  color: const Color(0xFFFFC107), size: context.sp(20));
-                            } else {
-                              return Icon(Icons.star_border,
-                                  color: const Color(0xFFFFC107), size: context.sp(20));
-                            }
-                          }),
-                        ),
+                    child: Column(children: [
+                      Text(
+                        userName,
+                        style: TextStyle(
+                            fontSize: context.sp(22),
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context)),
+                      ),
+                      if (username.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text('@$username',
+                            style: TextStyle(
+                                fontSize: context.sp(13),
+                                color: AppThemeColors.secondaryText(context),
+                                letterSpacing: 0.3)),
                       ],
+                    ]),
+                  ),
+                  SizedBox(height: context.sh(20)),
+                  _sectionCard(t('personal_information'), [
+                    if (userName.isNotEmpty) _profileField(Icons.person, t('name'), userName),
+                    if (username.isNotEmpty) _profileField(Icons.account_circle, t('username'), '@$username'),
+                    if (gender.isNotEmpty) _profileField(Icons.transgender, t('gender'), gender),
+                    if (birthday.isNotEmpty) _profileField(Icons.cake, t('birthday'), birthdayDisplay),
+                  ]),
+                  BirthdayBanner(birthdayRaw: birthday.isNotEmpty ? birthday : null),
+                  _sectionCard(t('contact'), [
+                    if (email.isNotEmpty) _profileField(Icons.email, t('email'), email),
+                    if (altEmail.isNotEmpty) _profileField(Icons.alternate_email, t('alternate_email'), altEmail),
+                  ]),
+                  if (phone.isNotEmpty)
+                    _buildPhoneDisplay(phone, user?['phoneCountryCode']?.toString() ?? '+91'),
+                  _sectionCard(t('account_information'), [
+                    if (address.isNotEmpty) _profileField(Icons.home, t('address'), address),
+                    if (memberSince.isNotEmpty) _profileField(Icons.calendar_today, t('member_since'), memberSinceDisplay),
+                    if (avgRating.isNotEmpty && (isViewingOwnProfile || session.hasFeature('view_rankings')))
+                      _profileFieldWithTrailing(Icons.star, t('avg_rating'), avgRating,
+                        Row(children: List.generate(5, (i) {
+                          if (i < avgRatingNum.floor())
+                            return Icon(Icons.star, color: const Color(0xFFFFC107), size: context.sp(18));
+                          if (i == avgRatingNum.floor() && (avgRatingNum - avgRatingNum.floor()) >= 0.25)
+                            return Icon(Icons.star_half, color: const Color(0xFFFFC107), size: context.sp(18));
+                          return Icon(Icons.star_border, color: const Color(0xFFFFC107), size: context.sp(18));
+                        })),
                     ),
+                  ]),
                   if (user?['trustScore'] is Map)
-                    _trustScoreBadge(
-                        Map<String, dynamic>.from(user!['trustScore'])),
+                    _trustScoreBadge(Map<String, dynamic>.from(user!['trustScore'])),
                   const SizedBox(height: 32),
                   if (isViewingOwnProfile) ...[
                     ElevatedButton(
@@ -445,53 +437,87 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _profileField(IconData icon, String label, String value) {
+  Widget _sectionCard(String title, List<Widget> rows) {
+    if (rows.isEmpty) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10, offset: const Offset(0, 2))],
       ),
-      padding: const EdgeInsets.all(2),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          color: AppThemeColors.cardBg(context),
-          child: Row(
-            children: [
-              Icon(icon, color: AppColors.cyan),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '$label: ',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: context.sp(15),
-                            color: AppThemeColors.primaryText(context)),
-                      ),
-                      TextSpan(
-                        text: value,
-                        style: TextStyle(
-                            fontSize: context.sp(15),
-                            fontWeight: FontWeight.normal,
-                            color: AppThemeColors.primaryText(context)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 13, 16, 8),
+          child: Row(children: [
+            Container(width: 3, height: 13,
+                decoration: BoxDecoration(color: AppColors.cyan,
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 8),
+            Text(title.toUpperCase(),
+                style: TextStyle(fontSize: context.sp(10), fontWeight: FontWeight.bold,
+                    color: AppColors.cyan, letterSpacing: 1.0)),
+          ]),
+        ),
+        Divider(height: 1, color: AppThemeColors.border(context).withValues(alpha: 0.4)),
+        ...rows.asMap().entries.map((e) => Column(children: [
+          if (e.key > 0) Divider(height: 1, indent: 66,
+              color: AppThemeColors.border(context).withValues(alpha: 0.3)),
+          e.value,
+        ])),
+        const SizedBox(height: 4),
+      ]),
+    );
+  }
+
+  Widget _profileField(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(11),
           ),
+          child: Icon(icon, color: AppColors.cyan, size: 18),
         ),
-      ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: TextStyle(fontSize: context.sp(11),
+              color: AppThemeColors.secondaryText(context), letterSpacing: 0.2)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(fontSize: context.sp(15),
+              fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context))),
+        ])),
+      ]),
+    );
+  }
+
+  Widget _profileFieldWithTrailing(IconData icon, String label, String value, Widget trailing) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(icon, color: AppColors.cyan, size: 18),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: TextStyle(fontSize: context.sp(11),
+              color: AppThemeColors.secondaryText(context), letterSpacing: 0.2)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(fontSize: context.sp(15),
+              fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context))),
+        ])),
+        trailing,
+      ]),
     );
   }
 

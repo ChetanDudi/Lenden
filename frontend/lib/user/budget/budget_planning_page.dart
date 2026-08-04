@@ -10,7 +10,6 @@ import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
 import '../../widgets/currency_display.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
-import '../../widgets/premium_gate.dart';
 import 'tabs/personal_budget_tab.dart';
 import 'tabs/monthly_budget_tab.dart';
 import 'tabs/category_budgets_tab.dart';
@@ -57,7 +56,14 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
     super.initState();
     _tabController = TabController(length: 8, vsync: this,
         initialIndex: widget.initialTabIndex.clamp(0, 7));
-    _fetchData();
+    final session = Provider.of<SessionProvider>(context, listen: false);
+    if (session.hasFeature('budget_planning')) {
+      _fetchData();
+    } else {
+      // Not subscribed — don't burn 8 API calls. Each tab gates itself.
+      // Personal Budget tab uses its own access check (supports 30-day trial).
+      _isLoading = false;
+    }
     loadCurrencies(onError: (_) {
       if (mounted) setState(() => _displayCurrencyError = 'Currency conversion unavailable');
     });
@@ -315,7 +321,6 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
-    final session = Provider.of<SessionProvider>(context);
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
@@ -377,39 +382,37 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                   indicatorColor: AppColors.cyan,
                   labelStyle: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.bold),
                   unselectedLabelStyle: TextStyle(fontSize: context.sp(12)),
-                  tabs: const [
-                    Tab(text: 'Personal'),
-                    Tab(text: 'Monthly'),
-                    Tab(text: 'Categories'),
-                    Tab(text: 'Groups'),
-                    Tab(text: 'Goals'),
-                    Tab(text: 'Alerts'),
-                    Tab(text: 'History'),
-                    Tab(text: 'Recurring'),
+                  tabs: [
+                    Tab(text: t('tab_personal')),
+                    Tab(text: t('monthly')),
+                    Tab(text: t('tab_categories')),
+                    Tab(text: t('groups_label')),
+                    Tab(text: t('tab_goals')),
+                    Tab(text: t('alerts_label')),
+                    Tab(text: t('history_label')),
+                    Tab(text: t('tab_recurring')),
                   ],
                 ),
                 // Body
                 Expanded(
-                  child: !session.hasFeature('budget_planning')
-                      ? const BudgetPremiumGate()
-                      : _isLoading
-                          ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
-                          : _hasError
-                              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-                                  const SizedBox(height: 12),
-                                  Text(t('fetch_error_message'),
-                                      style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: _fetchData,
-                                    icon: const Icon(Icons.refresh),
-                                    label: Text(t('retry')),
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.cyan, foregroundColor: Colors.white),
-                                  ),
-                                ]))
-                              : TabBarView(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
+                      : _hasError
+                          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
+                              const SizedBox(height: 12),
+                              Text(t('fetch_error_message'),
+                                  style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _fetchData,
+                                icon: const Icon(Icons.refresh),
+                                label: Text(t('retry')),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.cyan, foregroundColor: Colors.white),
+                              ),
+                            ]))
+                          : TabBarView(
                                   controller: _tabController,
                                   children: [
                                     const PersonalBudgetTab(),

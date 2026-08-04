@@ -55,6 +55,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
   String? _deviceId;
 
   bool get _isSubmitting => _isLoading || _isVerifyingOtp;
+  bool get _anyLoading  => _isSubmitting || _isGoogleLoading;
 
   @override
   void initState() {
@@ -375,7 +376,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
     final key = keys[i];
     final selected = _loginMethod == key;
     return GestureDetector(
-      onTap: _isSubmitting ? null : () => setState(() => _loginMethod = key),
+      onTap: _anyLoading ? null : () => setState(() => _loginMethod = key),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -822,7 +823,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         TricolorBorderTextField(
                           child: TextField(
                             controller: _emailController,
-                            enabled: !_isSubmitting,
+                            enabled: !_anyLoading,
                             decoration: InputDecoration(
                               labelText: 'Email',
                               labelStyle: const TextStyle(color: Colors.grey),
@@ -836,7 +837,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         TricolorBorderTextField(
                           child: TextField(
                             controller: _passwordController,
-                            enabled: !_isSubmitting,
+                            enabled: !_anyLoading,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               labelText: 'Password',
@@ -860,7 +861,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         TricolorBorderTextField(
                           child: TextField(
                             controller: _usernameController,
-                            enabled: !_isSubmitting,
+                            enabled: !_anyLoading,
                             decoration: InputDecoration(
                               labelText: 'Username',
                               labelStyle: const TextStyle(color: Colors.grey),
@@ -874,7 +875,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         TricolorBorderTextField(
                           child: TextField(
                             controller: _passwordController,
-                            enabled: !_isSubmitting,
+                            enabled: !_anyLoading,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               labelText: 'Password',
@@ -898,7 +899,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         TricolorBorderTextField(
                           child: TextField(
                             controller: _emailController,
-                            enabled: !_otpSent && !_isSubmitting,
+                            enabled: !_otpSent && !_anyLoading,
                             decoration: InputDecoration(
                               labelText: 'Email',
                               labelStyle: const TextStyle(color: Colors.grey),
@@ -913,7 +914,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
+                              onPressed: _anyLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.cyan,
                                 shape: RoundedRectangleBorder(
@@ -1029,7 +1030,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _isLoading
+                            onPressed: _anyLoading
                                 ? null
                                 : (_isDeactivated
                                     ? () =>
@@ -1119,13 +1120,18 @@ class _UserLoginPageState extends State<UserLoginPage> {
                         ],
                       ),
                       const SizedBox(height: 18),
-                      TricolorBorderTextField(
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: _isSubmitting || _isGoogleLoading
-                                ? null
-                                : _loginWithGoogle,
+                      IgnorePointer(
+                        ignoring: _isSubmitting,
+                        child: AnimatedOpacity(
+                          opacity: _isSubmitting ? 0.4 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: TricolorBorderTextField(
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: _isSubmitting || _isGoogleLoading
+                                    ? null
+                                    : _loginWithGoogle,
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               side: BorderSide.none,
@@ -1159,7 +1165,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                   ),
                           ),
                         ),
-                      ),
+                      ),          // TricolorBorderTextField
+                        ),        // AnimatedOpacity
+                      ),          // IgnorePointer
                       const SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1169,10 +1177,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
                                   fontSize: context.sp(13),
                                   color: AppThemeColors.primaryText(context))),
                           GestureDetector(
-                            onTap: _isSubmitting
+                            onTap: _anyLoading
                                 ? null
-                                : () =>
-                                    Navigator.pushNamed(context, '/register'),
+                                : () => Navigator.pushNamed(context, '/register'),
                             child: Text(
                               'Register',
                               style: TextStyle(

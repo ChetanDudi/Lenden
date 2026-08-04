@@ -17,7 +17,6 @@ const FEATURES = {
   REPORTS: 'reports',
   BUDGET_PLANNING: 'budget_planning',
   SMART_INSIGHTS: 'smart_insights',
-  PERSONAL_BUDGET: 'personal_budget',
 };
 
 const ALL_FEATURE_KEYS = Object.values(FEATURES);

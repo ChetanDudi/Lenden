@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/premium_gate.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../utils/responsive.dart';
@@ -45,8 +46,8 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
       if (!mounted) return;
       if (accessResp.statusCode == 200) {
         final data = json.decode(accessResp.body);
-        _hasAccess   = data['hasAccess'] == true;
-        _isTrial     = data['isTrial'] == true;
+        _hasAccess     = data['hasAccess'] == true;
+        _isTrial       = data['isTrial'] == true;
         _trialDaysLeft = (data['trialDaysLeft'] as num?)?.toInt() ?? 0;
       }
       if (_hasAccess) {
@@ -109,12 +110,46 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
     return palette[hash % palette.length];
   }
 
+  Widget _buildTrialBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.card_giftcard_rounded, color: Colors.amber, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '${AppLocalizations.of(context).t('free_trial')} — $_trialDaysLeft ${_trialDaysLeft == 1 ? 'day' : AppLocalizations.of(context).t('days_left')}. ${AppLocalizations.of(context).t('subscribe_to_keep_access')}',
+            style: TextStyle(
+              fontSize: context.sp(12),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.amber.shade300
+                  : Colors.amber.shade800,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        GestureDetector(
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
+          child: Text(AppLocalizations.of(context).t('subscribe'), style: TextStyle(fontSize: context.sp(12),
+              color: AppColors.cyan, fontWeight: FontWeight.bold)),
+        ),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.cyan));
     }
-    if (!_hasAccess) return _buildGate();
+    if (!_hasAccess) return const BudgetPremiumGate();
     if (_error != null) return errorStateWidget(context, _error!, _init);
 
     return RefreshIndicator(
@@ -131,102 +166,6 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
           const SizedBox(height: 20),
           _buildHistoryButton(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGate() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 60),
-      child: Column(
-        children: [
-          tricolorBorder(
-            radius: 24,
-            child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.cyan.withValues(alpha: 0.12), Colors.transparent],
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(children: [
-              Icon(Icons.savings_rounded, size: context.sp(56), color: AppColors.cyan),
-              const SizedBox(height: 16),
-              Text('Personal Budget Planner',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: context.sp(18), fontWeight: FontWeight.bold,
-                      color: AppThemeColors.primaryText(context))),
-              const SizedBox(height: 8),
-              Text('Set daily, weekly, monthly, yearly or custom budgets for yourself. '
-                  'Track your spending, view predictions, and learn from history.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: context.sp(13), color: AppThemeColors.secondaryText(context))),
-              const SizedBox(height: 24),
-              for (final f in const ['Daily / weekly / monthly / yearly / custom budgets',
-                'Real-time spending tracker', 'Smart predictions from your history',
-                'Search & filter budget history'])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(children: [
-                    const Icon(Icons.check_circle_rounded, color: AppColors.cyan, size: 18),
-                    const SizedBox(width: 10),
-                    Text(f, style: TextStyle(fontSize: context.sp(13),
-                        color: AppThemeColors.primaryText(context))),
-                  ]),
-                ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.workspace_premium, color: Colors.amber),
-                  label: const Text('Subscribe to Unlock', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cyan,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
-                ),
-              ),
-            ]),
-          ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrialBanner() {
-    return tricolorBorder(
-      radius: 14,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(children: [
-        const Icon(Icons.card_giftcard_rounded, color: Colors.amber, size: 20),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Free trial — $_trialDaysLeft day${_trialDaysLeft == 1 ? '' : 's'} left. '
-            'Subscribe to keep access after the trial.',
-            style: TextStyle(fontSize: context.sp(12), color: Colors.amber.shade800,
-                fontWeight: FontWeight.w600),
-          ),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
-          child: Text('Subscribe', style: TextStyle(fontSize: context.sp(12),
-              color: AppColors.cyan, fontWeight: FontWeight.bold)),
-        ),
-      ]),
       ),
     );
   }
@@ -310,57 +249,57 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
     final overallPct = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0.0;
     final healthC    = _healthColor(overallPct);
 
-    return tricolorBorder(
-      radius: 16,
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const Icon(Icons.dashboard_rounded, color: AppColors.cyan, size: 16),
-            const SizedBox(width: 6),
-            Text('Budget Overview',
-                style: TextStyle(fontSize: context.sp(13),
-                    fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context))),
-            const Spacer(),
-            _chip('${_active.length} Active',
-                AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            _overviewStat('Total Limit', _fmtC(totalLimit, _viewCurrency),
-                AppThemeColors.primaryText(context)),
-            _overviewDivider(),
-            _overviewStat('Total Spent', _fmtC(totalSpent, _viewCurrency), healthC),
-            _overviewDivider(),
-            _overviewStat('Healthy', '$healthy',
-                Colors.green.shade600, icon: Icons.check_circle_rounded),
-            _overviewDivider(),
-            _overviewStat('At Risk', '$atRisk',
-                atRisk > 0 ? Colors.orange.shade700 : AppThemeColors.secondaryText(context),
-                icon: atRisk > 0 ? Icons.warning_rounded : null),
-          ]),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: (overallPct / 100).clamp(0.0, 1.0),
-              minHeight: 7,
-              backgroundColor: AppThemeColors.scaffoldBg(context),
-              valueColor: AlwaysStoppedAnimation(healthC),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text('${overallPct.toStringAsFixed(1)}% of combined budget used  •  amounts in $_viewCurrency',
-              style: TextStyle(fontSize: context.sp(10),
-                  color: AppThemeColors.secondaryText(context))),
-        ]),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.35), width: 1.5),
+        boxShadow: [BoxShadow(color: AppColors.cyan.withValues(alpha: 0.07),
+            blurRadius: 10, offset: const Offset(0, 3))],
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.dashboard_rounded, color: AppColors.cyan, size: 16),
+          const SizedBox(width: 6),
+          Text(AppLocalizations.of(context).t('budget_overview'),
+              style: TextStyle(fontSize: context.sp(13),
+                  fontWeight: FontWeight.bold,
+                  color: AppThemeColors.primaryText(context))),
+          const Spacer(),
+          _chip('${_active.length} ${AppLocalizations.of(context).t('active_label')}',
+              AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          _overviewStat(AppLocalizations.of(context).t('total_limit'), _fmtC(totalLimit, _viewCurrency),
+              AppThemeColors.primaryText(context)),
+          _overviewDivider(),
+          _overviewStat(AppLocalizations.of(context).t('total_spent'), _fmtC(totalSpent, _viewCurrency), healthC),
+          _overviewDivider(),
+          _overviewStat(AppLocalizations.of(context).t('pb_healthy'), '$healthy',
+              Colors.green.shade600, icon: Icons.check_circle_rounded),
+          _overviewDivider(),
+          _overviewStat(AppLocalizations.of(context).t('at_risk_label'), '$atRisk',
+              atRisk > 0 ? Colors.orange.shade700 : AppThemeColors.secondaryText(context),
+              icon: atRisk > 0 ? Icons.warning_rounded : null),
+        ]),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: (overallPct / 100).clamp(0.0, 1.0),
+            minHeight: 7,
+            backgroundColor: AppThemeColors.scaffoldBg(context),
+            valueColor: AlwaysStoppedAnimation(healthC),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('${overallPct.toStringAsFixed(1)}% of combined budget used  •  amounts in $_viewCurrency',
+            style: TextStyle(fontSize: context.sp(10),
+                color: AppThemeColors.secondaryText(context))),
+      ]),
     );
   }
 
@@ -474,13 +413,13 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_fmtV(spent, currency), style: TextStyle(fontSize: context.sp(20),
                   fontWeight: FontWeight.bold, color: color)),
-              Text('spent', style: TextStyle(fontSize: context.sp(10),
+              Text(AppLocalizations.of(context).t('spent_label'), style: TextStyle(fontSize: context.sp(10),
                   color: AppThemeColors.secondaryText(context))),
             ]),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(_fmtV(limit, currency), style: TextStyle(fontSize: context.sp(20),
                   fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-              Text('limit', style: TextStyle(fontSize: context.sp(10),
+              Text(AppLocalizations.of(context).t('limit_label'), style: TextStyle(fontSize: context.sp(10),
                   color: AppThemeColors.secondaryText(context))),
             ]),
           ]),
@@ -504,7 +443,7 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
               Container(width: 8, height: 8,
                   decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
               const SizedBox(width: 4),
-              Text('${pct.toStringAsFixed(1)}% spent',
+              Text('${pct.toStringAsFixed(1)}% ${AppLocalizations.of(context).t('spent_label')}',
                   style: TextStyle(fontSize: context.sp(10), color: color, fontWeight: FontWeight.w600)),
             ]),
             Row(children: [
@@ -520,8 +459,8 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
           const SizedBox(height: 6),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(spent <= limit
-                ? '${_fmtV(limit - spent, currency)} remaining'
-                : 'Over by ${_fmtV(spent - limit, currency)}',
+                ? '${_fmtV(limit - spent, currency)} ${AppLocalizations.of(context).t('remaining_label').toLowerCase()}'
+                : '${AppLocalizations.of(context).t('over_by_label')} ${_fmtV(spent - limit, currency)}',
                 style: TextStyle(fontSize: context.sp(11),
                     color: spent <= limit ? Colors.green.shade600 : Colors.red.shade600,
                     fontWeight: FontWeight.w600)),
@@ -611,7 +550,7 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
               if (expanded) _expandedIds.remove(id); else _expandedIds.add(id);
             }),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(expanded ? 'View Less' : 'View More',
+              Text(expanded ? AppLocalizations.of(context).t('view_less') : AppLocalizations.of(context).t('view_more'),
                   style: TextStyle(fontSize: context.sp(12), color: AppColors.cyan,
                       fontWeight: FontWeight.w600)),
               const SizedBox(width: 4),
@@ -717,12 +656,13 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
   }
 
   String _periodLabel(String p) {
+    final t = AppLocalizations.of(context).t;
     switch (p) {
-      case 'daily':   return 'Daily';
-      case 'weekly':  return 'Weekly';
-      case 'monthly': return 'Monthly';
-      case 'yearly':  return 'Yearly';
-      case 'custom':  return 'Custom';
+      case 'daily':   return t('daily');
+      case 'weekly':  return t('weekly');
+      case 'monthly': return t('monthly');
+      case 'yearly':  return t('yearly');
+      case 'custom':  return t('custom_label');
       default:        return p;
     }
   }
