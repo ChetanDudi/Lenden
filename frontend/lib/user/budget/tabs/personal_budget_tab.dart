@@ -49,6 +49,8 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
         _hasAccess     = data['hasAccess'] == true;
         _isTrial       = data['isTrial'] == true;
         _trialDaysLeft = (data['trialDaysLeft'] as num?)?.toInt() ?? 0;
+      } else {
+        _error = 'Could not verify subscription status. Please retry.';
       }
       if (_hasAccess) {
         final results = await Future.wait([
@@ -149,8 +151,8 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.cyan));
     }
-    if (!_hasAccess) return const BudgetPremiumGate();
     if (_error != null) return errorStateWidget(context, _error!, _init);
+    if (!_hasAccess) return const BudgetPremiumGate();
 
     return RefreshIndicator(
       color: AppColors.cyan,
@@ -808,15 +810,15 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
 
               Row(children: [
                 Expanded(child: _datePicker(ctx, 'Start', df.format(startDate), () async {
-                  final d = await showDatePicker(context: context,
+                  final d = await showDatePicker(context: ctx,
                       initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
-                  if (d != null) setS(() => startDate = d);
+                  if (d != null) setS(() => startDate = DateTime(d.year, d.month, d.day, startDate.hour, startDate.minute));
                 })),
                 const SizedBox(width: 12),
                 Expanded(child: _datePicker(ctx, 'End', df.format(endDate), () async {
-                  final d = await showDatePicker(context: context,
+                  final d = await showDatePicker(context: ctx,
                       initialDate: endDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
-                  if (d != null) setS(() => endDate = d);
+                  if (d != null) setS(() => endDate = DateTime(d.year, d.month, d.day, endDate.hour, endDate.minute));
                 })),
               ]),
               const SizedBox(height: 12),

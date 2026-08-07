@@ -808,168 +808,84 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final activeCount = _activeFilterCount();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Stack(
-        alignment: Alignment.centerRight,
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 28),
-              child: Row(
-                children: [
-                  _buildPrimaryFilterTab(
-                    label: t('all'),
-                    selected: filter == 'All',
-                    accentColor: AppColors.cyan,
-                    onTap: () { setState(() => filter = 'All'); fetchTransactions(); },
-                  ),
-                  const SizedBox(width: 10),
-                  _buildPrimaryFilterTab(
-                    label: t('lending_label'),
-                    selected: filter == 'Lending',
-                    accentColor: Colors.green,
-                    onTap: () { setState(() => filter = 'Lending'); fetchTransactions(); },
-                  ),
-                  const SizedBox(width: 10),
-                  _buildPrimaryFilterTab(
-                    label: t('borrowing_label'),
-                    selected: filter == 'Borrowing',
-                    accentColor: Colors.orange,
-                    onTap: () { setState(() => filter = 'Borrowing'); fetchTransactions(); },
-                  ),
-                  const SizedBox(width: 10),
-                  _buildToolbarAction(
-                    icon: showFavouritesOnly
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    label: t('fav_label'),
-                    accentColor: Colors.red,
-                    isActive: showFavouritesOnly,
-                    onTap: () {
-                      setState(() => showFavouritesOnly = !showFavouritesOnly);
-                      fetchTransactions();
-                    },
-                  ),
-                  const SizedBox(width: 10),
-                  _buildToolbarAction(
-                    icon: Icons.tune_rounded,
-                    label:
-                        activeCount > 0 ? t('filters_count_label').replaceFirst('{count}', '$activeCount') : t('filters_label'),
-                    accentColor: AppColors.cyan,
-                    isActive: activeCount > 0,
-                    onTap: _showFiltersBottomSheet,
-                  ),
-                ],
-              ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildMiniFilterChip(
+              label: t('all'),
+              selected: filter == 'All',
+              accentColor: AppColors.cyan,
+              onTap: () { setState(() => filter = 'All'); fetchTransactions(); },
             ),
-          ),
-          IgnorePointer(
-            child: Container(
-              width: 34,
-              height: 44,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppThemeColors.scaffoldBg(context).withValues(alpha: 0.0),
-                    AppThemeColors.scaffoldBg(context).withValues(alpha: 0.86),
-                    AppThemeColors.scaffoldBg(context),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Text(
-                  '->',
-                  style: TextStyle(
-                    color: AppThemeColors.mutedText(context),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
+            const SizedBox(width: 6),
+            _buildMiniFilterChip(
+              label: t('lending_label'),
+              selected: filter == 'Lending',
+              accentColor: Colors.green,
+              onTap: () { setState(() => filter = 'Lending'); fetchTransactions(); },
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            _buildMiniFilterChip(
+              label: t('borrowing_label'),
+              selected: filter == 'Borrowing',
+              accentColor: Colors.orange,
+              onTap: () { setState(() => filter = 'Borrowing'); fetchTransactions(); },
+            ),
+            const SizedBox(width: 6),
+            _buildMiniFilterChip(
+              icon: showFavouritesOnly ? Icons.favorite : Icons.favorite_border,
+              label: t('fav_label'),
+              selected: showFavouritesOnly,
+              accentColor: Colors.red,
+              onTap: () { setState(() => showFavouritesOnly = !showFavouritesOnly); fetchTransactions(); },
+            ),
+            const SizedBox(width: 6),
+            _buildMiniFilterChip(
+              icon: Icons.tune_rounded,
+              label: activeCount > 0 ? t('filters_count_label').replaceFirst('{count}', '$activeCount') : t('filters_label'),
+              selected: activeCount > 0,
+              accentColor: AppColors.cyan,
+              onTap: _showFiltersBottomSheet,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPrimaryFilterTab({
+  Widget _buildMiniFilterChip({
     required String label,
     required bool selected,
     required Color accentColor,
     required VoidCallback onTap,
+    IconData? icon,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        constraints: BoxConstraints(minWidth: label.length > 8 ? 112 : 74),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: selected ? accentColor.withValues(alpha: 0.12) : AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected
-                ? accentColor.withValues(alpha: 0.32)
-                : Colors.grey.withValues(alpha: 0.16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: selected ? accentColor : AppThemeColors.secondaryText(context),
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToolbarAction({
-    required IconData icon,
-    required String label,
-    required Color accentColor,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: isActive ? accentColor.withValues(alpha: 0.12) : AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive
-                ? accentColor.withValues(alpha: 0.38)
-                : Colors.grey.withValues(alpha: 0.18),
+            color: selected ? accentColor.withValues(alpha: 0.4) : Colors.grey.withValues(alpha: 0.2),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: accentColor),
-            const SizedBox(width: 6),
+            if (icon != null) ...[
+              Icon(icon, size: 13, color: selected ? accentColor : AppThemeColors.secondaryText(context)),
+              const SizedBox(width: 4),
+            ],
             Text(
               label,
               style: TextStyle(
-                color: accentColor,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? accentColor : AppThemeColors.secondaryText(context),
               ),
             ),
           ],

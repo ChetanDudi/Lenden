@@ -32,16 +32,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    // Add a small delay to ensure session is properly initialized
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _fetchProfile();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchProfile());
   }
 
   Future<void> _fetchProfile() async {
     final session = Provider.of<SessionProvider>(context, listen: false);
-    final user = session.user;
-
     if (widget.email != null && widget.email!.isNotEmpty) {
       // Fetch profile by email (admin viewing another user)
       final path =
@@ -71,7 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
-    if (session.accessToken == null || user == null) {
+    if (session.accessToken == null) {
       setState(() {
         _error = AppLocalizations.of(context).t('not_logged_in_period');
         _loading = false;

@@ -836,7 +836,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   child: GestureDetector(
                     onTap: () async {
                       final d = await showDatePicker(
-                        context: context, initialDate: date,
+                        context: ctx, initialDate: date,
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now().add(const Duration(days: 1)),
                       );
@@ -875,7 +875,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   child: GestureDetector(
                     onTap: () async {
                       final t = await showTimePicker(
-                          context: context, initialTime: time);
+                          context: ctx, initialTime: time);
                       if (t != null) setS(() {
                         time = t;
                         date = DateTime(date.year, date.month, date.day,

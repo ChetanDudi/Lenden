@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
@@ -230,6 +232,30 @@ class _NotesPageState extends State<NotesPage> {
         }
       }
     }
+  }
+
+  PopupMenuItem _noteMenuItem(IconData icon, String label, Color color, VoidCallback onTap) {
+    return PopupMenuItem(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppThemeColors.primaryText(context))),
+        ],
+      ),
+    );
   }
 
   Future<void> deleteNote(String id) async {
@@ -659,64 +685,31 @@ class _NotesPageState extends State<NotesPage> {
                                                   elevation: 8,
                                                   offset: Offset(0, 8),
                                                   itemBuilder: (context) => [
-                                                    PopupMenuItem(
-                                                      child: Container(
-                                                        padding: EdgeInsets.symmetric(vertical: 4),
-                                                        child: Row(
-                                                          children: [
-                                                            Container(
-                                                              padding: EdgeInsets.all(8),
-                                                              decoration: BoxDecoration(
-                                                                color: Colors.blue.withValues(alpha: 0.1),
-                                                                borderRadius: BorderRadius.circular(8),
-                                                              ),
-                                                              child: Icon(Icons.edit, size: 18, color: Colors.blue),
-                                                            ),
-                                                            SizedBox(width: 12),
-                                                            Text(
-                                                              t('edit_note'),
-                                                              style: TextStyle(
-                                                                fontSize: 15,
-                                                                fontWeight: FontWeight.w500,
-                                                                color: AppThemeColors.primaryText(context),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      onTap: () {
-                                                        Future.delayed(Duration.zero, () => createOrEditNote(note: note));
-                                                      },
-                                                    ),
-                                                    PopupMenuItem(
-                                                      child: Container(
-                                                        padding: EdgeInsets.symmetric(vertical: 4),
-                                                        child: Row(
-                                                          children: [
-                                                            Container(
-                                                              padding: EdgeInsets.all(8),
-                                                              decoration: BoxDecoration(
-                                                                color: Colors.red.withValues(alpha: 0.1),
-                                                                borderRadius: BorderRadius.circular(8),
-                                                              ),
-                                                              child: Icon(Icons.delete, size: 18, color: Colors.red),
-                                                            ),
-                                                            SizedBox(width: 12),
-                                                            Text(
-                                                              t('delete_note'),
-                                                              style: TextStyle(
-                                                                fontSize: 15,
-                                                                fontWeight: FontWeight.w500,
-                                                                color: Colors.red,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      onTap: () {
-                                                        Future.delayed(Duration.zero, () => deleteNote(note['_id']));
-                                                      },
-                                                    ),
+                                                    _noteMenuItem(Icons.edit, t('edit_note'), Colors.blue,
+                                                        () => Future.delayed(Duration.zero, () => createOrEditNote(note: note))),
+                                                    _noteMenuItem(Icons.copy_rounded, t('copy'), Colors.teal,
+                                                        () {
+                                                          Clipboard.setData(ClipboardData(
+                                                              text: '${note['title'] ?? ''}\n\n${note['content'] ?? ''}'));
+                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                              SnackBar(content: Text(t('copied_to_clipboard_message')),
+                                                                  duration: const Duration(seconds: 2)));
+                                                        }),
+                                                    _noteMenuItem(Icons.share_rounded, t('share'), Colors.indigo,
+                                                        () => Share.share('${note['title'] ?? ''}\n\n${note['content'] ?? ''}')),
+                                                    _noteMenuItem(Icons.copy_all_rounded, t('duplicate'), Colors.orange,
+                                                        () => Future.delayed(Duration.zero, () async {
+                                                          final res = await ApiClient.post('/api/notes', body: {
+                                                            'title': '${note['title']} (copy)',
+                                                            'content': note['content'],
+                                                          });
+                                                          if (res.statusCode == 201) {
+                                                            final newNote = json.decode(res.body)['note'];
+                                                            setState(() { notes.insert(0, newNote); filterNotes(searchQuery); });
+                                                          }
+                                                        })),
+                                                    _noteMenuItem(Icons.delete_rounded, t('delete_note'), Colors.red,
+                                                        () => Future.delayed(Duration.zero, () => deleteNote(note['_id']))),
                                                   ],
                                                 ),
                                               ],

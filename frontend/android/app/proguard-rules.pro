@@ -32,6 +32,15 @@
 -keep class androidx.** { *; }
 -dontwarn androidx.**
 
+# ── Firebase & Google Sign-In / Phone Auth ───────────────────────────────────
+# Without these rules R8/ProGuard strips Firebase reflection-based classes and
+# breaks both Google Sign-In (error 12500) and Firebase phone authentication.
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-keepattributes InnerClasses
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
 # ── ML Kit Text Recognition (only the Latin script is bundled; the plugin's ──
 # ── code references the optional Chinese/Devanagari/Japanese/Korean ──────────
 # ── recognizers even when their dependencies aren't included) ────────────────
