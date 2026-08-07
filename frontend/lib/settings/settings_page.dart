@@ -169,231 +169,302 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   const SizedBox(height: 24),
 
-                  // Account Settings
-                  sectionLabel(t('account_settings')),
-                  const SizedBox(height: 8),
-                  Builder(builder: (ctx) {
-                    final session = Provider.of<SessionProvider>(context, listen: false);
-                    final isGoogle = session.user?['authProvider'] == 'google';
-                    final hasPassword = session.user?['hasPassword'] == true;
-                    final showSetPassword = isGoogle && !hasPassword;
-                    return _buildTile(
-                      ctx,
-                      title: showSetPassword ? 'Set Password' : t('change_password'),
-                      icon: showSetPassword ? Icons.lock_person_rounded : Icons.lock_outline,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => showSetPassword
-                              ? const SetPasswordPage()
-                              : const ChangePasswordPage(),
-                        ),
-                      ).then((_) { if (mounted) setState(() {}); }),
-                    );
-                  }),
-                  _buildTile(
-                    context,
-                    title: (session.user?['altEmail']?.toString() ?? '').isNotEmpty
-                        ? t('change_alternative_email')
-                        : t('add_alternative_email'),
-                    icon: Icons.email_outlined,
-                    subtitle: (session.user?['altEmail']?.toString() ?? '').isNotEmpty
-                        ? session.user!['altEmail'].toString()
-                        : t('add_backup_email_for_account_recovery'),
-                    showStatus: true,
-                    isActive: (session.user?['altEmail']?.toString() ?? '').isNotEmpty,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const AlternativeEmailPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('account_information'),
-                    icon: Icons.person_outline,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const AccountSettingsPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('app_lock'),
-                    icon: Icons.lock_outline,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const AppLockSetupPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildTile(
-                    context,
-                    title: t('wallet_transaction_pin_label'),
-                    icon: Icons.dialpad_rounded,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const SetWalletPinPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Preferences
-                  sectionLabel(t('preferences')),
-                  const SizedBox(height: 8),
-                  _buildTile(
-                    context,
-                    title: t('notification_settings'),
-                    icon: Icons.notifications_outlined,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const NotificationSettingsPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('privacy_settings'),
-                    icon: Icons.privacy_tip_outlined,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const PrivacySettingsPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-                  Consumer<ThemeProvider>(
-                    builder: (context, themeProvider, _) {
-                      final t = AppLocalizations.of(context).t;
-                      final modeLabel = {
-                        ThemeMode.system: t('system_default'),
-                        ThemeMode.light: t('light'),
-                        ThemeMode.dark: t('dark'),
-                      }[themeProvider.themeMode]!;
+                  _settingsSectionCard(t('account_settings'), [
+                    Builder(builder: (ctx) {
+                      final session = Provider.of<SessionProvider>(context, listen: false);
+                      final isGoogle = session.user?['authProvider'] == 'google';
+                      final hasPassword = session.user?['hasPassword'] == true;
+                      final showSetPassword = isGoogle && !hasPassword;
                       return _buildTile(
-                        context,
-                        title: t('dark_mode'),
-                        icon: Icons.dark_mode_outlined,
-                        subtitle: modeLabel,
-                        onTap: () async {
-                          final selected = await showDialog<ThemeMode>(
-                            context: context,
-                            builder: (context) => SimpleDialog(
-                              title: Text(t('dark_mode')),
-                              children: [
-                                for (final mode in ThemeMode.values)
-                                  RadioListTile<ThemeMode>(
-                                    title: Text({
-                                      ThemeMode.system: t('system_default'),
-                                      ThemeMode.light: t('light'),
-                                      ThemeMode.dark: t('dark'),
-                                    }[mode]!),
-                                    value: mode,
-                                    groupValue: themeProvider.themeMode,
-                                    activeColor: AppColors.cyan,
-                                    onChanged: (v) => Navigator.pop(context, v),
+                        ctx,
+                        title: showSetPassword ? 'Set Password' : t('change_password'),
+                        icon: showSetPassword ? Icons.lock_person_rounded : Icons.lock_outline,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => showSetPassword
+                                ? const SetPasswordPage()
+                                : const ChangePasswordPage(),
+                          ),
+                        ).then((_) { if (mounted) setState(() {}); }),
+                      );
+                    }),
+                    _buildTile(
+                      context,
+                      title: (session.user?['altEmail']?.toString() ?? '').isNotEmpty
+                          ? t('change_alternative_email')
+                          : t('add_alternative_email'),
+                      icon: Icons.email_outlined,
+                      subtitle: (session.user?['altEmail']?.toString() ?? '').isNotEmpty
+                          ? session.user!['altEmail'].toString()
+                          : t('add_backup_email_for_account_recovery'),
+                      showStatus: true,
+                      isActive: (session.user?['altEmail']?.toString() ?? '').isNotEmpty,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const AlternativeEmailPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('account_information'),
+                      icon: Icons.person_outline,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const AccountSettingsPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('app_lock'),
+                      icon: Icons.lock_outline,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const AppLockSetupPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('wallet_transaction_pin_label'),
+                      icon: Icons.dialpad_rounded,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const SetWalletPinPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                  ]),
+
+                  _settingsSectionCard(t('preferences'), [
+                    _buildTile(
+                      context,
+                      title: t('notification_settings'),
+                      icon: Icons.notifications_outlined,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const NotificationSettingsPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('privacy_settings'),
+                      icon: Icons.privacy_tip_outlined,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const PrivacySettingsPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, _) {
+                        final t = AppLocalizations.of(context).t;
+                        final modeLabel = {
+                          ThemeMode.system: t('system_default'),
+                          ThemeMode.light: t('light'),
+                          ThemeMode.dark: t('dark'),
+                        }[themeProvider.themeMode]!;
+                        return _buildTile(
+                          context,
+                          title: t('dark_mode'),
+                          icon: Icons.dark_mode_outlined,
+                          subtitle: modeLabel,
+                          onTap: () async {
+                            final selected = await showDialog<ThemeMode>(
+                              context: context,
+                              builder: (ctx) {
+                                Widget optTile(ThemeMode mode, String label, IconData icon) {
+                                  final sel = mode == themeProvider.themeMode;
+                                  return GestureDetector(
+                                    onTap: () => Navigator.pop(ctx, mode),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                      decoration: BoxDecoration(
+                                        color: sel ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.scaffoldBg(ctx),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(color: sel ? AppColors.cyan : AppThemeColors.border(ctx), width: sel ? 1.5 : 1.0),
+                                      ),
+                                      child: Row(children: [
+                                        Container(
+                                          width: 38, height: 38,
+                                          decoration: BoxDecoration(
+                                            color: sel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.cardBg(ctx),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(icon, color: sel ? AppColors.cyan : AppThemeColors.secondaryText(ctx), size: 19),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(label, style: TextStyle(
+                                          fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
+                                          color: sel ? AppThemeColors.primaryText(ctx) : AppThemeColors.secondaryText(ctx),
+                                        ))),
+                                        Icon(sel ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                          color: sel ? AppColors.cyan : AppThemeColors.border(ctx), size: 22),
+                                      ]),
+                                    ),
+                                  );
+                                }
+                                return Dialog(
+                                  backgroundColor: AppThemeColors.cardBg(ctx),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(children: [
+                                          Container(
+                                            width: 40, height: 40,
+                                            decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                                            child: const Icon(Icons.dark_mode_outlined, color: AppColors.cyan, size: 20),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(child: Text(t('dark_mode'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)))),
+                                        ]),
+                                        const SizedBox(height: 16),
+                                        optTile(ThemeMode.system, t('system_default'), Icons.brightness_auto_rounded),
+                                        const SizedBox(height: 10),
+                                        optTile(ThemeMode.light, t('light'), Icons.light_mode_rounded),
+                                        const SizedBox(height: 10),
+                                        optTile(ThemeMode.dark, t('dark'), Icons.dark_mode_rounded),
+                                      ],
+                                    ),
                                   ),
-                              ],
-                            ),
-                          );
-                          if (selected != null) {
-                            await themeProvider.setThemeMode(selected);
-                          }
-                        },
-                      );
-                    },
-                  ),
-                  Consumer<LocaleProvider>(
-                    builder: (context, localeProvider, _) {
-                      final t = AppLocalizations.of(context).t;
-                      final current = localeProvider.locale?.languageCode;
-                      final label = current == 'hi'
-                          ? t('hindi')
-                          : current == 'en'
-                              ? t('english')
-                              : t('system_default');
-                      return _buildTile(
-                        context,
-                        title: t('language'),
-                        icon: Icons.language_outlined,
-                        subtitle: label,
-                        onTap: () async {
-                          final selected = await showDialog<String?>(
-                            context: context,
-                            builder: (context) => SimpleDialog(
-                              title: Text(t('language')),
-                              children: [
-                                RadioListTile<String?>(
-                                  title: Text(t('system_default')),
-                                  value: null,
-                                  groupValue: current,
-                                  activeColor: AppColors.cyan,
-                                  onChanged: (v) => Navigator.pop(context, v),
-                                ),
-                                RadioListTile<String?>(
-                                  title: Text(t('english')),
-                                  value: 'en',
-                                  groupValue: current,
-                                  activeColor: AppColors.cyan,
-                                  onChanged: (v) => Navigator.pop(context, v),
-                                ),
-                                RadioListTile<String?>(
-                                  title: Text(t('hindi')),
-                                  value: 'hi',
-                                  groupValue: current,
-                                  activeColor: AppColors.cyan,
-                                  onChanged: (v) => Navigator.pop(context, v),
-                                ),
-                              ],
-                            ),
-                          );
-                          await localeProvider.setLocale(
-                              selected == null ? null : Locale(selected));
-                        },
-                      );
-                    },
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('due_date_calendar'),
-                    icon: Icons.calendar_month_outlined,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const DueDateCalendarPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('export_statement'),
-                    icon: Icons.download_outlined,
-                    onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const ExportStatementPage()))
-                        .then((_) { if (mounted) setState(() {}); }),
-                  ),
+                                );
+                              },
+                            );
+                            if (selected != null) {
+                              await themeProvider.setThemeMode(selected);
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    Consumer<LocaleProvider>(
+                      builder: (context, localeProvider, _) {
+                        final t = AppLocalizations.of(context).t;
+                        final current = localeProvider.locale?.languageCode;
+                        final label = current == 'hi'
+                            ? t('hindi')
+                            : current == 'en'
+                                ? t('english')
+                                : t('system_default');
+                        return _buildTile(
+                          context,
+                          title: t('language'),
+                          icon: Icons.language_outlined,
+                          subtitle: label,
+                          onTap: () async {
+                            final selected = await showDialog<String?>(
+                              context: context,
+                              builder: (ctx) {
+                                Widget langTile(String? value, String label, IconData icon) {
+                                  final sel = value == current;
+                                  return GestureDetector(
+                                    onTap: () => Navigator.pop(ctx, value),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                      decoration: BoxDecoration(
+                                        color: sel ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.scaffoldBg(ctx),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(color: sel ? AppColors.cyan : AppThemeColors.border(ctx), width: sel ? 1.5 : 1.0),
+                                      ),
+                                      child: Row(children: [
+                                        Container(
+                                          width: 38, height: 38,
+                                          decoration: BoxDecoration(
+                                            color: sel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.cardBg(ctx),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(icon, color: sel ? AppColors.cyan : AppThemeColors.secondaryText(ctx), size: 19),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(label, style: TextStyle(
+                                          fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
+                                          color: sel ? AppThemeColors.primaryText(ctx) : AppThemeColors.secondaryText(ctx),
+                                        ))),
+                                        Icon(sel ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                          color: sel ? AppColors.cyan : AppThemeColors.border(ctx), size: 22),
+                                      ]),
+                                    ),
+                                  );
+                                }
+                                return Dialog(
+                                  backgroundColor: AppThemeColors.cardBg(ctx),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(children: [
+                                          Container(
+                                            width: 40, height: 40,
+                                            decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                                            child: const Icon(Icons.language_outlined, color: AppColors.cyan, size: 20),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(child: Text(t('language'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)))),
+                                        ]),
+                                        const SizedBox(height: 16),
+                                        langTile(null, t('system_default'), Icons.phone_android_rounded),
+                                        const SizedBox(height: 10),
+                                        langTile('en', t('english'), Icons.language_rounded),
+                                        const SizedBox(height: 10),
+                                        langTile('hi', t('hindi'), Icons.translate_rounded),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                            await localeProvider.setLocale(
+                                selected == null ? null : Locale(selected));
+                          },
+                        );
+                      },
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('due_date_calendar'),
+                      icon: Icons.calendar_month_outlined,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const DueDateCalendarPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('export_statement'),
+                      icon: Icons.download_outlined,
+                      onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const ExportStatementPage()))
+                          .then((_) { if (mounted) setState(() {}); }),
+                    ),
+                  ]),
 
-                  const SizedBox(height: 16),
-
-                  // Support & About
-                  sectionLabel(t('support_and_about')),
-                  const SizedBox(height: 8),
-                  _buildTile(
-                    context,
-                    title: t('help_and_support'),
-                    icon: Icons.help_outline,
-                    onTap: () => Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => HelpSupportPage())),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('about_lenden'),
-                    icon: Icons.info_outline,
-                    onTap: () => Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => const AboutPage())),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('terms_of_service'),
-                    icon: Icons.description_outlined,
-                    onTap: () => Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => const TermsOfServicePage())),
-                  ),
-                  _buildTile(
-                    context,
-                    title: t('privacy_policy'),
-                    icon: Icons.security_outlined,
-                    onTap: () => Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
-                  ),
+                  _settingsSectionCard(t('support_and_about'), [
+                    _buildTile(
+                      context,
+                      title: t('help_and_support'),
+                      icon: Icons.help_outline,
+                      onTap: () => Navigator.push(
+                          context, MaterialPageRoute(builder: (_) => HelpSupportPage())),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('about_lenden'),
+                      icon: Icons.info_outline,
+                      onTap: () => Navigator.push(
+                          context, MaterialPageRoute(builder: (_) => const AboutPage())),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('terms_of_service'),
+                      icon: Icons.description_outlined,
+                      onTap: () => Navigator.push(
+                          context, MaterialPageRoute(builder: (_) => const TermsOfServicePage())),
+                    ),
+                    _buildTile(
+                      context,
+                      title: t('privacy_policy'),
+                      icon: Icons.security_outlined,
+                      onTap: () => Navigator.push(
+                          context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
+                    ),
+                  ]),
 
                   const SizedBox(height: 24),
 
@@ -431,6 +502,56 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _settingsSectionCard(String title, List<Widget> tiles) {
+    if (tiles.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Material(
+          color: AppThemeColors.cardBg(context),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 13, 16, 8),
+              child: Row(children: [
+                Container(
+                  width: 3, height: 13,
+                  decoration: BoxDecoration(
+                    color: AppColors.cyan,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(title.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: context.sp(10),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.cyan,
+                      letterSpacing: 1.0,
+                    )),
+              ]),
+            ),
+            Divider(height: 1, color: AppThemeColors.border(context).withValues(alpha: 0.4)),
+            ...tiles.asMap().entries.map((e) => Column(children: [
+              if (e.key > 0) Divider(
+                height: 1, indent: 68, endIndent: 16,
+                color: AppThemeColors.border(context).withValues(alpha: 0.3),
+              ),
+              e.value,
+            ])),
+            const SizedBox(height: 4),
+          ]),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTile(
     BuildContext context, {
     required String title,
@@ -440,66 +561,65 @@ class _SettingsPageState extends State<SettingsPage> {
     bool showStatus = false,
     bool isActive = false,
   }) {
-    return tricolorBorder(
-      radius: 16,
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: AppThemeColors.cardBg(context),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Stack(
               children: [
-                Stack(
-                  children: [
-                    Icon(icon, color: AppColors.cyan, size: 24),
-                    if (showStatus)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive ? Colors.green : Colors.grey,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: context.sp(15),
-                          fontWeight: FontWeight.w500,
-                          color: AppThemeColors.primaryText(context),
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                              fontSize: context.sp(11),
-                              color: AppThemeColors.secondaryText(context)),
-                        ),
-                      ],
-                    ],
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.cyan.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(11),
                   ),
+                  child: Icon(icon, color: AppColors.cyan, size: 18),
                 ),
-                Icon(Icons.arrow_forward_ios,
-                    color: AppThemeColors.mutedText(context), size: 16),
+                if (showStatus)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isActive ? Colors.green : Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: context.sp(15),
+                      fontWeight: FontWeight.w500,
+                      color: AppThemeColors.primaryText(context),
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                          fontSize: context.sp(11),
+                          color: AppThemeColors.secondaryText(context)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                color: AppThemeColors.mutedText(context), size: 16),
+          ],
         ),
       ),
     );

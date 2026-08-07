@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -156,312 +157,184 @@ class _ReferralPageState extends State<ReferralPage> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
+    final grads = AppThemeColors.waveGradient(context);
+
     return Scaffold(
-      backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
-          // Header gradient
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: AppThemeColors.waveGradient(context),
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(36)),
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [grads[0], grads[1]],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
+          Positioned(top: -70, right: -70, child: _orb(220, 0.06)),
+          Positioned(top: 120, left: -90, child: _orb(180, 0.045)),
+          Positioned(top: 48, right: 28, child: _orb(68, 0.07)),
           SafeArea(
-            child: Column(
-              children: [
-                // App bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(children: [
-                    IconButton(icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)), onPressed: () => Navigator.pop(context)),
-                    Expanded(child: Text(t('refer_and_earn'), textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)))),
-                    IconButton(icon: Icon(Icons.refresh, color: AppThemeColors.primaryText(context)), onPressed: _fetchReferralInfo),
-                  ]),
-                ),
-
-                Expanded(
-                  child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                        onRefresh: _fetchReferralInfo,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                          children: [
-                            // ── Reward coins hero ─────────────────────────
-                            _triCard(
-                              child: Container(
-                                padding: const EdgeInsets.all(22),
-                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                child: Column(children: [
-                                  // Coins display
-                                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                    _coinBadge(t('you_get_label'), _inviterRewardCoins, Colors.amber),
-                                    const SizedBox(width: 24),
-                                    Container(width: 1, height: 60, color: AppThemeColors.divider(context)),
-                                    const SizedBox(width: 24),
-                                    _coinBadge(t('friend_gets_label'), _refereeRewardCoins, AppColors.cyan),
-                                  ]),
-                                  const SizedBox(height: 18),
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF15333A)),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      t('coins_awarded_after_signup_first_txn'),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 12, color: AppThemeColors.tinted(context, light: const Color(0xFF006D77), dark: const Color(0xFF8FE3EE)), fontWeight: FontWeight.w500),
-                                    ),
-                                  ),
-                                ]),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // ── Stats row ─────────────────────────────────
-                            Row(children: [
-                              Expanded(child: _statCard('$_totalShares', t('shares_label'), Icons.share_rounded, AppColors.cyan)),
-                              const SizedBox(width: 10),
-                              Expanded(child: _statCard('$_invitedUsers', t('invited_label'), Icons.person_add_rounded, Colors.orange)),
-                              const SizedBox(width: 10),
-                              Expanded(child: _statCard('$_convertedUsers', t('joined_label'), Icons.how_to_reg_rounded, const Color(0xFF48CAE4))),
-                            ]),
-                            const SizedBox(height: 14),
-
-                            // ── Referral code card ────────────────────────
-                            _triCard(
-                              child: Container(
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(children: [
-                                      const Icon(Icons.qr_code_2, color: AppColors.cyan, size: 20),
-                                      const SizedBox(width: 8),
-                                      Text(t('your_referral_code_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
-                                    ]),
-                                    const SizedBox(height: 12),
-                                    GestureDetector(
-                                      onTap: () async {
-                                        await Clipboard.setData(ClipboardData(text: _referralCode));
-                                        showSnack(context, t('code_copied'));
-                                      },
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                                        decoration: BoxDecoration(
-                                          color: AppThemeColors.tinted(context, light: const Color(0xFFF0F9FF), dark: const Color(0xFF132A33)),
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: AppColors.cyan, width: 1.5, style: BorderStyle.solid),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Flexible(
-                                              child: FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                child: Text(
-                                                  _referralCode.isNotEmpty ? _referralCode : '—',
-                                                  style: const TextStyle(
-                                                    fontSize: 26, fontWeight: FontWeight.bold,
-                                                    letterSpacing: 4, color: AppColors.cyan,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.1), shape: BoxShape.circle),
-                                              child: const Icon(Icons.copy_rounded, size: 18, color: AppColors.cyan),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(t('invite_link_label'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.secondaryText(context))),
-                                    const SizedBox(height: 6),
-                                    Row(children: [
-                                      Expanded(
-                                        child: Text(_inviteLink, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () async {
-                                          await Clipboard.setData(ClipboardData(text: _inviteLink));
-                                          showSnack(context, t('link_copied'));
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.cyan.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                            const Icon(Icons.link, size: 14, color: AppColors.cyan),
-                                            const SizedBox(width: 4),
-                                            Text(t('copy_label'), style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
-                                          ]),
-                                        ),
-                                      ),
-                                    ]),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // ── Share via ─────────────────────────────────
-                            _triCard(
-                              child: Container(
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(children: [
-                                      const Icon(Icons.share_rounded, color: AppColors.cyan, size: 20),
-                                      const SizedBox(width: 8),
-                                      Text(t('share_via_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
-                                    ]),
-                                    const SizedBox(height: 14),
-                                    if (_shareOptions.isEmpty)
-                                      Text(t('no_share_options_configured'), style: TextStyle(color: AppThemeColors.mutedText(context)))
-                                    else
-                                      Wrap(
-                                        spacing: 14, runSpacing: 14,
-                                        children: _shareOptions.map((opt) {
-                                          final iconKey = (opt['icon'] ?? opt['key'] ?? '').toString();
-                                          final label = (opt['label'] ?? 'Share').toString();
-                                          final bg = _colorFor(iconKey);
-                                          final icon = _iconFor(iconKey);
-                                          final isLight = iconKey.toLowerCase() == 'snapchat';
-                                          return GestureDetector(
-                                            onTap: () => _shareVia(opt),
-                                            child: SizedBox(
-                                              width: 68,
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Container(
-                                                    width: 48, height: 48,
-                                                    decoration: BoxDecoration(
-                                                      color: bg,
-                                                      shape: BoxShape.circle,
-                                                      boxShadow: [BoxShadow(color: bg.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))],
-                                                    ),
-                                                    child: Icon(icon, color: isLight ? Colors.black : Colors.white, size: 22),
-                                                  ),
-                                                  const SizedBox(height: 6),
-                                                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
-                                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppThemeColors.primaryText(context))),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF15333A)),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        t('ask_friend_signup_create_txn'),
-                                        style: TextStyle(fontSize: 12, color: AppThemeColors.tinted(context, light: const Color(0xFF006D77), dark: const Color(0xFF8FE3EE)), fontWeight: FontWeight.w500),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // ── Recent shares ─────────────────────────────
-                            if (_recentShares.isNotEmpty)
-                              _triCard(
-                                child: Container(
-                                  padding: const EdgeInsets.all(18),
-                                  decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(children: [
-                                        const Icon(Icons.history, color: AppColors.cyan, size: 20),
-                                        const SizedBox(width: 8),
-                                        Text(t('recent_shares_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
-                                      ]),
-                                      const SizedBox(height: 12),
-                                      ..._recentShares.take(6).map((item) {
-                                        final ch = (item['channel'] ?? 'other').toString();
-                                        final at = (item['createdAt'] ?? '').toString();
-                                        final stamp = at.length >= 10 ? at.substring(0, 10) : at;
-                                        final color = _colorFor(ch);
-                                        return Container(
-                                          margin: const EdgeInsets.only(bottom: 8),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                          decoration: BoxDecoration(
-                                            color: color.withValues(alpha: 0.07),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: color.withValues(alpha: 0.2)),
-                                          ),
-                                          child: Row(children: [
-                                            Icon(_iconFor(ch), size: 16, color: color),
-                                            const SizedBox(width: 10),
-                                            Expanded(child: Text(
-                                              '${ch.substring(0, 1).toUpperCase()}${ch.substring(1)} ${t('share_label')}',
-                                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: color),
-                                            )),
-                                            Text(stamp, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
-                                          ]),
-                                        );
-                                      }),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                            // ── How it works ──────────────────────────────
-                            const SizedBox(height: 14),
-                            _triCard(
-                              child: Container(
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(children: [
-                                      const Icon(Icons.info_outline, color: AppColors.cyan, size: 20),
-                                      const SizedBox(width: 8),
-                                      Text(t('how_it_works_label'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppThemeColors.primaryText(context))),
-                                    ]),
-                                    const SizedBox(height: 14),
-                                    _step(1, t('step_share_referral_code'), Icons.share_rounded, AppColors.cyan),
-                                    _step(2, t('step_friend_signs_up'), Icons.person_add_rounded, Colors.orange),
-                                    _step(3, t('step_friend_first_transaction'), Icons.receipt_long_rounded, const Color(0xFF48CAE4)),
-                                    _step(4, t('step_both_earn_coins'), Icons.monetization_on_rounded, Colors.amber, isLast: true),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+            child: _loading
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : RefreshIndicator(
+                  onRefresh: _fetchReferralInfo,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          child: Row(children: [
+                            _navBtn(Icons.arrow_back_ios_new_rounded, () => Navigator.pop(context)),
+                            const Spacer(),
+                            _navBtn(Icons.refresh_rounded, _fetchReferralInfo),
+                          ]),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        _buildHero(t),
+                        const SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: _buildCodeCard(t),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildShareSection(t),
+                        const SizedBox(height: 24),
+                        _buildBottomSection(t),
+                      ],
+                    ),
+                  ),
                 ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _orb(double size, double alpha) => Container(
+    width: size, height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white.withValues(alpha: alpha),
+    ),
+  );
+
+  Widget _navBtn(IconData icon, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42, height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: isDark ? 0.28 : 0.2),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.5 : 0.3)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildHero(Function(String) t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        SizedBox(
+          width: 112, height: 112,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 112, height: 112,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: isDark ? 0.09 : 0.11),
+                ),
+              ),
+              Container(
+                width: 84, height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: isDark ? 0.3 : 0.22),
+                  border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.55 : 0.4), width: 2),
+                  boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: isDark ? 0.18 : 0.28), blurRadius: 24, spreadRadius: 2)],
+                ),
+                child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 44),
+              ),
+              Positioned(
+                top: 4, right: 6,
+                child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.9), size: 16),
+              ),
+              Positioned(
+                bottom: 10, left: 5,
+                child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.65), size: 10),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _rewardPill('+$_inviterRewardCoins', t('coins_label_short_lower'), t('you_get_label'), Colors.amber),
+            const SizedBox(width: 10),
+            Container(width: 1, height: 42, color: Colors.white.withValues(alpha: isDark ? 0.45 : 0.3)),
+            const SizedBox(width: 10),
+            _rewardPill('+$_refereeRewardCoins', t('coins_label_short_lower'), t('friend_gets_label'), AppColors.cyan),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Text(
+            t('refer_and_earn'),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, height: 1.2),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 36),
+          child: Text(
+            t('coins_awarded_after_signup_first_txn'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8), height: 1.4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _rewardPill(String amount, String unit, String label, Color accent) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.48 : 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.monetization_on_rounded, color: accent, size: 20),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('$amount $unit', maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 10, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -470,88 +343,435 @@ class _ReferralPageState extends State<ReferralPage> {
     );
   }
 
-  Widget _coinBadge(String label, int coins, Color color) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 64, height: 64,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-            border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
-          ),
-          child: Center(
-            child: Icon(Icons.monetization_on_rounded, color: color, size: 30),
+  Widget _buildCodeCard(Function(String) t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: isDark ? 0.5 : 0.6),
+            Colors.white.withValues(alpha: isDark ? 0.12 : 0.18),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.all(1.5),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isDark ? 0.18 : 0.14),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Icon(Icons.qr_code_2, color: Colors.white.withValues(alpha: 0.75), size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    t('your_referral_code_label'),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          _referralCode.isNotEmpty ? _referralCode : '—',
+                          style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 6),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        await Clipboard.setData(ClipboardData(text: _referralCode));
+                        showSnack(context, t('code_copied'));
+                      },
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 100),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            t('copy_label'),
+                            style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text('+$coins', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
-        Text(AppLocalizations.of(context).t('coins_label_short_lower'), style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
-      ],
-    );
-  }
-
-  Widget _statCard(String value, String label, IconData icon, Color color) {
-    return _triCard(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(16)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 38, height: 38,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context))),
-        ]),
       ),
     );
   }
 
-  Widget _step(int num, String text, IconData icon, Color color, {bool isLast = false}) {
+  Widget _buildShareSection(Function(String) t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(child: Container(height: 1, color: Colors.white.withValues(alpha: isDark ? 0.35 : 0.25))),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  t('share_via_label'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 1, color: Colors.white.withValues(alpha: isDark ? 0.35 : 0.25))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_shareOptions.isEmpty)
+          Text(t('no_share_options_configured'), style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12))
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: _shareOptions.map((opt) {
+                final iconKey = (opt['icon'] ?? opt['key'] ?? '').toString();
+                final label = (opt['label'] ?? 'Share').toString();
+                final bg = _colorFor(iconKey);
+                final icon = _iconFor(iconKey);
+                final isLight = iconKey.toLowerCase() == 'snapchat';
+                return Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 18),
+                  child: GestureDetector(
+                    onTap: () => _shareVia(opt),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 58, height: 58,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.18),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.45 : 0.3), width: 1.5),
+                            boxShadow: [BoxShadow(color: bg.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 3))],
+                          ),
+                          child: Icon(icon, color: isLight ? Colors.black87 : Colors.white, size: 24),
+                        ),
+                        const SizedBox(height: 7),
+                        SizedBox(
+                          width: 62,
+                          child: Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 11, fontWeight: FontWeight.w500)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBottomSection(Function(String) t) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppThemeColors.scaffoldBg(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -4))],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 38, height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(color: AppThemeColors.border(context), borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+
+          Row(children: [
+            Expanded(child: _statCard('$_totalShares', t('shares_label'), Icons.share_rounded, AppColors.cyan)),
+            const SizedBox(width: 10),
+            Expanded(child: _statCard('$_invitedUsers', t('invited_label'), Icons.person_add_rounded, Colors.orange)),
+            const SizedBox(width: 10),
+            Expanded(child: _statCard('$_convertedUsers', t('joined_label'), Icons.how_to_reg_rounded, const Color(0xFF48CAE4))),
+          ]),
+          const SizedBox(height: 14),
+
+          _sectionCard(child: Column(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              _coinBadge(t('you_get_label'), _inviterRewardCoins, Colors.amber),
+              Container(width: 1, height: 84, color: AppThemeColors.divider(context)),
+              _coinBadge(t('friend_gets_label'), _refereeRewardCoins, AppColors.cyan),
+            ]),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF15333A)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                t('coins_awarded_after_signup_first_txn'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppThemeColors.tinted(context, light: const Color(0xFF006D77), dark: const Color(0xFF8FE3EE)),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ])),
+          const SizedBox(height: 14),
+
+          _sectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _sectionHeader(t('invite_link_label'), Icons.link_rounded, AppColors.cyan),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppThemeColors.scaffoldBg(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppThemeColors.border(context)),
+              ),
+              child: Row(children: [
+                Expanded(child: Text(_inviteLink, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () async {
+                    await Clipboard.setData(ClipboardData(text: _inviteLink));
+                    showSnack(context, t('link_copied'));
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.copy_rounded, size: 13, color: AppColors.cyan),
+                      const SizedBox(width: 4),
+                      Text(t('copy_label'), style: const TextStyle(fontSize: 12, color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+          ])),
+
+          if (_recentShares.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _sectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _sectionHeader(t('recent_shares_label'), Icons.history_rounded, const Color(0xFF7C4DFF)),
+              const SizedBox(height: 12),
+              ..._recentShares.take(6).map((item) {
+                final ch = (item['channel'] ?? 'other').toString();
+                final at = (item['createdAt'] ?? '').toString();
+                final stamp = at.length >= 10 ? at.substring(0, 10) : at;
+                final color = _colorFor(ch);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: color.withValues(alpha: 0.18)),
+                  ),
+                  child: Row(children: [
+                    Icon(_iconFor(ch), size: 15, color: color),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(
+                      '${ch.substring(0, 1).toUpperCase()}${ch.substring(1)} ${t('share_label')}',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: color),
+                    )),
+                    Text(stamp, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11)),
+                  ]),
+                );
+              }),
+            ])),
+          ],
+
+          const SizedBox(height: 14),
+          _sectionCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _sectionHeader(t('how_it_works_label'), Icons.info_outline_rounded, AppColors.cyan),
+            const SizedBox(height: 16),
+            _step(1, t('step_share_referral_code'), AppColors.cyan),
+            _step(2, t('step_friend_signs_up'), Colors.orange),
+            _step(3, t('step_friend_first_transaction'), const Color(0xFF48CAE4)),
+            _step(4, t('step_both_earn_coins'), Colors.amber, isLast: true),
+          ])),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({required Widget child}) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: AppThemeColors.cardBg(context),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppThemeColors.border(context)),
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+    ),
+    child: child,
+  );
+
+  Widget _sectionHeader(String title, IconData icon, Color color) => Row(children: [
+    Container(
+      width: 32, height: 32,
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+      child: Icon(icon, color: color, size: 16),
+    ),
+    const SizedBox(width: 10),
+    Expanded(child: Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppThemeColors.primaryText(context)))),
+  ]);
+
+  Widget _coinBadge(String label, int coins, Color color) {
+    final t = AppLocalizations.of(context).t;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 120),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 66, height: 66,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [color.withValues(alpha: 0.18), color.withValues(alpha: 0.03)],
+                  ),
+                ),
+              ),
+              Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+                ),
+                child: Icon(Icons.monetization_on_rounded, color: color, size: 26),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('+$coins', textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+          Text(t('coins_label_short_lower'), textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text(label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(String value, String label, IconData icon, Color color) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          height: 4,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(height: 6),
+            Text(value, textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+            Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context))),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _step(int num, String text, Color color, {bool isLast = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           children: [
             Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 16),
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: Center(child: Text('$num', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
             ),
             if (!isLast)
-              Container(width: 2, height: 28, color: AppThemeColors.divider(context), margin: const EdgeInsets.symmetric(vertical: 2)),
+              Container(
+                width: 2, height: 28,
+                margin: const EdgeInsets.symmetric(vertical: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(1),
+                  gradient: LinearGradient(
+                    colors: [color.withValues(alpha: 0.4), color.withValues(alpha: 0.07)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
           ],
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 24, top: 6),
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 24, top: 9),
             child: Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppThemeColors.primaryText(context))),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _triCard({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      child: child,
     );
   }
 }

@@ -162,30 +162,67 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                         onTap: () async {
                           final selected = await showDialog<ThemeMode>(
                             context: context,
-                            builder: (context) => SimpleDialog(
-                              backgroundColor: AppThemeColors.cardBg(context),
-                              title: Text(t('dark_mode'),
-                                  style: TextStyle(
-                                      color: AppThemeColors.primaryText(context))),
-                              children: [
-                                for (final mode in ThemeMode.values)
-                                  RadioListTile<ThemeMode>(
-                                    title: Text(
-                                      {
-                                        ThemeMode.system: t('system_default'),
-                                        ThemeMode.light: t('light'),
-                                        ThemeMode.dark: t('dark'),
-                                      }[mode]!,
-                                      style: TextStyle(
-                                          color: AppThemeColors.primaryText(context)),
+                            builder: (ctx) {
+                              Widget optTile(ThemeMode mode, String label, IconData icon) {
+                                final sel = mode == themeProvider.themeMode;
+                                return GestureDetector(
+                                  onTap: () => Navigator.pop(ctx, mode),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                    decoration: BoxDecoration(
+                                      color: sel ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.scaffoldBg(ctx),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: sel ? AppColors.cyan : AppThemeColors.border(ctx), width: sel ? 1.5 : 1.0),
                                     ),
-                                    value: mode,
-                                    groupValue: themeProvider.themeMode,
-                                    activeColor: AppColors.cyan,
-                                    onChanged: (v) => Navigator.pop(context, v),
+                                    child: Row(children: [
+                                      Container(
+                                        width: 38, height: 38,
+                                        decoration: BoxDecoration(
+                                          color: sel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.cardBg(ctx),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(icon, color: sel ? AppColors.cyan : AppThemeColors.secondaryText(ctx), size: 19),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: Text(label, style: TextStyle(
+                                        fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
+                                        color: sel ? AppThemeColors.primaryText(ctx) : AppThemeColors.secondaryText(ctx),
+                                      ))),
+                                      Icon(sel ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                        color: sel ? AppColors.cyan : AppThemeColors.border(ctx), size: 22),
+                                    ]),
                                   ),
-                              ],
-                            ),
+                                );
+                              }
+                              return Dialog(
+                                backgroundColor: AppThemeColors.cardBg(ctx),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(children: [
+                                        Container(
+                                          width: 40, height: 40,
+                                          decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                                          child: const Icon(Icons.dark_mode_outlined, color: AppColors.cyan, size: 20),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(t('dark_mode'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)))),
+                                      ]),
+                                      const SizedBox(height: 16),
+                                      optTile(ThemeMode.system, t('system_default'), Icons.brightness_auto_rounded),
+                                      const SizedBox(height: 10),
+                                      optTile(ThemeMode.light, t('light'), Icons.light_mode_rounded),
+                                      const SizedBox(height: 10),
+                                      optTile(ThemeMode.dark, t('dark'), Icons.dark_mode_rounded),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           );
                           if (selected != null) {
                             await themeProvider.setThemeMode(selected);
@@ -211,41 +248,67 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                         onTap: () async {
                           final selected = await showDialog<String?>(
                             context: context,
-                            builder: (context) => SimpleDialog(
-                              backgroundColor: AppThemeColors.cardBg(context),
-                              title: Text(t('language'),
-                                  style: TextStyle(
-                                      color: AppThemeColors.primaryText(context))),
-                              children: [
-                                RadioListTile<String?>(
-                                  title: Text(t('system_default'),
-                                      style: TextStyle(
-                                          color: AppThemeColors.primaryText(context))),
-                                  value: null,
-                                  groupValue: current,
-                                  activeColor: AppColors.cyan,
-                                  onChanged: (v) => Navigator.pop(context, v),
+                            builder: (ctx) {
+                              Widget langTile(String? value, String label, IconData icon) {
+                                final sel = value == current;
+                                return GestureDetector(
+                                  onTap: () => Navigator.pop(ctx, value),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                    decoration: BoxDecoration(
+                                      color: sel ? AppColors.cyan.withValues(alpha: 0.08) : AppThemeColors.scaffoldBg(ctx),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: sel ? AppColors.cyan : AppThemeColors.border(ctx), width: sel ? 1.5 : 1.0),
+                                    ),
+                                    child: Row(children: [
+                                      Container(
+                                        width: 38, height: 38,
+                                        decoration: BoxDecoration(
+                                          color: sel ? AppColors.cyan.withValues(alpha: 0.12) : AppThemeColors.cardBg(ctx),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(icon, color: sel ? AppColors.cyan : AppThemeColors.secondaryText(ctx), size: 19),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: Text(label, style: TextStyle(
+                                        fontSize: 15, fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
+                                        color: sel ? AppThemeColors.primaryText(ctx) : AppThemeColors.secondaryText(ctx),
+                                      ))),
+                                      Icon(sel ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                        color: sel ? AppColors.cyan : AppThemeColors.border(ctx), size: 22),
+                                    ]),
+                                  ),
+                                );
+                              }
+                              return Dialog(
+                                backgroundColor: AppThemeColors.cardBg(ctx),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(children: [
+                                        Container(
+                                          width: 40, height: 40,
+                                          decoration: BoxDecoration(color: AppColors.cyan.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                                          child: const Icon(Icons.language_outlined, color: AppColors.cyan, size: 20),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(t('language'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(ctx)))),
+                                      ]),
+                                      const SizedBox(height: 16),
+                                      langTile(null, t('system_default'), Icons.phone_android_rounded),
+                                      const SizedBox(height: 10),
+                                      langTile('en', t('english'), Icons.language_rounded),
+                                      const SizedBox(height: 10),
+                                      langTile('hi', t('hindi'), Icons.translate_rounded),
+                                    ],
+                                  ),
                                 ),
-                                RadioListTile<String?>(
-                                  title: Text(t('english'),
-                                      style: TextStyle(
-                                          color: AppThemeColors.primaryText(context))),
-                                  value: 'en',
-                                  groupValue: current,
-                                  activeColor: AppColors.cyan,
-                                  onChanged: (v) => Navigator.pop(context, v),
-                                ),
-                                RadioListTile<String?>(
-                                  title: Text(t('hindi'),
-                                      style: TextStyle(
-                                          color: AppThemeColors.primaryText(context))),
-                                  value: 'hi',
-                                  groupValue: current,
-                                  activeColor: AppColors.cyan,
-                                  onChanged: (v) => Navigator.pop(context, v),
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           );
                           await localeProvider.setLocale(
                               selected == null ? null : Locale(selected));
