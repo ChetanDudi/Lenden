@@ -291,7 +291,11 @@ const register = async (req, res) => {
     await admin.save();
 
     // Generate JWT token
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('[AdminLogin] JWT_SECRET is not set — cannot issue admin token');
+      return res.status(500).json({ error: 'Server misconfiguration' });
+    }
     const token = jwt.sign(
       {
         _id: admin._id,

@@ -3,6 +3,8 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 const morgan = require('morgan');
 const cron = require('node-cron');
 const Transaction = require('./models/transaction');
@@ -84,6 +86,12 @@ const corsOptions = {
 // Trust Render's (and any single-hop) reverse proxy so req.ip returns the real client IP
 app.set('trust proxy', 1);
 
+// Security headers (helmet must come before routes)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // needed for mobile app assets
+  contentSecurityPolicy: false, // API-only backend; CSP is for browsers
+}));
+
 // Middleware
 app.use(cors(corsOptions));
 
@@ -92,7 +100,10 @@ app.use(cors(corsOptions));
 // Must be registered BEFORE express.json().
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+
+// Strip MongoDB operator keys ($, .) from user input to prevent NoSQL injection
+app.use(mongoSanitize());
 
 // Add preflight handling for complex requests
 app.options('*', cors(corsOptions));
@@ -106,30 +117,8 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
 app.use('/api', apiRoutes(io));
 
 // Root route handler
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Lenden Backend API is running!',
-    version: '1.0.0',
-    endpoints: {
-      base: '/api',
-      documentation: 'API endpoints are available under /api prefix'
-    },
-    cors: {
-      enabled: true,
-      origins: corsOptions.origin,
-      methods: corsOptions.methods
-    }
-  });
-});
-
-// CORS test endpoint
-app.get('/cors-test', (req, res) => {
-  res.json({
-    message: 'CORS is working!',
-    timestamp: new Date().toISOString(),
-    headers: req.headers,
-    origin: req.headers.origin || 'No origin header'
-  });
+app.get('/', (_req, res) => {
+  res.json({ message: 'Lenden Backend API is running!', version: '1.0.0' });
 });
 
 // Catch-all route for undefined paths

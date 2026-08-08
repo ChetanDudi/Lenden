@@ -13,7 +13,8 @@ module.exports = (io) => {
   const editProfileController = require('../controllers/editProfileController');
   const auth = require('../middleware/auth');
   const sessionTimeout = require('../middleware/sessionTimeout');
-  const { loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter } = require('../middleware/rateLimit');
+  const { globalApiLimiter, loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, manualPaymentVerifyLimiter } = require('../middleware/rateLimit');
+  router.use(globalApiLimiter);
   const walletAuthMiddleware = require('../middleware/walletAuth');
   const budgetCheck = require('../middleware/budgetCheck');
   const fs = require('fs');

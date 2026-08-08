@@ -1,5 +1,19 @@
 const rateLimit = require('express-rate-limit');
 
+// Global API limiter — applied to all /api routes.
+// 300 requests per 15 min per IP is generous for real usage but stops scripted abuse.
+exports.globalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please slow down.' },
+  skip: (req) => {
+    // Don't rate-limit Razorpay webhook — it comes from Razorpay's IPs, not users
+    return req.path.startsWith('/payment/webhook');
+  },
+});
+
 // Login: a handful of genuine typos is normal, but stop credential-stuffing/brute-force.
 exports.loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
