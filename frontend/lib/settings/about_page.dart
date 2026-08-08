@@ -149,6 +149,10 @@ class AboutPage extends StatelessWidget {
                     t('feature_leaderboard_desc')),
                 _buildFeatureRow(context, Icons.card_giftcard_rounded,
                     t('feature_gift_cards_title'), t('feature_gift_cards_desc')),
+                _buildFeatureRow(context, Icons.pie_chart_rounded,
+                    t('feature_budget_title'), t('feature_budget_desc')),
+                _buildFeatureRow(context, Icons.cake_rounded,
+                    t('feature_birthday_title'), t('feature_birthday_desc')),
               ],
             ),
 
@@ -170,6 +174,10 @@ class AboutPage extends StatelessWidget {
                 _buildBullet(context, t('security_bullet_razorpay')),
                 _buildBullet(context, t('security_bullet_otp')),
                 _buildBullet(context, t('security_bullet_device')),
+                _buildBullet(context, t('security_bullet_helmet')),
+                _buildBullet(context, t('security_bullet_nosql')),
+                _buildBullet(context, t('security_bullet_ratelimit')),
+                _buildBullet(context, t('security_bullet_pin')),
               ],
             ),
 
@@ -189,6 +197,7 @@ class AboutPage extends StatelessWidget {
                 _buildTechRow(context, 'Socket.io', t('tech_socketio_desc')),
                 _buildTechRow(context, 'JWT', t('tech_jwt_desc')),
                 _buildTechRow(context, 'Nodemailer', t('tech_nodemailer_desc')),
+                _buildTechRow(context, 'Firebase (FCM)', t('tech_firebase_desc')),
               ],
             ),
 

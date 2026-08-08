@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 class TermsOfServicePage extends StatelessWidget {
   const TermsOfServicePage({super.key});
 
-  static const String _lastUpdated = 'June 2025';
+  static const String _lastUpdated = 'August 2025';
 
   @override
   Widget build(BuildContext context) {

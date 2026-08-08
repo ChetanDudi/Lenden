@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
 
-  static const String _lastUpdated = 'June 2025';
+  static const String _lastUpdated = 'August 2025';
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +155,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               _buildParagraph(context, t('pp_s9_p1')),
               _buildBullet(context, t('pp_s9_b1')),
               _buildBullet(context, t('pp_s9_b2')),
+              _buildBullet(context, t('pp_s9_b3')),
               _buildParagraph(context, t('pp_s9_p2')),
             ]),
 

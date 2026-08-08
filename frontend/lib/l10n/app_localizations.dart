@@ -839,7 +839,7 @@ class AppLocalizations {
       'version_copied': 'Version copied',
       'what_is_lenden': 'What is LenDen?',
       'what_is_lenden_body':
-          'LenDen is a comprehensive peer-to-peer money management platform designed to simplify how you track, settle, and manage financial transactions with friends, family, and colleagues.\n\nWhether you\'re splitting a restaurant bill, tracking a loan to a friend, or managing group expenses for a trip — LenDen has you covered.',
+          'LenDen is a comprehensive peer-to-peer money management platform designed to simplify how you track, settle, and manage financial transactions with friends, family, and colleagues.\n\nWhether you\'re splitting a restaurant bill, tracking a loan to a friend, managing group expenses for a trip, or planning your monthly budget with named allocation categories — LenDen has you covered with intelligent tools for secure, transparent money management.',
       'core_features': 'Core Features',
       'feature_quick_tx_title': 'Quick Transactions',
       'feature_quick_tx_desc':
@@ -855,15 +855,21 @@ class AppLocalizations {
       'feature_razorpay_title': 'Razorpay Payments',
       'feature_razorpay_desc':
           'Pay via card, UPI, or net banking through Razorpay.',
-      'feature_analytics_title': 'Analytics',
+      'feature_analytics_title': 'Smart Analytics',
       'feature_analytics_desc':
-          'Visual breakdown of your spending and lending habits.',
+          'Server-computed insights: biggest debt, monthly net flow, average amount, and top counterparty.',
       'feature_leaderboard_title': 'Leaderboard',
       'feature_leaderboard_desc':
           'See how you rank among friends in timely settlements.',
       'feature_gift_cards_title': 'Gift Cards',
       'feature_gift_cards_desc':
           'Send gift cards and rewards to your contacts.',
+      'feature_budget_title': 'Budget Planning',
+      'feature_budget_desc':
+          'Set monthly budgets with named allocation categories and track per-category spending in real time.',
+      'feature_birthday_title': 'Birthday Reminders',
+      'feature_birthday_desc':
+          'Get push notifications when friends and counterparties celebrate their birthday.',
       'security_and_privacy': 'Security & Privacy',
       'security_privacy_intro':
           'Your security is our top priority. LenDen uses industry-standard practices to protect your data:',
@@ -876,6 +882,10 @@ class AppLocalizations {
           'Razorpay signature verification on all payments',
       'security_bullet_otp': 'OTP-verified alternative email changes',
       'security_bullet_device': 'Device management and session control',
+      'security_bullet_helmet': 'HTTP security headers (HSTS, X-Frame-Options, X-Content-Type-Options)',
+      'security_bullet_nosql': 'NoSQL injection prevention on all API inputs',
+      'security_bullet_ratelimit': 'Global API rate limiting — 300 requests per 15 minutes per IP',
+      'security_bullet_pin': 'Wallet PIN protection on every outgoing payment',
       'built_with': 'Built With',
       'tech_flutter_desc': 'Cross-platform mobile framework',
       'tech_node_desc': 'Backend API server',
@@ -884,6 +894,7 @@ class AppLocalizations {
       'tech_socketio_desc': 'Real-time chat & notifications',
       'tech_jwt_desc': 'Authentication tokens',
       'tech_nodemailer_desc': 'Email delivery',
+      'tech_firebase_desc': 'Push notifications (FCM) for in-app and device alerts',
       'legal': 'Legal',
       'made_with_love_in_india': 'Made with ❤️ in India',
       'all_rights_reserved': 'All rights reserved.',
@@ -1158,7 +1169,7 @@ class AppLocalizations {
       'pp_s2_p1': 'We use the information we collect to:',
       'pp_s2_b1': 'Create and manage your account',
       'pp_s2_b2': 'Process and record financial transactions',
-      'pp_s2_b3': 'Send notifications about your account activity',
+      'pp_s2_b3': 'Send notifications about account activity, transactions, and friend birthdays',
       'pp_s2_b4': 'Provide customer support',
       'pp_s2_b5': 'Improve and personalize the App experience',
       'pp_s2_b6': 'Detect and prevent fraud and abuse',
@@ -1180,11 +1191,11 @@ class AppLocalizations {
       'pp_s4_title': '4. Data Security',
       'pp_s4_p1':
           'We implement industry-standard security measures to protect your information:',
-      'pp_s4_b1': 'AES-256 encryption for data in transit (HTTPS)',
+      'pp_s4_b1': 'AES-256 encryption for data in transit (HTTPS) with Helmet HTTP security headers',
       'pp_s4_b2': 'bcrypt hashing for passwords',
       'pp_s4_b3': 'JWT tokens with short expiry periods',
       'pp_s4_b4': 'Regular security audits',
-      'pp_s4_b5': 'Database access controls and monitoring',
+      'pp_s4_b5': 'Database access controls, NoSQL injection prevention, and global API rate limiting',
       'pp_s4_p2':
           'While we strive to protect your information, no method of transmission over the internet is 100% secure.',
       'pp_s5_title': '5. Your Privacy Rights',
@@ -1226,6 +1237,8 @@ class AppLocalizations {
       'pp_s9_b1':
           'Razorpay: Payment processing. Subject to Razorpay\'s Privacy Policy.',
       'pp_s9_b2':
+          'Firebase (Google): FCM push notifications for in-app and device alerts. Subject to Google\'s Privacy Policy.',
+      'pp_s9_b3':
           'Email providers: For sending OTPs, notifications, and account emails.',
       'pp_s9_p2':
           'These third parties have their own privacy policies and data practices which we do not control.',
@@ -1392,7 +1405,7 @@ class AppLocalizations {
       'tos_s2_p3': '• Split group expenses among multiple participants',
       'tos_s2_p4': '• Manage a digital wallet for in-app payments',
       'tos_s2_p5': '• Make payments via integrated payment gateways',
-      'tos_s2_p6': '• View analytics and history of financial activity',
+      'tos_s2_p6': '• View analytics, plan budgets with sub-categories, and receive smart notifications',
       'tos_s3_title': '3. User Accounts',
       'tos_s3_p1':
           'You must create an account to use LenDen. You are responsible for maintaining the confidentiality of your account credentials.',
@@ -5146,7 +5159,7 @@ class AppLocalizations {
       'version_copied': 'वर्शन कॉपी किया गया',
       'what_is_lenden': 'LenDen क्या है?',
       'what_is_lenden_body':
-          'LenDen एक व्यापक पीयर-टू-पीयर मनी मैनेजमेंट प्लेटफ़ॉर्म है जो दोस्तों, परिवार और सहकर्मियों के साथ वित्तीय लेन-देन को ट्रैक करने, निपटाने और प्रबंधित करने को सरल बनाने के लिए डिज़ाइन किया गया है।\n\nचाहे आप रेस्तरां का बिल बांट रहे हों, किसी मित्र को दिए गए ऋण को ट्रैक कर रहे हों, या किसी यात्रा के लिए समूह खर्च प्रबंधित कर रहे हों — LenDen आपके लिए है।',
+          'LenDen एक व्यापक पीयर-टू-पीयर मनी मैनेजमेंट प्लेटफ़ॉर्म है जो दोस्तों, परिवार और सहकर्मियों के साथ वित्तीय लेन-देन को ट्रैक करने, निपटाने और प्रबंधित करने को सरल बनाने के लिए डिज़ाइन किया गया है।\n\nचाहे आप रेस्तरां का बिल बांट रहे हों, किसी मित्र को दिए गए ऋण को ट्रैक कर रहे हों, यात्रा के लिए समूह खर्च प्रबंधित कर रहे हों, या नामित आवंटन श्रेणियों के साथ मासिक बजट योजना बना रहे हों — LenDen आपको सुरक्षित और पारदर्शी मनी मैनेजमेंट के स्मार्ट टूल्स के साथ कवर करता है।',
       'core_features': 'मुख्य विशेषताएं',
       'feature_quick_tx_title': 'त्वरित लेन-देन',
       'feature_quick_tx_desc':
@@ -5163,15 +5176,21 @@ class AppLocalizations {
       'feature_razorpay_title': 'Razorpay भुगतान',
       'feature_razorpay_desc':
           'Razorpay के माध्यम से कार्ड, UPI, या नेट बैंकिंग से भुगतान करें।',
-      'feature_analytics_title': 'एनालिटिक्स',
+      'feature_analytics_title': 'स्मार्ट एनालिटिक्स',
       'feature_analytics_desc':
-          'आपके खर्च और उधार देने की आदतों का विज़ुअल विवरण।',
+          'सर्वर-कम्प्यूटेड इनसाइट्स: सबसे बड़ा बकाया, मासिक नेट फ्लो, औसत राशि, और शीर्ष प्रतिपक्ष।',
       'feature_leaderboard_title': 'लीडरबोर्ड',
       'feature_leaderboard_desc':
           'समय पर निपटान में मित्रों के बीच अपनी रैंक देखें।',
       'feature_gift_cards_title': 'गिफ्ट कार्ड',
       'feature_gift_cards_desc':
           'अपने संपर्कों को गिफ्ट कार्ड और रिवॉर्ड भेजें।',
+      'feature_budget_title': 'बजट योजना',
+      'feature_budget_desc':
+          'नामित आवंटन श्रेणियों के साथ मासिक बजट सेट करें और प्रत्येक श्रेणी में खर्च ट्रैक करें।',
+      'feature_birthday_title': 'जन्मदिन रिमाइंडर',
+      'feature_birthday_desc':
+          'जब मित्र और प्रतिपक्ष अपना जन्मदिन मनाएं तो पुश नोटिफिकेशन प्राप्त करें।',
       'security_and_privacy': 'सुरक्षा और गोपनीयता',
       'security_privacy_intro':
           'आपकी सुरक्षा हमारी सर्वोच्च प्राथमिकता है। LenDen आपके डेटा की सुरक्षा के लिए उद्योग-मानक प्रथाओं का उपयोग करता है:',
@@ -5183,6 +5202,10 @@ class AppLocalizations {
       'security_bullet_razorpay': 'सभी भुगतानों पर Razorpay सिग्नेचर सत्यापन',
       'security_bullet_otp': 'OTP-सत्यापित वैकल्पिक ईमेल परिवर्तन',
       'security_bullet_device': 'डिवाइस प्रबंधन और सेशन नियंत्रण',
+      'security_bullet_helmet': 'HTTP सुरक्षा हेडर (HSTS, X-Frame-Options, X-Content-Type-Options)',
+      'security_bullet_nosql': 'सभी API इनपुट पर NoSQL इंजेक्शन रोकथाम',
+      'security_bullet_ratelimit': 'ग्लोबल API रेट लिमिटिंग — प्रति IP 15 मिनट में 300 अनुरोध',
+      'security_bullet_pin': 'हर आउटगोइंग पेमेंट पर वॉलेट PIN सुरक्षा',
       'built_with': 'इनसे बना',
       'tech_flutter_desc': 'क्रॉस-प्लेटफ़ॉर्म मोबाइल फ्रेमवर्क',
       'tech_node_desc': 'बैकएंड API सर्वर',
@@ -5191,6 +5214,7 @@ class AppLocalizations {
       'tech_socketio_desc': 'रीयल-टाइम चैट और सूचनाएं',
       'tech_jwt_desc': 'प्रमाणीकरण टोकन',
       'tech_nodemailer_desc': 'ईमेल डिलीवरी',
+      'tech_firebase_desc': 'इन-ऐप और डिवाइस अलर्ट के लिए पुश नोटिफिकेशन (FCM)',
       'legal': 'कानूनी',
       'made_with_love_in_india': 'भारत में ❤️ से बनाया गया',
       'all_rights_reserved': 'सर्वाधिकार सुरक्षित।',
@@ -5471,7 +5495,7 @@ class AppLocalizations {
       'pp_s2_p1': 'हम एकत्रित जानकारी का उपयोग इसके लिए करते हैं:',
       'pp_s2_b1': 'आपका खाता बनाना और प्रबंधित करना',
       'pp_s2_b2': 'वित्तीय ट्रांज़ैक्शन प्रोसेस करना और रिकॉर्ड करना',
-      'pp_s2_b3': 'आपकी खाता गतिविधि के बारे में सूचनाएं भेजना',
+      'pp_s2_b3': 'खाता गतिविधि, ट्रांज़ैक्शन और मित्रों के जन्मदिन के बारे में सूचनाएं भेजना',
       'pp_s2_b4': 'ग्राहक सहायता प्रदान करना',
       'pp_s2_b5': 'ऐप अनुभव में सुधार और निजीकरण करना',
       'pp_s2_b6': 'धोखाधड़ी और दुरुपयोग का पता लगाना और रोकना',
@@ -5492,11 +5516,11 @@ class AppLocalizations {
       'pp_s4_title': '4. डेटा सुरक्षा',
       'pp_s4_p1':
           'हम आपकी जानकारी की सुरक्षा के लिए उद्योग-स्तरीय सुरक्षा उपाय लागू करते हैं:',
-      'pp_s4_b1': 'ट्रांज़िट में डेटा के लिए AES-256 एन्क्रिप्शन (HTTPS)',
+      'pp_s4_b1': 'ट्रांज़िट में डेटा के लिए AES-256 एन्क्रिप्शन (HTTPS) और Helmet HTTP सुरक्षा हेडर',
       'pp_s4_b2': 'पासवर्ड के लिए bcrypt हैशिंग',
       'pp_s4_b3': 'कम समाप्ति अवधि वाले JWT टोकन',
       'pp_s4_b4': 'नियमित सुरक्षा ऑडिट',
-      'pp_s4_b5': 'डेटाबेस एक्सेस नियंत्रण और मॉनिटरिंग',
+      'pp_s4_b5': 'डेटाबेस एक्सेस नियंत्रण, NoSQL इंजेक्शन रोकथाम और ग्लोबल API रेट लिमिटिंग',
       'pp_s4_p2':
           'हालांकि हम आपकी जानकारी की सुरक्षा के लिए प्रयास करते हैं, इंटरनेट पर ट्रांसमिशन का कोई भी तरीका 100% सुरक्षित नहीं है।',
       'pp_s5_title': '5. आपके गोपनीयता अधिकार',
@@ -5535,7 +5559,9 @@ class AppLocalizations {
       'pp_s9_p1': 'हमारा ऐप निम्नलिखित थर्ड-पार्टी सेवाओं के साथ एकीकृत है:',
       'pp_s9_b1':
           'Razorpay: पेमेंट प्रोसेसिंग। Razorpay की गोपनीयता नीति के अधीन।',
-      'pp_s9_b2': 'ईमेल प्रदाता: OTP, सूचनाएं और खाता ईमेल भेजने के लिए।',
+      'pp_s9_b2':
+          'Firebase (Google): इन-ऐप और डिवाइस अलर्ट के लिए FCM पुश नोटिफिकेशन। Google की गोपनीयता नीति के अधीन।',
+      'pp_s9_b3': 'ईमेल प्रदाता: OTP, सूचनाएं और खाता ईमेल भेजने के लिए।',
       'pp_s9_p2':
           'इन थर्ड पार्टियों की अपनी गोपनीयता नीतियां और डेटा प्रथाएं हैं जिन्हें हम नियंत्रित नहीं करते हैं।',
       'pp_s10_title': '10. इस नीति में परिवर्तन',
@@ -5703,7 +5729,7 @@ class AppLocalizations {
       'tos_s2_p3': '• कई प्रतिभागियों के बीच ग्रुप खर्च विभाजित करें',
       'tos_s2_p4': '• इन-ऐप पेमेंट के लिए एक डिजिटल वॉलेट प्रबंधित करें',
       'tos_s2_p5': '• एकीकृत पेमेंट गेटवे के माध्यम से भुगतान करें',
-      'tos_s2_p6': '• वित्तीय गतिविधि का एनालिटिक्स और इतिहास देखें',
+      'tos_s2_p6': '• एनालिटिक्स देखें, उप-श्रेणियों के साथ बजट योजना बनाएं और स्मार्ट सूचनाएं प्राप्त करें',
       'tos_s3_title': '3. उपयोगकर्ता खाते',
       'tos_s3_p1':
           'LenDen का उपयोग करने के लिए आपको एक खाता बनाना होगा। आप अपने खाते की साख की गोपनीयता बनाए रखने के लिए जिम्मेदार हैं।',
