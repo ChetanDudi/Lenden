@@ -10,6 +10,7 @@ import '../user/notifications/notifications_page.dart';
 import '../utils/api_client.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../services/sound_service.dart';
 
 class NotificationIcon extends StatefulWidget {
   @override
@@ -85,9 +86,10 @@ class _NotificationIconState extends State<NotificationIcon> {
         _vibrationEnabled = settings['vibrationEnabled'] ?? true;
       }
 
+      SoundService.update(sound: _notificationSound);
       if (_notificationCount > _prevUnreadCount) {
         if (_vibrationEnabled) HapticFeedback.lightImpact();
-        if (_notificationSound) SystemSound.play(SystemSoundType.alert);
+        SoundService.playNotification();
       }
       _prevUnreadCount = _notificationCount;
 

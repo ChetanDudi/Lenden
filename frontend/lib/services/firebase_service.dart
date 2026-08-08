@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../utils/api_client.dart';
 import '../utils/auth_navigation.dart';
 import '../widgets/app_colors.dart';
+import 'sound_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _onBackgroundMessage(RemoteMessage message) async {
@@ -25,10 +26,11 @@ class FirebaseService {
       sound: true,
     );
 
-    // Show in-app banner when a message arrives while app is open
+    // Show in-app banner + play sound when a message arrives while app is open
     FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
       final n = msg.notification;
       if (n == null) return;
+      SoundService.playNotification();
       _showForegroundBanner(n.title ?? '', n.body ?? '');
     });
 
