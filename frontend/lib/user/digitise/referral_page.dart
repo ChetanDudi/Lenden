@@ -567,8 +567,9 @@ class _ReferralPageState extends State<ReferralPage> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () async {
-                    await Clipboard.setData(ClipboardData(text: _inviteLink));
-                    showSnack(context, t('link_copied'));
+                    await Clipboard.setData(ClipboardData(text: _message));
+                    await _logShare('invite_link');
+                    if (mounted) showSnack(context, t('link_copied'));
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

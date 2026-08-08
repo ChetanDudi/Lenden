@@ -31,4 +31,7 @@ const razorpayCapturedPaymentSchema = new mongoose.Schema({
   claimedAt: { type: Date },
 }, { timestamps: true });
 
+razorpayCapturedPaymentSchema.index({ claimed: 1, capturedAt: -1 });
+razorpayCapturedPaymentSchema.index({ claimedBy: 1 });
+
 module.exports = mongoose.model('RazorpayCapturedPayment', razorpayCapturedPaymentSchema);

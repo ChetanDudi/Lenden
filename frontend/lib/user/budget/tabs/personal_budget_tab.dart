@@ -488,6 +488,40 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
                         color: AppThemeColors.secondaryText(context),
                         fontStyle: FontStyle.italic)),
               ],
+              if ((b['allocations'] as List?)?.isNotEmpty == true) ...[
+                const SizedBox(height: 12),
+                Row(children: [
+                  const Icon(Icons.pie_chart_outline_rounded,
+                      size: 13, color: AppColors.cyan),
+                  const SizedBox(width: 5),
+                  Text('Planned Allocations',
+                      style: TextStyle(fontSize: context.sp(11),
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.secondaryText(context))),
+                ]),
+                const SizedBox(height: 6),
+                ...(b['allocations'] as List).map((a) {
+                  final aMap    = a as Map<String, dynamic>;
+                  final aLimit  = (aMap['limit'] as num?)?.toDouble() ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(children: [
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 14, color: AppColors.cyan),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(aMap['name'] as String? ?? '',
+                            style: TextStyle(fontSize: context.sp(12),
+                                color: AppThemeColors.primaryText(context))),
+                      ),
+                      Text(_fmtC(aLimit, currency),
+                          style: TextStyle(fontSize: context.sp(12),
+                              fontWeight: FontWeight.w600,
+                              color: AppThemeColors.secondaryText(context))),
+                    ]),
+                  );
+                }),
+              ],
               const SizedBox(height: 10),
               _dateRange(b),
               if (pred != null) ...[
@@ -689,6 +723,16 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
         ? DateTime.parse(existing['endDate']).toLocal()
         : DateTime.now().add(const Duration(days: 30));
 
+    // Allocation items: parallel lists of name/limit controllers
+    final allocNameCtrls  = <TextEditingController>[];
+    final allocLimitCtrls = <TextEditingController>[];
+    final existingAllocs  = (existing?['allocations'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    for (final a in existingAllocs) {
+      allocNameCtrls.add(TextEditingController(text: a['name'] as String? ?? ''));
+      allocLimitCtrls.add(TextEditingController(
+          text: (a['limit'] as num?)?.toString() ?? ''));
+    }
+
     void applyPeriodDefaults(String p, StateSetter setState) {
       final now = DateTime.now();
       switch (p) {
@@ -827,6 +871,122 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
               _field(notesCtrl, 'Notes (optional)', Icons.notes_rounded, maxLines: 3),
               const SizedBox(height: 20),
 
+              // ── Allocation items ──────────────────────────────────────────
+              Row(children: [
+                const Icon(Icons.pie_chart_outline_rounded,
+                    size: 16, color: AppColors.cyan),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text('Planned Allocations (optional)',
+                      style: TextStyle(fontSize: context.sp(13),
+                          fontWeight: FontWeight.w600,
+                          color: AppThemeColors.primaryText(context))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setS(() {
+                      allocNameCtrls.add(TextEditingController());
+                      allocLimitCtrls.add(TextEditingController());
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.add_rounded, size: 14, color: AppColors.cyan),
+                      const SizedBox(width: 4),
+                      Text('Add', style: TextStyle(fontSize: context.sp(12),
+                          color: AppColors.cyan, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ),
+              ]),
+              if (allocNameCtrls.isEmpty) ...[
+                const SizedBox(height: 6),
+                Text('Optionally break down where you plan to spend this budget.',
+                    style: TextStyle(fontSize: context.sp(11),
+                        color: AppThemeColors.secondaryText(context),
+                        fontStyle: FontStyle.italic)),
+              ],
+              ...List.generate(allocNameCtrls.length, (i) => Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      controller: allocNameCtrls[i],
+                      onChanged: (_) => setS(() {}),
+                      style: TextStyle(fontSize: context.sp(13),
+                          color: AppThemeColors.primaryText(context)),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Food, Transport',
+                        filled: true,
+                        fillColor: AppThemeColors.cardBg(context),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: allocLimitCtrls[i],
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => setS(() {}),
+                      style: TextStyle(fontSize: context.sp(13),
+                          color: AppThemeColors.primaryText(context)),
+                      decoration: InputDecoration(
+                        hintText: 'Limit',
+                        prefixText: currencySymbol(currency),
+                        filled: true,
+                        fillColor: AppThemeColors.cardBg(context),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => setS(() {
+                      allocNameCtrls.removeAt(i);
+                      allocLimitCtrls.removeAt(i);
+                    }),
+                    child: const Icon(Icons.remove_circle_outline_rounded,
+                        color: Colors.red, size: 22),
+                  ),
+                ]),
+              )),
+              if (allocNameCtrls.isNotEmpty) Builder(builder: (_) {
+                final mainLimit = double.tryParse(limitCtrl.text.trim()) ?? 0;
+                final allocTotal = List.generate(allocLimitCtrls.length,
+                    (i) => double.tryParse(allocLimitCtrls[i].text.trim()) ?? 0.0)
+                    .fold(0.0, (a, b) => a + b);
+                final over = allocTotal > mainLimit && mainLimit > 0;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '${currencySymbol(currency)}${_fmt.format(allocTotal)} of ${currencySymbol(currency)}${_fmt.format(mainLimit)} allocated'
+                    '${over ? ' — exceeds limit!' : ''}',
+                    style: TextStyle(
+                      fontSize: context.sp(11),
+                      color: over ? Colors.red : AppThemeColors.secondaryText(context),
+                      fontWeight: over ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 20),
+
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -841,6 +1001,18 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
                       showSnack(context, 'End date must be after start date.', isError: true);
                       return;
                     }
+                    final allocations = List.generate(allocNameCtrls.length, (i) {
+                      final aName  = allocNameCtrls[i].text.trim();
+                      final aLimit = double.tryParse(allocLimitCtrls[i].text.trim());
+                      return aName.isNotEmpty && aLimit != null
+                          ? {'name': aName, 'limit': aLimit}
+                          : null;
+                    }).whereType<Map<String, dynamic>>().toList();
+                    final allocTotal = allocations.fold(0.0, (s, a) => s + (a['limit'] as double));
+                    if (allocTotal > limit) {
+                      showSnack(context, 'Allocation totals exceed the budget limit.', isError: true);
+                      return;
+                    }
                     setS(() => saving = true);
                     try {
                       final body = {
@@ -848,6 +1020,7 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
                         'startDate': startDate.toIso8601String(),
                         'endDate': endDate.toIso8601String(),
                         'notes': notesCtrl.text.trim(),
+                        'allocations': allocations,
                         if (existing == null) 'currency': currency,
                       };
                       final resp = existing == null

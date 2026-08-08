@@ -38,7 +38,7 @@ exports.addExpense = async (req, res) => {
       return res.status(403).json({ error: 'Cannot add expenses after budget deadline or when budget is closed.' });
     }
 
-    const { amount, category, description, date } = req.body;
+    const { amount, category, description, date, allocationName } = req.body;
     if (!amount || !category) return res.status(400).json({ error: 'amount and category are required.' });
 
     const prevTotal = await PersonalBudgetExpense.aggregate([
@@ -47,12 +47,13 @@ exports.addExpense = async (req, res) => {
     ]).then(r => r[0]?.total ?? 0);
 
     const expense = await PersonalBudgetExpense.create({
-      budget:      budget._id,
-      user:        req.user._id,
-      amount:      parseFloat(amount),
-      category:    category.trim(),
-      description: description?.trim() || '',
-      date:        date ? new Date(date) : new Date(),
+      budget:         budget._id,
+      user:           req.user._id,
+      amount:         parseFloat(amount),
+      category:       category.trim(),
+      allocationName: allocationName?.trim() || null,
+      description:    description?.trim() || '',
+      date:           date ? new Date(date) : new Date(),
     });
 
     const newTotal = prevTotal + expense.amount;
@@ -92,6 +93,19 @@ exports.getExpenses = async (req, res) => {
       byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
     }
 
+    // Per-allocation spending
+    const byAllocation = {};
+    for (const e of expenses) {
+      if (e.allocationName) {
+        byAllocation[e.allocationName] = (byAllocation[e.allocationName] || 0) + e.amount;
+      }
+    }
+    const allocations = (budget.allocations || []).map(a => ({
+      name:  a.name,
+      limit: a.limit,
+      spent: byAllocation[a.name] || 0,
+    }));
+
     res.json({
       expenses,
       total,
@@ -99,12 +113,13 @@ exports.getExpenses = async (req, res) => {
         .map(([cat, amt]) => ({ category: cat, amount: amt }))
         .sort((a, b) => b.amount - a.amount),
       budget: {
-        _id:      budget._id,
-        name:     budget.name,
-        limit:    budget.limit,
-        currency: budget.currency,
-        status:   budget.status,
-        endDate:  budget.endDate,
+        _id:        budget._id,
+        name:       budget.name,
+        limit:      budget.limit,
+        currency:   budget.currency,
+        status:     budget.status,
+        endDate:    budget.endDate,
+        allocations,
         isEditable: isEditable(budget),
       },
     });
@@ -127,7 +142,7 @@ exports.updateExpense = async (req, res) => {
     });
     if (!expense) return res.status(404).json({ error: 'Expense not found.' });
 
-    const { amount, category, description, date } = req.body;
+    const { amount, category, description, date, allocationName } = req.body;
 
     // Snapshot current state before applying changes
     expense.editHistory = expense.editHistory || [];
@@ -139,10 +154,11 @@ exports.updateExpense = async (req, res) => {
       editedAt:    new Date(),
     });
 
-    if (amount      !== undefined) expense.amount      = parseFloat(amount);
-    if (category    !== undefined) expense.category    = category.trim();
-    if (description !== undefined) expense.description = description.trim();
-    if (date        !== undefined) expense.date        = new Date(date);
+    if (amount          !== undefined) expense.amount         = parseFloat(amount);
+    if (category        !== undefined) expense.category       = category.trim();
+    if (allocationName  !== undefined) expense.allocationName = allocationName?.trim() || null;
+    if (description     !== undefined) expense.description    = description.trim();
+    if (date            !== undefined) expense.date           = new Date(date);
 
     await expense.save();
     res.json(expense);

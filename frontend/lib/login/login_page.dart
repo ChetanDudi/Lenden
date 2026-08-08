@@ -11,8 +11,8 @@ import 'username_password_login.dart';
 import 'email_otp_login.dart';
 import 'google_auth_service.dart';
 import 'package:uuid/uuid.dart';
-import '../widgets/tricolor_border_text_field.dart';
 import '../widgets/google_logo_icon.dart';
+import '../widgets/tricolor_border_text_field.dart';
 import '../utils/api_client.dart';
 import '../utils/http_interceptor.dart';
 import '../utils/responsive.dart';
@@ -356,6 +356,40 @@ class _UserLoginPageState extends State<UserLoginPage> {
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
     }
+  }
+
+  Widget _profileStyleField({
+    required IconData icon,
+    required Widget child,
+    bool enabled = true,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: enabled ? AppThemeColors.cardBg(context) : AppThemeColors.scaffoldBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: enabled
+              ? AppThemeColors.border(context)
+              : AppThemeColors.border(context).withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(children: [
+        const SizedBox(width: 14),
+        Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            color: enabled
+                ? AppColors.cyan.withValues(alpha: 0.10)
+                : AppThemeColors.border(context).withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: enabled ? AppColors.cyan : AppThemeColors.secondaryText(context), size: 17),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: child),
+        const SizedBox(width: 8),
+      ]),
+    );
   }
 
   Widget _buildLoginMethodSelector(BuildContext context) {
@@ -820,21 +854,24 @@ class _UserLoginPageState extends State<UserLoginPage> {
                       const SizedBox(height: 18),
                       // Dynamic input fields based on login method
                       if (_loginMethod == 'Email + Password') ...[
-                        TricolorBorderTextField(
+                        _profileStyleField(
+                          icon: Icons.email_outlined,
+                          enabled: !_anyLoading,
                           child: TextField(
                             controller: _emailController,
                             enabled: !_anyLoading,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Email',
-                              labelStyle: const TextStyle(color: Colors.grey),
+                              labelStyle: TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        TricolorBorderTextField(
+                        const SizedBox(height: 14),
+                        _profileStyleField(
+                          icon: Icons.lock_outline,
+                          enabled: !_anyLoading,
                           child: TextField(
                             controller: _passwordController,
                             enabled: !_anyLoading,
@@ -843,8 +880,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                               labelText: 'Password',
                               labelStyle: const TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 18),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscurePassword
                                     ? Icons.visibility_off
@@ -858,21 +894,24 @@ class _UserLoginPageState extends State<UserLoginPage> {
                           ),
                         ),
                       ] else if (_loginMethod == 'Username + Password') ...[
-                        TricolorBorderTextField(
+                        _profileStyleField(
+                          icon: Icons.alternate_email,
+                          enabled: !_anyLoading,
                           child: TextField(
                             controller: _usernameController,
                             enabled: !_anyLoading,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Username',
-                              labelStyle: const TextStyle(color: Colors.grey),
+                              labelStyle: TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        TricolorBorderTextField(
+                        const SizedBox(height: 14),
+                        _profileStyleField(
+                          icon: Icons.lock_outline,
+                          enabled: !_anyLoading,
                           child: TextField(
                             controller: _passwordController,
                             enabled: !_anyLoading,
@@ -881,8 +920,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                               labelText: 'Password',
                               labelStyle: const TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 18),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscurePassword
                                     ? Icons.visibility_off
@@ -896,16 +934,17 @@ class _UserLoginPageState extends State<UserLoginPage> {
                           ),
                         ),
                       ] else if (_loginMethod == 'Email + OTP') ...[
-                        TricolorBorderTextField(
+                        _profileStyleField(
+                          icon: Icons.email_outlined,
+                          enabled: !_otpSent && !_anyLoading,
                           child: TextField(
                             controller: _emailController,
                             enabled: !_otpSent && !_anyLoading,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Email',
-                              labelStyle: const TextStyle(color: Colors.grey),
+                              labelStyle: TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),

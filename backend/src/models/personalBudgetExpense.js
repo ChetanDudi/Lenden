@@ -5,8 +5,9 @@ const personalBudgetExpenseSchema = new mongoose.Schema({
   budget:      { type: ObjectId, ref: 'PersonalBudget', required: true },
   user:        { type: ObjectId, ref: 'User', required: true },
   amount:      { type: Number, required: true, min: 0 },
-  category:    { type: String, required: true, trim: true, maxlength: 50 },
-  description: { type: String, default: '', maxlength: 200, trim: true },
+  category:       { type: String, required: true, trim: true, maxlength: 50 },
+  allocationName: { type: String, default: null, trim: true, maxlength: 80 },
+  description:    { type: String, default: '', maxlength: 200, trim: true },
   date:        { type: Date, default: Date.now },
   // Audit trail
   editHistory: [{

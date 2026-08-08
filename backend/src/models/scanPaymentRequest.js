@@ -19,4 +19,7 @@ const scanPaymentRequestSchema = new mongoose.Schema({
   processedAt: { type: Date, default: null },
 }, { timestamps: true });
 
+scanPaymentRequestSchema.index({ user: 1, createdAt: -1 });
+scanPaymentRequestSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('ScanPaymentRequest', scanPaymentRequestSchema);

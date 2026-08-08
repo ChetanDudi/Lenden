@@ -39,6 +39,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
   String? _error;
   List<Map<String, dynamic>> _expenses = [];
   List<Map<String, dynamic>> _byCategory = [];
+  List<Map<String, dynamic>> _allocations = [];
   double _total = 0;
   double _limit = 0;
   bool _isEditable = false;
@@ -73,9 +74,10 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
         _expenses   = (data['expenses'] as List).cast<Map<String, dynamic>>();
         _byCategory = (data['byCategory'] as List).cast<Map<String, dynamic>>();
         _total      = (data['total'] as num?)?.toDouble() ?? 0;
-        final b     = data['budget'] as Map<String, dynamic>;
-        _limit      = (b['limit'] as num?)?.toDouble() ?? 0;
-        _isEditable = (b['isEditable'] as bool?) ?? false;
+        final b      = data['budget'] as Map<String, dynamic>;
+        _limit       = (b['limit'] as num?)?.toDouble() ?? 0;
+        _isEditable  = (b['isEditable'] as bool?) ?? false;
+        _allocations = (b['allocations'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         if (widget.readOnly) _isEditable = false;
       } else {
         _error = json.decode(resp.body)['error'] ?? 'Failed to load expenses.';
@@ -676,6 +678,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     String category = existing?['category'] as String? ?? kBudgetCategories.first;
     bool customCat  = !kBudgetCategories.contains(category);
     final customCatCtrl = TextEditingController(text: customCat ? category : '');
+    String? selectedAllocation = existing?['allocationName'] as String?;
     DateTime date = existing?['date'] != null
         ? DateTime.parse(existing!['date'] as String).toLocal()
         : DateTime.now();
@@ -830,6 +833,71 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
               ),
               const SizedBox(height: 14),
 
+              // Allocation picker (only shown when budget has allocations)
+              if (_allocations.isNotEmpty) ...[
+                Text('Allocation (optional)',
+                    style: TextStyle(fontSize: context.sp(12),
+                        color: AppThemeColors.secondaryText(context))),
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, runSpacing: 6, children: [
+                  GestureDetector(
+                    onTap: () => setS(() => selectedAllocation = null),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: selectedAllocation == null
+                            ? AppColors.cyan
+                            : AppThemeColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: selectedAllocation == null
+                                ? AppColors.cyan
+                                : AppThemeColors.border(context)),
+                      ),
+                      child: Text('None',
+                          style: TextStyle(
+                              fontSize: context.sp(12),
+                              color: selectedAllocation == null
+                                  ? Colors.white
+                                  : AppThemeColors.secondaryText(context),
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  ..._allocations.map((a) {
+                    final aName = a['name'] as String? ?? '';
+                    final sel   = selectedAllocation == aName;
+                    return GestureDetector(
+                      onTap: () => setS(() => selectedAllocation = aName),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? AppColors.cyan
+                              : AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: sel
+                                  ? AppColors.cyan
+                                  : AppThemeColors.border(context)),
+                        ),
+                        child: Text(aName,
+                            style: TextStyle(
+                                fontSize: context.sp(12),
+                                color: sel
+                                    ? Colors.white
+                                    : AppThemeColors.primaryText(context),
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    );
+                  }),
+                ]),
+                const SizedBox(height: 14),
+              ],
+
               // Date + Time
               Row(children: [
                 Expanded(child: tricolorBorder(
@@ -912,8 +980,22 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
               ]),
               const SizedBox(height: 22),
 
-              SizedBox(
-                width: double.infinity,
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: saving ? null : () => Navigator.pop(sheetCtx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: AppThemeColors.border(context)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(AppLocalizations.of(context).t('cancel'),
+                        style: TextStyle(fontSize: context.sp(15),
+                            color: AppThemeColors.secondaryText(context))),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
                 child: FilledButton(
                   onPressed: saving ? null : () async {
                     final amt = double.tryParse(amtCtrl.text.trim());
@@ -930,10 +1012,12 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                     setS(() => saving = true);
                     try {
                       final body = {
-                        'amount':      amt,
-                        'category':    cat,
-                        'description': descCtrl.text.trim(),
-                        'date':        date.toUtc().toIso8601String(),
+                        'amount':          amt,
+                        'category':        cat,
+                        'description':     descCtrl.text.trim(),
+                        'date':            date.toUtc().toIso8601String(),
+                        if (selectedAllocation != null)
+                          'allocationName': selectedAllocation,
                       };
                       final expId = existing?['_id'] as String?;
                       final resp  = (isNew)
@@ -975,6 +1059,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                               fontWeight: FontWeight.bold)),
                 ),
               ),
+            ]),
             ]),
           );
         }),

@@ -5,7 +5,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../otp_input.dart';
-import '../widgets/tricolor_border_text_field.dart';
 import '../utils/api_client.dart';
 import '../utils/responsive.dart';
 import '../utils/theme_helper.dart';
@@ -31,6 +30,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _otpController = TextEditingController();
+  final _referralCodeController = TextEditingController();
   String? _errorMessage;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -75,6 +75,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _otpController.dispose();
+    _referralCodeController.dispose();
     super.dispose();
   }
 
@@ -162,6 +163,8 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
       'email': _emailController.text,
       'password': _passwordController.text,
       'gender': _selectedGender,
+      if (_referralCodeController.text.trim().isNotEmpty)
+        'referralCode': _referralCodeController.text.trim(),
     }, timeout: const Duration(seconds: 120));
 
     if (res['status'] == 200) {
@@ -414,6 +417,40 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
     );
   }
 
+  Widget _profileStyleField({
+    required IconData icon,
+    required Widget child,
+    bool enabled = true,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: enabled ? AppThemeColors.cardBg(context) : AppThemeColors.scaffoldBg(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: enabled
+              ? AppThemeColors.border(context)
+              : AppThemeColors.border(context).withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(children: [
+        const SizedBox(width: 14),
+        Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            color: enabled
+                ? AppColors.cyan.withValues(alpha: 0.10)
+                : AppThemeColors.border(context).withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: enabled ? AppColors.cyan : AppThemeColors.secondaryText(context), size: 17),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: child),
+        const SizedBox(width: 8),
+      ]),
+    );
+  }
+
   // Strength meter replaces the old requirement-checklist.
   Widget _buildStrengthMeter() =>
       PasswordStrengthMeter(password: _passwordController.text);
@@ -479,21 +516,24 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                     SizedBox(height: context.sh(28)),
                     LoginIllustration(height: context.sh(160)),
                     const SizedBox(height: 24),
-                    TricolorBorderTextField(
+                    _profileStyleField(
+                      icon: Icons.person,
+                      enabled: !_detailsLocked,
                       child: TextField(
                         controller: _nameController,
                         enabled: !_detailsLocked,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Name',
-                          labelStyle: const TextStyle(color: Colors.grey),
+                          labelStyle: TextStyle(color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 18),
+                          contentPadding: EdgeInsets.symmetric(vertical: 14),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    TricolorBorderTextField(
+                    const SizedBox(height: 14),
+                    _profileStyleField(
+                      icon: Icons.alternate_email,
+                      enabled: !_detailsLocked,
                       child: TextField(
                         controller: _usernameController,
                         enabled: !_detailsLocked,
@@ -504,8 +544,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           labelText: 'Username',
                           labelStyle: const TextStyle(color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           suffixIcon: _checkingUsername
                               ? const SizedBox(
                                   width: 20,
@@ -523,22 +562,21 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                         child: Text('Username already exists.',
                             style: TextStyle(color: Colors.red, fontSize: 13)),
                       ),
-                    const SizedBox(height: 18),
-                    TricolorBorderTextField(
+                    const SizedBox(height: 14),
+                    _profileStyleField(
+                      icon: Icons.transgender,
+                      enabled: !_detailsLocked,
                       child: DropdownButtonFormField<String>(
                         value: _selectedGender,
                         decoration: const InputDecoration(
                           labelText: 'Gender',
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 18),
+                          contentPadding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         items: const [
                           DropdownMenuItem(value: 'Male', child: Text('Male')),
-                          DropdownMenuItem(
-                              value: 'Female', child: Text('Female')),
-                          DropdownMenuItem(
-                              value: 'Other', child: Text('Other')),
+                          DropdownMenuItem(value: 'Female', child: Text('Female')),
+                          DropdownMenuItem(value: 'Other', child: Text('Other')),
                         ],
                         onChanged: _detailsLocked
                             ? null
@@ -547,8 +585,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                             val == null ? 'Please select gender' : null,
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    TricolorBorderTextField(
+                    const SizedBox(height: 14),
+                    _profileStyleField(
+                      icon: Icons.email_outlined,
+                      enabled: !_detailsLocked,
                       child: TextField(
                         controller: _emailController,
                         enabled: !_detailsLocked,
@@ -559,8 +599,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           labelText: 'Email',
                           labelStyle: const TextStyle(color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           suffixIcon: _checkingEmail
                               ? const SizedBox(
                                   width: 20,
@@ -578,8 +617,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                         child: Text('Email already exists.',
                             style: TextStyle(color: Colors.red, fontSize: 13)),
                       ),
-                    const SizedBox(height: 18),
-                    TricolorBorderTextField(
+                    const SizedBox(height: 14),
+                    _profileStyleField(
+                      icon: Icons.lock_outline,
+                      enabled: !_detailsLocked,
                       child: TextField(
                         controller: _passwordController,
                         enabled: !_detailsLocked,
@@ -589,8 +630,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           labelText: 'Password',
                           labelStyle: const TextStyle(color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           suffixIcon: IconButton(
                             icon: Icon(_obscurePassword
                                 ? Icons.visibility_off
@@ -603,8 +643,10 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                     ),
                     const SizedBox(height: 8),
                     _buildStrengthMeter(),
-                    const SizedBox(height: 18),
-                    TricolorBorderTextField(
+                    const SizedBox(height: 14),
+                    _profileStyleField(
+                      icon: Icons.lock_rounded,
+                      enabled: !_detailsLocked,
                       child: TextField(
                         controller: _confirmPasswordController,
                         enabled: !_detailsLocked,
@@ -613,8 +655,7 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                           labelText: 'Confirm Password',
                           labelStyle: const TextStyle(color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           suffixIcon: IconButton(
                             icon: Icon(_obscureConfirmPassword
                                 ? Icons.visibility_off
@@ -623,6 +664,21 @@ class _UserRegisterPageState extends State<UserRegisterPage> {
                                 _obscureConfirmPassword =
                                     !_obscureConfirmPassword),
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _profileStyleField(
+                      icon: Icons.card_giftcard_outlined,
+                      child: TextField(
+                        controller: _referralCodeController,
+                        enabled: !_detailsLocked,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          labelText: 'Referral Code (optional)',
+                          labelStyle: TextStyle(color: Colors.grey),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 14),
                         ),
                       ),
                     ),

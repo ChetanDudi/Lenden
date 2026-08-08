@@ -306,6 +306,13 @@ exports.getQuickAnalytics = async (req, res) => {
     let outstanding = 0;
     let cleared = 0;
     let uncleared = 0;
+    let lentCount = 0;
+    let borrowedCount = 0;
+    let totalAmountInr = 0;
+    let biggestPendingAmountInr = 0;
+    let thisMonthNetFlowInr = 0;
+    const counterpartyCounts = {};
+    const now = new Date();
 
     for (const transaction of quickTransactions) {
       const transactionCurrency = transaction.currency || INR;
@@ -322,14 +329,26 @@ exports.getQuickAnalytics = async (req, res) => {
         (isCreator && creatorRole === 'borrower') ||
         (!isCreator && creatorRole === 'lender');
 
-      if (isLender) totalLent += amountInInr;
-      if (isBorrower) totalBorrowed += amountInInr;
+      if (isLender) { totalLent += amountInInr; lentCount++; }
+      if (isBorrower) { totalBorrowed += amountInInr; borrowedCount++; }
 
       if (transaction.cleared) {
         cleared += 1;
       } else {
         uncleared += 1;
         outstanding += amountInInr;
+        if (amountInInr > biggestPendingAmountInr) biggestPendingAmountInr = amountInInr;
+      }
+
+      totalAmountInr += amountInInr;
+
+      const tDate = new Date(transaction.date || transaction.createdAt);
+      if (tDate.getFullYear() === now.getFullYear() && tDate.getMonth() === now.getMonth()) {
+        thisMonthNetFlowInr += isLender ? amountInInr : -amountInInr;
+      }
+
+      for (const u of (transaction.users || [])) {
+        if (u !== email) counterpartyCounts[u] = (counterpartyCounts[u] || 0) + 1;
       }
 
       applyMonthCount(
@@ -339,6 +358,17 @@ exports.getQuickAnalytics = async (req, res) => {
       );
     }
 
+    let mostFrequentCounterparty = null;
+    let maxFreq = 0;
+    for (const [e, cnt] of Object.entries(counterpartyCounts)) {
+      if (cnt > maxFreq) { maxFreq = cnt; mostFrequentCounterparty = e; }
+    }
+    if (mostFrequentCounterparty) {
+      const cu = await User.findOne({ email: mostFrequentCounterparty }).select('name').lean();
+      if (cu?.name) mostFrequentCounterparty = cu.name;
+    }
+
+    const total = quickTransactions.length;
     return res.json({
       analyticsSharing: true,
       category: 'quick',
@@ -348,7 +378,13 @@ exports.getQuickAnalytics = async (req, res) => {
       totalInterest: outstanding,
       cleared,
       uncleared,
-      total: quickTransactions.length,
+      total,
+      lentCount,
+      borrowedCount,
+      biggestPendingAmountInr,
+      thisMonthNetFlowInr,
+      averageAmountInr: total > 0 ? totalAmountInr / total : 0,
+      mostFrequentCounterparty,
       monthlyCounts,
       months: months.map((month) => month.toISOString().slice(0, 7)),
       highlightedMetrics: ['totalLent', 'totalBorrowed'],

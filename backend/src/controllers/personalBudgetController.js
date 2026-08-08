@@ -129,7 +129,7 @@ exports.create = async (req, res) => {
     const info   = await getUserWithAccess(userId);
     if (!info?.hasAccess) return res.status(403).json({ error: 'Subscribe to use Personal Budget.' });
 
-    const { name, period, startDate, endDate, limit, currency, notes } = req.body;
+    const { name, period, startDate, endDate, limit, currency, notes, allocations } = req.body;
     if (!name || !period || !startDate || !endDate || !limit) {
       return res.status(400).json({ error: 'name, period, startDate, endDate, limit are required.' });
     }
@@ -137,9 +137,22 @@ exports.create = async (req, res) => {
     const end   = new Date(endDate);
     if (end <= start) return res.status(400).json({ error: 'endDate must be after startDate.' });
 
+    const parsedLimit = parseFloat(limit);
+    let validatedAllocations = [];
+    if (Array.isArray(allocations) && allocations.length > 0) {
+      validatedAllocations = allocations
+        .filter(a => a.name?.trim() && parseFloat(a.limit) >= 0)
+        .map(a => ({ name: a.name.trim(), limit: parseFloat(a.limit) }));
+      const allocTotal = validatedAllocations.reduce((s, a) => s + a.limit, 0);
+      if (allocTotal > parsedLimit) {
+        return res.status(400).json({ error: 'Total of allocation limits cannot exceed the main budget limit.' });
+      }
+    }
+
     const budget = await PersonalBudget.create({
       user: userId, name, period, startDate: start, endDate: end,
-      limit: parseFloat(limit), currency: currency || 'INR', notes: notes || '',
+      limit: parsedLimit, currency: currency || 'INR', notes: notes || '',
+      allocations: validatedAllocations,
     });
 
     const fmtLimit = `${_sym(budget.currency)}${budget.limit.toLocaleString('en-IN')}`;
@@ -159,10 +172,21 @@ exports.update = async (req, res) => {
     const budget = await PersonalBudget.findOne({ _id: req.params.id, user: req.user._id });
     if (!budget) return res.status(404).json({ error: 'Budget not found.' });
 
-    const { name, limit, notes, status } = req.body;
+    const { name, limit, notes, status, allocations } = req.body;
     if (name  !== undefined) budget.name  = name;
     if (limit !== undefined) budget.limit = parseFloat(limit);
     if (notes !== undefined) budget.notes = notes;
+    if (Array.isArray(allocations)) {
+      const validatedAllocations = allocations
+        .filter(a => a.name?.trim() && parseFloat(a.limit) >= 0)
+        .map(a => ({ name: a.name.trim(), limit: parseFloat(a.limit) }));
+      const budgetLimit = limit !== undefined ? parseFloat(limit) : budget.limit;
+      const allocTotal  = validatedAllocations.reduce((s, a) => s + a.limit, 0);
+      if (allocTotal > budgetLimit) {
+        return res.status(400).json({ error: 'Total of allocation limits cannot exceed the main budget limit.' });
+      }
+      budget.allocations = validatedAllocations;
+    }
     if (status && ['active', 'completed'].includes(status)) {
       if (status === 'completed' || status === 'expired') {
         budget.spentAtClose = await computeSpent(budget._id);

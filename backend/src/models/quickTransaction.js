@@ -94,6 +94,8 @@ const quickTransactionSchema = new mongoose.Schema({
 quickTransactionSchema.index({ creatorEmail: 1, createdAt: -1 });
 quickTransactionSchema.index({ users: 1 });
 quickTransactionSchema.index({ cleared: 1, users: 1 });
+quickTransactionSchema.index({ users: 1, date: -1 });
+quickTransactionSchema.index({ users: 1, category: 1 });
 
 quickTransactionSchema.pre('save', function (next) {
   this.updatedAt = Date.now();

@@ -132,5 +132,8 @@ transactionSchema.index({ userEmail: 1 });
 transactionSchema.index({ counterpartyEmail: 1 });
 transactionSchema.index({ date: -1 });
 transactionSchema.index({ role: 1 });
+transactionSchema.index({ userEmail: 1, date: -1 });
+transactionSchema.index({ userEmail: 1, userCleared: 1 });
+transactionSchema.index({ counterpartyEmail: 1, date: -1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

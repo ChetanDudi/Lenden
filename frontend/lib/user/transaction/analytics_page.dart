@@ -683,7 +683,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
   Map<String, String> _buildQuickInsights() {
     final t = AppLocalizations.of(context).t;
-    if (_quickTransactions.isEmpty) {
+    final a = _quickAnalytics;
+    if (a == null || (a['total'] ?? 0) == 0) {
       return {
         'biggestPending': _formatSelectedCurrencyValue(0),
         'mostFrequentCounterparty': t('no_data_label'),
@@ -691,91 +692,26 @@ class _AnalyticsPageState extends State<AnalyticsPage>
         'averageQuickAmount': _formatSelectedCurrencyValue(0),
       };
     }
-
-    Map<String, dynamic>? biggestPending;
-    final counterpartyCounts = <String, int>{};
-    final counterpartyNames = <String, String>{};
-    double monthNet = 0;
-    double totalAmount = 0;
-    final now = DateTime.now();
-
-    for (final transaction in _quickTransactions) {
-      final amount = _displayAmountForTransaction(transaction);
-      totalAmount += amount;
-      if (transaction['cleared'] != true) {
-        if (biggestPending == null ||
-            _displayAmountForTransaction(biggestPending) < amount) {
-          biggestPending = transaction;
-        }
-      }
-
-      final users = List<Map<String, dynamic>>.from(transaction['users'] ?? []);
-      final counterparty = users.firstWhere(
-        (user) =>
-            (user['email'] ?? '').toString().toLowerCase().trim() !=
-            _currentUserEmail(),
-        orElse: () => {},
-      );
-      final email = (counterparty['email'] ?? '').toString();
-      final name = (counterparty['name'] ?? email).toString();
-      if (email.isNotEmpty) {
-        counterpartyCounts[email] = (counterpartyCounts[email] ?? 0) + 1;
-        counterpartyNames[email] = name;
-      }
-
-      final date = DateTime.tryParse(
-        (transaction['date'] ?? transaction['createdAt'] ?? '').toString(),
-      )?.toLocal();
-      if (date != null && date.year == now.year && date.month == now.month) {
-        if (_roleForViewer(transaction) == 'lender') {
-          monthNet += amount;
-        } else {
-          monthNet -= amount;
-        }
-      }
-    }
-
-    String mostFrequent = t('no_data_label');
-    if (counterpartyCounts.isNotEmpty) {
-      final top = counterpartyCounts.entries.reduce(
-        (a, b) => a.value >= b.value ? a : b,
-      );
-      mostFrequent = counterpartyNames[top.key] ?? top.key;
-    }
-
+    final biggestInr = (a['biggestPendingAmountInr'] as num?)?.toDouble() ?? 0.0;
+    final netFlowInr = (a['thisMonthNetFlowInr'] as num?)?.toDouble() ?? 0.0;
+    final avgInr    = (a['averageAmountInr'] as num?)?.toDouble() ?? 0.0;
+    final cp        = (a['mostFrequentCounterparty'] as String?) ?? t('no_data_label');
     return {
-      'biggestPending': biggestPending == null
-          ? _formatSelectedCurrencyValue(0)
-          : _formatSelectedCurrencyValue(
-              _displayAmountForTransaction(biggestPending),
-            ),
-      'mostFrequentCounterparty': mostFrequent,
-      'thisMonthNetFlow':
-          '${monthNet >= 0 ? '+' : '-'}${_formatSelectedCurrencyValue(monthNet.abs())}',
-      'averageQuickAmount':
-          _formatSelectedCurrencyValue(totalAmount / _quickTransactions.length),
+      'biggestPending': _formatAmount(biggestInr),
+      'mostFrequentCounterparty': cp,
+      'thisMonthNetFlow': '${netFlowInr >= 0 ? '+' : ''}${_formatAmount(netFlowInr.abs())}',
+      'averageQuickAmount': _formatAmount(avgInr),
     };
   }
 
   List<Map<String, dynamic>> _buildQuickBreakdown() {
     final t = AppLocalizations.of(context).t;
-    final total = _quickTransactions.length.toDouble();
-    final lent = _quickTransactions
-        .where((transaction) => _roleForViewer(transaction) == 'lender')
-        .length
-        .toDouble();
-    final borrowed = total - lent;
-    final cleared = _quickTransactions
-        .where((transaction) => transaction['cleared'] == true)
-        .length
-        .toDouble();
-    final pending = total - cleared;
-
+    final a = _quickAnalytics;
     return [
-      {'title': t('lent_label'), 'value': lent},
-      {'title': t('borrowed_label'), 'value': borrowed},
-      {'title': t('cleared_label'), 'value': cleared},
-      {'title': t('pending_label'), 'value': pending},
+      {'title': t('lent_label'),     'value': (a?['lentCount']     as num?)?.toDouble() ?? 0.0},
+      {'title': t('borrowed_label'), 'value': (a?['borrowedCount'] as num?)?.toDouble() ?? 0.0},
+      {'title': t('cleared_label'),  'value': (a?['cleared']       as num?)?.toDouble() ?? 0.0},
+      {'title': t('pending_label'),  'value': (a?['uncleared']     as num?)?.toDouble() ?? 0.0},
     ];
   }
 

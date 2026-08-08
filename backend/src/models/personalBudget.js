@@ -18,6 +18,11 @@ const personalBudgetSchema = new mongoose.Schema({
     enum: ['active', 'completed', 'expired'],
     default: 'active',
   },
+  allocations: [{
+    name:  { type: String, required: true, trim: true, maxlength: 80 },
+    limit: { type: Number, required: true, min: 0 },
+    _id:   false,
+  }],
   spentAtClose:    { type: Number, default: null },
   notifiedExpiry:  { type: Boolean, default: false },
 }, { timestamps: true });
