@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -77,7 +78,7 @@ class ApiClient {
     };
 
     http.Response Function() _onTimeout =
-        () => http.Response('{"error":"timeout"}', 408);
+        () => http.Response('{"error":"Connection timed out. The server is taking too long to respond. Please check your internet and try again."}', 408);
     http.Response resp;
     try {
       switch (method.toUpperCase()) {
@@ -110,6 +111,9 @@ class ApiClient {
           throw UnsupportedError('Unsupported HTTP method: $method');
       }
     } catch (e) {
+      if (e is SocketException) {
+        return http.Response('{"error":"No internet connection. Please check your network and try again."}', 503);
+      }
       rethrow;
     }
 

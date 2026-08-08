@@ -332,6 +332,7 @@ class _AppInitializerState extends State<AppInitializer>
       _wasBackgrounded = true;
     }
     if (state == AppLifecycleState.resumed) {
+      if (mounted) setState(() {});
       if (_wasBackgrounded) {
         _wasBackgrounded = false;
         final session = Provider.of<SessionProvider>(context, listen: false);

@@ -99,174 +99,170 @@ class _AdminNotesPageState extends State<AdminNotesPage> {
   }
 
   Future<void> createOrEditNote({Map<String, dynamic>? note}) async {
+    final t = AppLocalizations.of(context).t;
     final titleController = TextEditingController(text: note?['title'] ?? '');
-    final contentController =
-        TextEditingController(text: note?['content'] ?? '');
+    final contentController = TextEditingController(text: note?['content'] ?? '');
     final isEdit = note != null;
-    final result = await showDialog<Map<String, String>>(
+
+    String? titleError;
+    String? contentError;
+    bool saving = false;
+
+    await showDialog<void>(
       context: context,
-      builder: (context) {
-        final t = AppLocalizations.of(context).t;
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              color: AppThemeColors.cardBg(context),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(builder: (ctx, setDialogState) {
+          Future<void> onSave() async {
+            final title = titleController.text.trim();
+            final content = contentController.text.trim();
+            final te = title.isEmpty ? 'Title is missing' : null;
+            final ce = content.isEmpty ? 'Note content is missing' : null;
+            if (te != null || ce != null) {
+              setDialogState(() { titleError = te; contentError = ce; });
+              return;
+            }
+            setDialogState(() { saving = true; titleError = null; contentError = null; });
+            try {
+              if (isEdit) {
+                final res = await ApiClient.put(
+                  '/api/notes/${note['_id']}',
+                  body: {'title': title, 'content': content},
+                );
+                if (!mounted) return;
+                if (res.statusCode == 200) {
+                  final updatedNote = Map<String, dynamic>.from(note)
+                    ..['title'] = title
+                    ..['content'] = content
+                    ..['updatedAt'] = DateTime.now().toIso8601String();
+                  setState(() {
+                    final index = notes.indexWhere((n) => n['_id'] == note['_id']);
+                    if (index != -1) { notes[index] = updatedNote; filterNotes(searchQuery); }
+                  });
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                } else {
+                  setDialogState(() => saving = false);
+                }
+              } else {
+                final res = await ApiClient.post(
+                  '/api/notes',
+                  body: {'title': title, 'content': content},
+                );
+                if (!mounted) return;
+                if (res.statusCode == 201) {
+                  final newNote = json.decode(res.body)['note'];
+                  setState(() { notes.insert(0, newNote); filterNotes(searchQuery); });
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                } else {
+                  setDialogState(() => saving = false);
+                }
+              }
+            } catch (e) {
+              if (ctx.mounted) setDialogState(() => saving = false);
+            }
+          }
+
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: AppThemeColors.cardBg(ctx),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Text(
+                        isEdit ? t('edit_note') : t('new_note'),
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx)),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: TextField(
+                        controller: titleController,
+                        style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                        decoration: InputDecoration(
+                          hintText: t('title'),
+                          hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                          errorText: titleError,
+                          filled: true,
+                          fillColor: AppThemeColors.surfaceBg(ctx),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.primaryText(ctx))),
+                          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
+                          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+                          counterStyle: TextStyle(color: AppThemeColors.secondaryText(ctx)),
+                        ),
+                        maxLength: 50,
+                        onChanged: (_) { if (titleError != null) setDialogState(() => titleError = null); },
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: TextField(
+                        controller: contentController,
+                        style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          hintText: t('enter_note'),
+                          hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx)),
+                          errorText: contentError,
+                          filled: true,
+                          fillColor: AppThemeColors.surfaceBg(ctx),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.border(ctx))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppThemeColors.primaryText(ctx))),
+                          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
+                          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+                        ),
+                        onChanged: (_) { if (contentError != null) setDialogState(() => contentError = null); },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: saving ? null : () => Navigator.pop(dialogContext),
+                            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx), fontSize: 16)),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppThemeColors.primaryText(ctx),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            onPressed: saving ? null : onSave,
+                            child: saving
+                                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: AppThemeColors.cardBg(ctx), strokeWidth: 2))
+                                : Text(
+                                    isEdit ? t('update') : t('create'),
+                                    style: TextStyle(color: AppThemeColors.cardBg(ctx), fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      isEdit ? t('edit_note') : t('new_note'),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppThemeColors.primaryText(context),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: TextField(
-                      controller: titleController,
-                      style: TextStyle(color: AppThemeColors.primaryText(context)),
-                      decoration: InputDecoration(
-                        hintText: t('title'),
-                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                        filled: true,
-                        fillColor: AppThemeColors.surfaceBg(context),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppThemeColors.border(context)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppThemeColors.primaryText(context)),
-                        ),
-                        counterStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
-                      ),
-                      maxLength: 50,
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: TextField(
-                      controller: contentController,
-                      style: TextStyle(color: AppThemeColors.primaryText(context)),
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        hintText: t('enter_note'),
-                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                        filled: true,
-                        fillColor: AppThemeColors.surfaceBg(context),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppThemeColors.border(context)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppThemeColors.primaryText(context)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(t('cancel'),
-                              style: TextStyle(
-                                  color: AppThemeColors.secondaryText(context), fontSize: 16)),
-                        ),
-                        SizedBox(width: 10),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppThemeColors.primaryText(context),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                          ),
-                          onPressed: () {
-                            final title = titleController.text.trim();
-                            final content = contentController.text.trim();
-                            if (title.isEmpty || content.isEmpty) return;
-                            Navigator.pop(
-                                context, {'title': title, 'content': content});
-                          },
-                          child: Text(
-                            isEdit ? t('update') : t('create'),
-                            style: TextStyle(
-                                color: AppThemeColors.cardBg(context),
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
-          ),
-        );
+          );
+        });
       },
     );
-    if (result != null &&
-        result['title']!.isNotEmpty &&
-        result['content']!.isNotEmpty) {
-      if (isEdit) {
-        final res = await ApiClient.put(
-          '/api/notes/${note['_id']}',
-          body: {'title': result['title'], 'content': result['content']},
-        );
-        if (res.statusCode == 200) {
-          final updatedNote = Map<String, dynamic>.from(note);
-          updatedNote['title'] = result['title'];
-          updatedNote['content'] = result['content'];
-          updatedNote['updatedAt'] = DateTime.now().toIso8601String();
-
-          setState(() {
-            final index = notes.indexWhere((n) => n['_id'] == note['_id']);
-            if (index != -1) {
-              notes[index] = updatedNote;
-              filterNotes(searchQuery);
-            }
-          });
-        }
-      } else {
-        final res = await ApiClient.post(
-          '/api/notes',
-          body: {'title': result['title'], 'content': result['content']},
-        );
-        if (res.statusCode == 201) {
-          final newNote = json.decode(res.body)['note'];
-          setState(() {
-            notes.insert(0, newNote);
-            filterNotes(searchQuery);
-          });
-        }
-      }
-    }
+    titleController.dispose();
+    contentController.dispose();
   }
 
   PopupMenuItem _noteMenuItem(IconData icon, String label, Color color, VoidCallback onTap) {

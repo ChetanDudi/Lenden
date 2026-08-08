@@ -234,8 +234,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         })),
                     ),
                   ]),
-                  if (user?['trustScore'] is Map)
-                    _trustScoreBadge(Map<String, dynamic>.from(user!['trustScore'])),
+                  _trustScoreBadge(
+                    user?['trustScore'] is Map
+                        ? Map<String, dynamic>.from(user!['trustScore'])
+                        : const <String, dynamic>{},
+                  ),
                   const SizedBox(height: 32),
                   if (isViewingOwnProfile) ...[
                     ElevatedButton(
@@ -519,67 +522,122 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _trustScoreBadge(Map<String, dynamic> trustScore) {
     final t = AppLocalizations.of(context).t;
     final score = trustScore['score'] as int?;
-    final label = (trustScore['label'] ?? '').toString();
     final resolvedCount = trustScore['resolvedCount'] as int? ?? 0;
+    // Three distinct states:
+    // 1. score != null  → has enough resolved history, show actual score
+    // 2. score == null && resolvedCount > 0 → building (some history, not enough yet)
+    // 3. resolvedCount == 0  → brand new user
+    final bool hasScore = score != null;
+    final bool hasAnyHistory = resolvedCount > 0;
 
     Color color;
-    String translatedLabel;
-    switch (label) {
-      case 'Excellent':
+    String strengthLabel;
+    String bottomLabel;
+
+    if (hasScore) {
+      if (score >= 90) {
         color = const Color(0xFF2E7D32);
-        translatedLabel = t('excellent');
-        break;
-      case 'Good':
+        strengthLabel = 'Excellent';
+      } else if (score >= 75) {
+        color = const Color(0xFF00897B);
+        strengthLabel = 'Strong';
+      } else if (score >= 55) {
         color = AppColors.cyan;
-        translatedLabel = t('good');
-        break;
-      case 'Fair':
+        strengthLabel = 'Good';
+      } else if (score >= 35) {
         color = const Color(0xFFFF9933);
-        translatedLabel = t('fair');
-        break;
-      case 'Poor':
+        strengthLabel = 'Fair';
+      } else {
         color = const Color(0xFFD32F2F);
-        translatedLabel = t('poor');
-        break;
-      default:
-        color = Colors.grey;
-        translatedLabel = label;
+        strengthLabel = 'Weak';
+      }
+      bottomLabel = '${t('based_on_label')} $resolvedCount ${resolvedCount == 1 ? t('resolved_transaction_singular') : t('resolved_transactions_plural')}';
+    } else if (hasAnyHistory) {
+      color = const Color(0xFF5C6BC0); // indigo — building state
+      strengthLabel = 'Building';
+      bottomLabel = '$resolvedCount resolved so far — keep transacting';
+    } else {
+      color = Colors.grey;
+      strengthLabel = 'New User';
+      bottomLabel = 'No transaction history yet';
     }
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: color.withValues(alpha: 0.1),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.verified_user, color: color),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  score != null
-                      ? '${t('repayment_reliability_label')}: $score% ($translatedLabel)'
-                      : '${t('repayment_reliability_label')}: $translatedLabel',
+          Row(
+            children: [
+              Icon(Icons.verified_user_outlined, color: color, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t('repayment_reliability_label'),
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: context.sp(15),
-                      color: color),
-                ),
-                if (score != null)
-                  Text(
-                    '${t('based_on_label')} $resolvedCount ${resolvedCount == 1 ? t('resolved_transaction_singular') : t('resolved_transactions_plural')}',
-                    style: TextStyle(
-                        fontSize: context.sp(12),
-                        color: AppThemeColors.secondaryText(context)),
+                    fontWeight: FontWeight.w600,
+                    fontSize: context.sp(13),
+                    color: AppThemeColors.secondaryText(context),
                   ),
-              ],
+                ),
+              ),
+              Text(
+                hasScore ? '$score%' : (hasAnyHistory ? '...' : '--'),
+                style: TextStyle(
+                  fontSize: context.sp(22),
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: hasScore ? (score / 100) : (hasAnyHistory ? 0.15 : 0.0),
+              backgroundColor: AppThemeColors.border(context).withValues(alpha: 0.25),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 7,
             ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  strengthLabel,
+                  style: TextStyle(
+                    fontSize: context.sp(11),
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  bottomLabel,
+                  style: TextStyle(
+                    fontSize: context.sp(11),
+                    color: AppThemeColors.secondaryText(context),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

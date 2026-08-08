@@ -12,7 +12,20 @@
           "package_name": "com.example.lenden_frontend"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "887637529626-45dk0746cqun4701ds7e9o6uoe26nk7i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lenden_frontend",
+            "certificate_hash": "f02f1dd74738da5639ad799def026bcb3dba7844"
+          }
+        },
+        {
+          "client_id": "887637529626-r7tt1nevedtnp1l06fa6rp2vbu6k6m89.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAbd0BScnaxFFZH3Nv7TichLKMe0xFO54g"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "887637529626-r7tt1nevedtnp1l06fa6rp2vbu6k6m89.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
