@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -499,17 +500,11 @@ class _InAppTabState extends State<_InAppTab> with AutomaticKeepAliveClientMixin
   }
 
   Future<void> _pickDate(bool isFrom) async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: isFrom ? (_fromDate ?? DateTime.now()) : (_toDate ?? DateTime.now()),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-            colorScheme:
-                Theme.of(ctx).colorScheme.copyWith(primary: AppColors.cyan)),
-        child: child!,
-      ),
     );
     if (picked == null) return;
     setState(() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'dart:convert';
@@ -1545,7 +1546,7 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
   }
 
   Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showAppDatePicker(
       context: context,
       initialDate: _endDate,
       firstDate: DateTime(2000),

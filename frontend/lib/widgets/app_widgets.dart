@@ -538,11 +538,11 @@ class PasswordStrengthMeter extends StatelessWidget {
             Expanded(
               child: Text(
                 score <= 2
-                    ? 'Add uppercase, numbers or symbols to strengthen'
+                    ? 'Longer password with mixed characters will be stronger'
                     : score == 3
-                        ? 'Getting better — try adding a symbol or number'
+                        ? 'Getting better — try a longer or more varied password'
                         : score == 4
-                            ? 'Almost there — a symbol makes it Strong'
+                            ? 'Almost there — mix in more variety to make it Strong'
                             : 'Great password!',
                 style: TextStyle(
                   fontSize: 11,

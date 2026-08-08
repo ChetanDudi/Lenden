@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/pickers.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
 import 'package:image_picker/image_picker.dart';
@@ -990,22 +991,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ? IconButton(
                       icon: Icon(Icons.calendar_today, color: AppColors.cyan, size: 18),
                       onPressed: () async {
-                        final picked = await showDatePicker(
+                        final picked = await showAppDatePicker(
                           context: context,
                           initialDate: controller.text.isNotEmpty
                               ? DateTime.tryParse(controller.text) ?? DateTime(2000)
                               : DateTime(2000),
                           firstDate: DateTime(1900),
                           lastDate: DateTime.now(),
-                          builder: (context, child) => Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: Theme.of(context).colorScheme.copyWith(
-                                primary: AppColors.cyan, onPrimary: Colors.white),
-                              textButtonTheme: TextButtonThemeData(
-                                style: TextButton.styleFrom(foregroundColor: AppColors.cyan)),
-                            ),
-                            child: child!,
-                          ),
                         );
                         if (picked != null) {
                           controller.text = picked.toIso8601String().split('T').first;

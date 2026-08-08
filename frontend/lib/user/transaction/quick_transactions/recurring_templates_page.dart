@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/pickers.dart';
 import '../../../utils/avatar_helpers.dart' as ah;
 import 'dart:convert';
 import 'package:intl/intl.dart';
@@ -377,7 +378,7 @@ class _RecurringTemplatesPageState extends State<RecurringTemplatesPage> {
                     subtitle: Text(DateFormat('MMM dd, yyyy').format(startDate)),
                     trailing: const Icon(Icons.calendar_today_rounded, size: 18),
                     onTap: () async {
-                      final picked = await showDatePicker(
+                      final picked = await showAppDatePicker(
                         context: context,
                         initialDate: startDate,
                         firstDate: DateTime.now(),

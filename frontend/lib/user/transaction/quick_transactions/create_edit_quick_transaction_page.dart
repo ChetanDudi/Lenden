@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../../utils/pickers.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
@@ -1027,7 +1028,7 @@ class _CreateEditQuickTransactionPageState
                               style: const TextStyle(color: AppColors.cyan),
                             ),
                             onPressed: () async {
-                              final picked = await showDatePicker(
+                              final picked = await showAppDatePicker(
                                 context: context,
                                 initialDate: DateTime.now().add(const Duration(days: 1)),
                                 firstDate: DateTime.now().add(const Duration(minutes: 1)),

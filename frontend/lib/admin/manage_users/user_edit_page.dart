@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
@@ -78,7 +79,7 @@ class _UserEditPageState extends State<UserEditPage> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showAppDatePicker(
       context: context,
       initialDate: _selectedDateOfBirth ?? DateTime.now(),
       firstDate: DateTime(1900),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
@@ -551,7 +552,7 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
     DateTime? initialDate,
   ) async {
     final now = DateTime.now();
-    return showDatePicker(
+    return showAppDatePicker(
       context: context,
       initialDate: initialDate ?? now,
       firstDate: DateTime(2000),

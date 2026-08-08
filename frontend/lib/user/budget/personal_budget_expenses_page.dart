@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
@@ -686,12 +687,12 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.88,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          builder: (_, sc) => Container(
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        initialChildSize: 0.88,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, sc) => StatefulBuilder(builder: (ctx, setS) {
+          return Container(
             decoration: BoxDecoration(
               color: AppThemeColors.scaffoldBg(context),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -835,7 +836,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   radius: 12,
                   child: GestureDetector(
                     onTap: () async {
-                      final d = await showDatePicker(
+                      final d = await showAppDatePicker(
                         context: ctx, initialDate: date,
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now().add(const Duration(days: 1)),
@@ -874,7 +875,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   radius: 12,
                   child: GestureDetector(
                     onTap: () async {
-                      final t = await showTimePicker(
+                      final t = await showAppTimePicker(
                           context: ctx, initialTime: time);
                       if (t != null) setS(() {
                         time = t;
@@ -899,7 +900,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                           const Icon(Icons.access_time_rounded,
                               size: 14, color: AppColors.cyan),
                           const SizedBox(width: 6),
-                          Text(time.format(context),
+                          Text(time.format(ctx),
                               style: TextStyle(fontSize: context.sp(13),
                                   color: AppThemeColors.primaryText(context),
                                   fontWeight: FontWeight.w600)),
@@ -932,7 +933,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                         'amount':      amt,
                         'category':    cat,
                         'description': descCtrl.text.trim(),
-                        'date':        date.toIso8601String(),
+                        'date':        date.toUtc().toIso8601String(),
                       };
                       final expId = existing?['_id'] as String?;
                       final resp  = (isNew)
@@ -944,7 +945,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                               body: body);
                       if (!mounted) return;
                       if (resp.statusCode == 200 || resp.statusCode == 201) {
-                        Navigator.pop(ctx);
+                        Navigator.pop(sheetCtx);
                         showSnack(context,
                             AppLocalizations.of(context).t(isNew ? 'expense_added' : 'expense_updated'));
                         _load();
@@ -975,9 +976,9 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                 ),
               ),
             ]),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 

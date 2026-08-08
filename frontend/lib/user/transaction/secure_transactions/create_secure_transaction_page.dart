@@ -1,5 +1,6 @@
 ﻿//This file is to create Transactions.
 import 'package:flutter/material.dart';
+import '../../../utils/pickers.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -2625,27 +2626,11 @@ class _TransactionPageState extends State<TransactionPage> {
       onTap: _bothUsersVerified
           ? null
           : () async {
-              final picked = await showDatePicker(
+              final picked = await showAppDatePicker(
                 context: context,
                 initialDate: _selectedDate ?? DateTime.now(),
                 firstDate: DateTime(2000),
                 lastDate: DateTime(2100),
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: Theme.of(context).colorScheme.copyWith(
-                            primary: AppColors.cyan,
-                            onPrimary: Colors.white,
-                          ),
-                      textButtonTheme: TextButtonThemeData(
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.cyan,
-                        ),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
               );
               if (picked != null) {
                 setState(() => _selectedDate = picked);
@@ -2682,25 +2667,9 @@ class _TransactionPageState extends State<TransactionPage> {
       onTap: _bothUsersVerified
           ? null
           : () async {
-              final picked = await showTimePicker(
+              final picked = await showAppTimePicker(
                 context: context,
                 initialTime: _selectedTime ?? TimeOfDay.now(),
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: Theme.of(context).colorScheme.copyWith(
-                            primary: AppColors.cyan,
-                            onPrimary: Colors.white,
-                          ),
-                      textButtonTheme: TextButtonThemeData(
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.cyan,
-                        ),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
               );
               if (picked != null) {
                 setState(() => _selectedTime = picked);
@@ -3492,15 +3461,10 @@ class _TransactionPageState extends State<TransactionPage> {
           _buildStylishField(
             child: InkWell(
               onTap: _bothUsersVerified ? null : () async {
-                final picked = await showDatePicker(
+                final picked = await showAppDatePicker(
                   context: context,
                   initialDate: _expectedReturnDate ?? DateTime.now(),
                   firstDate: DateTime(2000), lastDate: DateTime(2100),
-                  builder: (context, child) => Theme(
-                    data: Theme.of(context).copyWith(colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.cyan, onPrimary: Colors.white),
-                      textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: AppColors.cyan))),
-                    child: child!,
-                  ),
                 );
                 if (picked != null) { setState(() => _expectedReturnDate = picked); _saveDraft(); }
               },

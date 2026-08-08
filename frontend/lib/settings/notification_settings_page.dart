@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/pickers.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../session.dart';
@@ -166,7 +167,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }
 
   Future<void> _selectTime(BuildContext context, bool isStartTime) async {
-    final TimeOfDay? picked = await showTimePicker(
+    final TimeOfDay? picked = await showAppTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );

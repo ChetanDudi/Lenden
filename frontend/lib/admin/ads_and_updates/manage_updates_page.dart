@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
@@ -195,19 +196,17 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
   }) async {
     final initial =
         DateTime.tryParse(controller.text.trim())?.toLocal() ?? DateTime.now();
-    final date = await showDatePicker(
+    final date = await showAppDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2024),
       lastDate: DateTime(2100),
-      helpText: title,
     );
     if (date == null || !mounted) return;
 
-    final time = await showTimePicker(
+    final time = await showAppTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
-      helpText: '$title Time',
     );
     if (time == null || !mounted) return;
 

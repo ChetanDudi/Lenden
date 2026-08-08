@@ -1,5 +1,6 @@
 ﻿//This file is to view user transactions
 import 'package:flutter/material.dart';
+import '../../../utils/pickers.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -897,30 +898,12 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
 
   Future<DateTime?> _showStyledDatePicker({
     required DateTime initialDate,
-  }) {
-    return showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppColors.cyan,
-              onPrimary: Colors.white,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.cyan,
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-  }
+  }) => showAppDatePicker(
+    context: context,
+    initialDate: initialDate,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
 
   Future<void> _showFiltersBottomSheet() async {
     final t = AppLocalizations.of(context).t;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/pickers.dart';
 import 'dart:convert';
 import '../utils/api_client.dart';
 import '../widgets/app_colors.dart';
@@ -156,7 +157,7 @@ class _AdminSecuritySettingsPageState extends State<AdminSecuritySettingsPage> {
   }
 
   Future<void> _selectTime(BuildContext context, bool isStartTime) async {
-    final TimeOfDay? picked = await showTimePicker(
+    final TimeOfDay? picked = await showAppTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );

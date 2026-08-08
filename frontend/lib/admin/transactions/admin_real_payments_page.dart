@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
@@ -310,16 +311,11 @@ class _TopUpsTabState extends State<_TopUpsTab>
   }
 
   Future<void> _pickDate(bool isFrom) async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: isFrom ? (_fromDate ?? DateTime.now()) : (_toDate ?? DateTime.now()),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-            colorScheme: Theme.of(ctx).colorScheme.copyWith(primary: AppColors.cyan)),
-        child: child!,
-      ),
     );
     if (picked == null) return;
     setState(() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../utils/share_utils.dart';
@@ -27,17 +28,11 @@ class _ExportStatementPageState extends State<ExportStatementPage> {
   ];
 
   Future<void> _pickDate(bool isFrom) async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: isFrom ? _fromDate : _toDate,
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: Theme.of(ctx).colorScheme.copyWith(primary: AppColors.cyan),
-        ),
-        child: child!,
-      ),
     );
     if (picked == null) return;
     setState(() {

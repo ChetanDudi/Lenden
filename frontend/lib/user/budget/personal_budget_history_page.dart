@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
@@ -403,14 +404,14 @@ class _PersonalBudgetHistoryPageState extends State<PersonalBudgetHistoryPage> {
         const SizedBox(height: 6),
         Row(children: [
           Expanded(child: _dateFilterTile('From', _startFrom, () async {
-            final d = await showDatePicker(context: context,
+            final d = await showAppDatePicker(context: context,
                 initialDate: _startFrom ?? DateTime.now(),
                 firstDate: DateTime(2020), lastDate: DateTime(2035));
             if (d != null) setState(() => _startFrom = d);
           })),
           const SizedBox(width: 8),
           Expanded(child: _dateFilterTile('To', _startTo, () async {
-            final d = await showDatePicker(context: context,
+            final d = await showAppDatePicker(context: context,
                 initialDate: _startTo ?? DateTime.now(),
                 firstDate: DateTime(2020), lastDate: DateTime(2035));
             if (d != null) setState(() => _startTo = d);

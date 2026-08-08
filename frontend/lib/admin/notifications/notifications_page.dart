@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
@@ -303,14 +304,14 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
   }
 
   Future<void> _pickScheduledDateTime() async {
-    final date = await showDatePicker(
+    final date = await showAppDatePicker(
       context: context,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDate: DateTime.now().add(const Duration(days: 1)),
     );
     if (date == null) return;
-    final time = await showTimePicker(
+    final time = await showAppTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );

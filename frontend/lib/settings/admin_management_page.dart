@@ -315,13 +315,12 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
                               const Icon(Icons.lock, color: AppColors.cyan),
                           filled: true,
                           fillColor: AppThemeColors.cardBg(ctx),
-                          helperText: t('password_requirements_short'),
-                          helperMaxLines: 2,
+                          helperText: 'Must be 8–30 characters',
                         ),
                         validator: (value) {
                           if (value?.isEmpty ?? true) return t('required');
                           if (!isPasswordValid(value!)) {
-                            return t('password_requirements_short');
+                            return 'Must be 8–30 characters';
                           }
                           return null;
                         },

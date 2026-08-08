@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import 'package:http_parser/http_parser.dart';
@@ -163,57 +164,17 @@ class _ManageAdsPageState extends State<ManageAdsPage>
     required String helpText,
   }) async {
     final now = initial ?? DateTime.now();
-    final date = await showDatePicker(
+    final date = await showAppDatePicker(
       context: context,
       initialDate: now,
       firstDate: DateTime(2024),
       lastDate: DateTime(2100),
-      helpText: helpText,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: AppColors.cyan,
-            onPrimary: Colors.white,
-            surface: AppThemeColors.cardBg(context),
-            onSurface: AppThemeColors.primaryText(context),
-          ),
-          dialogTheme: DialogThemeData(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: AppColors.cyan),
-          ),
-        ),
-        child: child!,
-      ),
     );
     if (date == null || !mounted) return null;
 
-    final time = await showTimePicker(
+    final time = await showAppTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(now),
-      helpText: '$helpText Time',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: AppColors.cyan,
-            onPrimary: Colors.white,
-            surface: AppThemeColors.cardBg(context),
-            onSurface: AppThemeColors.primaryText(context),
-          ),
-          dialogTheme: DialogThemeData(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: AppColors.cyan),
-          ),
-        ),
-        child: child!,
-      ),
     );
     if (time == null) return null;
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/pickers.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -270,23 +271,11 @@ class GoalsTab extends StatelessWidget {
               // Deadline picker
               GestureDetector(
                 onTap: () async {
-                  final picked = await showDatePicker(
+                  final picked = await showAppDatePicker(
                     context: context,
                     initialDate: DateTime.now().add(const Duration(days: 90)),
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2040),
-                    builder: (ctx, child) => Theme(
-                      data: Theme.of(ctx).copyWith(
-                        colorScheme: Theme.of(ctx).colorScheme.copyWith(
-                          primary: AppColors.cyan,
-                          onPrimary: Colors.white,
-                        ),
-                        textButtonTheme: TextButtonThemeData(
-                          style: TextButton.styleFrom(foregroundColor: AppColors.cyan),
-                        ),
-                      ),
-                      child: child!,
-                    ),
                   );
                   if (picked != null) setD(() => deadline = picked);
                 },

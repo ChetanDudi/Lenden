@@ -144,10 +144,6 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
       _showErr('Password must be 8–30 characters.');
       return;
     }
-    if (!RegExp(r'[A-Za-z]').hasMatch(newPw) || !RegExp(r'[0-9]').hasMatch(newPw)) {
-      _showErr('Password must contain at least one letter and one number.');
-      return;
-    }
     if (newPw != confirmPw) {
       _showErr('Passwords do not match.');
       return;

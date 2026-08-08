@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import 'dart:convert';
 import '../../api_config.dart';
@@ -2042,46 +2043,12 @@ class _ActivityPageState extends State<ActivityPage> {
                                         label: t('start_date'),
                                         date: tempStartDate,
                                         onPressed: () async {
-                                          final date = await showDatePicker(
+                                          final date = await showAppDatePicker(
                                             context: context,
                                             initialDate:
                                                 tempStartDate ?? DateTime.now(),
                                             firstDate: DateTime(2020),
                                             lastDate: DateTime.now(),
-                                            builder: (context, child) {
-                                              return Theme(
-                                                data: Theme.of(context)
-                                                    .copyWith(
-                                                  colorScheme: AppThemeColors
-                                                          .isDark(context)
-                                                      ? ColorScheme.dark(
-                                                          primary:
-                                                              AppColors.cyan,
-                                                          onPrimary:
-                                                              Colors.white,
-                                                          surface:
-                                                              AppThemeColors
-                                                                  .cardBg(
-                                                                      context),
-                                                          onSurface:
-                                                              AppThemeColors
-                                                                  .primaryText(
-                                                                      context),
-                                                        )
-                                                      : const ColorScheme.light(
-                                                          primary:
-                                                              AppColors.cyan,
-                                                          onPrimary:
-                                                              Colors.white,
-                                                          surface:
-                                                              Colors.white,
-                                                          onSurface:
-                                                              Colors.black,
-                                                        ),
-                                                ),
-                                                child: child!,
-                                              );
-                                            },
                                           );
                                           if (date != null) {
                                             setState(
@@ -2102,46 +2069,12 @@ class _ActivityPageState extends State<ActivityPage> {
                                         label: t('end_date'),
                                         date: tempEndDate,
                                         onPressed: () async {
-                                          final date = await showDatePicker(
+                                          final date = await showAppDatePicker(
                                             context: context,
                                             initialDate:
                                                 tempEndDate ?? DateTime.now(),
                                             firstDate: DateTime(2020),
                                             lastDate: DateTime.now(),
-                                            builder: (context, child) {
-                                              return Theme(
-                                                data: Theme.of(context)
-                                                    .copyWith(
-                                                  colorScheme: AppThemeColors
-                                                          .isDark(context)
-                                                      ? ColorScheme.dark(
-                                                          primary:
-                                                              AppColors.cyan,
-                                                          onPrimary:
-                                                              Colors.white,
-                                                          surface:
-                                                              AppThemeColors
-                                                                  .cardBg(
-                                                                      context),
-                                                          onSurface:
-                                                              AppThemeColors
-                                                                  .primaryText(
-                                                                      context),
-                                                        )
-                                                      : const ColorScheme.light(
-                                                          primary:
-                                                              AppColors.cyan,
-                                                          onPrimary:
-                                                              Colors.white,
-                                                          surface:
-                                                              Colors.white,
-                                                          onSurface:
-                                                              Colors.black,
-                                                        ),
-                                                ),
-                                                child: child!,
-                                              );
-                                            },
                                           );
                                           if (date != null) {
                                             setState(() => tempEndDate = date);

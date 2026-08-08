@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../../utils/pickers.dart';
 import 'package:intl/intl.dart';
 import '../../../widgets/app_colors.dart';
 import '../../../widgets/app_widgets.dart';
@@ -810,13 +811,13 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
 
               Row(children: [
                 Expanded(child: _datePicker(ctx, 'Start', df.format(startDate), () async {
-                  final d = await showDatePicker(context: ctx,
+                  final d = await showAppDatePicker(context: ctx,
                       initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
                   if (d != null) setS(() => startDate = DateTime(d.year, d.month, d.day, startDate.hour, startDate.minute));
                 })),
                 const SizedBox(width: 12),
                 Expanded(child: _datePicker(ctx, 'End', df.format(endDate), () async {
-                  final d = await showDatePicker(context: ctx,
+                  final d = await showAppDatePicker(context: ctx,
                       initialDate: endDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
                   if (d != null) setS(() => endDate = DateTime(d.year, d.month, d.day, endDate.hour, endDate.minute));
                 })),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
@@ -486,7 +487,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
 
     Future<void> pickDateTime(bool start, StateSetter setDialogState) async {
       final current = (start ? startsAt : endsAt) ?? DateTime.now();
-      final date = await showDatePicker(
+      final date = await showAppDatePicker(
         context: context,
         initialDate: current,
         firstDate: DateTime(2024),
@@ -494,7 +495,7 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
       );
       if (date == null) return;
       if (!mounted) return;
-      final time = await showTimePicker(
+      final time = await showAppTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(current),
       );

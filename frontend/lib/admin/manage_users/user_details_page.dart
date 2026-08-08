@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../utils/pickers.dart';
 import 'dart:convert';
 import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
@@ -1154,14 +1155,14 @@ class _UserDetailsPageState extends State<UserDetailsPage>
     try {
       DateTime? selectedUntil;
       if (!clear) {
-        final pickedDate = await showDatePicker(
+        final pickedDate = await showAppDatePicker(
           context: context,
           firstDate: DateTime.now(),
           lastDate: DateTime.now().add(const Duration(days: 365)),
           initialDate: DateTime.now().add(const Duration(days: 1)),
         );
         if (pickedDate == null) return;
-        final pickedTime = await showTimePicker(
+        final pickedTime = await showAppTimePicker(
           context: context,
           initialTime: TimeOfDay.now(),
         );

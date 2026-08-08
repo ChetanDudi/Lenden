@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/pickers.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../session.dart';
@@ -160,7 +161,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showAppDatePicker(
       context: context,
       initialDate: _birthday ?? DateTime.now(),
       firstDate: DateTime(1900),

@@ -138,10 +138,6 @@ class _UserForgotPasswordPageState extends State<UserForgotPasswordPage> {
       setState(() => _errorMessage = 'Password must be at most 30 characters.');
       return;
     }
-    if (!RegExp(r'[A-Za-z]').hasMatch(newPw) || !RegExp(r'[0-9]').hasMatch(newPw)) {
-      setState(() => _errorMessage = 'Password must contain at least one letter and one number.');
-      return;
-    }
     if (newPw != confirmPw) {
       setState(() => _errorMessage =
           AppLocalizations.of(context).t('passwords_do_not_match'));

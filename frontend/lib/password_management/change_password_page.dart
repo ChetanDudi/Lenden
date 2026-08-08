@@ -156,9 +156,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     final t = AppLocalizations.of(context).t;
     if (newPw.length < 8) { _showErr(t('password_min_length_error')); return; }
     if (newPw.length > 30) { _showErr(t('password_max_length_error')); return; }
-    if (!RegExp(r'[A-Za-z]').hasMatch(newPw) || !RegExp(r'[0-9]').hasMatch(newPw)) {
-      _showErr(t('password_letters_numbers_error')); return;
-    }
     if (newPw != confirmPw) { _showErr(t('passwords_do_not_match')); return; }
 
     setState(() => _isLoading = true);
@@ -250,9 +247,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               if (v == null || v.isEmpty) return t('please_enter_new_password');
               if (v.length < 8) return t('password_min_length_error');
               if (v.length > 30) return t('password_max_length_error');
-              if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'[0-9]').hasMatch(v)) {
-                return t('password_letters_numbers_error');
-              }
               return null;
             },
           ),
