@@ -37,9 +37,7 @@ import 'utils/theme_helper.dart';
 import 'utils/connectivity_service.dart';
 import 'services/firebase_service.dart';
 import 'screens/maintenance_screen.dart';
-import 'widgets/wave_widget.dart' show DeepTopWaveClipper;
 import 'widgets/no_internet_banner.dart';
-import 'user/digitise/subscriptions_page.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -475,8 +473,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      backgroundColor: AppThemeColors.scaffoldBg(context),
+      backgroundColor: const Color(0xFFF5F5F0),
       drawer: Drawer(
         width: context.sw(200),
         backgroundColor: AppThemeColors.cardBg(context),
@@ -547,361 +544,170 @@ class HomePage extends StatelessWidget {
           ],
         ),
       ),
-      body: Stack(
+      bottomNavigationBar: _buildBottomNav(context),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top blue wave
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipPath(
-              clipper: const DeepTopWaveClipper(),
-              child: Container(
-                height: context.sh(78),
-                color: AppThemeColors.waveSolid(context),
+          // ── Light-blue header panel (title + tabs) ────────────
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color(0xFFBEE3F0),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(context.sw(20), context.sh(6),
+                    context.sw(20), context.sh(18)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  // Icon row: menu | spacer | notification + profile
+                  Row(
+                    children: [
+                      Builder(
+                        builder: (ctx) => GestureDetector(
+                          onTap: () => Scaffold.of(ctx).openDrawer(),
+                          child: Icon(Icons.menu,
+                              color: Colors.black87,
+                              size: context.sp(26)),
+                        ),
+                      ),
+                      const Spacer(),
+                      NotificationIcon(),
+                      SizedBox(width: context.sw(8)),
+                      Consumer<SessionProvider>(
+                        builder: (context, session, _) {
+                          final user = session.user;
+                          final profileImage = user != null &&
+                                  user['profileImage'] != null &&
+                                  user['profileImage']
+                                          .toString()
+                                          .isNotEmpty &&
+                                  user['profileImage'] != 'null'
+                              ? NetworkImage(user['profileImage'])
+                              : null;
+                          return GestureDetector(
+                            onTap: () {
+                              if (session.token != null &&
+                                  session.user != null) {
+                                Navigator.pushNamed(context, '/profile');
+                              } else {
+                                showDialog(
+                                  context: context,
+                                  builder: (dlgCtx) {
+                                    final dt =
+                                        AppLocalizations.of(dlgCtx).t;
+                                    return AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(24),
+                                      ),
+                                      backgroundColor:
+                                          const Color(0xFFF6F7FB),
+                                      elevation: 12,
+                                      title: Row(
+                                        children: [
+                                          Icon(Icons.lock_outline,
+                                              color: AppColors.cyan,
+                                              size: context.sp(26)),
+                                          SizedBox(width: context.sw(8)),
+                                          Text(dt('login_required'),
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold,
+                                                  fontSize:
+                                                      context.sp(20))),
+                                        ],
+                                      ),
+                                      content: Text(
+                                        dt('please_login_to_view_profile'),
+                                        style: TextStyle(
+                                            fontSize: context.sp(15),
+                                            color: Colors.black87),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.white,
+                                            backgroundColor: AppColors.cyan,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.of(dlgCtx).pop(),
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: context.sw(16),
+                                                vertical: context.sh(6)),
+                                            child: Text(dt('ok'),
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                    fontSize:
+                                                        context.sp(15))),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            child: CircleAvatar(
+                              radius: context.sw(17),
+                              backgroundColor: Colors.grey.shade300,
+                              backgroundImage: profileImage,
+                              child: profileImage == null
+                                  ? Icon(Icons.person,
+                                      color: Colors.grey.shade600,
+                                      size: context.sp(18))
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: context.sh(18)),
+                  // Large page title
+                  Text(
+                    'My Transactions',
+                    style: TextStyle(
+                      fontSize: context.sp(30),
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black87,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  SizedBox(height: context.sh(16)),
+                  // Minimal tabs with dot indicator
+                  _LandingTabBar(),
+                  SizedBox(height: context.sh(2)),
+                ],
               ),
             ),
           ),
-          // Main content area (white card style)
-          SafeArea(
+        ),
+          // Scrollable content
+          Expanded(
             child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: context.hPadding, vertical: context.vPadding),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Menu icon (left)
-                        Builder(
-                          builder: (context) => IconButton(
-                            icon: Icon(Icons.menu, color: AppThemeColors.primaryText(context)),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
-                          ),
-                        ),
-                        // Right side: notification and profile
-                        Row(
-                          children: [
-                            NotificationIcon(),
-                            Consumer<SessionProvider>(
-                              builder: (context, session, _) {
-                                final user = session.user;
-                                final profileImage = user != null &&
-                                        user['profileImage'] != null &&
-                                        user['profileImage']
-                                            .toString()
-                                            .isNotEmpty &&
-                                        user['profileImage'] != 'null'
-                                    ? NetworkImage(user['profileImage'])
-                                    : null;
-                                return GestureDetector(
-                                  onTap: () {
-                                    if (session.token != null &&
-                                        session.user != null) {
-                                      Navigator.pushNamed(context, '/profile');
-                                    } else {
-                                      showDialog(
-                                        context: context,
-                                        builder: (dlgCtx) {
-                                          final dt = AppLocalizations.of(dlgCtx).t;
-                                          return AlertDialog(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(24),
-                                            ),
-                                            backgroundColor:
-                                                const Color(0xFFF6F7FB),
-                                            elevation: 12,
-                                            title: Row(
-                                              children: [
-                                                Icon(Icons.lock_outline,
-                                                    color: AppColors.cyan,
-                                                    size: context.sp(26)),
-                                                SizedBox(width: context.sw(8)),
-                                                Text(dt('login_required'),
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: context.sp(20))),
-                                              ],
-                                            ),
-                                            content: Text(
-                                              dt('please_login_to_view_profile'),
-                                              style: TextStyle(
-                                                  fontSize: context.sp(15),
-                                                  color: Colors.black87),
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                style: TextButton.styleFrom(
-                                                  foregroundColor: Colors.white,
-                                                  backgroundColor:
-                                                      AppColors.cyan,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(16),
-                                                  ),
-                                                ),
-                                                onPressed: () =>
-                                                    Navigator.of(dlgCtx).pop(),
-                                                child: Padding(
-                                                  padding: EdgeInsets.symmetric(
-                                                      horizontal: context.sw(16),
-                                                      vertical: context.sh(6)),
-                                                  child: Text(dt('ok'),
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: context.sp(15))),
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    }
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(right: 4),
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.orange,
-                                          Colors.white,
-                                          Colors.green
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: context.sw(18),
-                                      backgroundColor: AppColors.cyan,
-                                      backgroundImage: profileImage,
-                                      child: profileImage == null
-                                          ? const Icon(Icons.person,
-                                              color: Colors.white)
-                                          : null,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: context.sh(20)),
-                    // Feature cards (auto-scroll, horizontally swipeable)
-                    SizedBox(
-                      height: context.sh(200),
-                      child: _FeatureCardCarousel(),
-                    ),
-                    SizedBox(height: context.sh(28)),
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Colors.white, Colors.green],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(32),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 16,
-                              offset: Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(29),
-                          ),
-                          padding: EdgeInsets.all(context.sw(20)),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Image.asset(
-                              'assets/icon.png',
-                              width: context.sw(110),
-                              height: context.sw(110),
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Icon(Icons.account_balance_wallet,
-                                      size: context.sw(90),
-                                      color: AppColors.cyan),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: context.sh(24)),
-                    Center(
-                      child: Column(
-                        children: [
-                          ShaderMask(
-                            shaderCallback: (bounds) => const LinearGradient(
-                              colors: [Color(0xFF0077B6), AppColors.cyan, Color(0xFF48CAE4)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ).createShader(bounds),
-                            child: Text(
-                              'Welcome to the',
-                              style: TextStyle(
-                                fontSize: context.sp(18),
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                          ShaderMask(
-                            shaderCallback: (bounds) => const LinearGradient(
-                              colors: [Color(0xFFFF9933), AppColors.cyan, Color(0xFF138808)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ).createShader(bounds),
-                            child: Text(
-                              'LenDen',
-                              style: TextStyle(
-                                fontSize: context.sp(42),
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 2.5,
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: context.sh(6)),
-                          Text(
-                            t('landing_tagline'),
-                            style: TextStyle(
-                              fontSize: context.sp(12),
-                              color: Colors.grey.shade500,
-                              letterSpacing: 0.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: context.sh(28)),
-                    Consumer<SessionProvider>(
-                      builder: (context, session, _) {
-                        final notLoggedIn =
-                            session.token == null || session.user == null;
-
-                        final getStartedBtn = Container(
-                          padding: const EdgeInsets.all(2.5),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Colors.orange, Colors.white, Colors.green],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.cyan.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              final s = Provider.of<SessionProvider>(context,
-                                  listen: false);
-                              if (s.token != null && s.user != null) {
-                                if (s.isAdmin) {
-                                  Navigator.pushNamed(context, '/admin/dashboard');
-                                } else {
-                                  Navigator.pushNamed(context, '/user/dashboard');
-                                }
-                              } else {
-                                Navigator.pushNamed(context, '/login');
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.cyan,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(21.5),
-                              ),
-                              elevation: 0,
-                              shadowColor: Colors.transparent,
-                              padding: EdgeInsets.symmetric(
-                                  vertical: context.sh(14),
-                                  horizontal: context.sw(28)),
-                            ),
-                            icon: const Icon(Icons.arrow_forward,
-                                color: Colors.white),
-                            label: Text(t('get_started'),
-                                style: TextStyle(
-                                    fontSize: context.sp(17),
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.1)),
-                          ),
-                        );
-
-                        final registerBtn = Container(
-                          padding: const EdgeInsets.all(2.5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            gradient: const LinearGradient(
-                              colors: [Colors.orange, Colors.white, Colors.green],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: TextButton.icon(
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/register'),
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(21.5)),
-                              padding: EdgeInsets.symmetric(
-                                  vertical: context.sh(12),
-                                  horizontal: context.sw(28)),
-                            ),
-                            icon: const Icon(Icons.arrow_forward,
-                                color: AppColors.cyan),
-                            label: Text(t('register'),
-                                style: TextStyle(
-                                    fontSize: context.sp(17),
-                                    color: AppColors.cyan,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.1)),
-                          ),
-                        );
-
-                        return Column(
-                          children: [
-                            // When not logged in: Get Started at top, Register below.
-                            // When logged in: invisible placeholder keeps spacing,
-                            // Get Started appears at Register's position.
-                            Visibility(
-                              visible: notLoggedIn,
-                              maintainSize: true,
-                              maintainAnimation: true,
-                              maintainState: true,
-                              child: getStartedBtn,
-                            ),
-                            SizedBox(height: context.sh(16)),
-                            notLoggedIn ? registerBtn : getStartedBtn,
-                            SizedBox(height: context.sh(28)),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
+              padding: EdgeInsets.symmetric(
+                  horizontal: context.sw(20), vertical: context.sh(14)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _AppHighlightCard(),
+                  SizedBox(height: context.sh(18)),
+                  _LenDenShowcaseCard(),
+                  SizedBox(height: context.sh(16)),
+                ],
               ),
             ),
           ),
@@ -909,275 +715,701 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildBottomNav(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, -2)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: context.sw(8), vertical: context.sh(8)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _LandingNavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                active: true,
+                onTap: () {
+                  final session =
+                      Provider.of<SessionProvider>(context, listen: false);
+                  if (session.token != null && session.user != null) {
+                    if (session.isAdmin) {
+                      Navigator.pushNamed(context, '/admin/dashboard');
+                    } else {
+                      Navigator.pushNamed(context, '/user/dashboard');
+                    }
+                  } else {
+                    Navigator.pushNamed(context, '/login');
+                  }
+                },
+              ),
+              _LandingNavItem(
+                icon: Icons.person_add_rounded,
+                label: 'Register',
+                onTap: () => Navigator.pushNamed(context, '/register'),
+              ),
+              _LandingNavItem(
+                icon: Icons.info_outline_rounded,
+                label: 'About',
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const AboutPage())),
+              ),
+              _LandingNavItem(
+                icon: Icons.contact_mail_rounded,
+                label: 'Contact',
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ContactPage())),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _FeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-  final bool isPremium;
-  const _FeatureCard(
-      {required this.icon,
-      required this.title,
-      required this.description,
-      this.isPremium = false});
+// ── QUICK / SECURE / GROUPS tab bar ─────────────────────────────────────────
+class _LandingTabBar extends StatefulWidget {
+  @override
+  State<_LandingTabBar> createState() => _LandingTabBarState();
+}
+
+class _LandingTabBarState extends State<_LandingTabBar> {
+  int _selected = 0;
+  static const _tabs = ['QUICK', 'SECURE', 'GROUPS'];
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: context.sw(170),
-      margin: EdgeInsets.symmetric(horizontal: context.sw(8), vertical: context.sh(8)),
-      padding: const EdgeInsets.all(2.5),
-      decoration: BoxDecoration(
-        gradient: isPremium
-            ? const LinearGradient(
-                colors: [Color(0xFFFFB300), Color(0xFFFFF8E1), Color(0xFFFF8F00)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Container(
-        padding: EdgeInsets.all(context.sw(14)),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(15.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      children: List.generate(_tabs.length, (i) {
+        final selected = i == _selected;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selected = i),
+            behavior: HitTestBehavior.opaque,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon,
-                    color: isPremium ? const Color(0xFFFFB300) : AppColors.cyan,
-                    size: context.sp(26)),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.amber, width: 0.8),
+                Text(
+                  _tabs[i],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? Colors.black87 : Colors.black45,
+                    fontSize: context.sp(12),
+                    fontWeight:
+                        selected ? FontWeight.w700 : FontWeight.w500,
+                    letterSpacing: 0.6,
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.workspace_premium, size: 9, color: Colors.amber),
-                    const SizedBox(width: 2),
-                    Text(isPremium ? 'Premium' : 'Free',
-                        style: TextStyle(
-                            fontSize: context.sp(8),
-                            color: isPremium ? Colors.amber : Colors.teal,
-                            fontWeight: FontWeight.bold)),
-                  ]),
+                ),
+                SizedBox(height: context.sh(5)),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? Colors.black87
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: context.sh(4)),
-            Text(title,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: context.sp(13),
-                    color: AppThemeColors.primaryText(context))),
-            SizedBox(height: context.sh(2)),
-            Text(
-              description,
-              style: TextStyle(
-                  color: AppThemeColors.secondaryText(context),
-                  fontSize: context.sp(11)),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      }),
     );
   }
 }
 
-// Feature card carousel with auto-scroll and round effect
-class _FeatureCardCarousel extends StatefulWidget {
+// ── Rotating app highlight cards ─────────────────────────────────────────────
+class _AppHighlightCard extends StatefulWidget {
   @override
-  State<_FeatureCardCarousel> createState() => _FeatureCardCarouselState();
+  State<_AppHighlightCard> createState() => _AppHighlightCardState();
 }
 
-class _FeatureCardCarouselState extends State<_FeatureCardCarousel> {
-  final PageController _controller = PageController(viewportFraction: 0.6);
-  int _currentPage = 0;
-  final List<Map<String, dynamic>> _features = [
+class _AppHighlightCardState extends State<_AppHighlightCard> {
+  int _current = 0;
+  Timer? _timer;
+
+  static const _cards = [
     {
       'icon': Icons.flash_on_rounded,
       'title': 'Quick Transactions',
-      'description': 'Lend & borrow instantly with one tap.'
+      'body': 'Lend & borrow money instantly with a single tap — no delays.',
+      'color': Color(0xFF0077B6),
     },
     {
       'icon': Icons.shield_rounded,
       'title': 'Secure Transactions',
-      'description': 'OTP-verified lending with interest & repayment schedule.'
+      'body': 'OTP-verified lending with interest calculation & repayment schedule.',
+      'color': Color(0xFF00B4D8),
     },
     {
       'icon': Icons.groups_rounded,
       'title': 'Group Expenses',
-      'description': 'Split bills and settle group expenses fairly.'
+      'body': 'Split bills fairly among friends and settle group expenses easily.',
+      'color': Color(0xFF0096C7),
     },
     {
       'icon': Icons.account_balance_wallet_rounded,
       'title': 'LenDen Wallet',
-      'description': 'In-app wallet for instant payments & withdrawals.'
+      'body': 'In-app wallet for instant payments, top-ups & withdrawals.',
+      'color': Color(0xFF023E8A),
     },
     {
       'icon': Icons.qr_code_scanner_rounded,
       'title': 'QR Payments',
-      'description': 'Scan a QR code to pay friends instantly.'
-    },
-    {
-      'icon': Icons.savings_rounded,
-      'title': 'Savings Goals',
-      'description': 'Set targets, track progress & hit your goals.',
-      'isPremium': true,
-    },
-    {
-      'icon': Icons.pie_chart_rounded,
-      'title': 'Budget Planning',
-      'description': 'Monthly limits by type & category with alerts.',
-      'isPremium': true,
+      'body': 'Scan a QR code to pay friends or receive money instantly.',
+      'color': Color(0xFF0077B6),
     },
     {
       'icon': Icons.auto_awesome_rounded,
       'title': 'Smart Insights',
-      'description': 'AI-powered spending analysis & predictions.',
-      'isPremium': true,
+      'body': 'AI-powered spending analysis and personalized money tips.',
+      'color': Color(0xFF00B4D8),
     },
     {
-      'icon': Icons.bar_chart_rounded,
-      'title': 'Reports & Analytics',
-      'description': 'Charts, trends & PDF export for any period.',
-      'isPremium': true,
-    },
-    {
-      'icon': Icons.grid_view_rounded,
-      'title': 'Spending Heatmap',
-      'description': '13-week visual calendar of your daily spending.',
-      'isPremium': true,
-    },
-    {
-      'icon': Icons.people_alt_rounded,
-      'title': 'Friend Balances',
-      'description': 'See exactly who owes you and what you owe.'
+      'icon': Icons.savings_rounded,
+      'title': 'Savings Goals',
+      'body': 'Set financial targets, track progress and celebrate milestones.',
+      'color': Color(0xFF0096C7),
     },
     {
       'icon': Icons.monetization_on_rounded,
       'title': 'LenDen Coins',
-      'description': 'Earn coins for activity & redeem rewards.'
-    },
-    {
-      'icon': Icons.repeat_rounded,
-      'title': 'Recurring Transactions',
-      'description': 'Auto-schedule recurring payments & reminders.',
-      'isPremium': true,
-    },
-    {
-      'icon': Icons.pin_rounded,
-      'title': 'Wallet PIN',
-      'description': 'Secure every outgoing payment with a 6-digit PIN.'
-    },
-    {
-      'icon': Icons.calendar_today_rounded,
-      'title': 'Due Date Calendar',
-      'description': 'Visual calendar of all upcoming due dates.'
-    },
-    {
-      'icon': Icons.star_rounded,
-      'title': 'Ratings',
-      'description': 'Build trust by rating your counterparties.',
-      'isPremium': true,
-    },
-    {
-      'icon': Icons.local_offer_rounded,
-      'title': 'Offers & Gifts',
-      'description': 'Exclusive coin offers & gift card rewards.'
-    },
-    {
-      'icon': Icons.support_agent_rounded,
-      'title': '24/7 Support',
-      'description': 'In-app help, disputes & live support queries.'
-    },
-    {
-      'icon': Icons.workspace_premium_rounded,
-      'title': 'Go Premium',
-      'description': 'Unlock Insights, Budget, Reports, Goals & more.',
-      'isPremium': true,
+      'body': 'Earn coins for every activity and redeem them for rewards.',
+      'color': Color(0xFF023E8A),
     },
   ];
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1800), _autoScroll);
-  }
-
-  void _autoScroll() {
-    if (!mounted) return;
-    int nextPage = _currentPage + 1;
-    if (nextPage >= _features.length) nextPage = 0;
-    _controller.animateToPage(
-      nextPage,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-    );
-    setState(() => _currentPage = nextPage);
-    Future.delayed(const Duration(milliseconds: 1800), _autoScroll);
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) setState(() => _current = (_current + 1) % _cards.length);
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: _controller,
-      itemCount: _features.length,
-      onPageChanged: (i) => setState(() => _currentPage = i),
-      itemBuilder: (context, i) {
-        final feature = _features[i];
-        final isActive = i == _currentPage;
-        final card = _FeatureCard(
-          icon: feature['icon'],
-          title: feature['title'],
-          description: feature['description'],
-          isPremium: (feature['isPremium'] as bool?) ?? false,
-        );
-        return Transform.scale(
-          scale: isActive ? 1.08 : 0.92,
-          child: Opacity(
-            opacity: isActive ? 1 : 0.7,
-            child: feature['title'] == 'Go Premium'
-                ? GestureDetector(
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
-                    child: card,
-                  )
-                : card,
+    final card = _cards[_current];
+    return Column(
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (child, anim) =>
+              FadeTransition(opacity: anim, child: child),
+          child: Container(
+            key: ValueKey(_current),
+            width: double.infinity,
+            padding: EdgeInsets.all(context.sw(18)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.07),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'About this app',
+                  style: TextStyle(
+                    fontSize: context.sp(11),
+                    color: Colors.grey.shade500,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                SizedBox(height: context.sh(8)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      card['icon'] as IconData,
+                      color: Colors.black87,
+                      size: context.sp(20),
+                    ),
+                    SizedBox(width: context.sw(12)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            card['title'] as String,
+                            style: TextStyle(
+                              fontSize: context.sp(15),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: context.sh(5)),
+                          Text(
+                            card['body'] as String,
+                            style: TextStyle(
+                              fontSize: context.sp(13),
+                              color: Colors.black54,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+        SizedBox(height: context.sh(8)),
+        // Page dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_cards.length, (i) {
+            final active = i == _current;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: active ? 16 : 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: active ? Colors.black54 : Colors.black12,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Avatar cluster ────────────────────────────────────────────────────────────
+class _AvatarCluster extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    const colors = [
+      Color(0xFF0077B6),
+      Color(0xFF00B4D8),
+      Color(0xFF48CAE4),
+    ];
+    const icons = [Icons.person, Icons.face, Icons.account_circle];
+    return SizedBox(
+      width: context.sw(68),
+      height: context.sw(28),
+      child: Stack(
+        children: List.generate(3, (i) {
+          return Positioned(
+            left: i * context.sw(18),
+            child: CircleAvatar(
+              radius: context.sw(14),
+              backgroundColor: Colors.white,
+              child: CircleAvatar(
+                radius: context.sw(12),
+                backgroundColor: colors[i],
+                child: Icon(icons[i], color: Colors.white, size: context.sp(13)),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// ── LenDen showcase card (Exotic Bali style) ──────────────────────────────────
+class _LenDenShowcaseCard extends StatefulWidget {
+  @override
+  State<_LenDenShowcaseCard> createState() => _LenDenShowcaseCardState();
+}
+
+class _LenDenShowcaseCardState extends State<_LenDenShowcaseCard> {
+  bool _collapsed = true;
+
+  @override
+  Widget build(BuildContext context) {
+    // Sage green — matches the warm muted green of "Exotic Bali" in the reference
+    const sageGreen = Color(0xFFC8CBBA);
+    const darkText = Color(0xFF1A1A1A);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: sageGreen,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+              color: Colors.black12, blurRadius: 12, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header row ────────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.fromLTRB(context.sw(18), context.sh(18),
+                context.sw(14), context.sh(12)),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'LenDen',
+                        style: TextStyle(
+                          fontSize: context.sp(26),
+                          fontWeight: FontWeight.w800,
+                          color: darkText,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(height: context.sh(2)),
+                      Text(
+                        'Smart Money Management',
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: darkText.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => setState(() => _collapsed = !_collapsed),
+                  child: Container(
+                    padding: EdgeInsets.all(context.sw(8)),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _collapsed
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_up_rounded,
+                      color: darkText,
+                      size: context.sp(18),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ── Avatar + Get Started ──────────────────────────────
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: context.sw(18)),
+            child: Row(
+              children: [
+                _AvatarCluster(),
+                SizedBox(width: context.sw(12)),
+                Consumer<SessionProvider>(
+                  builder: (context, session, _) => GestureDetector(
+                    onTap: () {
+                      if (session.token != null && session.user != null) {
+                        if (session.isAdmin) {
+                          Navigator.pushNamed(context, '/admin/dashboard');
+                        } else {
+                          Navigator.pushNamed(context, '/user/dashboard');
+                        }
+                      } else {
+                        Navigator.pushNamed(context, '/login');
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.sw(14),
+                          vertical: context.sh(7)),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.9)),
+                      ),
+                      child: Text(
+                        'Get Started',
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          fontWeight: FontWeight.w600,
+                          color: darkText,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: context.sh(14)),
+          // ── Feature row ───────────────────────────────────────
+          _ShowcaseRow(
+            icon: Icons.location_on_rounded,
+            label: 'Quick • Secure • Group Transactions',
+            darkText: darkText,
+          ),
+          SizedBox(height: context.sh(12)),
+          // ── Two action buttons ────────────────────────────────
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: context.sw(18)),
+            child: Row(
+              children: [
+                // About button
+                GestureDetector(
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AboutPage())),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: context.sw(20),
+                        vertical: context.sh(8)),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.9)),
+                    ),
+                    child: Text(
+                      'About',
+                      style: TextStyle(
+                        fontSize: context.sp(13),
+                        fontWeight: FontWeight.w600,
+                        color: darkText,
+                      ),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Explore button
+                Consumer<SessionProvider>(
+                  builder: (context, session, _) => GestureDetector(
+                    onTap: () {
+                      if (session.token != null && session.user != null) {
+                        if (session.isAdmin) {
+                          Navigator.pushNamed(context, '/admin/dashboard');
+                        } else {
+                          Navigator.pushNamed(context, '/user/dashboard');
+                        }
+                      } else {
+                        Navigator.pushNamed(context, '/login');
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.sw(20),
+                          vertical: context.sh(8)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Explore',
+                        style: TextStyle(
+                          fontSize: context.sp(13),
+                          fontWeight: FontWeight.w600,
+                          color: darkText,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ── Collapsed: sub-items ─────────────────────────────
+          if (!_collapsed) ...[
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: darkText.withValues(alpha: 0.12),
+              indent: context.sw(18),
+              endIndent: context.sw(18),
+            ),
+            SizedBox(height: context.sh(12)),
+            // Sub-items: all app features
+            ...[
+              (Icons.flash_on_rounded,          'Quick Transactions',    'Lend & borrow instantly with one tap'),
+              (Icons.shield_rounded,             'Secure Transactions',   'OTP-verified lending with interest & repayment'),
+              (Icons.groups_rounded,             'Group Expenses',        'Split bills & settle group expenses fairly'),
+              (Icons.account_balance_wallet_rounded, 'LenDen Wallet',    'In-app wallet for instant payments & withdrawals'),
+              (Icons.qr_code_scanner_rounded,    'QR Payments',          'Scan a QR code to pay friends instantly'),
+              (Icons.people_alt_rounded,         'Friend Balances',       'See exactly who owes you & what you owe'),
+              (Icons.pin_rounded,                'Wallet PIN',            'Secure every payment with a 6-digit PIN'),
+              (Icons.monetization_on_rounded,    'LenDen Coins',         'Earn coins for activity & redeem rewards'),
+              (Icons.calendar_today_rounded,     'Due Date Calendar',     'Visual calendar of all upcoming due dates'),
+              (Icons.local_offer_rounded,        'Offers & Gifts',        'Exclusive coin offers & gift card rewards'),
+              (Icons.support_agent_rounded,      '24/7 Support',          'In-app help, disputes & live chat'),
+              (Icons.repeat_rounded,             'Recurring Payments',    'Auto-schedule recurring payments & reminders'),
+              (Icons.savings_rounded,            'Savings Goals',         'Set targets, track progress & hit milestones'),
+              (Icons.pie_chart_rounded,          'Budget Planning',       'Monthly limits by category with alerts'),
+              (Icons.auto_awesome_rounded,       'Smart Insights',        'AI-powered spending analysis & predictions'),
+              (Icons.bar_chart_rounded,          'Reports & Analytics',   'Charts, trends & PDF export for any period'),
+              (Icons.grid_view_rounded,          'Spending Heatmap',      '13-week visual calendar of daily spending'),
+              (Icons.star_rounded,               'Ratings',               'Build trust by rating your counterparties'),
+              (Icons.workspace_premium_rounded,  'Go Premium',            'Unlock Insights, Budget, Reports, Goals & more'),
+            ].map(
+              (item) => Padding(
+                padding: EdgeInsets.fromLTRB(
+                    context.sw(18), 0, context.sw(18), context.sh(10)),
+                child: Row(
+                  children: [
+                    Container(
+                      width: context.sw(42),
+                      height: context.sw(42),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(item.$1,
+                          color: darkText, size: context.sp(20)),
+                    ),
+                    SizedBox(width: context.sw(12)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.$2,
+                            style: TextStyle(
+                              fontSize: context.sp(13),
+                              fontWeight: FontWeight.w600,
+                              color: darkText,
+                            ),
+                          ),
+                          Text(
+                            item.$3,
+                            style: TextStyle(
+                              fontSize: context.sp(11),
+                              color: darkText.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // small image-like colored block (top-right thumbnail in reference)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/icon.png',
+                        width: context.sw(40),
+                        height: context.sw(40),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: context.sw(40),
+                          height: context.sw(40),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(item.$1,
+                              color: darkText.withValues(alpha: 0.5),
+                              size: context.sp(18)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: context.sh(4)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ShowcaseRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color darkText;
+  const _ShowcaseRow(
+      {required this.icon, required this.label, required this.darkText});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: context.sw(18)),
+      child: Row(
+        children: [
+          Icon(icon,
+              size: context.sp(15),
+              color: darkText.withValues(alpha: 0.6)),
+          SizedBox(width: context.sw(8)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: context.sp(13),
+              color: darkText.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Bottom navigation item ────────────────────────────────────────────────────
+class _LandingNavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+  const _LandingNavItem(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      this.active = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? Colors.black87 : Colors.grey.shade500;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: context.sw(6)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: context.sp(22)),
+            SizedBox(height: context.sh(3)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: context.sp(10),
+                color: color,
+                fontWeight:
+                    active ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+            SizedBox(height: context.sh(3)),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                color: active ? Colors.black87 : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -9,8 +9,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
+import '../../utils/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -336,41 +338,31 @@ class _ContactPageState extends State<ContactPage> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context).t;
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: AppThemeColors.scaffoldBg(context),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppThemeColors.primaryText(context)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          t('contact_us_title'),
-          style: TextStyle(
-            color: AppThemeColors.primaryText(context),
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
       body: Stack(
         children: [
-          // Top wave — same clipper & colour as user dashboard
+          // Profile-style wave header
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _WaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
-                height: (MediaQuery.of(context).padding.top + kToolbarHeight) * 1.5,
-                color: AppColors.cyan,
+                height: context.sh(78),
+                color: AppThemeColors.waveSolid(context),
               ),
+            ),
+          ),
+          // Floating back button on wave
+          Positioned(
+            top: MediaQuery.of(context).padding.top,
+            left: 0,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
           _loading
@@ -385,263 +377,255 @@ class _ContactPageState extends State<ContactPage> {
     final t = AppLocalizations.of(context).t;
     final channels = _buildChannels();
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+      padding: EdgeInsets.fromLTRB(
+          context.hPadding, context.sh(20), context.hPadding, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Hero card ──────────────────────────────────────────
-          tricolorBorder(
-            radius: 26,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _sky,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    padding: const EdgeInsets.all(14),
-                    child: Image.asset(
-                      'assets/icon.png',
-                      width: 54,
-                      height: 54,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.support_agent_rounded,
-                        size: 44,
-                        color: Colors.white,
+          // ── Profile-style header ───────────────────────────────
+          SizedBox(height: context.sh(12)),
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(context.sw(14)),
+                  decoration: BoxDecoration(
+                    color: _sky,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _sky.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/icon.png',
+                    width: context.sw(52),
+                    height: context.sw(52),
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.support_agent_rounded,
+                      size: context.sp(44),
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    (_config['heroTitle'] ?? 'Contact Us').toString(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: AppThemeColors.primaryText(context),
-                    ),
+                ),
+                SizedBox(height: context.sh(12)),
+                Text(
+                  (_config['heroTitle'] ?? 'Contact Us').toString(),
+                  style: TextStyle(
+                    fontSize: context.sp(22),
+                    fontWeight: FontWeight.w800,
+                    color: AppThemeColors.primaryText(context),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    (_config['heroDescription'] ?? '').toString(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.6,
-                      color: AppThemeColors.secondaryText(context),
-                    ),
+                ),
+                SizedBox(height: context.sh(4)),
+                Text(
+                  (_config['heroDescription'] ?? '').toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: context.sp(13),
+                    height: 1.5,
+                    color: AppThemeColors.secondaryText(context),
                   ),
-                  if (_fetchError != null) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Text(
-                        _fetchError!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 14),
+                ),
+                if (_fetchError != null) ...[
+                  SizedBox(height: context.sh(8)),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                        horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: _sky.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: _sky.withValues(alpha: 0.25)),
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.red.shade200),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.access_time_rounded,
-                            size: 15, color: _deepBlue),
-                        const SizedBox(width: 6),
-                        Text(
-                          t('typically_responds_24h_message'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _deepBlue,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      _fetchError!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: context.sp(12),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 26),
-
-          // ── Contact channels ───────────────────────────────────
-          _sectionLabel(t('reach_out_label')),
-          const SizedBox(height: 12),
-          ...channels.map(
-            (ch) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: tricolorBorder(
-                radius: 22,
-                child: _ChannelCard(
-                  entry: ch,
-                  onTap: () => _openChannel(ch.channel, ch.fallbackPrefix),
-                  onCopy: (ch.key == 'email' || ch.key == 'phone')
-                      ? () => _copyToClipboard(
-                          (ch.channel['value'] ?? '').toString())
-                      : null,
+                SizedBox(height: context.sh(10)),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _sky.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(30),
+                    border:
+                        Border.all(color: _sky.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time_rounded,
+                          size: 14, color: _deepBlue),
+                      const SizedBox(width: 6),
+                      Text(
+                        t('typically_responds_24h_message'),
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: _deepBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
+          SizedBox(height: context.sh(22)),
 
-          const SizedBox(height: 26),
-
-          // ── Send a message form ────────────────────────────────
-          _sectionLabel(t('send_a_message_label')),
-          const SizedBox(height: 12),
-          tricolorBorder(
-            radius: 24,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: _submitted ? _buildSuccess() : _buildForm(),
+          // ── Reach Out section ──────────────────────────────────
+          if (channels.isNotEmpty)
+            _sectionCard(
+              t('reach_out_label'),
+              channels
+                  .map((ch) => _channelField(
+                        ch,
+                        onTap: () =>
+                            _openChannel(ch.channel, ch.fallbackPrefix),
+                        onCopy: (ch.key == 'email' || ch.key == 'phone')
+                            ? () => _copyToClipboard(
+                                (ch.channel['value'] ?? '').toString())
+                            : null,
+                      ))
+                  .toList(),
             ),
-          ),
+          SizedBox(height: context.sh(14)),
 
-          const SizedBox(height: 26),
-
-          // ── My Messages ────────────────────────────────────────
-          Row(
-            children: [
-              Expanded(child: _sectionLabel(t('my_messages_label'))),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 18, color: _sky),
-                onPressed: _loadMyMessages,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                tooltip: t('refresh_label'),
+          // ── Send a Message section ─────────────────────────────
+          _sectionCard(
+            t('send_a_message_label'),
+            [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: _submitted ? _buildSuccess() : _buildForm(),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Category filter chips for My Messages
-          Builder(builder: (_) {
-            final usedCats = <String>['All',
-              ..._categories.where(
-                (c) => _myMessages.any((m) => (m['category'] as String?) == c),
-              )];
-            return SizedBox(
-              height: 32,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: usedCats.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final cat = usedCats[i];
-                  final active = _categoryFilter == cat;
-                  return GestureDetector(
-                    onTap: () => setState(() => _categoryFilter = cat),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: active
-                            ? _deepBlue
-                            : _deepBlue.withValues(alpha: 0.07),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: active
-                              ? _deepBlue
-                              : _deepBlue.withValues(alpha: 0.2),
+          SizedBox(height: context.sh(14)),
+
+          // ── My Messages section ────────────────────────────────
+          _sectionCard(
+            t('my_messages_label'),
+            [
+              // Category filter chips
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Builder(builder: (_) {
+                  final usedCats = <String>[
+                    'All',
+                    ..._categories.where(
+                      (c) => _myMessages
+                          .any((m) => (m['category'] as String?) == c),
+                    )
+                  ];
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 32,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: usedCats.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 8),
+                            itemBuilder: (_, i) {
+                              final cat = usedCats[i];
+                              final active = _categoryFilter == cat;
+                              return GestureDetector(
+                                onTap: () =>
+                                    setState(() => _categoryFilter = cat),
+                                child: AnimatedContainer(
+                                  duration:
+                                      const Duration(milliseconds: 180),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: active
+                                        ? _deepBlue
+                                        : _deepBlue.withValues(alpha: 0.07),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: active
+                                          ? _deepBlue
+                                          : _deepBlue
+                                              .withValues(alpha: 0.2),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _categoryLabel(cat, t),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: active
+                                          ? Colors.white
+                                          : _deepBlue,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                      child: Text(
-                        _categoryLabel(cat, t),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: active ? Colors.white : _deepBlue,
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded,
+                            size: 18, color: _sky),
+                        onPressed: _loadMyMessages,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: t('refresh_label'),
                       ),
-                    ),
+                    ],
                   );
-                },
+                }),
               ),
-            );
-          }),
-          const SizedBox(height: 12),
-          if (_loadingMessages)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator(color: _sky)),
-            )
-          else if (_visibleMessages.isEmpty)
-            tricolorBorder(
-              radius: 20,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppThemeColors.cardBg(context),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Center(
+              const SizedBox(height: 4),
+              if (_loadingMessages)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child:
+                      Center(child: CircularProgressIndicator(color: _sky)),
+                )
+              else if (_visibleMessages.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   child: Text(
                     _myMessages.isEmpty
                         ? t('no_messages_yet_below_message')
                         : t('no_messages_in_category_message'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: AppThemeColors.mutedText(context), fontSize: 13),
+                        color: AppThemeColors.mutedText(context),
+                        fontSize: 13),
                   ),
-                ),
-              ),
-            )
-          else
-            ..._visibleMessages.map(_buildMyMessageCard),
-
-          const SizedBox(height: 26),
+                )
+              else
+                ..._visibleMessages.map(_buildMyMessageCard),
+            ],
+          ),
+          SizedBox(height: context.sh(14)),
 
           // ── FAQ section ────────────────────────────────────────
-          _sectionLabel(t('frequently_asked_label')),
-          const SizedBox(height: 12),
-          tricolorBorder(
-            radius: 24,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                children: _faqItems.asMap().entries.map((e) {
-                  return _FaqTileWidget(
-                    item: e.value,
-                    isLast: e.key == _faqItems.length - 1,
-                  );
-                }).toList(),
-              ),
-            ),
+          _sectionCard(
+            t('frequently_asked_label'),
+            _faqItems.asMap().entries.map((e) {
+              return _FaqTileWidget(
+                item: e.value,
+                isLast: e.key == _faqItems.length - 1,
+              );
+            }).toList(),
           ),
+          SizedBox(height: context.sh(16)),
         ],
       ),
     );
@@ -666,14 +650,14 @@ class _ContactPageState extends State<ContactPage> {
     final statusColor = statusColors[status] ?? Colors.grey;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: tricolorBorder(
-        radius: 20,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppThemeColors.scaffoldBg(context),
-          ),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppThemeColors.scaffoldBg(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppThemeColors.border(context)),
+        ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -792,35 +776,126 @@ class _ContactPageState extends State<ContactPage> {
             ],
           ),
         ),
+    );
+  }
+
+  Widget _sectionCard(String title, List<Widget> rows) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: AppThemeColors.cardBg(context),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 13, 16, 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: AppColors.cyan,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: context.sp(10),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.cyan,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: AppThemeColors.border(context)),
+          ...rows,
+          const SizedBox(height: 4),
+        ],
       ),
     );
   }
 
-  Widget _sectionLabel(String label) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_deepBlue, _sky],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+  Widget _channelField(
+    _ChannelEntry entry, {
+    required VoidCallback onTap,
+    VoidCallback? onCopy,
+  }) {
+    final label = (entry.channel['label'] ?? '').toString();
+    final value = (entry.channel['value'] ?? '').toString();
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: entry.tint.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: entry.faIcon != null
+                  ? Center(
+                      child: FaIcon(entry.faIcon, color: entry.tint, size: 18))
+                  : Icon(entry.icon, color: entry.tint, size: 18),
             ),
-            borderRadius: BorderRadius.circular(2),
-          ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: context.sp(11),
+                      color: AppThemeColors.secondaryText(context),
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: context.sp(15),
+                      fontWeight: FontWeight.w600,
+                      color: AppThemeColors.primaryText(context),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            ),
+            if (onCopy != null)
+              IconButton(
+                icon: Icon(Icons.copy_rounded,
+                    size: 18,
+                    color: AppThemeColors.mutedText(context)),
+                onPressed: onCopy,
+                constraints:
+                    const BoxConstraints(maxWidth: 36, maxHeight: 36),
+                padding: EdgeInsets.zero,
+                tooltip: AppLocalizations.of(context).t('copy_label'),
+              ),
+            Icon(Icons.arrow_forward_ios_rounded,
+                size: 13,
+                color: entry.tint.withValues(alpha: 0.7)),
+          ],
         ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppThemeColors.primaryText(context),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1102,114 +1177,6 @@ class _ChannelEntry {
     required this.tint,
     required this.fallbackPrefix,
   });
-}
-
-class _ChannelCard extends StatelessWidget {
-  final _ChannelEntry entry;
-  final VoidCallback onTap;
-  final VoidCallback? onCopy;
-
-  const _ChannelCard({
-    required this.entry,
-    required this.onTap,
-    this.onCopy,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final label = (entry.channel['label'] ?? '').toString();
-    final value = (entry.channel['value'] ?? '').toString();
-
-    return Material(
-      color: AppThemeColors.cardBg(context),
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: entry.tint.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: entry.faIcon != null
-                    ? Center(
-                        child: FaIcon(entry.faIcon,
-                            color: entry.tint, size: 22))
-                    : Icon(entry.icon, color: entry.tint, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppThemeColors.primaryText(context),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppThemeColors.secondaryText(context),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ],
-                ),
-              ),
-              if (onCopy != null)
-                IconButton(
-                  icon: Icon(Icons.copy_rounded,
-                      size: 18, color: AppThemeColors.mutedText(context)),
-                  onPressed: onCopy,
-                  constraints:
-                      const BoxConstraints(maxWidth: 36, maxHeight: 36),
-                  padding: EdgeInsets.zero,
-                  tooltip: AppLocalizations.of(context).t('copy_label'),
-                ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 13,
-                color: entry.tint.withValues(alpha: 0.7),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── FAQ ───────────────────────────────────────────────────────────────────────
-
-class _WaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_WaveClipper oldClipper) => false;
 }
 
 class _FaqItem {
