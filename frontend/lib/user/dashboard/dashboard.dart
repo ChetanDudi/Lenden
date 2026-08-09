@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
@@ -43,6 +43,10 @@ import '../../widgets/birthday_banner.dart';
 import '../reports/reports_page.dart';
 import '../budget/budget_planning_page.dart';
 import '../insights/smart_insights_page.dart';
+import 'widgets/dashboard_clipper.dart';
+import 'widgets/dashboard_analytics_card.dart';
+import 'widgets/dashboard_option_card.dart';
+import 'widgets/dashboard_greeting_card.dart';
 
 enum _QuickActionsViewStyle {
   grid,
@@ -251,7 +255,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
     _adTimer?.cancel();
     if (!mounted) return;
     final session = Provider.of<SessionProvider>(context, listen: false);
-    // Ads are a user-only feature — never show them to an admin session.
+    // Ads are a user-only feature â€” never show them to an admin session.
     if (session.role == 'admin') return;
     if (session.isSubscribed) return;
     if (_adsShownThisSession >= 3) return;
@@ -1186,7 +1190,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 // S-curve wave background (vertical mirror of TopWaveClipper)
                 Positioned.fill(
                   child: ClipPath(
-                    clipper: _BottomNavWaveClipper(),
+                    clipper: BottomNavWaveClipper(),
                     child: Container(color: AppThemeColors.waveSolid(context)),
                   ),
                 ),
@@ -1253,13 +1257,18 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ── Own birthday celebration banner ──────────────────
+                    // â”€â”€ Own birthday celebration banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     Builder(builder: (bCtx) {
                       final sess = Provider.of<SessionProvider>(bCtx, listen: false);
                       return BirthdayBanner(birthdayRaw: sess.user?['birthday']?.toString());
                     }),
                     const SizedBox(height: 8),
-                    _buildGreetingCard(context),
+                    DashboardGreetingCard(
+                      greetingSubtitle: _greetingSubtitle,
+                      dailyTip: _dailyTip,
+                      netLent: _netLent,
+                      netBorrowed: _netBorrowed,
+                    ),
                     const SizedBox(height: 4),
                     // Search Bar with tricolor border + view menu
                     Padding(
@@ -1362,7 +1371,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                       ),
                     ),
 
-                    // Quick Actions — selectable view style
+                    // Quick Actions â€” selectable view style
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -1443,19 +1452,19 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
                     const SizedBox(height: 16),
 
-                    // ── Analytics & Planning ─────────────────────────
+                    // â”€â”€ Analytics & Planning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                       child: Row(
                         children: [
-                          Expanded(child: _buildAnalyticsCard(
+                          Expanded(child: DashboardAnalyticsCard(
                             icon: Icons.bar_chart_rounded,
                             color: const Color(0xFF00BCD4),
                             label: t('reports_title'),
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsPage())),
                           )),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildAnalyticsCard(
+                          Expanded(child: DashboardAnalyticsCard(
                             icon: Icons.savings_outlined,
                             color: const Color(0xFF4CAF50),
                             label: t('budget_planning_title'),
@@ -1463,7 +1472,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                                 .then((_) => _fetchSavingsGoals()),
                           )),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildAnalyticsCard(
+                          Expanded(child: DashboardAnalyticsCard(
                             icon: Icons.auto_awesome_rounded,
                             color: const Color(0xFF9C27B0),
                             label: t('smart_insights_title'),
@@ -1475,7 +1484,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
                     const SizedBox(height: 16),
 
-                    // ── Savings Goals ─────────────────────────────────
+                    // â”€â”€ Savings Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     KeyedSubtree(
                       key: _sectionKeys['savings_goals'],
                       child: _buildSavingsGoalsCard(context),
@@ -2329,7 +2338,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getBoxColor(index, context),
+                color: getDashboardBoxColor(index, context),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: context.sp(22)),
@@ -2351,14 +2360,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
   List<Widget> _buildTransactionOptionCards() {
     return [
-      _buildDashboardOptionCard(
+      DashboardOptionCard(
         key: _sectionKeys['quick_transactions'],
         icon: Icons.flash_on,
         title: t('quick_transactions_title'),
         subtitle: t('fast_entries_shortcuts_desc'),
         valueLabel: t('quick_label'),
         iconColor: Colors.amber,
-        fillColor: _getBoxColor(0, context),
+        fillColor: getDashboardBoxColor(0, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2367,25 +2376,25 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
       ),
-      _buildDashboardOptionCard(
+      DashboardOptionCard(
         key: _sectionKeys['transactions'],
         icon: Icons.swap_horiz,
         title: t('create_secure_transactions_title'),
         subtitle: t('start_secure_transaction_desc'),
         valueLabel: t('create'),
         iconColor: Colors.teal,
-        fillColor: _getBoxColor(1, context),
+        fillColor: getDashboardBoxColor(1, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: showTransactionForm,
       ),
-      _buildDashboardOptionCard(
+      DashboardOptionCard(
         key: _sectionKeys['your_transactions'],
         icon: Icons.account_balance_wallet,
         title: t('view_secure_transactions_title'),
         subtitle: t('see_all_secure_records_desc'),
         valueLabel: t('view_label'),
         iconColor: Colors.blue,
-        fillColor: _getBoxColor(2, context),
+        fillColor: getDashboardBoxColor(2, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2394,14 +2403,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
       ),
-      _buildDashboardOptionCard(
+      DashboardOptionCard(
         key: _sectionKeys['analytics'],
         icon: Icons.analytics,
         title: t('analytics'),
         subtitle: t('secure_and_group_insights_desc'),
         valueLabel: t('stats_label'),
         iconColor: AppColors.cyan,
-        fillColor: _getBoxColor(3, context),
+        fillColor: getDashboardBoxColor(3, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2410,14 +2419,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
       ),
-      _buildDashboardOptionCard(
+      DashboardOptionCard(
         key: _sectionKeys['group_transaction'],
         icon: Icons.group,
         title: t('create_group_title'),
         subtitle: t('start_shared_expense_group_desc'),
         valueLabel: t('create'),
         iconColor: Colors.deepPurple,
-        fillColor: _getBoxColor(4, context),
+        fillColor: getDashboardBoxColor(4, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2426,14 +2435,14 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ),
         ),
       ),
-      _buildDashboardOptionCard(
+      DashboardOptionCard(
         key: _sectionKeys['view_group'],
         icon: Icons.visibility,
         title: t('view_groups_title'),
         subtitle: t('open_your_group_transactions_desc'),
         valueLabel: t('view_label'),
         iconColor: Colors.orange,
-        fillColor: _getBoxColor(5, context),
+        fillColor: getDashboardBoxColor(5, context),
         showSubtitle: !_useCompactTransactionOptions,
         onTap: () => Navigator.push(
           context,
@@ -2530,7 +2539,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // ── Header row ────────────────────────────────────────
+          // â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Row(children: [
             const Icon(Icons.savings_rounded, color: cardColor, size: 20),
             const SizedBox(width: 8),
@@ -2555,7 +2564,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
           ]),
           const SizedBox(height: 12),
 
-          // ── Empty state ──────────────────────────────────────
+          // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           if (active.isEmpty)
             GestureDetector(
               onTap: goToGoalsTab,
@@ -2584,7 +2593,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
             )
 
-          // ── Goal cards — horizontal scroll ────────────────────
+          // â”€â”€ Goal cards â€” horizontal scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           else
             SizedBox(
               height: 96,
@@ -2620,7 +2629,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                       Row(children: [
-                        Text(g['emoji']?.toString() ?? '🎯',
+                        Text(g['emoji']?.toString() ?? 'ðŸŽ¯',
                             style: const TextStyle(fontSize: 16)),
                         const SizedBox(width: 5),
                         Expanded(child: Text(g['name']?.toString() ?? '',
@@ -2630,7 +2639,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
                           overflow: TextOverflow.ellipsis, maxLines: 1)),
                       ]),
                       const SizedBox(height: 5),
-                      Text('₹${saved.toStringAsFixed(0)} / ₹${target.toStringAsFixed(0)}',
+                      Text('â‚¹${saved.toStringAsFixed(0)} / â‚¹${target.toStringAsFixed(0)}',
                           style: TextStyle(fontSize: context.sp(11),
                               color: goalColor, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 5),
@@ -2661,243 +2670,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
               ),
             ),
         ]),
-      ),
-    );
-  }
-
-  Widget _buildGreetingCard(BuildContext context) {
-    final session = Provider.of<SessionProvider>(context, listen: false);
-    final name    = (session.user?['name'] as String? ?? '').split(' ').first;
-    final hour = DateTime.now().hour;
-    final (greeting, emoji) = hour >= 5 && hour < 12
-        ? ('Good Morning', '🌅')
-        : hour >= 12 && hour < 17
-            ? ('Good Afternoon', '☀️')
-            : hour >= 17 && hour < 21
-                ? ('Good Evening', '🌇')
-                : ('Good Night', '🌙');
-
-    const tips = [
-      '💡 Track every expense — small ones add up fast.',
-      '📊 Review your budget weekly to stay on track.',
-      '🎯 Setting a savings goal makes spending intentional.',
-      '🔁 Automate savings before you spend.',
-      '📉 Cutting one subscription can save ₹1,000+/year.',
-      '🧾 Split group expenses fairly — use LenDen Groups.',
-      '⚡ Quick transactions under ₹500 drain budgets silently.',
-      '📅 End-of-month reviews reveal your biggest leaks.',
-      '🏆 A 3-month budget streak builds lasting habits.',
-      '💸 Pay yourself first — save before you splurge.',
-      '🔍 Audit your subscriptions every 3 months.',
-      '📆 Plan big purchases a month ahead.',
-    ];
-    final tip = tips[_dailyTip % tips.length];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.cyan.withValues(alpha: 0.15), Colors.deepPurple.withValues(alpha: 0.08)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.cyan.withValues(alpha: 0.2)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Text(emoji, style: const TextStyle(fontSize: 26)),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                name.isNotEmpty ? '$greeting, $name!' : greeting,
-                style: TextStyle(fontSize: context.sp(16), fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context)),
-              ),
-              Text(
-                _greetingSubtitle,
-                style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.secondaryText(context)),
-              ),
-              if (_netLent != null) ...[
-                const SizedBox(height: 4),
-                Builder(builder: (_) {
-                  final net = (_netLent ?? 0) - (_netBorrowed ?? 0);
-                  final isPositive = net >= 0;
-                  final color = isPositive ? Colors.green.shade600 : Colors.red.shade600;
-                  final key = isPositive ? 'net_positive_label' : 'net_negative_label';
-                  final label = AppLocalizations.of(_).t(key).replaceAll('{amount}', net.abs().toStringAsFixed(0));
-                  return Text(label,
-                      style: TextStyle(fontSize: context.sp(11), color: color, fontWeight: FontWeight.w600));
-                }),
-              ],
-            ])),
-          ]),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.cyan.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(tip,
-                style: TextStyle(fontSize: context.sp(11), color: AppThemeColors.primaryText(context), height: 1.4)),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildAnalyticsCard({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Container(
-          margin: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(
-            color: AppThemeColors.cardBg(context),
-            borderRadius: BorderRadius.circular(14.5),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 18),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: context.sp(10),
-                  fontWeight: FontWeight.w600,
-                  color: AppThemeColors.primaryText(context),
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDashboardOptionCard({
-    Key? key,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String valueLabel,
-    required Color iconColor,
-    required Color fillColor,
-    required bool showSubtitle,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      key: key,
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            colors: [Colors.orange, Colors.white, Colors.green],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: fillColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 42,
-                  width: 42,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: AppThemeColors.cardBg(context).withValues(alpha: 0.92),
-                  ),
-                  child: Icon(icon, color: iconColor),
-                ),
-                const Spacer(),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: context.sp(14),
-                    fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  valueLabel,
-                  style: TextStyle(
-                    fontSize: context.sp(16),
-                    fontWeight: FontWeight.w700,
-                    color: iconColor,
-                  ),
-                ),
-                if (showSubtitle) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: context.sp(11),
-                      color: AppThemeColors.secondaryText(context),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -2992,7 +2764,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
       label: label,
       child: Tooltip(
       message: label,
-      // Outer tricolor ring — identical to profile pic border
+      // Outer tricolor ring â€” identical to profile pic border
       child: Container(
         width: 36,
         height: 36,
@@ -3035,40 +2807,3 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
 }
 
-
-// Vertical mirror of TopWaveClipper — wave edge at top, solid teal below
-class _BottomNavWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.moveTo(0, size.height);
-    path.lineTo(0, size.height * 0.3);
-    path.quadraticBezierTo(
-        size.width * 0.25, 0, size.width * 0.5, size.height * 0.3);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.6, size.width, size.height * 0.3);
-    path.lineTo(size.width, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_BottomNavWaveClipper oldClipper) => false;
-}
-
-
-Color _getBoxColor(int index, BuildContext context) {
-  if (AppThemeColors.isDark(context)) {
-    return AppThemeColors.surfaceBg(context);
-  }
-  // Returns alternating soft colors for visual variety
-  final colors = [
-    Color(0xFFE8F5E9), // Soft green
-    Color(0xFFFFF8E7), // Soft cream
-    Color(0xFFF3E5F5), // Soft purple
-    Color(0xFFE8F5F7), // Soft blue
-    Color(0xFFFCE4EC), // Soft pink
-    Color(0xFFFFF3E0), // Soft orange
-  ];
-  return colors[index % colors.length];
-}

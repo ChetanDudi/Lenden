@@ -223,8 +223,8 @@ module.exports = (io) => {
   router.get('/transactions/user', auth, transactionController.getUserTransactions);
 
   // Partial payment routes
-  router.post('/transactions/send-partial-payment-otp', auth, transactionController.sendPartialPaymentOTP);
-  router.post('/transactions/verify-partial-payment-otp', auth, transactionController.verifyPartialPaymentOTP);
+  router.post('/transactions/send-partial-payment-otp', auth, otpSendLimiter, transactionController.sendPartialPaymentOTP);
+  router.post('/transactions/verify-partial-payment-otp', auth, otpVerifyLimiter, transactionController.verifyPartialPaymentOTP);
   router.post('/transactions/partial-payment/verify-pin', auth, transactionController.verifyPartialPaymentPin);
   router.post('/transactions/verify-creation-pin', auth, transactionController.verifyTransactionCreationPin);
   router.post('/transactions/partial-payment', auth, transactionController.processPartialPayment);
@@ -336,7 +336,7 @@ module.exports = (io) => {
   router.post('/group-transactions/:groupId/expenses/:expenseId/settle', auth, groupTransactionController.settleExpenseSplits);
   router.post('/group-transactions/:groupId/request-leave', auth, groupTransactionController.requestLeave);
   router.post('/group-transactions/:groupId/settle-balance', auth, groupTransactionController.settleBalance);
-  router.post('/group-transactions/:groupId/otp-verify-settle', auth, groupTransactionController.otpVerifySettle);
+  router.post('/group-transactions/:groupId/otp-verify-settle', auth, otpVerifyLimiter, groupTransactionController.otpVerifySettle);
   // New: Get all groups for the logged-in user
   router.get('/group-transactions/user-groups', auth, groupTransactionController.getUserGroups);
   // New: Update group color
@@ -380,8 +380,8 @@ module.exports = (io) => {
   router.post('/users/change-password/verify-identity', auth, otpVerifyLimiter, settingsController.verifyChangePasswordIdentity);
 
   // Alternative Email
-  router.post('/users/alternative-email/send-otp', auth, settingsController.sendAlternativeEmailOTP);
-  router.post('/users/alternative-email/verify-otp', auth, settingsController.verifyAlternativeEmailOTP);
+  router.post('/users/alternative-email/send-otp', auth, otpSendLimiter, settingsController.sendAlternativeEmailOTP);
+  router.post('/users/alternative-email/verify-otp', auth, otpVerifyLimiter, settingsController.verifyAlternativeEmailOTP);
   router.put('/users/alternative-email', auth, settingsController.updateAlternativeEmail);
   router.delete('/users/alternative-email', auth, settingsController.removeAlternativeEmail);
 
@@ -550,13 +550,13 @@ module.exports = (io) => {
   router.post('/wallet/topup/manual/verify', auth, manualPaymentVerifyLimiter, walletController.verifyManualTopUp);
 
   // Pay User — send OTP or use PIN, then transfer
-  router.post('/wallet/auth/send-otp', auth, walletController.sendWalletAuthOtp);
-  router.post('/wallet/pay/send-otp', auth, walletController.sendPayOtp); // legacy — kept for existing OTP-only flow
-  router.post('/wallet/pay/verify-otp', auth, walletAuthMiddleware, walletController.payToUserWithOtp);
+  router.post('/wallet/auth/send-otp', auth, otpSendLimiter, walletController.sendWalletAuthOtp);
+  router.post('/wallet/pay/send-otp', auth, otpSendLimiter, walletController.sendPayOtp); // legacy — kept for existing OTP-only flow
+  router.post('/wallet/pay/verify-otp', auth, otpVerifyLimiter, walletAuthMiddleware, walletController.payToUserWithOtp);
 
   // Wallet Transaction PIN management
   router.get('/wallet/pin/status', auth, walletController.getWalletPinStatus);
-  router.post('/wallet/pin/verify-otp', auth, walletController.verifyWalletOtp);
+  router.post('/wallet/pin/verify-otp', auth, otpVerifyLimiter, walletController.verifyWalletOtp);
   router.post('/wallet/pin/set', auth, walletController.setWalletPin);
   router.post('/wallet/pin/remove', auth, walletController.removeWalletPin);
 

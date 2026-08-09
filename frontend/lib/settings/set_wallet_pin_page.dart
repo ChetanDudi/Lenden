@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../widgets/app_colors.dart';
 import '../widgets/app_widgets.dart';
-import '../utils/api_client.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../otp_input.dart';
+import '../services/wallet_service.dart';
 
 /// Set, change, or remove the 6-digit wallet transaction PIN.
 ///
@@ -63,15 +62,10 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
 
   Future<void> _loadPinStatus() async {
     try {
-      final res = await ApiClient.get('/api/wallet/pin/status');
+      final data = await WalletService.getPinStatus();
       if (!mounted) return;
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() =>
-            _mode = (data['hasPin'] == true) ? _Mode.hasPin : _Mode.noPin);
-      } else {
-        setState(() => _mode = _Mode.noPin);
-      }
+      setState(() =>
+          _mode = (data['hasPin'] == true) ? _Mode.hasPin : _Mode.noPin);
     } catch (_) {
       if (mounted) setState(() => _mode = _Mode.noPin);
     }
@@ -85,35 +79,20 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
       _error = null;
     });
     try {
-      final res = await ApiClient.post('/api/wallet/auth/send-otp', body: {});
+      final data = await WalletService.sendPinOtp();
       if (!mounted) return;
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() {
-          _sendingOtp = false;
-          _verifyingOtp = false;
-          _otpSent = true;
-          _otpConfirmed = false;
-          _otpEmail = (data['email'] ?? '').toString();
-          _timeRemaining = 60;
-          _otp = '';
-        });
-        _startTimer();
-      } else {
-        final errBody = jsonDecode(res.body);
-        final serverMsg =
-            (errBody['error'] ?? t('failed_to_send_otp_retry')).toString();
-        setState(() {
-          _sendingOtp = false;
-          _error = serverMsg;
-        });
-      }
+      setState(() {
+        _sendingOtp = false;
+        _verifyingOtp = false;
+        _otpSent = true;
+        _otpConfirmed = false;
+        _otpEmail = (data['email'] ?? '').toString();
+        _timeRemaining = 60;
+        _otp = '';
+      });
+      _startTimer();
     } catch (e) {
-      if (mounted)
-        setState(() {
-          _sendingOtp = false;
-          _error = '$e';
-        });
+      if (mounted) setState(() { _sendingOtp = false; _error = '$e'; });
     }
   }
 
@@ -133,41 +112,32 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
       _error = null;
     });
     try {
-      final res = await ApiClient.post('/api/wallet/pin/verify-otp',
-          body: {'otp': _otp});
+      await WalletService.verifyPinOtp(_otp);
       if (!mounted) return;
-      if (res.statusCode == 200) {
-        setState(() {
-          _otpConfirmed = true;
-          _verifyingOtp = false;
-          _error = null;
-          _timeRemaining = 0;
-          _verifiedOtp = _otp; // persist the verified OTP for the set call
-        });
-        _timer?.cancel();
-      } else {
-        final err = _errText(res.body);
-        _timer?.cancel();
-        setState(() {
-          _otpConfirmed = false;
-          _verifyingOtp = false;
-          _otp = '';
-          _verifiedOtp = null;
-          _timeRemaining = 0;
-          _error = err.isEmpty ? t('invalid_otp') : '$err';
-        });
-      }
+      setState(() {
+        _otpConfirmed = true;
+        _verifyingOtp = false;
+        _error = null;
+        _timeRemaining = 0;
+        _verifiedOtp = _otp;
+      });
+      _timer?.cancel();
     } catch (e) {
       _timer?.cancel();
-      if (mounted)
-        setState(() {
-          _verifyingOtp = false;
-          _otp = '';
-          _verifiedOtp = null;
-          _otpSent = false; // reset to let user request a fresh OTP
-          _timeRemaining = 0;
+      if (!mounted) return;
+      setState(() {
+        _verifyingOtp = false;
+        _otp = '';
+        _verifiedOtp = null;
+        _timeRemaining = 0;
+        if (e is ServiceException) {
+          _otpConfirmed = false;
+          _error = e.message.isEmpty ? t('invalid_otp') : e.message;
+        } else {
+          _otpSent = false;
           _error = 'Unable to verify OTP. Please request a new OTP.';
-        });
+        }
+      });
     }
   }
 
@@ -258,16 +228,11 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
     setState(() => _submitting = true);
     try {
       if (_mode == _Mode.remove) {
-        final res = await ApiClient.post('/api/wallet/pin/remove',
-            body: {'currentPin': _currentPin});
+        await WalletService.removePin(_currentPin);
         if (!mounted) return;
-        if (res.statusCode == 200) {
-          _timer?.cancel();
-          showSnack(context, t('pin_removed_message'));
-          _resetAndLoad();
-        } else {
-          setState(() => _error = _errText(res.body));
-        }
+        _timer?.cancel();
+        showSnack(context, t('pin_removed_message'));
+        _resetAndLoad();
       } else {
         // set, change, or forgot — all go to /pin/set; payload differs
         final body = <String, dynamic>{'newPin': _newPin};
@@ -275,21 +240,16 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
         if (_mode == _Mode.setNew ||
             _mode == _Mode.noPin ||
             _mode == _Mode.forgotPin) {
-          // prefer the verified OTP value (if verification step completed)
           body['otp'] = _verifiedOtp ?? _otp;
         }
-        final res = await ApiClient.post('/api/wallet/pin/set', body: body);
+        await WalletService.setPin(body);
         if (!mounted) return;
-        if (res.statusCode == 200) {
-          _timer?.cancel();
-          final msg = _mode == _Mode.change || _mode == _Mode.forgotPin
-              ? t('pin_changed_successfully_message')
-              : t('pin_set_successfully_message');
-          showSnack(context, msg);
-          _resetAndLoad();
-        } else {
-          setState(() => _error = _errText(res.body));
-        }
+        _timer?.cancel();
+        final msg = _mode == _Mode.change || _mode == _Mode.forgotPin
+            ? t('pin_changed_successfully_message')
+            : t('pin_set_successfully_message');
+        showSnack(context, msg);
+        _resetAndLoad();
       }
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
@@ -298,13 +258,6 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
     }
   }
 
-  String _errText(String body) {
-    try {
-      return jsonDecode(body)['error'] ?? t('action_failed_label');
-    } catch (_) {
-      return t('action_failed_label');
-    }
-  }
 
   void _resetAndLoad() {
     _timer?.cancel();

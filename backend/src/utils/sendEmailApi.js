@@ -1,11 +1,19 @@
 const nodemailer = require('nodemailer');
 
 async function sendEmail({ to, subject, html, text, attachments }) {
+  const start = Date.now();
   try {
     await _sendViaSendGrid({ to, subject, html, text, attachments });
+    console.log(`[email] sent via sendgrid to=${to} subject="${subject}" ms=${Date.now() - start}`);
   } catch (sgErr) {
-    console.warn('SendGrid failed, falling back to Gmail SMTP:', sgErr.message);
-    await _sendViaNodemailer({ to, subject, html, text, attachments });
+    console.warn(`[email] sendgrid failed (${sgErr.message}), falling back to gmail`);
+    try {
+      await _sendViaNodemailer({ to, subject, html, text, attachments });
+      console.log(`[email] sent via gmail to=${to} subject="${subject}" ms=${Date.now() - start}`);
+    } catch (gmailErr) {
+      console.error(`[email] both providers failed to=${to} subject="${subject}" error="${gmailErr.message}"`);
+      throw gmailErr;
+    }
   }
 }
 
