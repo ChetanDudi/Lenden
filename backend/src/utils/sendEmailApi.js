@@ -3,64 +3,49 @@ const { EmailServiceError } = require('./apiError');
 
 async function sendEmail({ to, subject, html, text, attachments }) {
   const start = Date.now();
-  const errors = [];
 
-  // 1. Try Resend (HTTP API — works on Render, no SMTP port needed)
-  if (process.env.RESEND_API_KEY) {
+  // Primary: Brevo (HTTP API, no domain needed — just verify sender email on brevo.com)
+  if (process.env.BREVO_API_KEY) {
     try {
-      await _sendViaResend({ to, subject, html, text, attachments });
-      console.log(`[email] sent via resend to=${to} subject="${subject}" ms=${Date.now() - start}`);
+      await _sendViaBrevo({ to, subject, html, text, attachments });
+      console.log(`[email] sent via brevo to=${to} subject="${subject}" ms=${Date.now() - start}`);
       return;
-    } catch (resendErr) {
-      console.warn(`[email] resend failed (${resendErr.message}), trying sendgrid`);
-      errors.push(resendErr);
+    } catch (brevoErr) {
+      console.warn(`[email] brevo failed (${brevoErr.message}), trying gmail`);
     }
   }
 
-  // 2. Try SendGrid (HTTP API — works on Render, but free tier has daily limits)
-  if (process.env.SENDGRID_API_KEY) {
-    try {
-      await _sendViaSendGrid({ to, subject, html, text, attachments });
-      console.log(`[email] sent via sendgrid to=${to} subject="${subject}" ms=${Date.now() - start}`);
-      return;
-    } catch (sgErr) {
-      console.warn(`[email] sendgrid failed (${sgErr.message}), trying gmail`);
-      errors.push(sgErr);
-    }
-  }
-
-  // 3. Try Gmail SMTP (works locally; blocked by Render's firewall on port 465/587)
+  // Fallback: Gmail SMTP (works locally only; Render blocks outbound SMTP ports)
   try {
     await _sendViaNodemailer({ to, subject, html, text, attachments });
     console.log(`[email] sent via gmail to=${to} subject="${subject}" ms=${Date.now() - start}`);
     return;
   } catch (gmailErr) {
-    errors.push(gmailErr);
-    console.error(`[email] all providers failed to=${to} subject="${subject}"`, errors.map(e => e.message));
+    console.error(`[email] all providers failed to=${to} subject="${subject}" gmailErr="${gmailErr.message}"`);
     throw new EmailServiceError(gmailErr);
   }
 }
 
-async function _sendViaResend({ to, subject, html, text, attachments }) {
+async function _sendViaBrevo({ to, subject, html, text, attachments }) {
   const body = {
-    from: `Lenden <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
-    to: [to],
+    sender: { name: 'Lenden', email: process.env.EMAIL_USER || 'lenden.support@gmail.com' },
+    to: [{ email: to }],
     subject,
-    html,
-    ...(text && { text }),
+    htmlContent: html,
+    ...(text && { textContent: text }),
   };
 
   if (attachments && attachments.length > 0) {
-    body.attachments = attachments.map(a => ({
-      filename: a.filename,
+    body.attachment = attachments.map(a => ({
+      name: a.filename,
       content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : a.content,
     }));
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'api-key': process.env.BREVO_API_KEY,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -68,7 +53,7 @@ async function _sendViaResend({ to, subject, html, text, attachments }) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Resend error ${res.status}`);
+    throw new Error(err.message || `Brevo error ${res.status}`);
   }
 }
 
