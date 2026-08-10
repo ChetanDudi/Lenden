@@ -306,6 +306,9 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: false,
+          tabAlignment: TabAlignment.fill,
+          labelPadding: EdgeInsets.zero,
           indicatorColor: AppColors.cyan,
           labelColor: AppColors.cyan,
           unselectedLabelColor: AppThemeColors.secondaryText(context),

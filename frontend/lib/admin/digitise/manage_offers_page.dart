@@ -8,6 +8,7 @@ import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class ManageOffersPage extends StatefulWidget {
   const ManageOffersPage({super.key});
@@ -1122,19 +1123,14 @@ class _ManageOffersPageState extends State<ManageOffersPage> {
           children: [
             SizedBox(
               width: 240,
-              child: TextField(
+              child: AppSearchBar(
                 controller: _searchController,
-                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                decoration: InputDecoration(
-                  hintText: t('search_offers_placeholder'),
-                  isDense: true,
-                  prefixIcon: const Icon(Icons.search),
-                  border: const OutlineInputBorder(),
-                ),
-                onSubmitted: (_) {
+                hintText: t('search_offers_placeholder'),
+                onSubmit: () {
                   _page = 1;
                   _fetchOffers();
                 },
+                margin: EdgeInsets.zero,
               ),
             ),
             DropdownButton<String>(

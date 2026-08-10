@@ -552,19 +552,12 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
   Widget _buildUsersTab() {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by name or email…',
-              prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cyan)),
-            ),
-            onSubmitted: (_) => _fetchUsers(reset: true),
-            onChanged: (v) { if (v.isEmpty) _fetchUsers(reset: true); },
-          ),
+        AppSearchBar(
+          controller: _searchController,
+          hintText: 'Search by name or email…',
+          onSubmit: () => _fetchUsers(reset: true),
+          onChanged: (v) { if (v.isEmpty) _fetchUsers(reset: true); },
+          margin: const EdgeInsets.all(12),
         ),
         if (_loadingUsers) const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: AppColors.cyan)))
         else if (_usersErr != null) _errorView(_usersErr!, () => _fetchUsers(reset: true))
@@ -670,7 +663,6 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
   }
 
   Widget _buildOverrideTab() {
-    final isDark = AppThemeColors.isDark(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -684,37 +676,12 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
             Text('Find a user by name or email to override their monthly budget limits.',
                 style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
             const SizedBox(height: 12),
-            TextField(
+            AppSearchBar(
               controller: _overrideSearchCtrl,
+              hintText: 'Name or email…',
               onChanged: _overrideSearch,
-              decoration: InputDecoration(
-                hintText: 'Name or email…',
-                hintStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
-                suffixIcon: _overrideSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cyan)))
-                    : (_overrideSearchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            color: AppThemeColors.secondaryText(context),
-                            onPressed: () {
-                              _overrideSearchCtrl.clear();
-                              setState(() { _overrideResults = []; _overrideUser = null; });
-                            })
-                        : null),
-                filled: true,
-                fillColor: isDark ? const Color(0xFF1E1E2E) : Colors.grey.shade50,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppThemeColors.border(context))),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppThemeColors.border(context))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.cyan, width: 1.5)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
+              isLoading: _overrideSearching,
+              margin: EdgeInsets.zero,
             ),
           ]),
         ),
@@ -879,25 +846,12 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
 
   Widget _buildPersonalBudgetsTab() {
     return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-        child: TextField(
-          controller: _pbActiveSearch,
-          decoration: InputDecoration(
-            hintText: 'Search by user name or email…',
-            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
-            suffixIcon: _pbActiveSearch.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18),
-                    onPressed: () { _pbActiveSearch.clear(); _fetchPBActive(reset: true); })
-                : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.cyan)),
-          ),
-          onSubmitted: (_) => _fetchPBActive(reset: true),
-          onChanged: (v) { if (v.isEmpty) _fetchPBActive(reset: true); setState(() {}); },
-        ),
+      AppSearchBar(
+        controller: _pbActiveSearch,
+        hintText: 'Search by user name or email…',
+        onSubmit: () => _fetchPBActive(reset: true),
+        onChanged: (v) { if (v.isEmpty) _fetchPBActive(reset: true); },
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       ),
       const SizedBox(height: 8),
       if (_loadingPBActive && _pbActive.isEmpty)
@@ -936,25 +890,12 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
 
   Widget _buildPersonalBudgetHistoryTab() {
     return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-        child: TextField(
-          controller: _pbHistorySearch,
-          decoration: InputDecoration(
-            hintText: 'Search by user name or email…',
-            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
-            suffixIcon: _pbHistorySearch.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18),
-                    onPressed: () { _pbHistorySearch.clear(); _fetchPBHistory(reset: true); })
-                : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.cyan)),
-          ),
-          onSubmitted: (_) => _fetchPBHistory(reset: true),
-          onChanged: (v) { if (v.isEmpty) _fetchPBHistory(reset: true); setState(() {}); },
-        ),
+      AppSearchBar(
+        controller: _pbHistorySearch,
+        hintText: 'Search by user name or email…',
+        onSubmit: () => _fetchPBHistory(reset: true),
+        onChanged: (v) { if (v.isEmpty) _fetchPBHistory(reset: true); },
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       ),
       const SizedBox(height: 8),
       if (_loadingPBHistory && _pbHistory.isEmpty)

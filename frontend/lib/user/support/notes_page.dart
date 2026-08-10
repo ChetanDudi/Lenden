@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
@@ -20,11 +21,18 @@ class _NotesPageState extends State<NotesPage> {
   String? error;
   String searchQuery = '';
   String sortBy = 'created_desc';
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchNotes();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   void sortNotes() {
@@ -493,59 +501,12 @@ class _NotesPageState extends State<NotesPage> {
                   ),
                 ),
             
-            // Search Bar with Tricolor Border
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(27),
-                  gradient: const LinearGradient(
-                    colors: [Colors.orange, Colors.white, Colors.green],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: AppThemeColors.mutedText(context), size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          onChanged: filterNotes,
-                          style: TextStyle(fontSize: 15, color: AppThemeColors.primaryText(context)),
-                          decoration: InputDecoration(
-                            hintText: t('search_notes'),
-                            hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 15),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      if (searchQuery.isNotEmpty)
-                        IconButton(
-                          icon: Icon(Icons.clear, color: AppThemeColors.mutedText(context), size: 20),
-                          onPressed: () => filterNotes(''),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+            // Search Bar
+            AppSearchBar(
+              controller: _searchCtrl,
+              hintText: t('search_notes'),
+              onChanged: filterNotes,
+              margin: const EdgeInsets.symmetric(horizontal: 20.0),
             ),
             
             const SizedBox(height: 16),

@@ -4,10 +4,10 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
-import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class AuditLogsPage extends StatefulWidget {
   const AuditLogsPage({Key? key}) : super(key: key);
@@ -345,48 +345,11 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                 ),
 
                 // Search bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 4),
-                  child: tricolorBorder(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, color: AppThemeColors.secondaryText(context), size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onSubmitted: (_) => _fetchLogs(),
-                              style: TextStyle(color: AppThemeColors.primaryText(context)),
-                              decoration: InputDecoration(
-                                hintText: t('search_action_admin_summary'),
-                                hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                              ),
-                            ),
-                          ),
-                          if (_searchController.text.isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                _fetchLogs();
-                              },
-                              child: Icon(Icons.clear,
-                                  color: AppThemeColors.mutedText(context), size: 18),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: t('search_action_admin_summary'),
+                  onSubmit: _fetchLogs,
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 ),
 
                 // Severity filter chips

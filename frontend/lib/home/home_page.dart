@@ -251,6 +251,8 @@ class HomePage extends StatelessWidget {
                   const AppHighlightCard(),
                   SizedBox(height: context.sh(18)),
                   const LenDenShowcaseCard(),
+                  SizedBox(height: context.sh(18)),
+                  const _FeatureTrioRow(),
                   SizedBox(height: context.sh(16)),
                 ],
               ),
@@ -317,6 +319,68 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FeatureTrioRow extends StatelessWidget {
+  const _FeatureTrioRow();
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      (Icons.flash_on_rounded,   'Quick',   'Instant lending',  Color(0xFF0096C7)),
+      (Icons.shield_rounded,     'Secure',  'OTP-verified',     Color(0xFF6A1B9A)),
+      (Icons.groups_rounded,     'Groups',  'Split fairly',     Color(0xFF00796B)),
+    ];
+    return Row(
+      children: items.map((item) {
+        final (icon, label, desc, color) = item;
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: context.sw(5)),
+            padding: EdgeInsets.symmetric(
+                vertical: context.sh(14), horizontal: context.sw(10)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withValues(alpha: 0.18)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: context.sw(40),
+                  height: context.sw(40),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: context.sp(20)),
+                ),
+                SizedBox(height: context.sh(8)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: context.sp(13),
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                ),
+                SizedBox(height: context.sh(2)),
+                Text(
+                  desc,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: context.sp(10),
+                    color: const Color(0xFF1A1A1A).withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

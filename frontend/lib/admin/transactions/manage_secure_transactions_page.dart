@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -1628,45 +1629,18 @@ class _ManageTransactionsPageState extends State<ManageTransactionsPage> {
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                               child: Column(
                                 children: [
-                                  _triBorder(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: AppThemeColors.cardBg(context),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: TextField(
-                                        controller: _searchController,
-                                        style: TextStyle(color: AppThemeColors.primaryText(context)),
-                                        onChanged: (value) {
-                                          setState(() => _searchQuery = value);
-                                          _searchDebounceTimer?.cancel();
-                                          _searchDebounceTimer = Timer(
-                                            const Duration(milliseconds: 300),
-                                            _fetchTransactions,
-                                          );
-                                        },
-                                        decoration: InputDecoration(
-                                          border: InputBorder.none,
-                                          hintText: t('search_transactions_hint'),
-                                          hintStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
-                                          prefixIcon: const Icon(
-                                            Icons.search_rounded,
-                                            color: AppColors.cyan,
-                                          ),
-                                          suffixIcon: _searchQuery.isEmpty
-                                              ? null
-                                              : IconButton(
-                                                  icon: const Icon(Icons.clear),
-                                                  onPressed: () {
-                                                    _searchController.clear();
-                                                    _searchDebounceTimer?.cancel();
-                                                    setState(() => _searchQuery = '');
-                                                    _fetchTransactions();
-                                                  },
-                                                ),
-                                        ),
-                                      ),
-                                    ),
+                                  AppSearchBar(
+                                    controller: _searchController,
+                                    hintText: t('search_transactions_hint'),
+                                    onChanged: (value) {
+                                      setState(() => _searchQuery = value);
+                                      _searchDebounceTimer?.cancel();
+                                      _searchDebounceTimer = Timer(
+                                        const Duration(milliseconds: 300),
+                                        _fetchTransactions,
+                                      );
+                                    },
+                                    margin: EdgeInsets.zero,
                                   ),
                                   const SizedBox(height: 12),
                                   Row(

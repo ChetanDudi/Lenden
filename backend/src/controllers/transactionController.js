@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const Transaction = require('../models/transaction');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
@@ -13,6 +13,7 @@ const PDFDocument = require('pdfkit');
 const { sendReceiptEmail } = require('../utils/receiptEmail');
 const { processReferralRewardOnFirstCreation } = require('../utils/referralService');
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
+const { handleRouteError } = require('../utils/apiError');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 const { getCoinPricing } = require('../utils/coinPricing');
@@ -673,10 +674,10 @@ exports.createTransaction = async (req, res) => {
           await Notification.create({
             sender: user._id, senderModel: 'User', recipientType: 'specific-users',
             recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
-            message: `${userEmail} recorded a ${role} transaction of ₹${amount} with you.`,
+            message: `${userEmail} recorded a ${role} transaction of â‚¹${amount} with you.`,
           });
         }
-        sendToUser(User, counterparty._id, { title: 'New Transaction 📝', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+        sendToUser(User, counterparty._id, { title: 'New Transaction ðŸ“', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
       }
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
@@ -722,7 +723,7 @@ exports.checkEmailExists = async (req, res) => {
     if (user) return res.json({ exists: true });
     return res.json({ exists: false });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -786,7 +787,7 @@ exports.getUserTransactions = async (req, res) => {
       favouritesOnly,
     } = req.query;
 
-    // Always use the authenticated user's email — never trust the query param.
+    // Always use the authenticated user's email â€” never trust the query param.
     const email = req.user.email;
 
     // Base query: user is party to the transaction (ownership clause, never overwritten)
@@ -816,7 +817,7 @@ exports.getUserTransactions = async (req, res) => {
       }
     }
 
-    // Text search — combine with ownership via $and so the search
+    // Text search â€” combine with ownership via $and so the search
     // can never bypass the party-membership check.
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -1000,7 +1001,7 @@ exports.clearTransaction = async (req, res) => {
       }
       try {
         const creatorInfo = { creatorId: req.user._id, creatorEmail: email };
-        // req.user._id is the current user's ObjectId — only the counterparty needs a lookup
+        // req.user._id is the current user's ObjectId â€” only the counterparty needs a lookup
         const otherPartyDoc = await User.findOne({ email: otherPartyEmail }).select('_id');
         await logTransactionActivity(req.user._id, 'transaction_cleared', transaction, {
           clearedBy: email,
@@ -1020,7 +1021,7 @@ exports.clearTransaction = async (req, res) => {
               message: `${email} cleared their side of the transaction. It is now ${transaction.userCleared && transaction.counterpartyCleared ? 'fully cleared' : 'partially cleared'}.`,
             });
           }
-          sendToUser(User, otherPartyDoc._id, { title: 'New Transaction 📝', body: `${email} cleared their side of the transaction.`, data: { type: 'quick_transaction' } });
+          sendToUser(User, otherPartyDoc._id, { title: 'New Transaction ðŸ“', body: `${email} cleared their side of the transaction.`, data: { type: 'quick_transaction' } });
         }
       } catch (e) {
         console.error('Failed to log transaction activity:', e);
@@ -1074,7 +1075,7 @@ exports.deleteTransaction = async (req, res) => {
 };
 
 // Send OTP for partial payment verification
-// ── Transaction PIN alternatives ─────────────────────────────────────────────
+// â”€â”€ Transaction PIN alternatives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Verify the PAYER's own 6-digit transaction PIN as an alternative to their
 // own email OTP step in the two-sided Secure-Transaction partial-payment flow.
 // On success, marks the same server-side flag that verifyPartialPaymentOTP sets
@@ -1190,7 +1191,7 @@ exports.sendPartialPaymentOTP = async (req, res) => {
 };
 
 // Verify OTP for partial payment. Requires transactionId so we can record
-// server-side which role ('lender'/'borrower') just verified — processPartialPayment
+// server-side which role ('lender'/'borrower') just verified â€” processPartialPayment
 // checks this record rather than trusting client-sent booleans.
 exports.verifyPartialPaymentOTP = async (req, res) => {
   try {
@@ -1231,8 +1232,8 @@ exports.verifyPartialPaymentOTP = async (req, res) => {
 // checked server-side via lendingborrowingotp's short-lived verified-record
 // store (set by verifyPartialPaymentOTP) rather than trusting client-sent
 // booleans. The actual money movement is a real, atomic LenDen Wallet
-// transfer between the lender and borrower — resolved from the transaction
-// record itself, not from client-supplied emails — instead of just writing a
+// transfer between the lender and borrower â€” resolved from the transaction
+// record itself, not from client-supplied emails â€” instead of just writing a
 // ledger entry with no balance change.
 exports.processPartialPayment = async (req, res) => {
   const session = await mongoose.startSession();
@@ -1256,8 +1257,8 @@ exports.processPartialPayment = async (req, res) => {
       return res.status(400).json({ error: 'This transaction has already been fully paid off.' });
     }
 
-    // Resolve both parties from the transaction record itself — never from
-    // client-supplied emails — so the payment can't be redirected.
+    // Resolve both parties from the transaction record itself â€” never from
+    // client-supplied emails â€” so the payment can't be redirected.
     const lenderEmail = transaction.role === 'lender' ? transaction.userEmail : transaction.counterpartyEmail;
     const borrowerEmail = transaction.role === 'lender' ? transaction.counterpartyEmail : transaction.userEmail;
 
@@ -1337,7 +1338,7 @@ exports.processPartialPayment = async (req, res) => {
 
     // Resolve payer/payee for the real wallet transfer. The wallet debit always
     // happens on the authenticated caller, so paidBy must match who's actually
-    // calling — otherwise the ledger would record the wrong direction (and the
+    // calling â€” otherwise the ledger would record the wrong direction (and the
     // wrong party's wallet would be silently debited for what's labeled as the
     // other party's repayment).
     const payerEmail = (paidBy === 'lender' ? lenderEmail : borrowerEmail).toLowerCase().trim();
@@ -1352,7 +1353,7 @@ exports.processPartialPayment = async (req, res) => {
 
     let newBalance;
     await session.withTransaction(async () => {
-      // Atomic check-and-debit — fails (returns null) if balance is insufficient,
+      // Atomic check-and-debit â€” fails (returns null) if balance is insufficient,
       // so no partial state is possible under concurrent requests.
       const payer = await User.findOneAndUpdate(
         { _id: req.user._id, walletBalance: { $gte: amount } },
@@ -1373,7 +1374,7 @@ exports.processPartialPayment = async (req, res) => {
         { user: payee._id, type: 'credit', amount, fromEmail: payer.email, note: description || 'Secure transaction repayment', sourceType: 'secure' },
       ], { session });
 
-      // Process the partial payment — round to 2 dp to avoid floating-point
+      // Process the partial payment â€” round to 2 dp to avoid floating-point
       // artefacts (e.g. 100.5 - 100.5 = 1.77e-15) that would prevent clearing.
       const rawRemaining = totalAmountWithInterest - amount;
       transaction.remainingAmount = rawRemaining <= 0
@@ -1402,7 +1403,7 @@ exports.processPartialPayment = async (req, res) => {
       newBalance = payer.walletBalance;
     });
 
-    // One-time-use — both parties must re-verify OTP for any further payment.
+    // One-time-use â€” both parties must re-verify OTP for any further payment.
     lendingborrowingotp.consumePartialPaymentVerified(transactionId);
 
     // Log activity for partial payment - both parties get notified
@@ -1435,17 +1436,17 @@ exports.processPartialPayment = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Partial payment of ₹${amount} sent to ${payeeEmail} successfully.`,
+          message: `Partial payment of â‚¹${amount} sent to ${payeeEmail} successfully.`,
         }));
       }
       if (payeeUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [payee._id], recipientModel: 'User', category: 'transaction',
-          message: `You received a partial payment of ₹${amount} from ${payerEmail}.`,
+          message: `You received a partial payment of â‚¹${amount} from ${payerEmail}.`,
         }));
       }
-      sendToUser(User, payee._id, { title: 'New Transaction 📝', body: `You received a partial payment of ₹${amount} from ${payerEmail}.`, data: { type: 'quick_transaction' } });
+      sendToUser(User, payee._id, { title: 'New Transaction ðŸ“', body: `You received a partial payment of â‚¹${amount} from ${payerEmail}.`, data: { type: 'quick_transaction' } });
       return Promise.all(notifs);
     }).catch(() => {});
 
@@ -1532,3 +1533,4 @@ exports.toggleFavourite = async (req, res) => {
     res.status(500).json({ error: 'Failed to toggle favourite status' });
   }
 };
+

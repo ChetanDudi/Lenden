@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
+const { handleRouteError } = require('../utils/apiError');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
@@ -15,7 +16,7 @@ exports.getBalance = async (req, res) => {
     const user = await User.findById(req.user._id).select('walletBalance');
     res.json({ balance: user?.walletBalance ?? 0 });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -83,16 +84,16 @@ exports.getHistory = async (req, res) => {
       limit,
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
-// ── Real-money wallet top-up via the Razorpay Payment Handle link ──────────────
+// â”€â”€ Real-money wallet top-up via the Razorpay Payment Handle link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Exact mirror of paymentController.verifyManualPayment's pattern, for wallet
 // credits instead of subscriptions: there is no order/signature for this product
 // and no Fetch API access without Live keys, so we check the webhook-populated
 // capture cache instead. There is deliberately only ONE verification path here
-// (manual paste, same as the subscriptions flow) — an earlier version also had
+// (manual paste, same as the subscriptions flow) â€” an earlier version also had
 // a background auto-poll racing against this endpoint, which could silently win
 // the claim and leave the user staring at a stale "waiting" screen with no
 // feedback, then see a confusing "already used" error if they verified manually.
@@ -111,7 +112,7 @@ exports.verifyManualTopUp = async (req, res) => {
   try {
     // The Payment Handle link (razorpay.me/@...) has no API/notes support, so we
     // can't call payments.fetch (it also needs Live API keys). Instead we rely on
-    // the Razorpay webhook having already cached this payment as captured — see
+    // the Razorpay webhook having already cached this payment as captured â€” see
     // razorpayWebhook in paymentController.js, which upserts every payment.captured event.
     const payment = await RazorpayCapturedPayment.findOne({ paymentId: paymentId.trim() });
     if (!payment) {
@@ -121,7 +122,7 @@ exports.verifyManualTopUp = async (req, res) => {
       return res.status(400).json({ error: 'Unexpected payment currency.' });
     }
     if (payment.amount !== expectedAmountInPaise) {
-      return res.status(400).json({ error: `Payment amount does not match ₹${amount}.` });
+      return res.status(400).json({ error: `Payment amount does not match â‚¹${amount}.` });
     }
     // The Payment Handle link has no notes tying a payment to a user, so a
     // captured ID is redeemable by whoever submits it first. Cap how long it stays
@@ -134,7 +135,7 @@ exports.verifyManualTopUp = async (req, res) => {
     await session.withTransaction(async () => {
       // Fast-path check for the common case; the atomic claimed:false filter
       // below is what actually closes the race if two requests for the same
-      // ID land at the same instant — see the duplicate-claim case in the catch block.
+      // ID land at the same instant â€” see the duplicate-claim case in the catch block.
       const claimed = await RazorpayCapturedPayment.findOneAndUpdate(
         { _id: payment._id, claimed: false },
         { $set: { claimed: true, claimedBy: req.user._id, claimedFor: 'wallet_topup', claimedAt: new Date() } },
@@ -161,7 +162,7 @@ exports.verifyManualTopUp = async (req, res) => {
 
     res.json({ message: 'Wallet topped up', addedAmount, balance: newBalance });
 
-    // Notify all admins — best-effort, does not affect the response
+    // Notify all admins â€” best-effort, does not affect the response
     const capturedPaymentId = req.body.paymentId;
     Promise.resolve().then(async () => {
       const u = await User.findById(req.user._id).select('name email').lean();
@@ -170,7 +171,7 @@ exports.verifyManualTopUp = async (req, res) => {
         senderModel: 'User',
         recipientType: 'all-admins',
         recipientModel: 'Admin',
-        message: `Wallet top-up: ₹${addedAmount} added by ${u?.name || u?.email || 'a user'} via Razorpay (Payment ID: ${capturedPaymentId}).`,
+        message: `Wallet top-up: â‚¹${addedAmount} added by ${u?.name || u?.email || 'a user'} via Razorpay (Payment ID: ${capturedPaymentId}).`,
         category: 'transaction',
         deliveryStatus: 'sent',
         sentAt: new Date(),
@@ -235,16 +236,16 @@ exports.adminGetTopUps = async (req, res) => {
       stats: agg[0] ? { totalAmount: agg[0].totalAmount, count: agg[0].count } : { totalAmount: 0, count: 0 },
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
 // Transfer between wallets
 // ACID guarantees:
-//   Atomicity  — session.withTransaction wraps debit + credit + both records; all or nothing
-//   Consistency — conditional debit (walletBalance >= amount) prevents overdraft atomically
-//   Isolation  — MongoDB snapshot isolation within the session prevents concurrent reads
-//   Durability — committed session writes are persisted before response is sent
+//   Atomicity  â€” session.withTransaction wraps debit + credit + both records; all or nothing
+//   Consistency â€” conditional debit (walletBalance >= amount) prevents overdraft atomically
+//   Isolation  â€” MongoDB snapshot isolation within the session prevents concurrent reads
+//   Durability â€” committed session writes are persisted before response is sent
 exports.pay = async (req, res) => {
   const session = await mongoose.startSession();
   try {
@@ -256,7 +257,7 @@ exports.pay = async (req, res) => {
       return res.status(400).json({ error: 'Invalid recipient email address' });
     }
 
-    // Resolve recipient outside the transaction — read-only, no consistency risk
+    // Resolve recipient outside the transaction â€” read-only, no consistency risk
     const receiver = await User.findOne({ email: to.toLowerCase().trim() }).select('_id email');
     if (!receiver) return res.status(404).json({ error: 'Recipient not found on LenDen' });
 
@@ -297,20 +298,20 @@ exports.pay = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Payment of ₹${amount} sent to ${receiver.email} successfully.`,
+          message: `Payment of â‚¹${amount} sent to ${receiver.email} successfully.`,
         }));
       }
       if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
-          message: `You received ₹${amount} from ${req.user.email}.`,
+          message: `You received â‚¹${amount} from ${req.user.email}.`,
         }));
       }
       if (receiverUser?.notificationSettings?.pushNotifications !== false) {
         sendToUser(User, receiver._id, {
-          title: 'Payment Received 💸',
-          body: `You received ₹${amount} from ${req.user.email}.`,
+          title: 'Payment Received ðŸ’¸',
+          body: `You received â‚¹${amount} from ${req.user.email}.`,
           data: { type: 'wallet_credit', amount: String(amount) },
         });
       }
@@ -336,7 +337,7 @@ exports.pay = async (req, res) => {
   }
 };
 
-// Shared recipient checks for "Pay User" — format, exists on LenDen, isn't the
+// Shared recipient checks for "Pay User" â€” format, exists on LenDen, isn't the
 // sender themselves, and isn't an admin account (Admin is a separate login/
 // collection from User, but the same email could in theory be used for both,
 // so block by email rather than assuming the two are mutually exclusive).
@@ -361,7 +362,7 @@ const validateRecipient = async (toRaw, sender) => {
   return receiver;
 };
 
-// ── Pay User OTP gate ───────────────────────────────────────────────────────
+// â”€â”€ Pay User OTP gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // The "Pay User" sheet sends an OTP to the logged-in sender's own registered
 // email before allowing the transfer, so the wallet can't be drained just from
 // a stolen/left-open session. Pattern mirrors settingsController's altEmailOTP.
@@ -414,11 +415,11 @@ exports.sendPayOtp = async (req, res) => {
     res.json({ message: 'OTP sent to your registered email', email: user.email });
   } catch (err) {
     console.error('Error sending wallet pay OTP:', err);
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
-// Generic OTP send for wallet payment auth (no recipient validation — just
+// Generic OTP send for wallet payment auth (no recipient validation â€” just
 // sends a fresh OTP to the logged-in user's own email so they can prove they
 // are the one initiating the payment). Used by _PaymentSheet and any other
 // outgoing-payment UI that doesn't already have a dedicated send-otp route.
@@ -462,11 +463,11 @@ exports.sendWalletAuthOtp = async (req, res) => {
     await sendWalletTransactionAuthOTP(user.email, otp, user.name);
     res.json({ message: 'OTP sent to your registered email', email: user.email });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
-// ── Wallet Transaction PIN management ────────────────────────────────────────
+// â”€â”€ Wallet Transaction PIN management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // PIN lets users skip the email OTP wait on every outgoing payment. Set once
 // in Settings; verified server-side via bcrypt on each payment.
 
@@ -478,7 +479,7 @@ exports.getWalletPinStatus = async (req, res) => {
       ? user.walletPinLockedUntil : null;
     res.json({ hasPin: !!user.walletPin, lockedUntil });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -511,7 +512,7 @@ exports.verifyWalletOtp = async (req, res) => {
 
     // Mark the pending walletPayOTP as verified so the subsequent PIN set
     // request can consume it. We avoid removing the OTP here because the
-    // frontend flow verifies the code first then calls /wallet/pin/set — if
+    // frontend flow verifies the code first then calls /wallet/pin/set â€” if
     // the OTP is removed on verify, the later set call will find no pending
     // OTP and fail with "No OTP is pending". Keep the code+expiry and add
     // a verified flag which setWalletPin will accept.
@@ -523,16 +524,16 @@ exports.verifyWalletOtp = async (req, res) => {
     res.json({ verified: true, message: 'OTP verified successfully.' });
   } catch (err) {
     console.error('Error verifying wallet OTP:', err);
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
 // Set or change the wallet transaction PIN.
 //
-// Three distinct paths — never mixing PIN + OTP in the same request:
-//   1. First time (no existing PIN): email OTP only → set new PIN
-//   2. Normal change (knows current PIN): current PIN only → set new PIN
-//   3. Forgot PIN reset: email OTP only → overwrite PIN (no current PIN needed)
+// Three distinct paths â€” never mixing PIN + OTP in the same request:
+//   1. First time (no existing PIN): email OTP only â†’ set new PIN
+//   2. Normal change (knows current PIN): current PIN only â†’ set new PIN
+//   3. Forgot PIN reset: email OTP only â†’ overwrite PIN (no current PIN needed)
 exports.setWalletPin = async (req, res) => {
   try {
     const { newPin, currentPin, otp } = req.body;
@@ -546,13 +547,13 @@ exports.setWalletPin = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     if (!user.walletPin) {
-      // ── Path 1: first time — email OTP required ───────────────────────
+      // â”€â”€ Path 1: first time â€” email OTP required â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const validation = validateWalletOtp(user, otp);
       if (!validation.ok) {
         return res.status(400).json({ error: validation.error || 'Email OTP is required to set your PIN for the first time.' });
       }
     } else if (currentPin) {
-      // ── Path 2: normal change — current PIN only ──────────────────────
+      // â”€â”€ Path 2: normal change â€” current PIN only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (user.walletPinLockedUntil && user.walletPinLockedUntil > new Date()) {
         const mins = Math.ceil((user.walletPinLockedUntil - Date.now()) / 60000);
         return res.status(423).json({ error: `PIN is locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` });
@@ -569,7 +570,7 @@ exports.setWalletPin = async (req, res) => {
         return res.status(400).json({ error: `Incorrect PIN. ${left} attempt${left === 1 ? '' : 's'} remaining.` });
       }
     } else if (otp) {
-      // ── Path 3: forgot PIN — email OTP only ──────────────────────────
+      // â”€â”€ Path 3: forgot PIN â€” email OTP only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const validation = validateWalletOtp(user, otp);
       if (!validation.ok) {
         return res.status(400).json({ error: validation.error || 'Email OTP is required to reset your PIN.' });
@@ -594,18 +595,18 @@ exports.setWalletPin = async (req, res) => {
           message: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
         });
         sendToUser(User, req.user._id, {
-          title: 'Transaction PIN Updated 🔐',
+          title: 'Transaction PIN Updated ðŸ”',
           body: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
           data: { type: 'security' },
         });
       }
     }).catch(() => {});
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
-// Remove the wallet PIN. Requires the current PIN only — no OTP needed since
+// Remove the wallet PIN. Requires the current PIN only â€” no OTP needed since
 // the user must already know their PIN to remove it. (If they forgot it, they
 // should use the "Forgot PIN" reset flow to set a new one first.)
 exports.removeWalletPin = async (req, res) => {
@@ -637,7 +638,7 @@ exports.removeWalletPin = async (req, res) => {
     await user.save();
     res.json({ message: 'Transaction PIN removed.' });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -687,20 +688,20 @@ exports.payToUserWithOtp = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Payment of ₹${amount} sent to ${receiver.email} successfully.`,
+          message: `Payment of â‚¹${amount} sent to ${receiver.email} successfully.`,
         }));
       }
       if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
-          message: `You received ₹${amount} from ${senderDoc.email}.`,
+          message: `You received â‚¹${amount} from ${senderDoc.email}.`,
         }));
       }
       if (receiverUser?.notificationSettings?.pushNotifications !== false) {
         sendToUser(User, receiver._id, {
-          title: 'Payment Received 💸',
-          body: `You received ₹${amount} from ${senderDoc.email}.`,
+          title: 'Payment Received ðŸ’¸',
+          body: `You received â‚¹${amount} from ${senderDoc.email}.`,
           data: { type: 'wallet_credit', amount: String(amount) },
         });
       }
@@ -726,7 +727,7 @@ exports.payToUserWithOtp = async (req, res) => {
   }
 };
 
-// QR-based wallet payment — same ACID logic as pay() but accepts toUserId instead of email
+// QR-based wallet payment â€” same ACID logic as pay() but accepts toUserId instead of email
 exports.qrPay = async (req, res) => {
   const session = await mongoose.startSession();
   try {
@@ -767,20 +768,20 @@ exports.qrPay = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `QR payment of ₹${parsedAmount} sent to ${receiver.email} successfully.`,
+          message: `QR payment of â‚¹${parsedAmount} sent to ${receiver.email} successfully.`,
         }));
       }
       if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
-          message: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
+          message: `You received â‚¹${parsedAmount} from ${req.user.email} via QR.`,
         }));
       }
       if (receiverUser?.notificationSettings?.pushNotifications !== false) {
         sendToUser(User, receiver._id, {
-          title: 'Payment Received 💸',
-          body: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
+          title: 'Payment Received ðŸ’¸',
+          body: `You received â‚¹${parsedAmount} from ${req.user.email} via QR.`,
           data: { type: 'wallet_credit', amount: String(parsedAmount) },
         });
       }
@@ -820,7 +821,7 @@ exports.paySubscription = async (req, res) => {
 
     let newBalance;
     await session.withTransaction(async () => {
-      // Atomic check-and-debit — prevents overdraft even under concurrent requests
+      // Atomic check-and-debit â€” prevents overdraft even under concurrent requests
       const user = await User.findOneAndUpdate(
         { _id: req.user._id, walletBalance: { $gte: actualPrice } },
         { $inc: { walletBalance: -actualPrice } },
@@ -843,7 +844,7 @@ exports.paySubscription = async (req, res) => {
       const endDate = new Date(startFrom);
       endDate.setDate(endDate.getDate() + plan.duration + (plan.free || 0));
 
-      // Create new subscription first — safe to expire old ones only after this succeeds
+      // Create new subscription first â€” safe to expire old ones only after this succeeds
       const [created] = await Subscription.create([{
         user: req.user._id,
         subscribed: true,
@@ -879,7 +880,7 @@ exports.paySubscription = async (req, res) => {
           message: `Your "${plan.name}" subscription is now active.`,
         });
         sendToUser(User, req.user._id, {
-          title: 'Subscription Activated 🎉',
+          title: 'Subscription Activated ðŸŽ‰',
           body: `Your "${plan.name}" plan is now active.`,
           data: { type: 'subscription_activated' },
         });
@@ -889,7 +890,7 @@ exports.paySubscription = async (req, res) => {
         senderModel: 'User',
         recipientType: 'all-admins',
         recipientModel: 'Admin',
-        message: `New subscription: ${u?.name || u?.email || 'A user'} purchased "${plan.name}" for ₹${actualPrice.toLocaleString('en-IN')} via wallet.`,
+        message: `New subscription: ${u?.name || u?.email || 'A user'} purchased "${plan.name}" for â‚¹${actualPrice.toLocaleString('en-IN')} via wallet.`,
         category: 'subscription',
         deliveryStatus: 'sent',
         sentAt: new Date(),
@@ -901,3 +902,4 @@ exports.paySubscription = async (req, res) => {
     session.endSession();
   }
 };
+

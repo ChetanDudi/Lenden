@@ -1,10 +1,11 @@
-const ContactConfig = require('../models/contactConfig');
+﻿const ContactConfig = require('../models/contactConfig');
 const ContactMessage = require('../models/contactMessage');
 const { CONTACT_CATEGORIES } = require('../models/contactMessage');
 const Notification = require('../models/notification');
 const User = require('../models/user');
 const { sendEmail } = require('../utils/sendEmailApi');
 const { sendToUser } = require('../services/notificationService');
+const { handleRouteError } = require('../utils/apiError');
 
 const ensureContactConfig = async () =>
   ContactConfig.findOneAndUpdate(
@@ -40,7 +41,7 @@ exports.getPublicContactConfig = async (_req, res) => {
     const config = await ensureContactConfig();
     res.json(serializeConfig(config));
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -49,7 +50,7 @@ exports.getAdminContactConfig = async (_req, res) => {
     const config = await ensureContactConfig();
     res.json(serializeConfig(config));
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -84,7 +85,7 @@ exports.updateAdminContactConfig = async (req, res) => {
       ...serializeConfig(config),
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -119,7 +120,7 @@ exports.submitContactMessage = async (req, res) => {
 
     res.status(201).json({ success: true, message: 'Your message has been received. We will get back to you within 24 hours.', id: doc._id });
   } catch (err) {
-    console.error('❌ submitContactMessage error:', err);
+    console.error('âŒ submitContactMessage error:', err);
     res.status(500).json({ error: 'Failed to submit message. Please try again.' });
   }
 };
@@ -145,7 +146,7 @@ exports.getUserMessages = async (req, res) => {
 
     res.json({ messages });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -164,7 +165,7 @@ exports.getAdminMessages = async (req, res) => {
 
     res.json({ messages, total, page: Number(page), limit: Number(limit), pages: Math.ceil(total / Number(limit)) });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -185,7 +186,7 @@ exports.updateMessageStatus = async (req, res) => {
 
     res.json({ success: true, message: doc });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    handleRouteError(res, err);
   }
 };
 
@@ -247,15 +248,16 @@ exports.replyToMessage = async (req, res) => {
         deliveryStatus: 'sent',
         sentAt: new Date(),
       });
-      sendToUser(User, doc.userId, { title: 'Support Reply 📩', body: 'Your message has been replied to.', data: { type: 'support_reply' } });
+      sendToUser(User, doc.userId, { title: 'Support Reply ðŸ“©', body: 'Your message has been replied to.', data: { type: 'support_reply' } });
     }
 
     res.json({ success: true, message: updated });
   } catch (err) {
-    console.error('❌ replyToMessage error:', err);
+    console.error('âŒ replyToMessage error:', err);
     if (err.message && err.message.includes('SendGrid')) {
       return res.status(502).json({ error: `Email delivery failed: ${err.message}` });
     }
     res.status(500).json({ error: 'Failed to send reply.' });
   }
 };
+

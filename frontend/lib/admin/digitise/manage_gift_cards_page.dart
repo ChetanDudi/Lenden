@@ -907,13 +907,25 @@ class _ManageGiftCardsPageState extends State<ManageGiftCardsPage>
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: false,
+          tabAlignment: TabAlignment.fill,
+          labelPadding: EdgeInsets.zero,
+          padding: const EdgeInsets.all(4),
           labelColor: AppThemeColors.primaryText(context),
           unselectedLabelColor: AppThemeColors.primaryText(context).withValues(alpha: 0.7),
           indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
-            Tab(text: t('add_gift_card_tab'), icon: Icon(Icons.add_card)),
-            Tab(text: t('view_gift_cards_tab'), icon: Icon(Icons.card_giftcard)),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.add_card, size: 14),
+              const SizedBox(width: 4),
+              Text(t('add_gift_card_tab')),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.card_giftcard, size: 14),
+              const SizedBox(width: 4),
+              Text(t('view_gift_cards_tab')),
+            ])),
           ],
         ),
       ),

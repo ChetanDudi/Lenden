@@ -9,6 +9,7 @@ import '../../utils/theme_helper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/currency_helpers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class PersonalBudgetExpensesPage extends StatefulWidget {
   final String budgetId;
@@ -363,35 +364,11 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                 ],
 
                 // ── Search bar ────────────────────────────────────────────
-                tricolorBorder(
-                  radius: 14,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    style: TextStyle(fontSize: context.sp(14),
-                        color: AppThemeColors.primaryText(context)),
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context).t('search_expenses_hint'),
-                      hintStyle: TextStyle(
-                          color: AppThemeColors.secondaryText(context)),
-                      prefixIcon:
-                          const Icon(Icons.search_rounded, color: AppColors.cyan),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded,
-                                  color: AppColors.cyan),
-                              onPressed: () => setState(
-                                  () { _searchCtrl.clear(); _searchQuery = ''; }),
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: AppThemeColors.cardBg(context),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onChanged: (v) => setState(() => _searchQuery = v),
-                  ),
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: AppLocalizations.of(context).t('search_expenses_hint'),
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  margin: EdgeInsets.zero,
                 ),
                 const SizedBox(height: 10),
 

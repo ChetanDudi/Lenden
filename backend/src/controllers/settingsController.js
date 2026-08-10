@@ -1,4 +1,4 @@
-const User = require('../models/user');
+﻿const User = require('../models/user');
 const Admin = require('../models/admin');
 const Transaction = require('../models/transaction');
 const GroupTransaction = require('../models/groupTransaction');
@@ -12,6 +12,7 @@ const { sendChangePasswordOTP: sendChangePasswordEmail } = require('../utils/cha
 const { sendAccountDeletedEmail } = require('../utils/accountDeletedEmail');
 const Notification = require('../models/notification');
 const { sendToUser } = require('../services/notificationService');
+const { handleRouteError } = require('../utils/apiError');
 
 // Change Password
 const changePassword = async (req, res) => {
@@ -77,11 +78,11 @@ const changePassword = async (req, res) => {
         recipients: [userId], recipientModel: 'User', category: 'system',
         message: "Your password was changed successfully. If this wasn't you, contact support immediately.",
       }).catch(() => {});
-      sendToUser(User, userId, { title: 'Password Changed 🔐', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
+      sendToUser(User, userId, { title: 'Password Changed ðŸ”', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
     }
   } catch (error) {
     console.error('Error changing password:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -151,7 +152,7 @@ const sendAlternativeEmailOTP = async (req, res) => {
     });
   } catch (error) {
     console.error('Error sending alternative email OTP:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -203,7 +204,7 @@ const verifyAlternativeEmailOTP = async (req, res) => {
     }
   } catch (error) {
     console.error('Error verifying alternative email OTP:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -242,7 +243,7 @@ const updateAlternativeEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating alternative email:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -263,7 +264,7 @@ const removeAlternativeEmail = async (req, res) => {
     res.json({ message: 'Alternative email removed successfully' });
   } catch (error) {
     console.error('Error removing alternative email:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -301,7 +302,7 @@ const getNotificationSettings = async (req, res) => {
     res.json(settings);
   } catch (error) {
     console.error('Error getting notification settings:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -362,7 +363,7 @@ const updateNotificationSettings = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating notification settings:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -393,7 +394,7 @@ const getPrivacySettings = async (req, res) => {
     res.json(settings);
   } catch (error) {
     console.error('Error getting privacy settings:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -434,7 +435,7 @@ const updatePrivacySettings = async (req, res) => {
     res.json({ message: 'Privacy settings updated successfully' });
   } catch (error) {
     console.error('Error updating privacy settings:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -479,7 +480,7 @@ const updateAccountInformation = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating account information:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -582,7 +583,7 @@ const deleteAccount = async (req, res) => {
     res.json({ message: 'Account deactivated successfully.' });
   } catch (error) {
     console.error('Error deactivating account:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -619,7 +620,7 @@ const exportUserData = async (req, res) => {
     });
   } catch (error) {
     console.error('Error exporting user data:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -666,7 +667,7 @@ const getAdminNotificationSettings = async (req, res) => {
     res.json(settings);
   } catch (error) {
     console.error('Error getting admin notification settings:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
@@ -751,11 +752,11 @@ const updateAdminNotificationSettings = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating admin notification settings:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
-// Set Initial Password (Google-login users only) — Step 1: send OTP to primary email
+// Set Initial Password (Google-login users only) â€” Step 1: send OTP to primary email
 const sendSetPasswordOtp = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -799,11 +800,11 @@ const sendSetPasswordOtp = async (req, res) => {
     res.json({ message: 'OTP sent to your email.' });
   } catch (error) {
     console.error('Error sending set-password OTP:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
-// Set Initial Password — Step 2a: verify OTP or PIN and mark identity verified
+// Set Initial Password â€” Step 2a: verify OTP or PIN and mark identity verified
 // The client calls this after OTP/PIN entry; on success the password fields unlock.
 const verifySetPasswordIdentity = async (req, res) => {
   try {
@@ -850,11 +851,11 @@ const verifySetPasswordIdentity = async (req, res) => {
     res.json({ verified: true });
   } catch (error) {
     console.error('Error verifying set-password identity:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
-// Set Initial Password — Step 2b: set the password (identity already verified above)
+// Set Initial Password â€” Step 2b: set the password (identity already verified above)
 const confirmSetPassword = async (req, res) => {
   try {
     const { newPassword } = req.body;
@@ -878,7 +879,7 @@ const confirmSetPassword = async (req, res) => {
     }
 
     if (!newPassword || newPassword.length < 8 || newPassword.length > 30) {
-      return res.status(400).json({ message: 'Password must be 8–30 characters.' });
+      return res.status(400).json({ message: 'Password must be 8â€“30 characters.' });
     }
     if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
       return res.status(400).json({ message: 'Password must contain at least one letter and one number.' });
@@ -897,15 +898,15 @@ const confirmSetPassword = async (req, res) => {
         recipients: [userId], recipientModel: 'User', category: 'system',
         message: "A password has been set for your LenDen account. If this wasn't you, contact support immediately.",
       }).catch(() => {});
-      sendToUser(User, userId, { title: 'Password Changed 🔐', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
+      sendToUser(User, userId, { title: 'Password Changed ðŸ”', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
     }
   } catch (error) {
     console.error('Error confirming set-password:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
-// Change Password — Forgot flow Step 1: send OTP to user's primary email
+// Change Password â€” Forgot flow Step 1: send OTP to user's primary email
 const sendChangePasswordOtp = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -941,11 +942,11 @@ const sendChangePasswordOtp = async (req, res) => {
     res.json({ message: 'OTP sent to your email.' });
   } catch (error) {
     console.error('Error sending change-password OTP:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 
-// Change Password — Forgot flow Step 2: verify OTP or PIN
+// Change Password â€” Forgot flow Step 2: verify OTP or PIN
 const verifyChangePasswordIdentity = async (req, res) => {
   try {
     const { otp, pin } = req.body;
@@ -986,7 +987,7 @@ const verifyChangePasswordIdentity = async (req, res) => {
     res.json({ verified: true });
   } catch (error) {
     console.error('Error verifying change-password identity:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    handleRouteError(res, error);
   }
 };
 

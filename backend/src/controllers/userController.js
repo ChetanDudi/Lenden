@@ -1,4 +1,4 @@
-const User = require('../models/user');
+﻿const User = require('../models/user');
 const Admin = require('../models/admin');
 const PendingRegistration = require('../models/pendingRegistration');
 const bcrypt = require('bcrypt');
@@ -13,6 +13,7 @@ const {
   generateUniqueReferralCode,
 } = require('../utils/referralService');
 const { recordCoinLedgerEntry } = require('../utils/coinLedgerService');
+const { handleRouteError } = require('../utils/apiError');
 const Notification = require('../models/notification');
 const { getCoinPricing } = require('../utils/coinPricing');
 const { sendToUser } = require('../services/notificationService');
@@ -318,7 +319,7 @@ exports.login = async (req, res) => {
           recipients: [user._id], recipientModel: 'User', category: 'system',
           message: `New login to your account from ${req.ip || 'unknown location'}.`,
         }).catch(() => {});
-        sendToUser(User, user._id, { title: 'New Login Detected 🔐', body: `New login from ${req.ip || 'unknown'}.`, data: { type: 'security_login' } });
+        sendToUser(User, user._id, { title: 'New Login Detected ðŸ”', body: `New login from ${req.ip || 'unknown'}.`, data: { type: 'security_login' } });
       }
 
       // Device management: enforce single-device login if needed
@@ -410,8 +411,8 @@ exports.login = async (req, res) => {
     }
 
   } catch (err) {
-    console.error('❌ Login error:', err.message);
-    console.error('❌ Full error:', err);
+    console.error('âŒ Login error:', err.message);
+    console.error('âŒ Full error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -520,7 +521,7 @@ exports.googleLogin = async (req, res) => {
       });
       await user.save();
     } else if (!user.googleId) {
-      // Existing local account signing in with Google for the first time — link it.
+      // Existing local account signing in with Google for the first time â€” link it.
       // authProvider stays 'local' so the account still requires its original
       // password for non-Google logins; googleId alone is enough to allow Google sign-in.
       user.googleId = googleId;
@@ -601,7 +602,7 @@ exports.googleLogin = async (req, res) => {
       dailyLoginReward: dailyReward,
     });
   } catch (err) {
-    console.error('❌ Google login error:', err.message);
+    console.error('âŒ Google login error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -671,7 +672,7 @@ exports.sendLoginOtp = async (req, res) => {
     await record.save();
     res.status(200).json({ message: 'OTP sent to email', userType, name: record.name });
   } catch (err) {
-    console.error('❌ Error in sendLoginOtp:', err.message);
+    console.error('âŒ Error in sendLoginOtp:', err.message);
     res.status(503).json({ error: 'Server is temporarily unavailable. Please try again in a moment.' });
   }
 };
@@ -744,7 +745,7 @@ exports.verifyLoginOtp = async (req, res) => {
           recipients: [user._id], recipientModel: 'User', category: 'system',
           message: `New login to your account from ${ipAddress || 'unknown location'}.`,
         }).catch(() => {});
-        sendToUser(User, user._id, { title: 'New Login Detected 🔐', body: `New login from ${ipAddress || 'unknown'}.`, data: { type: 'security_login' } });
+        sendToUser(User, user._id, { title: 'New Login Detected ðŸ”', body: `New login from ${ipAddress || 'unknown'}.`, data: { type: 'security_login' } });
       }
 
       // Register device
@@ -778,7 +779,7 @@ exports.verifyLoginOtp = async (req, res) => {
       return res.status(200).json({ message: 'Login successful', userType: 'admin', admin: adminResponse, accessToken, refreshToken, deviceId });
     }
   } catch (err) {
-    console.error('❌ Error in verifyLoginOtp:', err);
+    console.error('âŒ Error in verifyLoginOtp:', err);
     res.status(400).json({ error: err.message });
   }
 };
@@ -931,7 +932,7 @@ exports.refreshToken = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Token refresh error:', error);
+    console.error('âŒ Token refresh error:', error);
     res.status(500).json({ error: 'Server error during token refresh' });
   }
 };
@@ -987,7 +988,7 @@ exports.logout = async (req, res) => {
     
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
-    console.error('❌ Logout error:', error);
+    console.error('âŒ Logout error:', error);
     res.status(500).json({ error: 'Server error during logout' });
   }
 };
@@ -1017,7 +1018,7 @@ exports.logoutAllDevices = async (req, res) => {
 
     res.json({ message: 'Logged out from all devices successfully' });
   } catch (error) {
-    console.error('❌ Logout all devices error:', error);
+    console.error('âŒ Logout all devices error:', error);
     res.status(500).json({ error: 'Server error during logout from all devices' });
   }
 };
@@ -1042,7 +1043,7 @@ exports.getActiveSessions = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('❌ Get active sessions error:', error);
+    console.error('âŒ Get active sessions error:', error);
     res.status(500).json({ error: 'Server error while fetching active sessions' });
   }
 };
@@ -1104,3 +1105,4 @@ exports.applyDailyLoginRewardOnAppOpen = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+

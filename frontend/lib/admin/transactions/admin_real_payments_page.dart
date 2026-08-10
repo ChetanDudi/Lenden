@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class AdminRealPaymentsPage extends StatefulWidget {
   const AdminRealPaymentsPage({super.key});
@@ -43,14 +44,29 @@ class _AdminRealPaymentsPageState extends State<AdminRealPaymentsPage>
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: false,
+          tabAlignment: TabAlignment.fill,
+          labelPadding: EdgeInsets.zero,
           indicatorColor: AppColors.cyan,
           labelColor: AppColors.cyan,
           unselectedLabelColor: AppThemeColors.secondaryText(context),
           indicatorWeight: 3,
           tabs: const [
-            Tab(icon: Icon(Icons.add_card_rounded, size: 18), text: 'Add Money'),
-            Tab(icon: Icon(Icons.account_balance_rounded, size: 18), text: 'Withdrawals'),
-            Tab(icon: Icon(Icons.card_membership_rounded, size: 18), text: 'Subscriptions'),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.add_card_rounded, size: 14),
+              SizedBox(width: 4),
+              Text('Add Money'),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.account_balance_rounded, size: 14),
+              SizedBox(width: 4),
+              Text('Withdrawals'),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.card_membership_rounded, size: 14),
+              SizedBox(width: 4),
+              Text('Subscriptions'),
+            ])),
           ],
         ),
       ),
@@ -154,38 +170,6 @@ class _StatChip {
   const _StatChip(this.label, this.value, this.color);
 }
 
-Widget _searchBar(BuildContext context, TextEditingController ctrl,
-    VoidCallback onChanged) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    child: TextField(
-      controller: ctrl,
-      onChanged: (_) => onChanged(),
-      decoration: InputDecoration(
-        hintText: 'Search by name or email…',
-        hintStyle:
-            TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan, size: 20),
-        suffixIcon: ctrl.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear_rounded, size: 18),
-                onPressed: () {
-                  ctrl.clear();
-                  onChanged();
-                },
-                color: AppThemeColors.secondaryText(context),
-              )
-            : null,
-        filled: true,
-        fillColor: AppThemeColors.cardBg(context),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none),
-      ),
-    ),
-  );
-}
 
 Widget _userRow(BuildContext context, Map<String, dynamic> user) {
   final name = (user['name'] ?? '').toString();
@@ -351,10 +335,15 @@ class _TopUpsTabState extends State<_TopUpsTab>
                   _StatChip('Total Amount', _fmtAmount(totalAmt), Colors.green),
                   _StatChip('Showing', _topups.length.toString(), Colors.orange),
                 ]),
-                _searchBar(context, _searchCtrl, () {
-                  setState(() => _search = _searchCtrl.text);
-                  Future.delayed(const Duration(milliseconds: 600), _fetch);
-                }),
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: 'Search by name or email…',
+                  onChanged: (v) {
+                    setState(() => _search = v);
+                    Future.delayed(const Duration(milliseconds: 600), _fetch);
+                  },
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                ),
                 _dateFilterRow(context),
                 const SizedBox(height: 4),
               ],
@@ -643,9 +632,14 @@ class _WithdrawalsTabState extends State<_WithdrawalsTab>
                   _StatChip('Pending', _fmtAmount(s['pending']), Colors.orange),
                   _StatChip('Processed', _fmtAmount(s['processed']), Colors.green),
                 ]),
-                _searchBar(context, _searchCtrl, () {
-                  setState(() { _search = _searchCtrl.text; _showAll = false; });
-                }),
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: 'Search by name or email…',
+                  onChanged: (v) {
+                    setState(() { _search = v; _showAll = false; });
+                  },
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                ),
                 _filterChips(context),
                 const SizedBox(height: 4),
               ],
@@ -1073,10 +1067,15 @@ class _SubscriptionsTabState extends State<_SubscriptionsTab>
                   _StatChip('Active', s['active'].toString(), Colors.green),
                   _StatChip('Revenue', _fmtAmount(s['revenue']), Colors.purple),
                 ]),
-                _searchBar(context, _searchCtrl, () {
-                  setState(() { _search = _searchCtrl.text; _showAll = false; });
-                  Future.delayed(const Duration(milliseconds: 600), _fetch);
-                }),
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: 'Search by name or email…',
+                  onChanged: (v) {
+                    setState(() { _search = v; _showAll = false; });
+                    Future.delayed(const Duration(milliseconds: 600), _fetch);
+                  },
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                ),
                 _statusChips(context),
                 const SizedBox(height: 4),
               ],

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
@@ -565,41 +566,18 @@ class _ManageQuickTransactionsPageState
     final t = AppLocalizations.of(context).t;
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: const LinearGradient(
-              colors: [Colors.orange, Colors.white, Colors.green],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(context),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(color: AppThemeColors.primaryText(context)),
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-                _searchDebounceTimer?.cancel();
-                _searchDebounceTimer = Timer(
-                  const Duration(milliseconds: 300),
-                  _fetchTransactions,
-                );
-              },
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: t('search_by_email_description_placeholder'),
-                prefixIcon:
-                    const Icon(Icons.search_rounded, color: AppColors.cyan),
-              ),
-            ),
-          ),
+        AppSearchBar(
+          controller: _searchController,
+          hintText: t('search_by_email_description_placeholder'),
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+            _searchDebounceTimer?.cancel();
+            _searchDebounceTimer = Timer(
+              const Duration(milliseconds: 300),
+              _fetchTransactions,
+            );
+          },
+          margin: EdgeInsets.zero,
         ),
         const SizedBox(height: 10),
         Row(

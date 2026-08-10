@@ -14,6 +14,7 @@ import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/budget_limit_banner.dart';
+import '../../../widgets/search_tab_bar.dart';
 import '../../../widgets/free_attempts_banner.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
@@ -78,6 +79,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     {'code': 'RUB', 'symbol': '₽'},
   ];
 
+  final TextEditingController _groupSearchCtrl = TextEditingController();
+
   List<Map<String, dynamic>> userGroups = [];
   List<Map<String, dynamic>> filteredGroups = [];
   bool groupsLoading = true;
@@ -133,6 +136,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
     _memberEmailController.dispose();
     _expenseDescController.dispose();
     _expenseAmountController.dispose();
+    _groupSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -1053,55 +1057,14 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(
-                                            2), // border width
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Colors.orange,
-                                              Colors.white,
-                                              Colors.green
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        child: TextField(
-                                          decoration: InputDecoration(
-                                            hintText:
-                                                t('search_group_name_or_creator_email_hint'),
-                                            prefixIcon: Icon(Icons.search,
-                                                color: AppColors.cyan),
-                                            filled: true,
-                                            fillColor: AppThemeColors.cardBg(context),
-                                            contentPadding:
-                                                EdgeInsets.symmetric(
-                                                    vertical: 0,
-                                                    horizontal: 16),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                          ),
-                                          onChanged: (val) {
-                                            groupSearchQuery = val;
-                                            _filterAndSearchGroups();
-                                          },
-                                        ),
+                                      child: AppSearchBar(
+                                        controller: _groupSearchCtrl,
+                                        hintText: t('search_group_name_or_creator_email_hint'),
+                                        onChanged: (val) {
+                                          groupSearchQuery = val;
+                                          _filterAndSearchGroups();
+                                        },
+                                        margin: EdgeInsets.zero,
                                       ),
                                     ),
                                     SizedBox(width: 12),

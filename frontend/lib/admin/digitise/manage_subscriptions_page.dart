@@ -47,18 +47,40 @@ class _AdminFeaturesPageState extends State<AdminFeaturesPage>
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
+          isScrollable: false,
+          tabAlignment: TabAlignment.fill,
+          labelPadding: EdgeInsets.zero,
           labelColor: AppThemeColors.primaryText(context),
           unselectedLabelColor:
               AppThemeColors.primaryText(context).withValues(alpha: 0.7),
           indicatorColor: AppColors.cyan,
           indicatorWeight: 3,
           tabs: [
-            Tab(text: t('plans_tab'), icon: Icon(Icons.card_membership)),
-            Tab(text: t('benefits_tab'), icon: Icon(Icons.star)),
-            Tab(text: t('faqs_tab'), icon: Icon(Icons.help_outline)),
-            Tab(text: t('subscriptions_tab'), icon: Icon(Icons.subscriptions)),
-            Tab(text: t('analytics_tab'), icon: Icon(Icons.analytics_outlined)),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.card_membership, size: 14),
+              const SizedBox(width: 4),
+              Text(t('plans_tab')),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.star, size: 14),
+              const SizedBox(width: 4),
+              Text(t('benefits_tab')),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.help_outline, size: 14),
+              const SizedBox(width: 4),
+              Text(t('faqs_tab')),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.subscriptions, size: 14),
+              const SizedBox(width: 4),
+              Text(t('subscriptions_tab')),
+            ])),
+            Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.analytics_outlined, size: 14),
+              const SizedBox(width: 4),
+              Text(t('analytics_tab')),
+            ])),
           ],
         ),
       ),

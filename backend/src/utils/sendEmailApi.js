@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { EmailServiceError } = require('./apiError');
 
 async function sendEmail({ to, subject, html, text, attachments }) {
   const start = Date.now();
@@ -11,8 +12,8 @@ async function sendEmail({ to, subject, html, text, attachments }) {
       await _sendViaNodemailer({ to, subject, html, text, attachments });
       console.log(`[email] sent via gmail to=${to} subject="${subject}" ms=${Date.now() - start}`);
     } catch (gmailErr) {
-      console.error(`[email] both providers failed to=${to} subject="${subject}" error="${gmailErr.message}"`);
-      throw gmailErr;
+      console.error(`[email] both providers failed to=${to} subject="${subject}" sgErr="${sgErr.message}" gmailErr="${gmailErr.message}"`);
+      throw new EmailServiceError(gmailErr);
     }
   }
 }

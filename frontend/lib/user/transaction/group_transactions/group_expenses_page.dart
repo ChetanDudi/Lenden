@@ -13,6 +13,7 @@ import '../../../widgets/stylish_dialog.dart';
 import '../../../utils/share_utils.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/search_tab_bar.dart';
 import './widgets/group_expense_helpers.dart';
 import './widgets/add_expense_sheet.dart';
 
@@ -55,6 +56,8 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
   int _dailyExpenseLimit = 3;
   int _dailyExpenseUsed = 0;
 
+  final _searchCtrl = TextEditingController();
+
   static const _kFallbackCurrencies = [
     {'code': 'INR', 'symbol': '₹'},
     {'code': 'USD', 'symbol': '\$'},
@@ -77,6 +80,12 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
     if (widget.openAddExpense) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openAddExpense());
     }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDailyExpenseLimit() async {
@@ -1271,29 +1280,11 @@ class _GroupExpensesPageState extends State<GroupExpensesPage>
                 ),
                 const SizedBox(height: 8),
                 // Search bar
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: t('search_description_member_hint'),
-                    hintStyle:
-                        TextStyle(fontSize: 13, color: AppThemeColors.mutedText(context)),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () =>
-                                setState(() => _searchQuery = ''),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: AppThemeColors.surfaceBg(context),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none),
-                    isDense: true,
-                  ),
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: t('search_description_member_hint'),
                   onChanged: (v) => setState(() => _searchQuery = v),
+                  margin: EdgeInsets.zero,
                 ),
               ],
             ),

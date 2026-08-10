@@ -9,6 +9,7 @@ import '../../utils/theme_helper.dart';
 import '../../utils/responsive.dart';
 import '../../utils/currency_helpers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'personal_budget_expenses_page.dart';
 
 class PersonalBudgetHistoryPage extends StatefulWidget {
@@ -161,41 +162,11 @@ class _PersonalBudgetHistoryPageState extends State<PersonalBudgetHistoryPage> {
       body: Column(
         children: [
           // Search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(children: [
-              Expanded(
-                child: tricolorBorder(
-                  radius: 14,
-                  child: TextField(
-                    controller: _nameCtrl,
-                    style: TextStyle(fontSize: context.sp(14),
-                        color: AppThemeColors.primaryText(context)),
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context).t('search_budget_hint'),
-                      hintStyle: TextStyle(color: AppThemeColors.secondaryText(context)),
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan),
-                      filled: true,
-                      fillColor: AppThemeColors.cardBg(context),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onSubmitted: (_) => _applySearch(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: _applySearch,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.cyan,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                ),
-                child: const Icon(Icons.search, color: Colors.white),
-              ),
-            ]),
+          AppSearchBar(
+            controller: _nameCtrl,
+            hintText: AppLocalizations.of(context).t('search_budget_hint'),
+            onSubmit: _applySearch,
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           ),
 
           // Expandable filters

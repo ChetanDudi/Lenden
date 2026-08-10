@@ -9,6 +9,7 @@ import '../../../widgets/app_colors.dart';
 import '../../../utils/pickers.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
+import '../../../widgets/search_tab_bar.dart';
 
 
 // ── Category metadata ─────────────────────────────────────────────────────────
@@ -95,36 +96,6 @@ Widget _summaryRow(BuildContext context, List<_StatChip> chips) {
   );
 }
 
-Widget _searchBar(
-    BuildContext context, TextEditingController ctrl, VoidCallback onChanged) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    child: TextField(
-      controller: ctrl,
-      onChanged: (_) => onChanged(),
-      decoration: InputDecoration(
-        hintText: 'Search by name, email, or note…',
-        hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.cyan, size: 20),
-        suffixIcon: ctrl.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear_rounded, size: 18),
-                onPressed: () {
-                  ctrl.clear();
-                  onChanged();
-                },
-                color: AppThemeColors.secondaryText(context),
-              )
-            : null,
-        filled: true,
-        fillColor: AppThemeColors.cardBg(context),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      ),
-    ),
-  );
-}
 
 Widget _userRow(BuildContext context, Map<String, dynamic> user, {VoidCallback? onTap}) {
   final name = (user['name'] ?? '').toString();
@@ -578,10 +549,15 @@ class _InAppTabState extends State<InAppTab> with AutomaticKeepAliveClientMixin 
                   ),
 
                 // Search
-                _searchBar(context, _searchCtrl, () {
-                  setState(() => _search = _searchCtrl.text);
-                  Future.delayed(const Duration(milliseconds: 600), _fetch);
-                }),
+                AppSearchBar(
+                  controller: _searchCtrl,
+                  hintText: 'Search by name, email, or note…',
+                  onChanged: (v) {
+                    setState(() => _search = v);
+                    Future.delayed(const Duration(milliseconds: 600), _fetch);
+                  },
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                ),
 
                 // Date preset chips
                 _datePresetsRow(context),

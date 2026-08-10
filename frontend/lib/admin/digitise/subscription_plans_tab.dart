@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../utils/subscription_feature_catalog.dart';
 import 'subscription_models.dart';
 import 'add_edit_subscription_plan_page.dart';
@@ -205,52 +206,15 @@ class _SubscriptionPlansTabState extends State<SubscriptionPlansTab> {
                     )
                   : Column(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              gradient: const LinearGradient(
-                                colors: [Colors.orange, Colors.white, Colors.green],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: TextField(
-                                controller: _searchController,
-                                style: TextStyle(
-                                    color: AppThemeColors.primaryText(context)),
-                                decoration: InputDecoration(
-                                  hintText: t('search_plans_hint'),
-                                  border: InputBorder.none,
-                                  icon: Icon(Icons.search, color: AppColors.cyan),
-                                  suffixIcon: _searchQuery.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear),
-                                          onPressed: () {
-                                            setState(() {
-                                              _searchController.clear();
-                                              _searchQuery = '';
-                                            });
-                                          },
-                                        )
-                                      : null,
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _searchQuery = value;
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
+                        AppSearchBar(
+                          controller: _searchController,
+                          hintText: t('search_plans_hint'),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
+                          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                         ),
                         Expanded(
                           child: Builder(builder: (context) {

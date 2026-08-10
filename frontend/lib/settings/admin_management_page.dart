@@ -10,6 +10,7 @@ import '../admin/widgets/top_wave_clipper.dart';
 import '../utils/responsive.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/search_tab_bar.dart';
 
 class AdminManagementPage extends StatefulWidget {
   const AdminManagementPage({Key? key}) : super(key: key);
@@ -1029,21 +1030,10 @@ class _AdminManagementPageState extends State<AdminManagementPage> {
               ),
 
               // Add search bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(color: AppThemeColors.primaryText(context)),
-                  decoration: InputDecoration(
-                    hintText: t('search_admins'),
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    filled: true,
-                    fillColor: AppThemeColors.cardBg(context),
-                  ),
-                ),
+              AppSearchBar(
+                controller: _searchController,
+                hintText: t('search_admins'),
+                margin: const EdgeInsets.symmetric(horizontal: 16.0),
               ),
               const SizedBox(height: 10),
 

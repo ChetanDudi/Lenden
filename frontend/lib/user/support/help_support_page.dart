@@ -11,6 +11,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/wave_widget.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -441,33 +442,11 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   const SizedBox(height: 20),
 
                   // Search bar
-                  tricolorBorder(
-                    radius: 14,
-                    child: Container(
-                      color: AppThemeColors.cardBg(context),
-                      child: TextField(
-                        controller: _searchController,
-                        style: TextStyle(color: AppThemeColors.primaryText(context)),
-                        decoration: InputDecoration(
-                          hintText: t('search_your_queries_hint'),
-                          prefixIcon:
-                              const Icon(Icons.search, color: _cyan),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          suffixIcon: _searchTerm.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () => setState(() {
-                                    _searchTerm = '';
-                                    _searchController.clear();
-                                  }),
-                                )
-                              : null,
-                        ),
-                        onChanged: (v) => setState(() => _searchTerm = v),
-                      ),
-                    ),
+                  AppSearchBar(
+                    controller: _searchController,
+                    hintText: t('search_your_queries_hint'),
+                    onChanged: (v) => setState(() => _searchTerm = v),
+                    margin: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 24),
 

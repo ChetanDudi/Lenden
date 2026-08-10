@@ -373,25 +373,42 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                 ),
                 const SizedBox(height: 4),
                 // TabBar
-                TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelColor: AppColors.cyan,
-                  unselectedLabelColor: AppThemeColors.secondaryText(context),
-                  indicatorColor: AppColors.cyan,
-                  labelStyle: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.bold),
-                  unselectedLabelStyle: TextStyle(fontSize: context.sp(12)),
-                  tabs: [
-                    Tab(text: t('tab_personal')),
-                    Tab(text: t('monthly')),
-                    Tab(text: t('tab_categories')),
-                    Tab(text: t('groups_label')),
-                    Tab(text: t('tab_goals')),
-                    Tab(text: t('alerts_label')),
-                    Tab(text: t('history_label')),
-                    Tab(text: t('tab_recurring')),
-                  ],
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    labelColor: AppColors.cyan,
+                    unselectedLabelColor: AppThemeColors.secondaryText(context),
+                    indicator: BoxDecoration(
+                      color: AppColors.cyan,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelStyle: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.bold),
+                    unselectedLabelStyle: TextStyle(fontSize: context.sp(12)),
+                    tabs: [
+                      Tab(text: t('tab_personal')),
+                      Tab(text: t('monthly')),
+                      Tab(text: t('tab_categories')),
+                      Tab(text: t('groups_label')),
+                      Tab(text: t('tab_goals')),
+                      Tab(text: t('alerts_label')),
+                      Tab(text: t('history_label')),
+                      Tab(text: t('tab_recurring')),
+                    ],
+                  ),
                 ),
                 // Body
                 Expanded(
