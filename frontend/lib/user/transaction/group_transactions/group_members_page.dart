@@ -1,6 +1,7 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import '../../../utils/avatar_helpers.dart' as ah;
 import 'package:flutter/material.dart';
+import '../../../widgets/app_colors.dart';
 import '../../../utils/api_client.dart';
 import '../../../api_config.dart';
 import '../../../utils/theme_helper.dart';
@@ -18,12 +19,6 @@ String _nameOf(dynamic field) {
   return '';
 }
 
-const _tricolorGradient = LinearGradient(
-  colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
-
 Widget _tricolorBorderBox({
   required Widget child,
   double radius = 18,
@@ -33,7 +28,7 @@ Widget _tricolorBorderBox({
   return Container(
     margin: margin,
     decoration: BoxDecoration(
-      gradient: _tricolorGradient,
+      gradient: AppColors.tricolorGradient,
       borderRadius: BorderRadius.circular(radius),
       boxShadow: [
         BoxShadow(
@@ -243,7 +238,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: const BoxDecoration(
-                gradient: _tricolorGradient,
+                gradient: AppColors.tricolorGradient,
                 borderRadius:
                     BorderRadius.vertical(top: Radius.circular(24)),
               ),
@@ -253,7 +248,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: _tricolorGradient,
+                    gradient: AppColors.tricolorGradient,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.person_add_rounded,
@@ -285,7 +280,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 width: double.infinity,
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: _tricolorGradient,
+                    gradient: AppColors.tricolorGradient,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   padding: const EdgeInsets.all(2),
@@ -421,7 +416,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                   height: 3,
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: const BoxDecoration(
-                    gradient: _tricolorGradient,
+                    gradient: AppColors.tricolorGradient,
                     borderRadius: BorderRadius.all(Radius.circular(4)),
                   ),
                 ),
@@ -513,7 +508,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                     Container(
                                       decoration: isGroupCreator
                                           ? BoxDecoration(
-                                              gradient: _tricolorGradient,
+                                              gradient: AppColors.tricolorGradient,
                                               shape: BoxShape.circle,
                                             )
                                           : null,
@@ -589,7 +584,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                           ),
                                           if (isGroupCreator)
                                             _badge(t('creator_label'),
-                                                const Color(0xFFFF9933),
+                                                AppColors.tricolorOrange,
                                                 Colors.white),
                                           if (isMe)
                                             _badge(t('you_label'),
@@ -671,7 +666,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       floatingActionButton: widget.isCreator
           ? Container(
               decoration: BoxDecoration(
-                gradient: _tricolorGradient,
+                gradient: AppColors.tricolorGradient,
                 borderRadius: BorderRadius.circular(32),
               ),
               padding: const EdgeInsets.all(2),
@@ -743,7 +738,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       child: selected
           ? Container(
               decoration: BoxDecoration(
-                gradient: _tricolorGradient,
+                gradient: AppColors.tricolorGradient,
                 borderRadius: BorderRadius.circular(22),
               ),
               padding: const EdgeInsets.all(2),

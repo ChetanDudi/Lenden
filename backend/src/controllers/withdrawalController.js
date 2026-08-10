@@ -250,12 +250,14 @@ exports.getWithdrawalHistory = async (req, res) => {
 // Handles: payout.processed, payout.failed, payout.reversed
 exports.handlePayoutWebhook = async (req, res) => {
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const sig = req.headers['x-razorpay-signature'];
-    const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
-    const expected = crypto.createHmac('sha256', webhookSecret).update(raw).digest('hex');
-    if (sig !== expected) return res.status(400).json({ error: 'Invalid signature' });
+  if (!webhookSecret) {
+    console.error('[PayoutWebhook] RAZORPAY_WEBHOOK_SECRET is not set — rejecting unsigned payout webhook');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
   }
+  const sig = req.headers['x-razorpay-signature'];
+  const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
+  const expected = crypto.createHmac('sha256', webhookSecret).update(raw).digest('hex');
+  if (sig !== expected) return res.status(400).json({ error: 'Invalid signature' });
 
   let event;
   try {

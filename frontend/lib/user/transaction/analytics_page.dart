@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +14,8 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart';
+import './widgets/analytics_models.dart';
+import './widgets/analytics_detail_page.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final List<dynamic>? transactions;
@@ -1171,7 +1173,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: maxY / 4,
+            horizontalInterval: maxY > 0 ? maxY / 4 : 1,
             getDrawingHorizontalLine: (value) => FlLine(
               color: Colors.grey.withValues(alpha: 0.16),
               strokeWidth: 1,
@@ -1182,7 +1184,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 42,
-                interval: maxY / 4,
+                interval: maxY > 0 ? maxY / 4 : 1,
               ),
             ),
             bottomTitles: AxisTitles(
@@ -2489,12 +2491,12 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 analytics: _secureAnalytics,
                 loading: _secureLoading,
                 error: _secureError,
-                config: _AnalyticsTabConfig(
+                config: AnalyticsTabConfig(
                   tabId: 'secure',
                   tabTitle: t('secure_analytics_title_label'),
                   tabSubtitle: t('secure_analytics_subtitle_message'),
                   metrics: [
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalLent',
                       title: t('total_lent_label'),
                       subtitle: t('amount_shared_by_you_message'),
@@ -2502,7 +2504,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalBorrowed',
                       title: t('total_borrowed_label'),
                       subtitle: t('amount_taken_by_you_message'),
@@ -2510,7 +2512,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalInterest',
                       title: t('interest_label'),
                       subtitle: t('interest_tracked_so_far_message'),
@@ -2518,28 +2520,28 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'cleared',
                       title: t('cleared_label'),
                       subtitle: t('fully_cleared_transactions_message'),
                       icon: Icons.check_circle_outline_rounded,
                       colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'uncleared',
                       title: t('uncleared_label'),
                       subtitle: t('pending_transactions_message'),
                       icon: Icons.pending_actions_rounded,
                       colors: const [Color(0xFFFFB562), Color(0xFFFFD9A0)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'total',
                       title: t('total_transactions_label'),
                       subtitle: t('all_secure_records_message'),
                       icon: Icons.receipt_long_rounded,
                       colors: const [Color(0xFF57A4FF), Color(0xFF90C6FF)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'monthly',
                       title: t('monthly_activity_label'),
                       subtitle: t('twelve_month_transaction_trend_message'),
@@ -2554,12 +2556,12 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 analytics: _quickAnalytics,
                 loading: _quickLoading,
                 error: _quickError,
-                config: _AnalyticsTabConfig(
+                config: AnalyticsTabConfig(
                   tabId: 'quick',
                   tabTitle: t('quick_analytics_title_label'),
                   tabSubtitle: t('quick_analytics_subtitle_message'),
                   metrics: [
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalLent',
                       title: t('total_lent_label'),
                       subtitle: t('quick_amount_shared_by_you_message'),
@@ -2567,7 +2569,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalBorrowed',
                       title: t('total_borrowed_label'),
                       subtitle: t('quick_amount_taken_by_you_message'),
@@ -2575,7 +2577,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalInterest',
                       title: t('outstanding_label'),
                       subtitle: t('uncleared_quick_amount_message'),
@@ -2583,28 +2585,28 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'cleared',
                       title: t('cleared_label'),
                       subtitle: t('quick_transactions_already_closed_message'),
                       icon: Icons.check_circle_outline_rounded,
                       colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'uncleared',
                       title: t('uncleared_label'),
                       subtitle: t('quick_transactions_still_open_message'),
                       icon: Icons.pending_actions_rounded,
                       colors: const [Color(0xFFFFB562), Color(0xFFFFD9A0)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'total',
                       title: t('total_transactions_label'),
                       subtitle: t('all_quick_records_message'),
                       icon: Icons.receipt_long_rounded,
                       colors: const [Color(0xFF57A4FF), Color(0xFF90C6FF)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'monthly',
                       title: t('monthly_activity_label'),
                       subtitle: t('twelve_month_quick_trend_message'),
@@ -2619,12 +2621,12 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                 analytics: _groupAnalytics,
                 loading: _groupLoading,
                 error: _groupError,
-                config: _AnalyticsTabConfig(
+                config: AnalyticsTabConfig(
                   tabId: 'group',
                   tabTitle: t('group_analytics_title_label'),
                   tabSubtitle: t('group_analytics_subtitle_message'),
                   metrics: [
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalLent',
                       title: t('contributed_label'),
                       subtitle: t('what_you_paid_into_groups_message'),
@@ -2632,7 +2634,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFF7C9DFF), Color(0xFFA9B8FF)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalBorrowed',
                       title: t('your_share_title_label'),
                       subtitle: t('what_belongs_to_you_message'),
@@ -2640,7 +2642,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFFFF8B7B), Color(0xFFFFC2AE)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalInterest',
                       title: t('outstanding_label'),
                       subtitle: t('amount_still_unsettled_message'),
@@ -2648,35 +2650,35 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                       colors: const [Color(0xFF58C4DD), Color(0xFF89E0EF)],
                       isCurrency: true,
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'cleared',
                       title: t('settled_label'),
                       subtitle: t('splits_already_settled_message'),
                       icon: Icons.task_alt_rounded,
                       colors: const [Color(0xFF6BCB91), Color(0xFFA9E4A7)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'uncleared',
                       title: t('unsettled_label'),
                       subtitle: t('splits_still_pending_message'),
                       icon: Icons.hourglass_bottom_rounded,
                       colors: const [Color(0xFFFFB562), Color(0xFFFFD9A0)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'total',
                       title: t('expenses_label'),
                       subtitle: t('tracked_group_expenses_message'),
                       icon: Icons.receipt_rounded,
                       colors: const [Color(0xFF57A4FF), Color(0xFF90C6FF)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'totalGroups',
                       title: t('groups_label'),
                       subtitle: t('groups_included_in_analytics_message'),
                       icon: Icons.groups_2_outlined,
                       colors: const [Color(0xFF7E74F1), Color(0xFFC0BCFF)],
                     ),
-                    _MetricDefinition(
+                    AnalyticsMetricDefinition(
                       id: 'monthly',
                       title: t('monthly_activity_label'),
                       subtitle: t('twelve_month_group_trend_message'),
@@ -2698,7 +2700,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     required Map<String, dynamic>? analytics,
     required bool loading,
     required String? error,
-    required _AnalyticsTabConfig config,
+    required AnalyticsTabConfig config,
   }) {
     final t = AppLocalizations.of(context).t;
     if (loading) {
@@ -2748,8 +2750,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                  gradient: LinearGradient(
+                    colors: AppColors.tricolorGradientColors,
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                   ),
@@ -3219,9 +3221,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                     borderRadius: BorderRadius.circular(16),
                     border: Border(
                       top: const BorderSide(
-                          color: Color(0xFFFF9933), width: 2),
+                          color: AppColors.tricolorOrange, width: 2),
                       bottom: const BorderSide(
-                          color: Color(0xFF138808), width: 2),
+                          color: AppColors.tricolorGreen, width: 2),
                       left: BorderSide(
                           color: Colors.blue.shade200, width: 1),
                       right: BorderSide(
@@ -3705,7 +3707,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Widget _buildHeaderCard(
-    _AnalyticsTabConfig config,
+    AnalyticsTabConfig config,
     Map<String, dynamic> analytics,
   ) {
     final t = AppLocalizations.of(context).t;
@@ -3843,9 +3845,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Widget _buildHeroMetricCard({
-    required _AnalyticsMetric metric,
+    required AnalyticsMetric metric,
     required Map<String, dynamic> analytics,
-    required List<_AnalyticsMetric> allMetrics,
+    required List<AnalyticsMetric> allMetrics,
     required String tabId,
     required String tabTitle,
   }) {
@@ -3898,9 +3900,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   Widget _buildOptionCard({
-    required _AnalyticsMetric metric,
+    required AnalyticsMetric metric,
     required Map<String, dynamic> analytics,
-    required List<_AnalyticsMetric> allMetrics,
+    required List<AnalyticsMetric> allMetrics,
     required String tabId,
     required String tabTitle,
   }) {
@@ -3985,8 +3987,8 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     );
   }
 
-  List<_AnalyticsMetric> _buildMetrics(
-    List<_MetricDefinition> definitions,
+  List<AnalyticsMetric> _buildMetrics(
+    List<AnalyticsMetricDefinition> definitions,
     Map<String, dynamic> analytics,
   ) {
     final monthlyCounts =
@@ -3999,7 +4001,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
           ? monthlyCounts.fold<double>(0.0, (sum, value) => sum + value)
           : ((analytics[definition.id] as num?) ?? 0).toDouble();
 
-      return _AnalyticsMetric(
+      return AnalyticsMetric(
         id: definition.id,
         title: definition.title,
         subtitle: definition.subtitle,
@@ -4018,9 +4020,9 @@ class _AnalyticsPageState extends State<AnalyticsPage>
   }
 
   void _openMetricPage(
-    _AnalyticsMetric metric,
+    AnalyticsMetric metric,
     Map<String, dynamic> analytics,
-    List<_AnalyticsMetric> allMetrics,
+    List<AnalyticsMetric> allMetrics,
     String tabId,
     String tabTitle,
   ) {
@@ -4050,7 +4052,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _AnalyticsDetailPage(
+        builder: (_) => AnalyticsDetailPage(
           tabTitle: tabTitle,
           metric: metric,
           analytics: analytics,
@@ -4097,629 +4099,4 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     );
   }
 }
-
-class _AnalyticsDetailPage extends StatelessWidget {
-  final String tabTitle;
-  final _AnalyticsMetric metric;
-  final Map<String, dynamic> analytics;
-  final List<_AnalyticsMetric> allMetrics;
-  final String selectedDisplayCurrency;
-  final DisplayCurrencyData? displayCurrencyData;
-  final bool hasMissingConversion;
-
-  const _AnalyticsDetailPage({
-    required this.tabTitle,
-    required this.metric,
-    required this.analytics,
-    required this.allMetrics,
-    required this.selectedDisplayCurrency,
-    required this.displayCurrencyData,
-    required this.hasMissingConversion,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context).t;
-    final months = List<String>.from(analytics['months'] ?? const []);
-    final monthlyCounts =
-        (analytics['monthlyCounts'] as List<dynamic>? ?? const [])
-            .map((value) => (value as num).toDouble())
-            .toList();
-    final total = ((analytics['total'] as num?) ?? 0).toDouble();
-    final cleared = ((analytics['cleared'] as num?) ?? 0).toDouble();
-    final pending = ((analytics['uncleared'] as num?) ?? 0).toDouble();
-    final ratio = total == 0 ? 0.0 : (cleared / total).clamp(0.0, 1.0);
-
-    final secondaryMetrics =
-        allMetrics.where((item) => item.id != metric.id).take(2).toList();
-
-    return Scaffold(
-      backgroundColor: AppThemeColors.scaffoldBg(context),
-      appBar: transparentAppBar(context, title: metric.title),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                gradient: LinearGradient(
-                  colors: metric.colors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: metric.colors.first.withValues(alpha: 0.30),
-                    blurRadius: 28,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tabTitle,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    metric.displayValue,
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    metric.subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      hasMissingConversion
-                          ? t('showing_inr_values_label')
-                          : t('showing_in_currency_message').replaceFirst('{currency}', selectedDisplayCurrency.toUpperCase()),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (hasMissingConversion) ...[
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F1),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFFF6B6B)),
-                ),
-                child: Text(
-                  t('currency_unavailable_showing_inr_message'),
-                  style: const TextStyle(
-                    color: Color(0xFFC62828),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 22),
-            Text(
-              t('quick_facts_label'),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppThemeColors.primaryText(context),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _MiniInfoCard(
-                    title: t('records_label'),
-                    value: total.toStringAsFixed(0),
-                    color: const Color(0xFF1B58B8),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MiniInfoCard(
-                    title: t('completion_label'),
-                    value: '${(ratio * 100).toStringAsFixed(0)}%',
-                    color: AppColors.cyan,
-                  ),
-                ),
-              ],
-            ),
-            if (secondaryMetrics.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: secondaryMetrics
-                    .map(
-                      (item) => Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: item == secondaryMetrics.first &&
-                                    secondaryMetrics.length > 1
-                                ? 12
-                                : 0,
-                          ),
-                          child: _MiniInfoCard(
-                            title: item.title,
-                            value: item.displayValue,
-                            color: item.colors.first,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-            const SizedBox(height: 22),
-            _ChartShell(
-              title: t('todays_stats_label'),
-              trailing: metric.isTrend
-                  ? Text(
-                      t('twelve_months_label'),
-                      style: const TextStyle(
-                        color: AppColors.cyan,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _LegendDot(
-                            color: const Color(0xFF7C9DFF), label: t('cleared_label')),
-                        const SizedBox(width: 12),
-                        _LegendDot(
-                            color: const Color(0xFFFF8B7B), label: t('pending_label')),
-                      ],
-                    ),
-              child: SizedBox(
-                height: 220,
-                child: LineChart(
-                  LineChartData(
-                    minY: 0,
-                    gridData: FlGridData(
-                      show: true,
-                      horizontalInterval: 5,
-                      drawVerticalLine: false,
-                      getDrawingHorizontalLine: (_) => FlLine(
-                        color: Colors.grey.withValues(alpha: 0.16),
-                        strokeWidth: 1,
-                      ),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 28,
-                          getTitlesWidget: (value, meta) => Text(
-                            value.toInt().toString(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppThemeColors.secondaryText(context),
-                            ),
-                          ),
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 30,
-                          interval: 1,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            if (index < 0 || index >= months.length) {
-                              return const SizedBox.shrink();
-                            }
-
-                            final label = months[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                label.length >= 7 ? label.substring(5) : label,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: AppThemeColors.secondaryText(context),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    lineBarsData: [
-                      _buildPrimaryLine(monthlyCounts),
-                      if (!metric.isTrend)
-                        _buildSecondaryLine(cleared, pending, months.length),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _ChartShell(
-              title: t('needed_info_label'),
-              child: Column(
-                children: [
-                  _InfoRow(
-                    label: metric.title,
-                    value: metric.displayValue,
-                  ),
-                  _InfoRow(
-                    label: t('total_records_label'),
-                    value: total.toStringAsFixed(0),
-                  ),
-                  _InfoRow(
-                    label: t('cleared_label'),
-                    value: cleared.toStringAsFixed(0),
-                  ),
-                  _InfoRow(
-                    label: t('pending_label'),
-                    value: pending.toStringAsFixed(0),
-                    isLast: true,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  LineChartBarData _buildPrimaryLine(List<double> monthlyCounts) {
-    final points = monthlyCounts.isEmpty
-        ? [const FlSpot(0, 0)]
-        : monthlyCounts
-            .asMap()
-            .entries
-            .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
-            .toList();
-
-    return LineChartBarData(
-      spots: points,
-      isCurved: true,
-      color: const Color(0xFF7C9DFF),
-      barWidth: 3,
-      isStrokeCapRound: true,
-      belowBarData: BarAreaData(
-        show: true,
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF7C9DFF).withValues(alpha: 0.25),
-            const Color(0xFF7C9DFF).withValues(alpha: 0.03),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      dotData: FlDotData(
-        show: true,
-        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-          radius: 4,
-          color: Colors.white,
-          strokeWidth: 2.5,
-          strokeColor: const Color(0xFF7C9DFF),
-        ),
-      ),
-    );
-  }
-
-  LineChartBarData _buildSecondaryLine(
-    double cleared,
-    double pending,
-    int length,
-  ) {
-    final count = length <= 0 ? 1 : length;
-    final step = count == 1 ? 0.0 : 1.0 / (count - 1);
-
-    final points = List.generate(count, (index) {
-      final progress = step * index;
-      final value = (cleared * (1 - progress)) + (pending * progress);
-      return FlSpot(index.toDouble(), value);
-    });
-
-    return LineChartBarData(
-      spots: points,
-      isCurved: true,
-      color: const Color(0xFFFF8B7B),
-      barWidth: 2,
-      dashArray: const [6, 4],
-      dotData: const FlDotData(show: false),
-      belowBarData: BarAreaData(
-        show: true,
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFFF8B7B).withValues(alpha: 0.16),
-            const Color(0xFFFF8B7B).withValues(alpha: 0.02),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniInfoCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final Color color;
-
-  const _MiniInfoCard({
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppThemeColors.secondaryText(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChartShell extends StatelessWidget {
-  final String title;
-  final Widget child;
-  final Widget? trailing;
-
-  const _ChartShell({
-    required this.title,
-    required this.child,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppThemeColors.primaryText(context),
-                  ),
-                ),
-              ),
-              if (trailing != null) trailing!,
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-
-  const _LegendDot({
-    required this.color,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          height: 8,
-          width: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppThemeColors.secondaryText(context),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isLast;
-
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.isLast = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isLast ? Colors.transparent : AppThemeColors.border(context),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppThemeColors.secondaryText(context),
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppThemeColors.primaryText(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnalyticsTabConfig {
-  final String tabId;
-  final String tabTitle;
-  final String tabSubtitle;
-  final List<_MetricDefinition> metrics;
-
-  const _AnalyticsTabConfig({
-    required this.tabId,
-    required this.tabTitle,
-    required this.tabSubtitle,
-    required this.metrics,
-  });
-}
-
-class _MetricDefinition {
-  final String id;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final List<Color> colors;
-  final bool isCurrency;
-  final bool isTrend;
-
-  const _MetricDefinition({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.colors,
-    this.isCurrency = false,
-    this.isTrend = false,
-  });
-}
-
-class _AnalyticsMetric {
-  final String id;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final List<Color> colors;
-  final double value;
-  final String displayValue;
-  final bool isCurrency;
-  final bool isTrend;
-
-  const _AnalyticsMetric({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.colors,
-    required this.value,
-    required this.displayValue,
-    required this.isCurrency,
-    required this.isTrend,
-  });
-}
-
 

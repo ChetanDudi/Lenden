@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/wave_widget.dart';
 import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
@@ -321,7 +322,7 @@ class _UserOffersPageState extends State<UserOffersPage>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _TopWaveClipper(),
+              clipper: const TopWaveClipper(),
               child: Container(
                 height: context.sh(156),
                 decoration: const BoxDecoration(
@@ -1498,27 +1499,4 @@ class _ClaimedGiftBoxCard extends StatelessWidget {
       ],
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-class _TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.4);
-    path.quadraticBezierTo(
-      size.width * 0.25, size.height * 0.5,
-      size.width * 0.5, size.height * 0.4,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75, size.height * 0.3,
-      size.width, size.height * 0.4,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

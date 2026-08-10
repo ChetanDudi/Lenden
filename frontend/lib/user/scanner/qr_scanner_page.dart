@@ -968,11 +968,7 @@ class _QrPaymentPageState extends State<_QrPaymentPage> {
                         padding: const EdgeInsets.all(3),
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          gradient: AppColors.tricolorGradient,
                         ),
                         child: CircleAvatar(
                           radius: 40,
@@ -1424,15 +1420,7 @@ class _QrSelfPayPage extends StatelessWidget {
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFFFF9933),
-                          Colors.white,
-                          Color(0xFF138808)
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: AppColors.tricolorGradient,
                     ),
                     child: CircleAvatar(
                       radius: 50,

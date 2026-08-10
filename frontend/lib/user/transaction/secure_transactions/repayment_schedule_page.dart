@@ -98,7 +98,7 @@ class RepaymentSchedulePage extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9933), Color(0xFF138808)]),
+                      colors: [AppColors.tricolorOrange, AppColors.tricolorGreen]),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.table_chart,

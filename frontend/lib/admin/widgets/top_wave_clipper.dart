@@ -205,3 +205,27 @@ class AltBottomWaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+
+/// A cubic-bezier variant used on the Feedback, Help & Support, and
+/// Edit Profile pages — produces a more aggressive asymmetric S-curve than
+/// the quadratic [TopWaveClipper].
+class CubicTopWaveClipper extends CustomClipper<Path> {
+  const CubicTopWaveClipper();
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height * 0.75);
+    path.cubicTo(
+      size.width * 0.25, size.height * 1.05,
+      size.width * 0.75, size.height * 0.45,
+      size.width, size.height * 0.75,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}

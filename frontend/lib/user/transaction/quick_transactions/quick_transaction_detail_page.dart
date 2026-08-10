@@ -8,7 +8,7 @@ import '../../../session.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/share_utils.dart';
 import '../../../widgets/payment_success_page.dart';
-import '../../wallet/lenden_wallet_page.dart';
+import '../../wallet/widgets/payment_sheet.dart';
 import './create_edit_quick_transaction_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';

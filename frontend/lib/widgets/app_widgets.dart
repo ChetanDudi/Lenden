@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import 'wave_widget.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
 
@@ -162,35 +163,13 @@ Widget cyanWaveHeader(BuildContext context,
     left: 0,
     right: 0,
     child: ClipPath(
-      clipper: clipper ?? _DefaultTopWaveClipper(),
+      clipper: clipper ?? const MediumTopWaveClipper(),
       child: Container(
         height: height,
         color: AppThemeColors.waveSolid(context),
       ),
     ),
   );
-}
-
-class _DefaultTopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.35);
-    path.quadraticBezierTo(
-      size.width * 0.25, size.height * 0.5,
-      size.width * 0.5, size.height * 0.35,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75, size.height * 0.2,
-      size.width, size.height * 0.35,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -619,8 +598,8 @@ Widget errorStateWidget(
           const SizedBox(height: 20),
           Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+              gradient: LinearGradient(
+                colors: AppColors.tricolorGradientColors,
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),

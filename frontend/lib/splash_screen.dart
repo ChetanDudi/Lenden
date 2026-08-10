@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'widgets/app_colors.dart';
+import 'widgets/wave_widget.dart';
 import 'dart:async';
 import 'utils/responsive.dart';
 import 'utils/theme_helper.dart';
@@ -55,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _TopWaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.18,
                 color: AppThemeColors.waveSolid(context),
@@ -68,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
             right: 0,
             bottom: 0,
             child: ClipPath(
-              clipper: _BottomWaveClipper(),
+              clipper: const AltBottomWaveClipper(),
               child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.15,
                 color: AppThemeColors.waveSolid(context),
@@ -142,42 +143,4 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-}
-
-// Top wave clipper for splash
-class _TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4, size.width, size.height * 0.7);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-// Bottom wave clipper for splash
-class _BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

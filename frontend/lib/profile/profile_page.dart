@@ -363,11 +363,7 @@ class _ProfilePageState extends State<ProfilePage> {
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColors.tricolorGradient,
       ),
       padding: const EdgeInsets.all(2),
       child: ClipRRect(
@@ -545,7 +541,7 @@ class _ProfilePageState extends State<ProfilePage> {
         color = AppColors.cyan;
         strengthLabel = 'Good';
       } else if (score >= 35) {
-        color = const Color(0xFFFF9933);
+        color = AppColors.tricolorOrange;
         strengthLabel = 'Fair';
       } else {
         color = const Color(0xFFD32F2F);

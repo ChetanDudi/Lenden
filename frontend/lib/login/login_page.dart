@@ -1280,11 +1280,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: AppColors.tricolorGradient,
           ),
           child: Container(
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),

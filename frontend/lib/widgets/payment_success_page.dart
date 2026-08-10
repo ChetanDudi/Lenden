@@ -54,8 +54,8 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage>
   late Animation<double> _slideUp;
 
   static const _cyan = AppColors.cyan;
-  static const _green = Color(0xFF138808);
-  static const _saffron = Color(0xFFFF9933);
+  static const _green = AppColors.tricolorGreen;
+  static const _saffron = AppColors.tricolorOrange;
 
   @override
   void initState() {

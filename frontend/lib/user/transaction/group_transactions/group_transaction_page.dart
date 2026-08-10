@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
+import '../../../widgets/wave_widget.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -710,11 +711,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.tricolorGradient,
             ),
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
@@ -931,7 +928,7 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const DeeperTopWaveClipper(),
               child: Container(
                 height: context.sh(70),
                 decoration: BoxDecoration(
@@ -1023,8 +1020,8 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
                                     const SizedBox(height: 28),
                                     Container(
                                       decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
+                                        gradient: LinearGradient(
+                                          colors: AppColors.tricolorGradientColors,
                                           begin: Alignment.centerLeft,
                                           end: Alignment.centerRight,
                                         ),
@@ -1567,74 +1564,4 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
 
   // Helper function to format date and time
 
-}
-
-class TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.8);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height * 0.8,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.6,
-      size.width,
-      size.height * 0.8,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6,
-        size.width * 0.5, size.height * 0.4);
-    path.quadraticBezierTo(size.width * 0.75, 0, size.width, size.height * 0.4);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class SettleWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height * 0.7,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.4,
-      size.width,
-      size.height * 0.7,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

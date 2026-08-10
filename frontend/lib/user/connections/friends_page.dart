@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -16,6 +16,7 @@ import '../../widgets/stylish_dialog.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/premium_gate.dart';
+import './widgets/mutual_friends_sheet.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({Key? key}) : super(key: key);
@@ -85,7 +86,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       if (_sortFriends.isNotEmpty) qp.add('sortBy=${Uri.encodeComponent(_sortFriends)}');
       if (qp.isNotEmpty) params.write('?${qp.join('&')}');
 
-      // Run both API calls in parallel — cuts wait time in half
+      // Run both API calls in parallel â€” cuts wait time in half
       final results = await Future.wait([
         ApiClient.get(params.toString()),
         ApiClient.get('/api/friends/requests'),
@@ -350,7 +351,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                   overflow: TextOverflow.ellipsis),
                               ),
                               const SizedBox(width: 6),
-                              Text('· $myCoins coins',
+                              Text('Â· $myCoins coins',
                                 style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(ctx))),
                             ]),
                             const SizedBox(height: 10),
@@ -426,7 +427,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                         border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.5)),
                                       ),
                                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                        const Text('🎲', style: TextStyle(fontSize: 13)),
+                                        const Text('ðŸŽ²', style: TextStyle(fontSize: 13)),
                                         const SizedBox(width: 3),
                                         Text('Surprise',
                                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
@@ -512,7 +513,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 ? const SizedBox(width: 18, height: 18,
                                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                 : Text(
-                                    selectedGift > 0 ? 'Send Wish + Gift 🎁' : 'Send Wish',
+                                    selectedGift > 0 ? 'Send Wish + Gift ðŸŽ' : 'Send Wish',
                                     style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
@@ -617,7 +618,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       if (!mounted) return;
       _showSuccessDialog(t('request_sent_title'), t('friend_request_sent_success'), Icons.check_circle, Colors.green);
     } else if (res.statusCode == 200) {
-      // Already pending — optimistic state is already correct
+      // Already pending â€” optimistic state is already correct
     } else {
       setState(() => _pendingOutgoingIds.remove(uid));
       showSnack(context, t('failed_to_send_request'), isError: true);
@@ -850,14 +851,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     } catch (_) {}
   }
 
-  // ─── UI Widgets ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ UI Widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void _showMutualFriendsSheet(String userId, String displayName) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _MutualFriendsSheet(
+      builder: (_) => MutualFriendsSheet(
         userId: userId,
         displayName: displayName,
         avatarColor: ah.avatarColor(displayName),
@@ -946,7 +947,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 1.5),
                             ),
-                            child: const Center(child: Text('🎂', style: TextStyle(fontSize: 10))),
+                            child: const Center(child: Text('ðŸŽ‚', style: TextStyle(fontSize: 10))),
                           ),
                         ),
                       if (selected)
@@ -1004,7 +1005,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               ),
             ),
 
-            // Chips row — horizontal scroll, single line
+            // Chips row â€” horizontal scroll, single line
             Builder(builder: (_) {
                 final bInfo = _birthdayFriends.where((b) => b['_id']?.toString() == friendId).firstOrNull;
                 if (bInfo != null) {
@@ -1013,7 +1014,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                   final hasWished = _wishedFriendIds.contains(friendId);
                   final giftedAmt = _giftedCoins[friendId] ?? 0;
                   final hasGifted = giftedAmt > 0;
-                  // Already wished or gifted — show green badge
+                  // Already wished or gifted â€” show green badge
                   if (isToday && (hasWished || hasGifted)) {
                     return Container(
                       margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
@@ -1026,7 +1027,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                         const Icon(Icons.check_circle_outline, size: 14, color: Colors.white),
                         const SizedBox(width: 5),
                         Text(
-                          hasGifted ? 'Wished + $giftedAmt coins gifted' : 'You wished ✓',
+                          hasGifted ? 'Wished + $giftedAmt coins gifted' : 'You wished âœ“',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
                         ),
                       ]),
@@ -1052,7 +1053,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                         const Icon(Icons.cake_rounded, size: 14, color: Colors.amber),
                         const SizedBox(width: 6),
                         Text(
-                          isToday ? 'Birthday today! Wish + Gift 🎁' : 'Birthday in $daysUntil day${daysUntil == 1 ? '' : 's'}',
+                          isToday ? 'Birthday today! Wish + Gift ðŸŽ' : 'Birthday in $daysUntil day${daysUntil == 1 ? '' : 's'}',
                           style: TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w600,
                             color: isToday ? const Color(0xFF7B4F00) : const Color(0xFF997A00),
@@ -1078,7 +1079,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                       if (mutualCount > 0) ...[
                         GestureDetector(
                           onTap: () => _showMutualFriendsSheet(friendId, displayName),
-                          child: _chip('$mutualCount ${t('mutual_suffix')} 👥', Colors.teal.shade600, Colors.teal.withValues(alpha: 0.1)),
+                          child: _chip('$mutualCount ${t('mutual_suffix')} ðŸ‘¥', Colors.teal.shade600, Colors.teal.withValues(alpha: 0.1)),
                         ),
                         const SizedBox(width: 6),
                       ],
@@ -1090,7 +1091,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 ),
               ),
 
-            // Action buttons — horizontal scroll prevents overflow on small screens
+            // Action buttons â€” horizontal scroll prevents overflow on small screens
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
               child: SingleChildScrollView(
@@ -1624,7 +1625,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                         child: TabBarView(
                           controller: _tabController,
                           children: [
-                            // ── Tab 1: Friends ──────────────────────────────
+                            // â”€â”€ Tab 1: Friends â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
@@ -1644,7 +1645,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                       Flexible(child: Text(_searchError!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500))),
                                     ]),
                                   ),
-                                // ── Birthday banner ─────────────────────────
+                                // â”€â”€ Birthday banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                 if (_birthdayFriends.isNotEmpty) ...[
                                   Container(
                                     margin: const EdgeInsets.only(bottom: 14),
@@ -1706,8 +1707,8 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF4A3500))),
                                                   Text(
                                                     isToday
-                                                        ? (age > 0 ? 'Turning $age today! 🎉' : 'Birthday today!')
-                                                        : 'Birthday in $daysUntil day${daysUntil == 1 ? '' : 's'}${age > 0 ? ' · Turning $age' : ''}',
+                                                        ? (age > 0 ? 'Turning $age today! ðŸŽ‰' : 'Birthday today!')
+                                                        : 'Birthday in $daysUntil day${daysUntil == 1 ? '' : 's'}${age > 0 ? ' Â· Turning $age' : ''}',
                                                     style: TextStyle(fontSize: 11,
                                                       color: isToday ? Colors.deepOrange : const Color(0xFF7B5800),
                                                       fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
@@ -1749,7 +1750,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                                     child: const Row(mainAxisSize: MainAxisSize.min, children: [
                                                       Icon(Icons.cake_rounded, size: 13, color: Colors.white),
                                                       SizedBox(width: 4),
-                                                      Text('Wish + Gift 🎁', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                      Text('Wish + Gift ðŸŽ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                                                     ]),
                                                   ),
                                                 );
@@ -1771,7 +1772,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                   )),
                                   const Divider(height: 24),
                                 ],
-                                // ── Sent Requests (outgoing) ────────────────
+                                // â”€â”€ Sent Requests (outgoing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                 if (_outgoing.isNotEmpty) ...[
                                   _sectionHeader(t('sent_requests_label'), _outgoing.length, badgeColor: Colors.orange),
                                   const SizedBox(height: 8),
@@ -1843,7 +1844,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                   const Divider(height: 20),
                                 ],
 
-                                // ── Friends list ─────────────────────────────
+                                // â”€â”€ Friends list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                 _sectionHeader(t('your_friends_label'), _friends.length),
                                 const SizedBox(height: 10),
                                 // Search box
@@ -1937,7 +1938,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               ],
                             ),
 
-                            // ── Tab 2: Requests ─────────────────────────────
+                            // â”€â”€ Tab 2: Requests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
@@ -2018,7 +2019,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               ],
                             ),
 
-                            // ── Tab 3: Blocked ──────────────────────────────
+                            // â”€â”€ Tab 3: Blocked â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             ListView(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                               children: [
@@ -2086,7 +2087,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               ],
                             ),
 
-                            // ── Tab 4: Discover ─────────────────────────────
+                            // â”€â”€ Tab 4: Discover â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             Consumer<SessionProvider>(
                               builder: (context, session, _) {
                                 if (!session.hasFeature('discover')) {
@@ -2255,7 +2256,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                               },
                             ),
 
-                            // ── Tab 5: Balances ──────────────────────────────
+                            // â”€â”€ Tab 5: Balances â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             _loadingBalances
                               ? const Center(child: CircularProgressIndicator())
                               : RefreshIndicator(
@@ -2324,7 +2325,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                                 Text(label, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
                                               ])),
                                               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                                Text('₹${net.abs().toStringAsFixed(0)}',
+                                                Text('â‚¹${net.abs().toStringAsFixed(0)}',
                                                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
                                                 Container(
                                                   margin: const EdgeInsets.only(top: 4),
@@ -2349,204 +2350,6 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Mutual Friends Bottom Sheet ───────────────────────────────────────────────
-
-class _MutualFriendsSheet extends StatefulWidget {
-  const _MutualFriendsSheet({
-    required this.userId,
-    required this.displayName,
-    required this.avatarColor,
-    required this.initials,
-  });
-  final String userId;
-  final String displayName;
-  final Color avatarColor;
-  final String initials;
-
-  @override
-  State<_MutualFriendsSheet> createState() => _MutualFriendsSheetState();
-}
-
-class _MutualFriendsSheetState extends State<_MutualFriendsSheet> {
-  bool _loading = true;
-  List<Map<String, dynamic>> _mutuals = [];
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final res = await ApiClient.get('/api/friends/mutual?userId=${Uri.encodeComponent(widget.userId)}');
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() {
-          _mutuals = List<Map<String, dynamic>>.from(data['mutualFriends'] ?? []);
-          _loading = false;
-        });
-      } else {
-        setState(() { _error = AppLocalizations.of(context).t('could_not_load_mutual_friends'); _loading = false; });
-      }
-    } catch (_) {
-      if (mounted) setState(() { _error = AppLocalizations.of(context).t('network_error'); _loading = false; });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final maxH = MediaQuery.of(context).size.height * 0.6;
-
-    final t = AppLocalizations.of(context).t;
-    return Container(
-      constraints: BoxConstraints(maxHeight: maxH),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-              color: AppThemeColors.divider(context),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: widget.avatarColor,
-                  child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                    Center(child: Text(widget.initials,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
-                    if (widget.userId.isNotEmpty)
-                      Image.network(
-                        '${ApiConfig.baseUrl}/api/users/${widget.userId}/profile-image',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
-                  ])),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(t('mutual_friends_title'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppThemeColors.primaryText(context))),
-                      Text('${t('you_and_prefix')} ${widget.displayName}',
-                        style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  color: AppThemeColors.mutedText(context),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 20),
-          // Body
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: CircularProgressIndicator(color: AppColors.cyan),
-            )
-          else if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(_error!, style: const TextStyle(color: Colors.red)),
-            )
-          else if (_mutuals.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.people_outline, size: 48, color: AppThemeColors.divider(context)),
-                const SizedBox(height: 8),
-                Text(t('no_mutual_friends_found'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
-              ]),
-            )
-          else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: _mutuals.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, indent: 60),
-                itemBuilder: (_, i) {
-                  final m = _mutuals[i];
-                  final mName = (m['name'] ?? '').toString();
-                  final mUsername = (m['username'] ?? '').toString();
-                  final mEmail = (m['email'] ?? '').toString();
-                  final displayN = mName.isNotEmpty ? mName : mUsername;
-                  final col = ah.avatarColor(displayN);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: col,
-                          child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                            Center(child: Text(ah.initials(mName, mUsername),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
-                            if ((m['_id']?.toString() ?? '').isNotEmpty)
-                              Image.network(
-                                '${ApiConfig.baseUrl}/api/users/${m['_id']}/profile-image',
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                              ),
-                          ])),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(displayN,
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppThemeColors.primaryText(context)),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                              if (mUsername.isNotEmpty && mUsername != mName)
-                                Text('@$mUsername',
-                                  style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
-                              Text(mEmail,
-                                style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context)),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(t('friend_label'), style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
         ],
       ),
     );

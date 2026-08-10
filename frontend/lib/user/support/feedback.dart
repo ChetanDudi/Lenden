@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/wave_widget.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
@@ -328,7 +329,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _WaveClipper(),
+              clipper: const CubicTopWaveClipper(),
               child: Container(
                 height: 75,
                 color: _cyan,
@@ -493,23 +494,4 @@ class _FeedbackPageState extends State<FeedbackPage> {
       ),
     );
   }
-}
-
-class _WaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.75);
-    path.cubicTo(
-      size.width * 0.25, size.height * 1.05,
-      size.width * 0.75, size.height * 0.45,
-      size.width, size.height * 0.75,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_) => false;
 }

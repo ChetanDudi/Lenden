@@ -702,6 +702,104 @@ On first startup, if no admin exists in the database, a default admin is created
 
 ---
 
+## Dark Mode
+
+The app ships with full light/dark mode support controlled by a toggle in **Settings → Theme**. The preference is persisted in `flutter_secure_storage` and applied at startup through an `AppThemeNotifier` (Provider). Every screen and widget reads its palette from `AppThemeColors` helpers (`AppThemeColors.cardBg(context)`, `AppThemeColors.primaryText(context)`, etc.) — no hard-coded `Colors.white` or `Colors.black` appear in the UI layer.
+
+---
+
+## Language & Localisation
+
+The app supports multiple languages via Flutter's `flutter_localizations` package and a custom `AppLocalizations` class generated from `.arb` files in `frontend/lib/l10n/`. Language preference is persisted and applied at startup alongside the theme preference. All user-visible strings pass through `AppLocalizations.of(context)` — switching language takes effect instantly without restarting.
+
+---
+
+## Recent Improvements
+
+### UX — OTP / PIN backward navigation (all flows)
+
+`frontend/lib/otp_input.dart` is the single shared widget used across every flow that shows a 6-box code input: OTP login, OTP verification, Set PIN, Change PIN, App Lock set/verify, and wallet-auth steps.
+
+Before this fix the widget had no backward navigation. The previous implementation used `addListener` on controllers and only moved focus *forward* when a box became non-empty. Pressing backspace on an empty box did nothing.
+
+**Fix:**
+- Replaced the `addListener` approach with per-box `TextField.onChanged` callbacks (fires with the actual new value, including empty string).
+- Added `FocusNode.onKeyEvent` on every focus node to intercept `KeyDownEvent`/`KeyRepeatEvent` with `LogicalKeyboardKey.backspace` when the box is already empty → clears the previous box and moves focus back. Holding backspace sweeps back through all boxes.
+- `onTap` selects all text so typing a new digit always replaces the old one cleanly.
+- `onChanged` also handles SMS autofill / paste: if the delivered value is more than one digit, the digits are distributed across boxes 0–5 automatically.
+- Added `FilteringTextInputFormatter.digitsOnly` to prevent non-numeric input.
+
+Single-file fix — all 14+ OTP/PIN/app-lock flows in the codebase inherit the fix automatically.
+
+---
+
+### Frontend — widget extraction
+
+Large page files were split to separate layout from logic:
+
+| Extracted file | Source | Contents |
+|---|---|---|
+| `frontend/lib/user/wallet/widgets/payment_sheet.dart` | `lenden_wallet_page.dart` (≈300 lines) | `LendenPaymentHelper` static helper + `PaymentSheet` widget + state |
+| `frontend/lib/admin/digitise/widgets/subscription_dialogs.dart` | `manage_subscriptions_tab.dart` (≈620 lines) | `EditSubscriptionDialog` + `GrantSubscriptionDialog` |
+
+Callers were updated to import the new files directly. `lenden_wallet_page.dart` does **not** import `payment_sheet.dart` (one-way dependency prevents a circular import: `payment_sheet.dart` → `lenden_wallet_page.dart`).
+
+---
+
+### Frontend — colour system consolidation
+
+All inline tricolor hex literals were replaced with named constants in `AppColors`:
+
+| Constant | Value | Usage |
+|---|---|---|
+| `AppColors.tricolorOrange` | `Color(0xFFFF9933)` | Standalone saffron colour |
+| `AppColors.tricolorGreen` | `Color(0xFF138808)` | Standalone India-green colour |
+| `AppColors.tricolorGradientColors` | `[tricolorOrange, white, tricolorGreen]` | List for gradients with a custom direction |
+| `AppColors.tricolorGradient` | `LinearGradient(…, topLeft → bottomRight)` | Canonical gradient; drop-in replacement |
+
+Files updated: `group_transactions`, `group_transaction_page`, `group_members_page`, `login_page`, `profile_page`, `updates_page`, `qr_scanner_page`, `analytics_page`, `secure_transaction_detail_page`, `partial_payment_history_page`, `payment_success_page`, `contact_page`, `app_widgets`.
+
+---
+
+### Backend — route architecture
+
+`backend/src/routes/api.js` is now a pure route-registration file. All middleware factories, controller imports, and Socket.IO logic were moved into their respective domain route files (`auth.routes.js`, `wallet.routes.js`, etc.). `api.js` only mounts domain routers.
+
+---
+
+### Backend — security hardening
+
+**Webhook signature always verified**
+
+`paymentController.js` and `withdrawalController.js` previously had a conditional check:
+
+```js
+if (webhookSecret) { /* verify */ }
+```
+
+If `RAZORPAY_WEBHOOK_SECRET` was missing from `.env`, verification was silently skipped and any request was accepted. This has been fixed: a missing secret now returns HTTP 500 immediately, and a missing or invalid signature returns HTTP 400. Verification cannot be bypassed.
+
+**Rate limiting on unauthenticated write endpoints**
+
+- `POST /api/admins/register` — now protected by the existing `loginLimiter`.
+- `POST /api/contact-message` — now protected by `otpSendLimiter` to prevent spam submissions.
+
+---
+
+### Backend — performance
+
+`AppratingController.getAverageRating` previously loaded every `AppRating` document into JS memory and computed the average with `Array.reduce`. It now uses a single MongoDB `$avg` aggregation:
+
+```js
+const [result] = await AppRating.aggregate([
+  { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
+]);
+```
+
+This makes the query O(1) in application memory regardless of how many ratings exist.
+
+---
+
 ## License
 
 This project is private. All rights reserved.

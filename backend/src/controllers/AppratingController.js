@@ -39,13 +39,11 @@ exports.getMyRating = async (req, res) => {
 // GET /api/rating/app-ratings - Return average app rating and total ratings count
 exports.getAppRatings = async (req, res) => {
   try {
-    const ratings = await AppRating.find();
-    if (!ratings.length) {
-      return res.json({ average: 0, count: 0 });
-    }
-    const total = ratings.reduce((sum, r) => sum + (r.rating || 0), 0);
-    const avg = total / ratings.length;
-    res.json({ average: Number(avg.toFixed(2)), count: ratings.length });
+    const [result] = await AppRating.aggregate([
+      { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
+    ]);
+    if (!result) return res.json({ average: 0, count: 0 });
+    res.json({ average: Number(result.average.toFixed(2)), count: result.count });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

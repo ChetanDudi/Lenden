@@ -339,7 +339,7 @@ class _SecureTransactionDetailPageState
                 children: [
                   Stack(children: [
                     ClipPath(
-                      clipper: _TopWaveClipper(),
+                      clipper: const DeeperTopWaveClipper(),
                       child: Container(
                         height: 80,
                         decoration: BoxDecoration(
@@ -760,12 +760,12 @@ class _SecureTransactionDetailPageState
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFFFF9933),
-            Color(0xFFFF9933),
+            AppColors.tricolorOrange,
+            AppColors.tricolorOrange,
             Colors.white,
             Colors.white,
-            Color(0xFF138808),
-            Color(0xFF138808),
+            AppColors.tricolorGreen,
+            AppColors.tricolorGreen,
           ],
           stops: [0.0, 0.05, 0.05, 0.95, 0.95, 1.0],
           begin: Alignment.topCenter,
@@ -841,9 +841,9 @@ class _SecureTransactionDetailPageState
   Widget _detailDivider() {
     return Row(
       children: [
-        Container(width: 4, height: 1, color: const Color(0xFFFF9933)),
+        Container(width: 4, height: 1, color: AppColors.tricolorOrange),
         Expanded(child: Container(height: 1, color: const Color(0xFFE3F2FD))),
-        Container(width: 4, height: 1, color: const Color(0xFF138808)),
+        Container(width: 4, height: 1, color: AppColors.tricolorGreen),
       ],
     );
   }
@@ -1650,9 +1650,9 @@ class _SecureTransactionDetailPageState
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                       child: Row(
                         children: [
-                          Expanded(child: Container(height: 5, color: const Color(0xFFFF9933))),
+                          Expanded(child: Container(height: 5, color: AppColors.tricolorOrange)),
                           Expanded(child: Container(height: 5, color: Colors.white)),
-                          Expanded(child: Container(height: 5, color: const Color(0xFF138808))),
+                          Expanded(child: Container(height: 5, color: AppColors.tricolorGreen)),
                         ],
                       ),
                     ),
@@ -1793,10 +1793,10 @@ class _SecureTransactionDetailPageState
                                   end: Alignment.centerRight,
                                 ),
                                 border: Border(
-                                  left: const BorderSide(color: Color(0xFFFF9933), width: 4),
+                                  left: const BorderSide(color: AppColors.tricolorOrange, width: 4),
                                   top: BorderSide(color: Colors.orange.shade100, width: 1),
                                   bottom: BorderSide(color: Colors.green.shade100, width: 1),
-                                  right: const BorderSide(color: Color(0xFF138808), width: 4),
+                                  right: const BorderSide(color: AppColors.tricolorGreen, width: 4),
                                 ),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -1933,8 +1933,8 @@ class _SecureTransactionDetailPageState
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border(
-                                  top: const BorderSide(color: Color(0xFFFF9933), width: 2),
-                                  bottom: const BorderSide(color: Color(0xFF138808), width: 2),
+                                  top: const BorderSide(color: AppColors.tricolorOrange, width: 2),
+                                  bottom: const BorderSide(color: AppColors.tricolorGreen, width: 2),
                                   left: BorderSide(color: Colors.blue.shade200, width: 1),
                                   right: BorderSide(color: Colors.blue.shade200, width: 1),
                                 ),
@@ -1968,24 +1968,6 @@ class _SecureTransactionDetailPageState
       ),
     );
   }
-}
-
-class _TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.8);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height, size.width * 0.5, size.height * 0.8);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.6, size.width, size.height * 0.8);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class _AttachmentCarouselDialog extends StatefulWidget {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../widgets/app_colors.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../widgets/currency_display.dart';
 import '../../../widgets/wave_widget.dart';
@@ -157,15 +158,7 @@ class PartialPaymentHistoryPage extends StatelessWidget {
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFFFF9933),
-                          Colors.white,
-                          Color(0xFF138808)
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: AppColors.tricolorGradient,
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(14),

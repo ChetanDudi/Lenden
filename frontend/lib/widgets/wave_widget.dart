@@ -10,4 +10,5 @@ export '../admin/widgets/top_wave_clipper.dart'
         MediumTopWaveClipper,
         ScaledDeepTopWaveClipper,
         BottomWaveClipper,
-        AltBottomWaveClipper;
+        AltBottomWaveClipper,
+        CubicTopWaveClipper;

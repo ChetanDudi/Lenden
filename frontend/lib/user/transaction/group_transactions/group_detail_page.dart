@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -11,7 +11,7 @@ import '../../../utils/share_utils.dart';
 import 'group_members_page.dart';
 import 'group_expenses_page.dart';
 import 'group_stats_page.dart';
-import '../../wallet/lenden_wallet_page.dart';
+import '../../wallet/widgets/payment_sheet.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
@@ -39,12 +39,6 @@ String _fmtDt(dynamic dt) {
   }
 }
 
-const _tricolorGradient = LinearGradient(
-  colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
-
 Widget _tricolorBorderBox({
   required Widget child,
   double radius = 18,
@@ -54,7 +48,7 @@ Widget _tricolorBorderBox({
   return Container(
     margin: margin,
     decoration: BoxDecoration(
-      gradient: _tricolorGradient,
+      gradient: AppColors.tricolorGradient,
       borderRadius: BorderRadius.circular(radius),
       boxShadow: [
         BoxShadow(
@@ -502,7 +496,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                           const SizedBox(width: 8),
                           Container(
                             decoration: BoxDecoration(
-                              gradient: _tricolorGradient,
+                              gradient: AppColors.tricolorGradient,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             padding: const EdgeInsets.all(2),

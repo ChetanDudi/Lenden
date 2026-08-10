@@ -13,12 +13,6 @@ import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' as dart_io;
 
-const _tricolorGradient = LinearGradient(
-  colors: [Color(0xFFFF9933), Color(0xFFFFFFFF), Color(0xFF138808)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
-
 class CreateGroupPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
   final bool useCoins;
@@ -216,7 +210,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  gradient: _tricolorGradient,
+                  gradient: AppColors.tricolorGradient,
                 ),
                 child: Container(
                   decoration: BoxDecoration(
@@ -657,7 +651,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             Container(
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                gradient: _tricolorGradient,
+                gradient: AppColors.tricolorGradient,
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6)),
@@ -925,7 +919,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18),
-                      gradient: _tricolorGradient,
+                      gradient: AppColors.tricolorGradient,
                     ),
                     child: Container(
                       decoration: BoxDecoration(

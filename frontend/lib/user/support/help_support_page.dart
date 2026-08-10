@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/wave_widget.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -361,7 +362,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
             left: 0,
             right: 0,
             child: ClipPath(
-              clipper: _HelpWaveClipper(),
+              clipper: const CubicTopWaveClipper(),
               child: Container(
                 height: 75,
                 color: _cyan,
@@ -841,23 +842,4 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
       ),
     );
   }
-}
-
-class _HelpWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height * 0.75);
-    path.cubicTo(
-      size.width * 0.25, size.height * 1.05,
-      size.width * 0.75, size.height * 0.45,
-      size.width, size.height * 0.75,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_) => false;
 }

@@ -84,11 +84,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.tricolorGradient,
             ),
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
@@ -1364,15 +1360,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                         decoration: BoxDecoration(
                                           borderRadius:
                                               BorderRadius.circular(20),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Color(0xFFFF9933),
-                                              Color(0xFFFFFFFF),
-                                              Color(0xFF138808)
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
+                                          gradient: AppColors.tricolorGradient,
                                           boxShadow: [
                                             BoxShadow(
                                               color: AppColors.cyan
@@ -1520,7 +1508,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: const BoxDecoration(
-                                        color: Color(0xFFFF9933),
+                                        color: AppColors.tricolorOrange,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -1546,21 +1534,21 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                     children: [
                                       _summaryStatChip(t('total_groups_label'),
                                           '${userGroups.length}',
-                                          color: const Color(0xFFFF9933),
+                                          color: AppColors.tricolorOrange,
                                           icon: Icons.groups_rounded),
                                       _summaryStatChip(
                                           t('created_label'), '$createdGroupsCount',
-                                          color: const Color(0xFFFF9933),
+                                          color: AppColors.tricolorOrange,
                                           icon: Icons.add_circle_rounded),
                                       _summaryStatChip(t('expenses_label'),
                                           '${_calculateTotalExpenses()}',
-                                          color: const Color(0xFFFF9933),
+                                          color: AppColors.tricolorOrange,
                                           icon: Icons.receipt_long_rounded),
                                       _summaryStatChip(
                                           t('pending_label'),
                                           _formatDisplayAmountFromInr(
                                               _calculateTotalPendingBalance()),
-                                          color: const Color(0xFFFF9933),
+                                          color: AppColors.tricolorOrange,
                                           icon: Icons.hourglass_bottom_rounded),
                                     ],
                                   ),
@@ -1628,11 +1616,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                             child: Container(
                                               decoration: BoxDecoration(
                                                 gradient: LinearGradient(
-                                                  colors: [
-                                                    Color(0xFFFF9933),
-                                                    Color(0xFFFFFFFF),
-                                                    Color(0xFF138808)
-                                                  ],
+                                                  colors: AppColors.tricolorGradientColors,
                                                   begin: Alignment.topCenter,
                                                   end: Alignment.bottomCenter,
                                                 ),
@@ -1843,14 +1827,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                                     BoxDecoration(
                                                                   gradient:
                                                                       LinearGradient(
-                                                                    colors: [
-                                                                      Color(
-                                                                          0xFFFF9933),
-                                                                      Color(
-                                                                          0xFFFFFFFF),
-                                                                      Color(
-                                                                          0xFF138808)
-                                                                    ],
+                                                                    colors: AppColors.tricolorGradientColors,
                                                                     begin: Alignment
                                                                         .topCenter,
                                                                     end: Alignment

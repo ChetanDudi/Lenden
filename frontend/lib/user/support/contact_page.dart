@@ -907,12 +907,12 @@ class _ContactPageState extends State<ContactPage> {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFF138808).withValues(alpha: 0.10),
+            color: AppColors.tricolorGreen.withValues(alpha: 0.10),
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.check_circle_rounded,
-            color: Color(0xFF138808),
+            color: AppColors.tricolorGreen,
             size: 40,
           ),
         ),

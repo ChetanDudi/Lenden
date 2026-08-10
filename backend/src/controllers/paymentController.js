@@ -168,20 +168,21 @@ exports.razorpayWebhook = async (req, res) => {
   // req.body is a raw Buffer here (express.raw middleware is applied in app.js before express.json)
   const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[Webhook] RAZORPAY_WEBHOOK_SECRET is not set — rejecting unsigned webhook');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
 
-  if (webhookSecret) {
-    const signature = req.headers['x-razorpay-signature'];
-    if (!signature) {
-      return res.status(400).json({ error: 'Missing x-razorpay-signature header' });
-    }
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(rawBody)
-      .digest('hex');
-
-    if (signature !== expectedSignature) {
-      return res.status(400).json({ error: 'Invalid webhook signature' });
-    }
+  const signature = req.headers['x-razorpay-signature'];
+  if (!signature) {
+    return res.status(400).json({ error: 'Missing x-razorpay-signature header' });
+  }
+  const expectedSignature = crypto
+    .createHmac('sha256', webhookSecret)
+    .update(rawBody)
+    .digest('hex');
+  if (signature !== expectedSignature) {
+    return res.status(400).json({ error: 'Invalid webhook signature' });
   }
 
   let event;

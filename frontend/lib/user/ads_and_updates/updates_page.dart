@@ -348,11 +348,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColors.tricolorGradient,
       ),
       child: TextField(
         controller: _searchController,
@@ -553,11 +549,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: AppColors.tricolorGradient,
           boxShadow: [
             BoxShadow(
               color: importanceColor.withValues(alpha: isRead ? 0.05 : 0.13),
