@@ -12,6 +12,7 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class ManageSupportQueriesPage extends StatefulWidget {
   @override
@@ -460,36 +461,16 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: TextField(
-                    controller: _searchController,
-                    style: TextStyle(color: AppThemeColors.primaryText(context)),
-                    decoration: InputDecoration(
-                      labelText: t('search_by_topic'),
-                      prefixIcon: Icon(Icons.search, color: AppColors.cyan),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      filled: true,
-                      fillColor: AppThemeColors.cardBg(context),
-                      suffixIcon: _searchTerm.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear, color: AppThemeColors.secondaryText(context)),
-                              onPressed: () {
-                                setState(() {
-                                  _searchTerm = '';
-                                  _searchController.clear();
-                                });
-                              },
-                            )
-                          : null,
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchTerm = value;
-                      });
-                    },
-                  ),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: t('search_by_topic'),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchTerm = value;
+                    });
+                  },
+                  isLoading: _isLoading,
+                  margin: const EdgeInsets.all(20.0),
                 ),
                 Padding(
                   padding:

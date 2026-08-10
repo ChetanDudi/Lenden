@@ -6,6 +6,7 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class UserUpdatesPage extends StatefulWidget {
   const UserUpdatesPage({super.key});
@@ -344,37 +345,13 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
   // ── Search card ──────────────────────────────────────────────────────────
 
   Widget _buildSearchCard() {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: AppColors.tricolorGradient,
-      ),
-      child: TextField(
-        controller: _searchController,
-        style:
-            TextStyle(color: AppThemeColors.primaryText(context)),
-        decoration: InputDecoration(
-          hintText: t('search_updates_hint'),
-          hintStyle: TextStyle(
-              color: AppThemeColors.mutedText(context), fontSize: 13),
-          filled: true,
-          fillColor: AppThemeColors.cardBg(context),
-          prefixIcon: const Icon(Icons.search, color: _sky),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: () => _searchController.clear(),
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
+    return AppSearchBar(
+      controller: _searchController,
+      hintText: t('search_updates_hint'),
+      onChanged: (v) {
+        setState(() {});
+      },
+      margin: EdgeInsets.zero,
     );
   }
 

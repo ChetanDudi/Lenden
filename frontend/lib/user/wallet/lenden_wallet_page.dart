@@ -26,6 +26,7 @@ import '../../l10n/app_localizations.dart';
 import '../../api_config.dart';
 import './widgets/wallet_auth_step.dart';
 import './widgets/wallet_buy_coins_sheet.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class LendenWalletPage extends StatefulWidget {
   final bool autoOpenPayUser;
@@ -1085,40 +1086,16 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                               ),
                               const SizedBox(height: 8),
                               // History search bar
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: TextField(
-                                  controller: _historySearchCtrl,
-                                  style: TextStyle(color: AppThemeColors.primaryText(context), fontSize: 13),
-                                  decoration: InputDecoration(
-                                    hintText: t('search_wallet_history_hint'),
-                                    hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-                                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.cyan),
-                                    suffixIcon: _historySearch.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(Icons.clear_rounded, size: 16),
-                                            onPressed: () {
-                                              _historySearchDebounce?.cancel();
-                                              _historySearchCtrl.clear();
-                                              setState(() => _historySearch = '');
-                                              _fetchWalletData();
-                                            },
-                                          )
-                                        : null,
-                                    filled: true,
-                                    fillColor: AppThemeColors.surfaceBg(context),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cyan, width: 1.2)),
-                                  ),
-                                  onChanged: (val) {
-                                    _historySearchDebounce?.cancel();
-                                    _historySearchDebounce = Timer(const Duration(milliseconds: 350), () {
-                                      setState(() => _historySearch = val.trim());
-                                      _fetchWalletData();
-                                    });
-                                  },
-                                ),
+                              AppSearchBar(
+                                controller: _historySearchCtrl,
+                                hintText: t('search_wallet_history_hint'),
+                                onChanged: (val) {
+                                  _historySearchDebounce?.cancel();
+                                  _historySearchDebounce = Timer(const Duration(milliseconds: 350), () {
+                                    setState(() => _historySearch = val.trim());
+                                    _fetchWalletData();
+                                  });
+                                },
                               ),
                               const SizedBox(height: 8),
                               // Type filter chips

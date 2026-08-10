@@ -17,6 +17,7 @@ import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/premium_gate.dart';
 import './widgets/mutual_friends_sheet.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({Key? key}) : super(key: key);
@@ -1518,102 +1519,27 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 ),
 
                 // Search bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppThemeColors.cardBg(context),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            style: TextStyle(color: AppThemeColors.primaryText(context)),
-                            decoration: InputDecoration(
-                              hintText: t('search_friends_placeholder'),
-                              hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-                              prefixIcon: Icon(Icons.search, color: AppThemeColors.mutedText(context)),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            onChanged: (_) { if (_searchError != null) setState(() => _searchError = null); },
-                            onSubmitted: (_) => _searchUsers(),
-                          ),
-                        ),
-                        if (_searching)
-                          const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
-                        else
-                          IconButton(
-                            icon: const Icon(Icons.send_rounded, color: AppColors.cyan),
-                            onPressed: _searchUsers,
-                          ),
-                      ],
-                    ),
-                  ),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: t('search_friends_placeholder'),
+                  isLoading: _searching,
+                  onSubmit: _searchUsers,
+                  onChanged: (_) {
+                    if (_searchError != null) setState(() => _searchError = null);
+                  },
                 ),
 
                 // Tab bar
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
-                  ),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    indicator: BoxDecoration(
-                      color: AppColors.cyan,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: AppThemeColors.secondaryText(context),
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    unselectedLabelStyle: const TextStyle(fontSize: 12),
-                    tabs: [
-                      Tab(
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.people, size: 15),
-                          const SizedBox(width: 4),
-                          Text('${t('friends')}${_friends.isNotEmpty ? ' (${_friends.length})' : ''}'),
-                        ]),
-                      ),
-                      Tab(
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.mail, size: 15),
-                          const SizedBox(width: 4),
-                          Text('${t('requests_tab_label')}${pendingCount > 0 ? ' ($pendingCount)' : ''}'),
-                        ]),
-                      ),
-                      Tab(
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.block, size: 15),
-                          const SizedBox(width: 4),
-                          Text('${t('blocked_tab_label')}${_blocked.isNotEmpty ? ' (${_blocked.length})' : ''}'),
-                        ]),
-                      ),
-                      Tab(
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.person_search, size: 15),
-                          const SizedBox(width: 4),
-                          Text('${t('discover_tab_label')}${_suggestions.isNotEmpty ? ' (${_suggestions.length})' : ''}'),
-                        ]),
-                      ),
-                      Tab(
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.account_balance_wallet_rounded, size: 15),
-                          const SizedBox(width: 4),
-                          Text('${t('friend_balances_tab_label')}${_friendBalances.isNotEmpty ? ' (${_friendBalances.length})' : ''}'),
-                        ]),
-                      ),
-                    ],
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabs: [
+                    AppTabItem(label: t('friends'), icon: Icons.people, count: _friends.length),
+                    AppTabItem(label: t('requests_tab_label'), icon: Icons.mail, count: pendingCount),
+                    AppTabItem(label: t('blocked_tab_label'), icon: Icons.block, count: _blocked.length),
+                    AppTabItem(label: t('discover_tab_label'), icon: Icons.person_search, count: _suggestions.length),
+                    AppTabItem(label: t('friend_balances_tab_label'), icon: Icons.account_balance_wallet_rounded, count: _friendBalances.length),
+                  ],
                 ),
 
                 Expanded(

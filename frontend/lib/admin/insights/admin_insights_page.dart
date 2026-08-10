@@ -5,6 +5,7 @@ import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class AdminInsightsPage extends StatefulWidget {
   const AdminInsightsPage({super.key});
@@ -317,21 +318,14 @@ class _AdminInsightsPageState extends State<AdminInsightsPage>
             ),
           ),
 
-          Container(
-            color: AppThemeColors.cardBg(context),
-            child: TabBar(
-              controller: _tabs,
-              isScrollable: true,
-              labelColor: AppColors.cyan,
-              unselectedLabelColor: AppThemeColors.secondaryText(context),
-              indicatorColor: AppColors.cyan,
-              tabs: const [
-                Tab(text: 'Platform'),
-                Tab(text: 'Health Scores'),
-                Tab(text: 'Anomalies'),
-                Tab(text: 'Manage Tips'),
-              ],
-            ),
+          AppTabBar(
+            controller: _tabs,
+            tabs: const [
+              AppTabItem(label: 'Platform'),
+              AppTabItem(label: 'Health Scores'),
+              AppTabItem(label: 'Anomalies'),
+              AppTabItem(label: 'Manage Tips'),
+            ],
           ),
 
           Expanded(

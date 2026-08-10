@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
@@ -549,25 +550,19 @@ class _ReportsPageState extends State<ReportsPage>
                 ),
                 const SizedBox(height: 4),
                 // TabBar
-                TabBar(
+                AppTabBar(
                   controller: _tabController,
                   isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelColor: AppColors.cyan,
-                  unselectedLabelColor: AppThemeColors.secondaryText(context),
-                  indicatorColor: AppColors.cyan,
-                  labelStyle: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.bold),
-                  unselectedLabelStyle: TextStyle(fontSize: context.sp(12)),
                   tabs: const [
-                    Tab(text: 'Overview'),
-                    Tab(text: 'Income/Exp'),
-                    Tab(text: 'Categories'),
-                    Tab(text: 'Groups'),
-                    Tab(text: 'Members'),
-                    Tab(text: 'Trends'),
-                    Tab(text: 'Charts'),
-                    Tab(text: 'Export'),
-                    Tab(text: 'Compare'),
+                    AppTabItem(label: 'Overview'),
+                    AppTabItem(label: 'Income/Exp'),
+                    AppTabItem(label: 'Categories'),
+                    AppTabItem(label: 'Groups'),
+                    AppTabItem(label: 'Members'),
+                    AppTabItem(label: 'Trends'),
+                    AppTabItem(label: 'Charts'),
+                    AppTabItem(label: 'Export'),
+                    AppTabItem(label: 'Compare'),
                   ],
                 ),
                 // Body

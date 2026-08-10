@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -314,40 +315,13 @@ class _AdminRolesPageState extends State<AdminRolesPage>
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: AppColors.cyan,
-                        unselectedLabelColor: AppThemeColors.secondaryText(context),
-                        indicator: BoxDecoration(
-                          color: AppThemeColors.tinted(context,
-                              light: const Color(0xFFEAF5FF), dark: const Color(0xFF1B3A57)),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        tabs: [
-                          Tab(text: t('create')),
-                          Tab(text: t('roles_tab')),
-                          Tab(text: t('audit_tab')),
-                        ],
-                      ),
-                    ),
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: [
+                    AppTabItem(label: t('create')),
+                    AppTabItem(label: t('roles_tab')),
+                    AppTabItem(label: t('audit_tab')),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Expanded(

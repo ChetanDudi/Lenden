@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../session.dart';
 import 'dart:convert';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
@@ -435,61 +436,12 @@ class _GiftCardPageState extends State<GiftCardPage>
                     ],
                   ),
                 ),
-                Transform.translate(
-                  offset: const Offset(0, 8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                        decoration: BoxDecoration(
-                          color: AppThemeColors.cardBg(context),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: AppThemeColors.primaryText(context),
-                          indicatorColor: Colors.teal,
-                          tabs: [
-                            Tab(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.card_giftcard),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${t('unscratched_label')} ($unscrachedCount)',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Tab(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.done_all),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${t('scratched_label')} ($scratchedCount)',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: [
+                    AppTabItem(label: t('unscratched_label'), icon: Icons.card_giftcard, count: unscrachedCount),
+                    AppTabItem(label: t('scratched_label'), icon: Icons.done_all, count: scratchedCount),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Expanded(

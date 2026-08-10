@@ -11,6 +11,7 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -37,6 +38,8 @@ class _ActivityPageState extends State<ActivityPage> {
   bool hasPrevPage = false;
   int totalItems = 0;
   int totalPages = 0;
+  int _visibleCount = 5;
+  final TextEditingController _searchController = TextEditingController();
 
   // Activity insights data
   Map<String, int> activityTypeCounts = {};
@@ -91,11 +94,18 @@ class _ActivityPageState extends State<ActivityPage> {
     fetchStats();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> fetchActivities({bool refresh = false}) async {
     if (refresh) {
       setState(() {
         currentPage = 1;
         loading = true;
+        _visibleCount = 5;
       });
     } else {
       setState(() => loading = true);
@@ -575,22 +585,95 @@ class _ActivityPageState extends State<ActivityPage> {
     }
   }
 
+  // ── date-grouped flat list ─────────────────────────────────────────────────
+
+  bool get _hasMore =>
+      _visibleCount < activities.length || hasNextPage;
+
+  int get _remainingCount => totalItems > _visibleCount
+      ? totalItems - _visibleCount
+      : 0;
+
+  List<dynamic> get _groupedActivities {
+    if (activities.isEmpty) return [];
+    final visible = activities.take(_visibleCount).toList();
+    final result = <dynamic>[];
+    String? lastKey;
+    for (final a in visible) {
+      final key = _getDateGroupKey(a['createdAt'] as String? ?? '');
+      if (key != lastKey) {
+        result.add(key);
+        lastKey = key;
+      }
+      result.add(a);
+    }
+    return result;
+  }
+
+  String _getDateGroupKey(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final d = DateTime(date.year, date.month, date.day);
+      if (d == today) return 'Today';
+      if (d == yesterday) return 'Yesterday';
+      return DateFormat('EEEE, MMM d').format(date);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Widget _buildDateHeader(String label) {
+    if (label.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+      child: Row(children: [
+        Container(
+          width: 3, height: 13,
+          decoration: BoxDecoration(
+            color: AppColors.cyan,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: context.sp(10),
+            fontWeight: FontWeight.bold,
+            color: AppColors.cyan,
+            letterSpacing: 1.0,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ── build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
+    final grouped = _groupedActivities;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppThemeColors.primaryText(context),
-        title: Text(t('activity_log_title')),
+        elevation: 0,
+        foregroundColor: Colors.white,
+        title: Text(
+          t('activity_log_title'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list, color: Colors.white),
             onPressed: _showFilterDialog,
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
               fetchActivities(refresh: true);
               fetchStats();
@@ -602,23 +685,12 @@ class _ActivityPageState extends State<ActivityPage> {
       body: Stack(
         children: [
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 0, left: 0, right: 0,
             child: ClipPath(
-              clipper: TopWaveClipper(),
+              clipper: const DeepTopWaveClipper(),
               child: Container(
-                height: context.sh(156),
-                decoration: BoxDecoration(
-                  color: AppThemeColors.waveSolid(context),
-                  gradient: AppThemeColors.isDark(context)
-                      ? null
-                      : const LinearGradient(
-                          colors: [AppColors.cyan, Color(0xFF48CAE4)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                ),
+                height: context.sh(160),
+                color: AppThemeColors.waveSolid(context),
               ),
             ),
           ),
@@ -643,9 +715,9 @@ class _ActivityPageState extends State<ActivityPage> {
                         searchQuery.isNotEmpty)
                       SliverToBoxAdapter(child: _buildFilterChips()),
                     if (loading)
-                      SliverFillRemaining(
+                      const SliverFillRemaining(
                         hasScrollBody: false,
-                        child: const Center(child: CircularProgressIndicator()),
+                        child: Center(child: CircularProgressIndicator()),
                       )
                     else if (activities.isEmpty)
                       SliverFillRemaining(
@@ -654,14 +726,15 @@ class _ActivityPageState extends State<ActivityPage> {
                       )
                     else
                       SliverList.builder(
-                        itemCount: activities.length + (hasNextPage ? 1 : 0),
+                        itemCount: grouped.length + (_hasMore ? 1 : 0),
                         itemBuilder: (context, index) {
-                          if (index == activities.length) {
-                            return _buildLoadMoreButton();
-                          }
-                          return _buildActivityListItem(activities[index]);
+                          if (index == grouped.length) return _buildLoadMoreButton();
+                          final item = grouped[index];
+                          if (item is String) return _buildDateHeader(item);
+                          return _buildActivityCard(item as Map<String, dynamic>);
                         },
                       ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   ],
                 ),
               ),
@@ -674,147 +747,127 @@ class _ActivityPageState extends State<ActivityPage> {
 
   Widget _buildSearchBar() {
     final t = AppLocalizations.of(context).t;
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(2), // This creates the border width
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(27), // Outer radius
-        gradient: const LinearGradient(
-          colors: [Colors.orange, Colors.white, Colors.green],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppThemeColors.cardBg(context),
-          borderRadius: BorderRadius.circular(25), // Inner radius
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.search,
-              color: AppThemeColors.secondaryText(context),
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                onChanged: _performSearch,
-                decoration: InputDecoration(
-                  hintText: t('search_activities_placeholder'),
-                  hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                style: TextStyle(
-                    fontSize: 16, color: AppThemeColors.primaryText(context)),
-              ),
-            ),
-            if (searchQuery.isNotEmpty)
-              IconButton(
-                icon: Icon(Icons.clear,
-                    color: AppThemeColors.secondaryText(context), size: 20),
-                onPressed: _clearSearch,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-          ],
-        ),
-      ),
+    return AppSearchBar(
+      controller: _searchController,
+      hintText: t('search_activities_hint'),
+      isLoading: false,
+      onChanged: (value) {
+        setState(() => searchQuery = value);
+        _performSearch(value);
+      },
     );
   }
 
   Widget _buildStatsSection() {
     final t = AppLocalizations.of(context).t;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       decoration: BoxDecoration(
         color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppThemeColors.border(context).withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t('activity_summary_title'),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.cyan,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 13, 16, 8),
+            child: Row(children: [
+              Container(
+                width: 3,
+                height: 13,
+                decoration: BoxDecoration(
+                    color: AppColors.cyan,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                t('activity_summary_title').toUpperCase(),
+                style: TextStyle(
+                    fontSize: context.sp(10),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.cyan,
+                    letterSpacing: 1.0),
+              ),
+            ]),
+          ),
+          Divider(
+              height: 1,
+              color: AppThemeColors.border(context).withValues(alpha: 0.4)),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatMetric(
+                    icon: Icons.timeline,
+                    label: t('total_activities_label'),
+                    value: '${stats['totalActivities'] ?? 0}',
+                    color: AppColors.cyan,
+                  ),
+                ),
+                VerticalDivider(
+                    width: 1,
+                    color:
+                        AppThemeColors.border(context).withValues(alpha: 0.4)),
+                Expanded(
+                  child: _buildStatMetric(
+                    icon: Icons.trending_up,
+                    label: t('recent_7_days_label'),
+                    value: '${stats['recentActivities'] ?? 0}',
+                    color: Colors.green,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  t('total_activities_label'),
-                  '${stats['totalActivities'] ?? 0}',
-                  Icons.timeline,
-                  Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  t('recent_7_days_label'),
-                  '${stats['recentActivities'] ?? 0}',
-                  Icons.trending_up,
-                  Colors.green,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(
-      String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
+  Widget _buildStatMetric({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
             ),
+            child: Icon(icon, color: color, size: 18),
           ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppThemeColors.secondaryText(context),
-            ),
-            textAlign: TextAlign.center,
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      fontSize: context.sp(11),
+                      color: AppThemeColors.secondaryText(context),
+                      letterSpacing: 0.2)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: context.sp(20),
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context))),
+            ],
           ),
         ],
       ),
@@ -823,109 +876,104 @@ class _ActivityPageState extends State<ActivityPage> {
 
   Widget _buildActivityInsights() {
     final t = AppLocalizations.of(context).t;
+    final top3 = (activityTypeCounts.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value)))
+        .take(3)
+        .toList();
+    if (top3.isEmpty) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       decoration: BoxDecoration(
-        color: AppColors.cyan,
-        borderRadius: BorderRadius.circular(16),
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppThemeColors.border(context).withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 13, 16, 8),
+            child: Row(children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 3,
+                height: 13,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.insights,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                    color: AppColors.cyan,
+                    borderRadius: BorderRadius.circular(2)),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
-                t('activity_insights_title'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                t('activity_insights_title').toUpperCase(),
+                style: TextStyle(
+                    fontSize: context.sp(10),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.cyan,
+                    letterSpacing: 1.0),
               ),
-            ],
+            ]),
           ),
-          const SizedBox(height: 16),
-
-          // Insights Grid
-
-          // Top Activity Types
-          if (activityTypeCounts.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              t('top_activity_types_title'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...activityTypeCounts.entries
-                .take(3)
-                .map((entry) => _buildActivityTypeRow(entry.key, entry.value)),
-          ],
+          Divider(
+              height: 1,
+              color: AppThemeColors.border(context).withValues(alpha: 0.4)),
+          ...top3.asMap().entries.map((e) => Column(children: [
+                if (e.key > 0)
+                  Divider(
+                      height: 1,
+                      indent: 66,
+                      color: AppThemeColors.border(context)
+                          .withValues(alpha: 0.3)),
+                _buildActivityTypeRow(e.value.key, e.value.value),
+              ])),
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
   Widget _buildActivityTypeRow(String type, int count) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _getActivityIcon(type),
-            color: AppThemeColors.primaryText(context),
-            size: 16,
+    final color = _getActivityColor(type);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(11),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _getActivityTypeDisplayName(type),
-              style: TextStyle(
-                color: AppThemeColors.primaryText(context),
-                fontSize: 12,
-              ),
-            ),
-          ),
-          Text(
-            '$count',
+          child: Icon(_getActivityIcon(type), color: color, size: 18),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            _getActivityTypeDisplayName(type),
             style: TextStyle(
-              color: AppThemeColors.primaryText(context),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+                fontSize: context.sp(14),
+                color: AppThemeColors.primaryText(context)),
           ),
-        ],
-      ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Text('$count',
+              style: TextStyle(
+                  fontSize: context.sp(12),
+                  fontWeight: FontWeight.bold,
+                  color: color)),
+        ),
+      ]),
     );
   }
 
@@ -992,36 +1040,33 @@ class _ActivityPageState extends State<ActivityPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.timeline,
-            size: 64,
-            color: AppThemeColors.mutedText(context),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.cyan.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.timeline,
+                size: 40, color: AppColors.cyan.withValues(alpha: 0.5)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             t('no_activities_found'),
             style: TextStyle(
-              fontSize: 18,
+              fontSize: context.sp(18),
               fontWeight: FontWeight.bold,
-              color: AppThemeColors.secondaryText(context),
+              color: AppThemeColors.primaryText(context),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             t('activities_will_appear_here'),
-            style: TextStyle(
-              color: AppThemeColors.mutedText(context),
-            ),
+            style:
+                TextStyle(color: AppThemeColors.mutedText(context)),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActivityListItem(Map<String, dynamic> activity) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: _buildActivityCard(activity),
     );
   }
 
@@ -1034,178 +1079,180 @@ class _ActivityPageState extends State<ActivityPage> {
     final currency = activity['currency'];
     final metadata = activity['metadata'];
     final displayDescription = _formatActivityDescription(activity);
-
-    // Custom highlight for rating activities
+    final isBookmarked = activity['bookmarked'] ?? false;
     final isRating = type == 'user_rated' || type == 'user_rating_received';
-    final ratingValue = metadata != null && metadata['rating'] != null
-        ? metadata['rating']
-        : null;
+    final ratingValue =
+        metadata != null && metadata['rating'] != null ? metadata['rating'] : null;
+    final color = isRating ? Colors.amber : _getActivityColor(type);
 
-    return Card(
-      elevation: 2,
-      color: AppThemeColors.cardBg(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isRating
-              ? Colors.amber.withValues(alpha: 0.7)
-              : _getActivityColor(type).withValues(alpha: 0.3),
-          width: 2,
-        ),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Activity Icon
+            // Icon container
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: isRating
-                    ? Colors.amber.withValues(alpha: 0.15)
-                    : _getActivityColor(type).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isRating
-                      ? Colors.amber.withValues(alpha: 0.3)
-                      : _getActivityColor(type).withValues(alpha: 0.2),
-                  width: 1,
-                ),
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 isRating ? Icons.star : _getActivityIcon(type),
-                color: isRating ? Colors.amber : _getActivityColor(type),
-                size: 28,
+                color: color,
+                size: 22,
               ),
             ),
             const SizedBox(width: 12),
 
-            // Activity Details
+            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
                           title,
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isRating
-                                ? Colors.amber[900]
-                                : AppThemeColors.primaryText(context),
+                            fontWeight: FontWeight.w700,
+                            fontSize: context.sp(14),
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
                       if (amount != null && currency != null)
                         Container(
+                          margin: const EdgeInsets.only(left: 6),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.green.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: Colors.green.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
+                                color: Colors.green.withValues(alpha: 0.3)),
                           ),
-                          child: Text(
-                            '$currency$amount',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
+                          child: Text('$currency$amount',
+                              style: TextStyle(
+                                  fontSize: context.sp(11),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green)),
                         ),
                       if (isRating && ratingValue != null)
                         Container(
-                          margin: const EdgeInsets.only(left: 8),
+                          margin: const EdgeInsets.only(left: 6),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.amber.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text(
-                            '$ratingValue ★',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber,
-                            ),
-                          ),
+                          child: Text('$ratingValue ★',
+                              style: TextStyle(
+                                  fontSize: context.sp(11),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber[800])),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayDescription,
-                    style: TextStyle(
-                      color: isRating
-                          ? Colors.amber[800]
-                          : AppThemeColors.secondaryText(context),
-                      fontSize: 14,
+                  if (displayDescription.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      displayDescription,
+                      style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: AppThemeColors.secondaryText(context)),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 6),
                   Row(
                     children: [
+                      Icon(Icons.access_time,
+                          size: 11,
+                          color: AppThemeColors.mutedText(context)),
+                      const SizedBox(width: 3),
                       Expanded(
                         child: Text(
                           _formatDate(createdAt, activityType: type),
                           style: TextStyle(
-                            color: AppThemeColors.mutedText(context),
-                            fontSize: 12,
-                          ),
+                              fontSize: context.sp(11),
+                              color: AppThemeColors.mutedText(context)),
                         ),
                       ),
-                      // Delete Button
-                      PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'details') {
-                            _showActivityDetails(activity);
-                          } else if (value == 'bookmark') {
-                            _bookmarkActivity(activity);
-                          } else if (value == 'delete') {
-                            _deleteActivity(activity);
-                          }
-                        },
-                        itemBuilder: (BuildContext context) {
-                          final isBookmarked = activity['bookmarked'] ?? false;
-                          return <PopupMenuEntry<String>>[
+                      if (isBookmarked)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 2),
+                          child: Icon(Icons.bookmark,
+                              size: 14, color: Colors.orange),
+                        ),
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          icon: Icon(Icons.more_vert,
+                              size: 16,
+                              color: AppThemeColors.mutedText(context)),
+                          onSelected: (value) {
+                            if (value == 'details') {
+                              _showActivityDetails(activity);
+                            } else if (value == 'bookmark') {
+                              _bookmarkActivity(activity);
+                            } else if (value == 'delete') {
+                              _deleteActivity(activity);
+                            }
+                          },
+                          itemBuilder: (ctx) => [
                             PopupMenuItem<String>(
                               value: 'details',
                               child: ListTile(
-                                leading: const Icon(Icons.info,
-                                    color: Colors.blue),
+                                dense: true,
+                                leading:
+                                    const Icon(Icons.info, color: Colors.blue),
                                 title: Text(t('view_details')),
                               ),
                             ),
                             PopupMenuItem<String>(
                               value: 'bookmark',
                               child: ListTile(
+                                dense: true,
                                 leading: Icon(Icons.bookmark,
                                     color: isBookmarked
                                         ? Colors.red
                                         : Colors.orange),
-                                title: Text(
-                                    isBookmarked
-                                        ? t('unbookmark')
-                                        : t('bookmark')),
+                                title: Text(isBookmarked
+                                    ? t('unbookmark')
+                                    : t('bookmark')),
                               ),
                             ),
                             PopupMenuItem<String>(
                               value: 'delete',
                               child: ListTile(
+                                dense: true,
                                 leading: const Icon(Icons.delete,
                                     color: Colors.red),
                                 title: Text(t('delete')),
                               ),
                             ),
-                          ];
-                        },
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1219,20 +1266,33 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildLoadMoreButton() {
-    final t = AppLocalizations.of(context).t;
+    final remaining = _remainingCount;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            setState(() => currentPage++);
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: OutlinedButton(
+        onPressed: () {
+          if (_visibleCount < activities.length) {
+            // Reveal next 5 from already-fetched batch
+            setState(() => _visibleCount += 5);
+          } else if (hasNextPage) {
+            // Fetch next server page, then reveal 5 more
+            setState(() {
+              _visibleCount += 5;
+              currentPage++;
+            });
             fetchActivities();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.cyan,
-            foregroundColor: Colors.white,
-          ),
-          child: Text(t('load_more')),
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.cyan, width: 1.5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        child: Text(
+          remaining > 0 ? 'View More  ($remaining remaining)' : 'View More',
+          style: const TextStyle(
+              color: AppColors.cyan, fontWeight: FontWeight.w600),
         ),
       ),
     );

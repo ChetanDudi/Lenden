@@ -4,10 +4,10 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
-import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class TrackUserActivityPage extends StatefulWidget {
   @override
@@ -397,80 +397,25 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
 
   Widget _buildSearchBar() {
     final t = AppLocalizations.of(context).t;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: tricolorBorder(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppThemeColors.cardBg(context),
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: AppThemeColors.secondaryText(context), size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onSubmitted: (value) {
-                    if (value.trim().isNotEmpty) {
-                      _fetchUserActivity(value.trim());
-                    }
-                  },
-                  decoration: InputDecoration(
-                    hintText: t('search_by_email_or_username'),
-                    hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                    border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                  style: TextStyle(fontSize: 16, color: AppThemeColors.primaryText(context)),
-                ),
-              ),
-              if (_searchController.text.isNotEmpty)
-                IconButton(
-                  icon:
-                      Icon(Icons.clear, color: AppThemeColors.secondaryText(context), size: 20),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _activities = [];
-                      _searchedTerm = null;
-                      _error = null;
-                      _selectedCategory = 'all';
-                    });
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: () {
-                  final val = _searchController.text.trim();
-                  if (val.isNotEmpty) _fetchUserActivity(val);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.cyan,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    t('search'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return AppSearchBar(
+      controller: _searchController,
+      hintText: t('search_by_email_or_username'),
+      onSubmit: () {
+        final val = _searchController.text.trim();
+        if (val.isNotEmpty) _fetchUserActivity(val);
+      },
+      onChanged: (v) {
+        if (v.isEmpty) {
+          setState(() {
+            _activities = [];
+            _searchedTerm = null;
+            _error = null;
+            _selectedCategory = 'all';
+          });
+        }
+      },
+      isLoading: _loading,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
   }
 

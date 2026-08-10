@@ -9,6 +9,7 @@ import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import './widgets/subscription_dialogs.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class ManageSubscriptionsTab extends StatefulWidget {
   @override
@@ -817,26 +818,12 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab>
       backgroundColor: Colors.transparent,
       body: Column(
         children: [
-          // Inner tab bar
-          Container(
-            margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-            decoration: BoxDecoration(
-              color: AppThemeColors.cardBg(context),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppThemeColors.border(context)),
-            ),
-            child: TabBar(
-              controller: _innerTabController,
-              labelColor: AppColors.cyan,
-              unselectedLabelColor: AppThemeColors.secondaryText(context),
-              indicatorColor: AppColors.cyan,
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              tabs: [
-                Tab(text: t('subscriptions_tab_label')),
-                Tab(text: t('subscription_history_tab_label')),
-              ],
-            ),
+          AppTabBar(
+            controller: _innerTabController,
+            tabs: [
+              AppTabItem(label: t('subscriptions_tab_label')),
+              AppTabItem(label: t('subscription_history_tab_label')),
+            ],
           ),
           Expanded(
             child: TabBarView(
@@ -896,53 +883,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab>
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
           child: Column(
             children: [
-              // Search bar
-              Container(
-                padding: const EdgeInsets.all(1.5),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [Colors.orange, Colors.white, Colors.green],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search,
-                          color: AppThemeColors.mutedText(context), size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (_) => setState(() {}),
-                          style: TextStyle(color: AppThemeColors.primaryText(context)),
-                          decoration: InputDecoration(
-                            hintText: t('search_by_name_email_plan_placeholder'),
-                            hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      if (_searchController.text.isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                          child: Icon(Icons.clear,
-                              color: AppThemeColors.mutedText(context), size: 18),
-                        ),
-                    ],
-                  ),
-                ),
+              AppSearchBar(
+                controller: _searchController,
+                hintText: t('search_by_name_email_plan_placeholder'),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
               // Status chips + sort
@@ -1080,63 +1024,10 @@ class _ManageSubscriptionsTabState extends State<ManageSubscriptionsTab>
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
-          child: Container(
-            padding: const EdgeInsets.all(1.5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.person_search_rounded,
-                      color: AppThemeColors.mutedText(context), size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _historySearchController,
-                      style: TextStyle(color: AppThemeColors.primaryText(context)),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _searchUserHistory(),
-                      decoration: InputDecoration(
-                        hintText: t('search_user_history_hint'),
-                        hintStyle: TextStyle(color: AppThemeColors.mutedText(context)),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  if (_historySearchController.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: () {
-                        _historySearchController.clear();
-                        setState(() {
-                          _historyResults = [];
-                          _historyError = null;
-                          _historySearched = false;
-                        });
-                      },
-                      child: Icon(Icons.clear,
-                          color: AppThemeColors.mutedText(context), size: 18),
-                    ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: _searchUserHistory,
-                    child: const Icon(Icons.search_rounded,
-                        color: AppColors.cyan, size: 22),
-                  ),
-                ],
-              ),
-            ),
+          child: AppSearchBar(
+            controller: _historySearchController,
+            hintText: t('search_user_history_hint'),
+            onSubmit: _searchUserHistory,
           ),
         ),
         Expanded(

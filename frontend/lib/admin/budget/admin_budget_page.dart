@@ -5,6 +5,7 @@ import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class AdminBudgetPage extends StatefulWidget {
   const AdminBudgetPage({super.key});
@@ -458,23 +459,17 @@ class _AdminBudgetPageState extends State<AdminBudgetPage>
             ),
           ),
 
-          Container(
-            color: AppThemeColors.cardBg(context),
-            child: TabBar(
-              controller: _tabs,
-              isScrollable: true,
-              labelColor: AppColors.cyan,
-              unselectedLabelColor: AppThemeColors.secondaryText(context),
-              indicatorColor: AppColors.cyan,
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'User Budgets'),
-                Tab(text: 'Set Override'),
-                Tab(text: 'Subscriptions'),
-                Tab(text: 'Personal Budgets'),
-                Tab(text: 'PB History'),
-              ],
-            ),
+          AppTabBar(
+            controller: _tabs,
+            isScrollable: true,
+            tabs: const [
+              AppTabItem(label: 'Overview'),
+              AppTabItem(label: 'User Budgets'),
+              AppTabItem(label: 'Set Override'),
+              AppTabItem(label: 'Subscriptions'),
+              AppTabItem(label: 'Personal Budgets'),
+              AppTabItem(label: 'PB History'),
+            ],
           ),
 
           Expanded(
@@ -1327,14 +1322,11 @@ class _AdminExpenseSheetState extends State<_AdminExpenseSheet>
           ]),
         ),
         // Tabs
-        TabBar(
+        AppTabBar(
           controller: _tabs,
-          labelColor: AppColors.cyan,
-          unselectedLabelColor: AppThemeColors.secondaryText(context),
-          indicatorColor: AppColors.cyan,
           tabs: [
-            Tab(text: 'Active (${_active.length})'),
-            Tab(text: 'Deleted (${_deleted.length})'),
+            AppTabItem(label: 'Active', count: _active.length),
+            AppTabItem(label: 'Deleted', count: _deleted.length),
           ],
         ),
         const Divider(height: 1),

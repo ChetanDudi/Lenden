@@ -752,42 +752,50 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               ),
               child: TabBar(
                 controller: _tabController,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+                isScrollable: false,
+                tabAlignment: TabAlignment.fill,
+                padding: const EdgeInsets.all(4),
+                labelPadding: EdgeInsets.zero,
                 indicator: BoxDecoration(
                   color: AppColors.cyan,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: const EdgeInsets.symmetric(vertical: 6),
+                indicatorPadding: const EdgeInsets.symmetric(vertical: 4),
                 dividerColor: Colors.transparent,
                 splashBorderRadius: BorderRadius.circular(20),
                 labelColor: Colors.white,
                 unselectedLabelColor: AppThemeColors.secondaryText(context),
                 labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 12.5),
+                    fontWeight: FontWeight.w600, fontSize: 11),
                 unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500, fontSize: 12.5),
+                    fontWeight: FontWeight.w500, fontSize: 11),
                 tabs: [
-                  Tab(
-                      text: t('plans_tab'),
-                      icon: const Icon(Icons.card_membership_rounded,
-                          size: 18)),
-                  Tab(
-                      text: t('benefits_tab'),
-                      icon: const Icon(Icons.star_rounded, size: 18)),
-                  Tab(
-                      text: t('faqs_tab'),
-                      icon: const Icon(Icons.help_outline_rounded, size: 18)),
-                  Tab(
-                      text: t('active_plan_tab'),
-                      icon: const Icon(Icons.workspace_premium_rounded,
-                          size: 18)),
-                  Tab(
-                      text: t('history_tab'),
-                      icon: const Icon(Icons.history_rounded, size: 18)),
+                  Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.card_membership_rounded, size: 14),
+                    const SizedBox(width: 4),
+                    Text(t('plans_tab')),
+                  ])),
+                  Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.star_rounded, size: 14),
+                    const SizedBox(width: 4),
+                    Text(t('benefits_tab')),
+                  ])),
+                  Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.help_outline_rounded, size: 14),
+                    const SizedBox(width: 4),
+                    Text(t('faqs_tab')),
+                  ])),
+                  Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.workspace_premium_rounded, size: 14),
+                    const SizedBox(width: 4),
+                    Text(t('active_plan_tab')),
+                  ])),
+                  Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.history_rounded, size: 14),
+                    const SizedBox(width: 4),
+                    Text(t('history_tab')),
+                  ])),
                 ],
               ),
             ),

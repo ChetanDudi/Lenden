@@ -5,6 +5,8 @@ import '../../session.dart';
 import 'dart:convert';
 import '../../utils/api_client.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
+import '../../widgets/wave_widget.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../digitise/subscriptions_page.dart';
@@ -20,14 +22,12 @@ class RatingsPage extends StatefulWidget {
 class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // My ratings data
   double? avgRating;
   List<dynamic> ratingsGiven = [];
   List<dynamic> ratingsReceived = [];
   bool loading = true;
   String? error;
 
-  // Rate someone
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _commentController = TextEditingController();
@@ -36,7 +36,6 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   bool _submitting = false;
   bool _showSuccess = false;
 
-  // Search user rating
   final _searchController = TextEditingController();
   String? _searchError;
   double? _searchedAvgRating;
@@ -48,10 +47,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
   Map<String, int>? _searchedDistribution;
   bool _searching = false;
 
-  // Friends list
   List<Map<String, dynamic>> _friends = [];
-
-  // Rating activities
   List<dynamic> ratingActivities = [];
 
   @override
@@ -148,19 +144,14 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       setState(() { _searchError = t('enter_username_or_email_error'); _searchedAvgRating = null; });
       return;
     }
-
     final session = Provider.of<SessionProvider>(context, listen: false);
     final lower = input.toLowerCase();
     final myEmail = (session.user?['email'] ?? '').toString().toLowerCase();
     final myUsername = (session.user?['username'] ?? '').toString().toLowerCase();
     if (lower == myEmail || (myUsername.isNotEmpty && lower == myUsername)) {
-      setState(() {
-        _searchError = t('thats_you_ratings_first_tab');
-        _searchedAvgRating = null;
-      });
+      setState(() { _searchError = t('thats_you_ratings_first_tab'); _searchedAvgRating = null; });
       return;
     }
-
     setState(() { _searching = true; _searchError = null; _searchedAvgRating = null; _searchedDistribution = null; });
     try {
       final res = await ApiClient.get('/api/ratings/user-avg?usernameOrEmail=$input');
@@ -195,8 +186,7 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     if (ratingId.isEmpty) return;
     final commentCtrl = TextEditingController(text: r['comment'] ?? '');
     double localRating = (r['rating'] ?? 5).toDouble();
-
-    bool _isUpdating = false;
+    bool isUpdating = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -273,8 +263,8 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
                       ),
-                      onPressed: _isUpdating ? null : () async {
-                        setSheet(() => _isUpdating = true);
+                      onPressed: isUpdating ? null : () async {
+                        setSheet(() => isUpdating = true);
                         final res = await ApiClient.patch('/api/ratings/$ratingId', body: {
                           'rating': localRating,
                           'comment': commentCtrl.text.trim(),
@@ -283,13 +273,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                         Navigator.pop(ctx);
                         if (res.statusCode == 200) {
                           fetchRatings();
-                          if (mounted) {
-                            showSnack(context, t('rating_updated_label'));
-                          }
+                          if (mounted) showSnack(context, t('rating_updated_label'));
                         } else {
-                          if (mounted) {
-                            showSnack(context, json.decode(res.body)['error'] ?? t('failed_to_update_label'), isError: true);
-                          }
+                          if (mounted) showSnack(context, json.decode(res.body)['error'] ?? t('failed_to_update_label'), isError: true);
                         }
                       },
                       child: Text(t('update_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
@@ -304,17 +290,72 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     ).then((_) => commentCtrl.dispose());
   }
 
-  // ─── UI helpers ─────────────────────────────────────────────────────────────
+  // ─── Section card (profile-style) ──────────────────────────────────────────
+
+  Widget _sectionCard(String title, Widget child) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Row(
+              children: [
+                Container(
+                  width: 3, height: 13,
+                  decoration: BoxDecoration(color: AppColors.cyan, borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0, color: AppThemeColors.secondaryText(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 12, thickness: 0.5, color: AppThemeColors.divider(context)),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatMetric(IconData icon, String label, String value, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context))),
+        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+      ],
+    );
+  }
+
+  // ─── Shared UI helpers ───────────────────────────────────────────────────────
 
   Widget _starRow(double value, {double size = 24}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
-        if (i < value.floor()) {
-          return Icon(Icons.star_rounded, color: Colors.amber, size: size);
-        } else if (i < value) {
-          return Icon(Icons.star_half_rounded, color: Colors.amber, size: size);
-        }
+        if (i < value.floor()) return Icon(Icons.star_rounded, color: Colors.amber, size: size);
+        if (i < value) return Icon(Icons.star_half_rounded, color: Colors.amber, size: size);
         return Icon(Icons.star_outline_rounded, color: Colors.amber.withValues(alpha: 0.4), size: size);
       }),
     );
@@ -373,6 +414,53 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     );
   }
 
+  Widget _friendsAvatarList(List<Map<String, dynamic>> friends, {required void Function(String username) onTap}) {
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: friends.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (ctx, i) {
+          final f = friends[i];
+          final fId = (f['_id'] ?? '').toString();
+          final fName = (f['name'] ?? f['username'] ?? '').toString();
+          final fUsername = (f['username'] ?? '').toString();
+          final initials = fName.isNotEmpty ? fName[0].toUpperCase()
+              : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
+          return GestureDetector(
+            onTap: () => onTap(fUsername),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: 0.15)),
+                  child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                    Center(child: Text(initials, style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 16))),
+                    if (fId.isNotEmpty)
+                      Image.network(
+                        '${ApiConfig.baseUrl}/api/users/$fId/profile-image',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                  ])),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: 52,
+                  child: Text(fUsername,
+                    style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context)),
+                    textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _ratingCard(Map<String, dynamic> r, {required bool isGiven}) {
     final t = AppLocalizations.of(context).t;
     final rating = (r['rating'] ?? 0).toDouble();
@@ -380,56 +468,61 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
         ? (r['rateeName'] ?? r['ratee'] ?? t('user_fallback')).toString()
         : (r['raterName'] ?? r['rater'] ?? t('user_fallback')).toString();
     final prefix = isGiven ? t('to_label') : t('from_label');
-    final starColor = rating >= 4 ? Colors.green : rating >= 3 ? Colors.orange : Colors.orange;
+    final starColor = rating >= 4 ? Colors.green : Colors.orange;
     final comment = r['comment']?.toString() ?? '';
 
-    return tricolorBorder(
-      radius: 16,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(14)),
-        child: Row(
-          children: [
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: starColor.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  rating.toStringAsFixed(1),
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: starColor),
-                ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: starColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                rating.toStringAsFixed(1),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: starColor),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$prefix: $name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  _starRow(rating, size: 16),
-                  if (comment.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text('"$comment"',
-                      style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12, fontStyle: FontStyle.italic),
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$prefix: $name',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppThemeColors.primaryText(context)),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                _starRow(rating, size: 16),
+                if (comment.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text('"$comment"',
+                    style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 12, fontStyle: FontStyle.italic),
+                    maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
-              ),
+              ],
             ),
-            if (isGiven && r['_id'] != null)
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.cyan),
-                onPressed: () => _showEditRatingSheet(r),
-                tooltip: t('edit'),
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                padding: EdgeInsets.zero,
-              ),
-          ],
-        ),
+          ),
+          if (isGiven && r['_id'] != null)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.cyan),
+              onPressed: () => _showEditRatingSheet(r),
+              tooltip: t('edit'),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: EdgeInsets.zero,
+            ),
+        ],
       ),
     );
   }
@@ -438,60 +531,457 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
     final t = AppLocalizations.of(context).t;
     final stars = avgRating ?? 0.0;
     final color = stars >= 4 ? const Color(0xFF2E7D32) : Colors.orange;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppThemeColors.cardBg(context),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.18), blurRadius: 20, offset: const Offset(0, 8))],
-      ),
-      child: Column(
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
-            const SizedBox(width: 8),
-            Text(t('your_rating_label'), style: TextStyle(fontSize: 16, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w500)),
-          ]),
-          const SizedBox(height: 12),
-          Text(
-            avgRating != null ? avgRating!.toStringAsFixed(2) : '—',
-            style: TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: color),
-          ),
-          const SizedBox(height: 8),
-          _starRow(stars, size: 28),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _statPill(t('given_label'), '${ratingsGiven.length}', Colors.blue),
-              const SizedBox(width: 12),
-              _statPill(t('received_label'), '${ratingsReceived.length}', Colors.purple),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statPill(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: RichText(
-        text: TextSpan(
+    return _sectionCard(
+      t('your_rating_label').toUpperCase(),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
           children: [
-            TextSpan(text: value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
-            TextSpan(text: ' $label', style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 12)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  avgRating != null ? avgRating!.toStringAsFixed(2) : '—',
+                  style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: color),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _starRow(stars, size: 22),
+                    const SizedBox(height: 4),
+                    Text(
+                      stars == 5 ? t('excellent_label') :
+                      stars >= 4 ? t('great_label') :
+                      stars >= 3 ? t('good_label') :
+                      stars >= 2 ? t('fair_label') : t('poor_label'),
+                      style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: _buildStatMetric(Icons.arrow_upward, t('given_label'), '${ratingsGiven.length}', Colors.blue)),
+                Container(width: 1, height: 44, color: AppThemeColors.divider(context)),
+                Expanded(child: _buildStatMetric(Icons.arrow_downward, t('received_label'), '${ratingsReceived.length}', Colors.purple)),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
+
+  // ─── Tab: Rate ───────────────────────────────────────────────────────────────
+
+  Widget _buildRateTab() {
+    final t = AppLocalizations.of(context).t;
+    final ratedIds = ratingsGiven.map((r) => r['ratee']?.toString() ?? '').toSet();
+    final unrated = _friends.where((f) {
+      final fid = (f['_id'] ?? '').toString();
+      return fid.isNotEmpty && !ratedIds.contains(fid);
+    }).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      child: _sectionCard(
+        t('rate_another_user_title').toUpperCase(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_showSuccess)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                    const SizedBox(width: 8),
+                    Text(t('rating_submitted_successfully'),
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _usernameController,
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
+                      decoration: InputDecoration(
+                        labelText: t('username_or_email_label'),
+                        prefixIcon: const Icon(Icons.person_search_outlined),
+                        filled: true,
+                        fillColor: AppThemeColors.surfaceBg(context),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
+                        ),
+                      ),
+                      validator: (val) => val == null || val.isEmpty ? t('required') : null,
+                    ),
+                    if (unrated.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Text(t('friends_to_rate_label'),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.mutedText(context))),
+                      const SizedBox(height: 8),
+                      _friendsAvatarList(unrated, onTap: (username) {
+                        _usernameController.text = username;
+                        if (_showSuccess) setState(() => _showSuccess = false);
+                      }),
+                    ],
+                    const SizedBox(height: 20),
+                    Text(t('give_rating_as_label'),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Column(
+                        children: [
+                          StatefulBuilder(
+                            builder: (context, _) => _interactiveStars(
+                              context, _selectedRating,
+                              (val) => setState(() => _selectedRating = val),
+                              size: 40,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _selectedRating == 5 ? t('excellent_label') :
+                            _selectedRating >= 4 ? t('great_label') :
+                            _selectedRating >= 3 ? t('good_label') :
+                            _selectedRating >= 2 ? t('fair_label') : t('poor_label'),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16,
+                              color: _selectedRating >= 4 ? Colors.green : Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(t('comment_optional_label'),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context), fontSize: 13)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _commentController,
+                      maxLines: 3,
+                      maxLength: 200,
+                      style: TextStyle(color: AppThemeColors.primaryText(context)),
+                      decoration: InputDecoration(
+                        hintText: t('share_your_experience_placeholder'),
+                        filled: true,
+                        fillColor: AppThemeColors.surfaceBg(context),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
+                        ),
+                        counterStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
+                      ),
+                    ),
+                    if (_submitError != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                          const SizedBox(width: 8),
+                          Flexible(child: Text(_submitError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                        ]),
+                      ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          elevation: 0,
+                        ),
+                        onPressed: _submitting ? null : submitRating,
+                        child: _submitting
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(t('submit_rating_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Tab: Search ─────────────────────────────────────────────────────────────
+
+  Widget _buildSearchTab() {
+    final t = AppLocalizations.of(context).t;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      child: Consumer<SessionProvider>(
+        builder: (context, session, _) {
+          if (!session.hasFeature('view_rankings')) {
+            return _sectionCard(
+              t('premium_feature_label').toUpperCase(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                child: Column(children: [
+                  Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.lock_rounded, size: 36, color: AppColors.cyan),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(t('subscribe_to_search_ratings'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppThemeColors.secondaryText(context))),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.workspace_premium, color: Colors.amber),
+                      label: Text(t('subscribe_now_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
+                    ),
+                  ),
+                ]),
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              _sectionCard(
+                t('search').toUpperCase(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Column(
+                    children: [
+                      AppSearchBar(
+                        controller: _searchController,
+                        hintText: t('enter_username_or_email_placeholder'),
+                        isLoading: _searching,
+                        onSubmit: _searchUserRating,
+                        margin: EdgeInsets.zero,
+                      ),
+                      if (_searchError != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.info_outline, color: Colors.red, size: 16),
+                            const SizedBox(width: 8),
+                            Flexible(child: Text(_searchError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                          ]),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_friends.isNotEmpty)
+                _sectionCard(
+                  t('friends_ratings_header_label').toUpperCase(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    child: _friendsAvatarList(_friends, onTap: (username) {
+                      _searchController.text = username;
+                      _searchUserRating();
+                    }),
+                  ),
+                ),
+              if (_searchedAvgRating != null)
+                _sectionCard(
+                  'SEARCH RESULT',
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                    child: Column(children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: AppColors.cyan.withValues(alpha: 0.12),
+                        child: ClipOval(child: Stack(fit: StackFit.expand, children: [
+                          Center(child: Text(
+                            (_searchedName?.isNotEmpty == true
+                                ? _searchedName![0]
+                                : _searchedUsername?[0] ?? '?').toUpperCase(),
+                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.cyan),
+                          )),
+                          if ((_searchedUserId ?? '').isNotEmpty)
+                            Image.network(
+                              '${ApiConfig.baseUrl}/api/users/$_searchedUserId/profile-image',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                        ])),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_searchedName?.isNotEmpty == true)
+                        Text(_searchedName!,
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+                      if (_searchedUsername?.isNotEmpty == true)
+                        Text('@$_searchedUsername',
+                          style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13)),
+                      if (_searchedEmail?.isNotEmpty == true)
+                        Text(_searchedEmail!,
+                          style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
+                      const SizedBox(height: 16),
+                      if ((_searchedTotalRatings ?? 0) == 0)
+                        const _Marquee(text: 'You are the first one to rate this user! ⭐')
+                      else ...[
+                        _starRow(_searchedAvgRating!, size: 30),
+                        const SizedBox(height: 8),
+                        Text(
+                          _searchedAvgRating!.toStringAsFixed(2),
+                          style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.cyan),
+                        ),
+                      ],
+                      if (_searchedTotalRatings != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '${t('based_on_label')} $_searchedTotalRatings ${_searchedTotalRatings == 1 ? t('rating_singular_label') : t('ratings_plural_label')}',
+                            style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
+                        ),
+                      if (_searchedDistribution != null && (_searchedTotalRatings ?? 0) > 0) ...[
+                        const SizedBox(height: 16),
+                        Divider(height: 1, color: AppThemeColors.divider(context)),
+                        const SizedBox(height: 14),
+                        Text(t('rating_breakdown_label'),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
+                        const SizedBox(height: 10),
+                        _distributionBars(_searchedDistribution!, _searchedTotalRatings!),
+                      ],
+                    ]),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── Tab: History ────────────────────────────────────────────────────────────
+
+  Widget _buildHistoryTab() {
+    final t = AppLocalizations.of(context).t;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      child: Column(
+        children: [
+          _sectionCard(
+            t('ratings_given_label').toUpperCase(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: ratingsGiven.isEmpty
+                ? _emptyState(t('no_ratings_given_yet'), Icons.star_outline)
+                : Column(
+                    children: ratingsGiven.map((r) =>
+                      _ratingCard(Map<String, dynamic>.from(r), isGiven: true)).toList(),
+                  ),
+            ),
+          ),
+          _sectionCard(
+            t('ratings_received_label').toUpperCase(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: ratingsReceived.isEmpty
+                ? _emptyState(t('no_ratings_received_yet'), Icons.star_border)
+                : Column(
+                    children: ratingsReceived.map((r) =>
+                      _ratingCard(Map<String, dynamic>.from(r), isGiven: false)).toList(),
+                  ),
+            ),
+          ),
+          if (ratingActivities.isNotEmpty)
+            _sectionCard(
+              t('recent_activity_label').toUpperCase(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Column(
+                  children: ratingActivities.map((a) {
+                    final isGiven = a['type'] == 'user_rated';
+                    final color = isGiven ? Colors.blue : Colors.purple;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppThemeColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.4)),
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 38, height: 38,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(isGiven ? Icons.star : Icons.star_border, color: color, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(a['title'] ?? '',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.primaryText(context)),
+                            maxLines: 1),
+                          Text(a['description'] ?? '',
+                            style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
+                            maxLines: 1),
+                        ])),
+                        if (a['metadata']?['rating'] != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                            child: Text('${a['metadata']['rating']} ★',
+                              style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                      ]),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Build ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -500,580 +990,57 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
       backgroundColor: AppThemeColors.scaffoldBg(context),
       body: Stack(
         children: [
-          Positioned(
-            top: 0, left: 0, right: 0,
+          ClipPath(
+            clipper: DeepTopWaveClipper(),
             child: Container(
               height: 180,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: AppThemeColors.waveGradient(context),
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-              ),
+              color: AppThemeColors.waveSolid(context),
             ),
           ),
           SafeArea(
             child: Column(
               children: [
-                // App bar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(children: [
-                    IconButton(icon: Icon(Icons.arrow_back, color: AppThemeColors.primaryText(context)), onPressed: () => Navigator.pop(context)),
-                    Expanded(child: Text(t('ratings_title'), textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context)))),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        t('ratings_title'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
                     const SizedBox(width: 48),
                   ]),
                 ),
-
-                // Hero rating card
-                if (!loading) _myRatingHero()
-                else const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: CircularProgressIndicator(color: Colors.white),
+                if (loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                else
+                  _myRatingHero(),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: [
+                    AppTabItem(label: t('rate_tab_label'), icon: Icons.rate_review),
+                    AppTabItem(label: t('search'), icon: Icons.search),
+                    AppTabItem(label: t('history_label'), icon: Icons.history),
+                  ],
                 ),
-
-                // Tab bar
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
-                  ),
-                  child: TabBar(
-                    controller: _tabController,
-                    indicator: BoxDecoration(color: AppColors.cyan, borderRadius: BorderRadius.circular(12)),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    dividerColor: Colors.transparent,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: AppThemeColors.secondaryText(context),
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    unselectedLabelStyle: const TextStyle(fontSize: 12),
-                    tabs: [
-                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.rate_review, size: 15), const SizedBox(width: 4), Text(t('rate_tab_label'))])),
-                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.search, size: 15), const SizedBox(width: 4), Text(t('search'))])),
-                      Tab(child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.history, size: 15), const SizedBox(width: 4), Text(t('history_label'))])),
-                    ],
-                  ),
-                ),
-
                 Expanded(
                   child: loading
                     ? const Center(child: CircularProgressIndicator())
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          // ── Tab 1: Rate someone ────────────────────────────
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            child: Column(
-                              children: [
-                                tricolorBorder(radius: 20,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), shape: BoxShape.circle),
-                                            child: const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Text(t('rate_another_user_title'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-                                        ]),
-                                        const SizedBox(height: 16),
-                                        if (_showSuccess)
-                                          Container(
-                                            margin: const EdgeInsets.only(bottom: 14),
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-                                            ),
-                                            child: Row(children: [
-                                              const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                                              const SizedBox(width: 8),
-                                              Text(t('rating_submitted_successfully'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
-                                            ]),
-                                          ),
-                                        Form(
-                                          key: _formKey,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              TextFormField(
-                                                controller: _usernameController,
-                                                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                                                decoration: InputDecoration(
-                                                  labelText: t('username_or_email_label'),
-                                                  prefixIcon: const Icon(Icons.person_search_outlined),
-                                                  filled: true,
-                                                  fillColor: AppThemeColors.surfaceBg(context),
-                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                                                  focusedBorder: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(14),
-                                                    borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
-                                                  ),
-                                                ),
-                                                validator: (val) => val == null || val.isEmpty ? t('required') : null,
-                                              ),
-                                              // Unrated friends quick-pick
-                                              Builder(builder: (context) {
-                                                final ratedIds = ratingsGiven.map((r) =>
-                                                  r['ratee']?.toString() ?? '').toSet();
-                                                final unrated = _friends.where((f) {
-                                                  final fid = (f['_id'] ?? '').toString();
-                                                  return fid.isNotEmpty && !ratedIds.contains(fid);
-                                                }).toList();
-                                                if (unrated.isEmpty) return const SizedBox.shrink();
-                                                return Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    const SizedBox(height: 14),
-                                                    Text(t('friends_to_rate_label'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.mutedText(context))),
-                                                    const SizedBox(height: 8),
-                                                    SizedBox(
-                                                      height: 72,
-                                                      child: ListView.separated(
-                                                        scrollDirection: Axis.horizontal,
-                                                        itemCount: unrated.length,
-                                                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                                                        itemBuilder: (ctx, i) {
-                                                          final f = unrated[i];
-                                                          final fId = (f['_id'] ?? '').toString();
-                                                          final fName = (f['name'] ?? f['username'] ?? '').toString();
-                                                          final fUsername = (f['username'] ?? '').toString();
-                                                          final initials = fName.isNotEmpty ? fName[0].toUpperCase() : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
-                                                          return GestureDetector(
-                                                            onTap: () {
-                                                              _usernameController.text = fUsername;
-                                                              if (_showSuccess) setState(() => _showSuccess = false);
-                                                            },
-                                                            child: Column(
-                                                              mainAxisSize: MainAxisSize.min,
-                                                              children: [
-                                                                Container(
-                                                                  width: 44, height: 44,
-                                                                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: 0.15)),
-                                                                  child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                                                                    Center(child: Text(initials, style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 16))),
-                                                                    if (fId.isNotEmpty)
-                                                                      Image.network(
-                                                                        '${ApiConfig.baseUrl}/api/users/$fId/profile-image',
-                                                                        fit: BoxFit.cover,
-                                                                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                                                      ),
-                                                                  ])),
-                                                                ),
-                                                                const SizedBox(height: 4),
-                                                                SizedBox(
-                                                                  width: 52,
-                                                                  child: Text(fUsername, style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        },
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              }),
-                                              const SizedBox(height: 20),
-                                              Text(t('give_rating_as_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
-                                              const SizedBox(height: 10),
-                                              Center(
-                                                child: Column(
-                                                  children: [
-                                                    StatefulBuilder(
-                                                      builder: (context, setStar) => _interactiveStars(
-                                                        context,
-                                                        _selectedRating,
-                                                        (val) => setState(() => _selectedRating = val),
-                                                        size: 40,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 6),
-                                                    Text(
-                                                      _selectedRating == 5 ? t('excellent_label') :
-                                                      _selectedRating >= 4 ? t('great_label') :
-                                                      _selectedRating >= 3 ? t('good_label') :
-                                                      _selectedRating >= 2 ? t('fair_label') : t('poor_label'),
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.bold, fontSize: 16,
-                                                        color: _selectedRating >= 4 ? Colors.green : Colors.orange,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(t('comment_optional_label'), style: TextStyle(fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context), fontSize: 13)),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              TextFormField(
-                                                controller: _commentController,
-                                                maxLines: 3,
-                                                maxLength: 200,
-                                                style: TextStyle(color: AppThemeColors.primaryText(context)),
-                                                decoration: InputDecoration(
-                                                  hintText: t('share_your_experience_placeholder'),
-                                                  filled: true,
-                                                  fillColor: AppThemeColors.surfaceBg(context),
-                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                                                  focusedBorder: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(14),
-                                                    borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
-                                                  ),
-                                                  counterStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11),
-                                                ),
-                                              ),
-                                              if (_submitError != null)
-                                                Container(
-                                                  margin: const EdgeInsets.only(top: 12),
-                                                  padding: const EdgeInsets.all(10),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red.withValues(alpha: 0.08),
-                                                    borderRadius: BorderRadius.circular(10),
-                                                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                                                  ),
-                                                  child: Row(children: [
-                                                    const Icon(Icons.error_outline, color: Colors.red, size: 16),
-                                                    const SizedBox(width: 8),
-                                                    Flexible(child: Text(_submitError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                                                  ]),
-                                                ),
-                                              const SizedBox(height: 20),
-                                              SizedBox(
-                                                width: double.infinity,
-                                                child: ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: AppColors.cyan,
-                                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                                    elevation: 0,
-                                                  ),
-                                                  onPressed: _submitting ? null : submitRating,
-                                                  child: _submitting
-                                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                                    : Text(t('submit_rating_label'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // ── Tab 2: Search user rating ──────────────────────
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            child: Consumer<SessionProvider>(
-                              builder: (context, session, _) {
-                                if (!session.hasFeature('view_rankings')) {
-                                  return tricolorBorder(radius: 20,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(22),
-                                      decoration: BoxDecoration(color: AppThemeColors.tinted(context, light: const Color(0xFFFFF8F0), dark: const Color(0xFF3A3420)), borderRadius: BorderRadius.circular(18)),
-                                      child: Column(children: [
-                                        const Icon(Icons.lock_rounded, size: 48, color: AppColors.cyan),
-                                        const SizedBox(height: 14),
-                                        Text(t('premium_feature_label'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0096C7))),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          t('subscribe_to_search_ratings'),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: AppThemeColors.secondaryText(context)),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.cyan,
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          icon: const Icon(Icons.workspace_premium, color: Colors.amber),
-                                          label: Text(t('subscribe_now_label'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage())),
-                                        ),
-                                      ]),
-                                    ),
-                                  );
-                                }
-                                return Column(
-                                  children: [
-                                    tricolorBorder(radius: 20,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(18),
-                                        decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                        child: Column(
-                                          children: [
-                                            Row(children: [
-                                              Expanded(
-                                                child: TextField(
-                                                  controller: _searchController,
-                                                  style: TextStyle(color: AppThemeColors.primaryText(context)),
-                                                  decoration: InputDecoration(
-                                                    hintText: t('enter_username_or_email_placeholder'),
-                                                    prefixIcon: const Icon(Icons.person_search),
-                                                    filled: true,
-                                                    fillColor: AppThemeColors.surfaceBg(context),
-                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                                                  ),
-                                                  onSubmitted: (_) => _searchUserRating(),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              GestureDetector(
-                                                onTap: _searching ? null : _searchUserRating,
-                                                child: Container(
-                                                  width: 48, height: 48,
-                                                  decoration: const BoxDecoration(color: AppColors.cyan, shape: BoxShape.circle),
-                                                  child: _searching
-                                                    ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                                    : const Icon(Icons.search, color: Colors.white),
-                                                ),
-                                              ),
-                                            ]),
-                                            if (_searchError != null)
-                                              Container(
-                                                margin: const EdgeInsets.only(top: 12),
-                                                padding: const EdgeInsets.all(10),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red.withValues(alpha: 0.08),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                                                ),
-                                                child: Row(children: [
-                                                  const Icon(Icons.info_outline, color: Colors.red, size: 16),
-                                                  const SizedBox(width: 8),
-                                                  Flexible(child: Text(_searchError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                                                ]),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    // Friends quick-pick chips
-                                    if (_friends.isNotEmpty) ...[
-                                      const SizedBox(height: 12),
-                                      Text(t('friends_ratings_header_label'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppThemeColors.mutedText(context))),
-                                      const SizedBox(height: 8),
-                                      SizedBox(
-                                        height: 72,
-                                        child: ListView.separated(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount: _friends.length,
-                                          separatorBuilder: (_, __) => const SizedBox(width: 10),
-                                          itemBuilder: (ctx, i) {
-                                            final f = _friends[i];
-                                            final fId = (f['_id'] ?? '').toString();
-                                            final fName = (f['name'] ?? f['username'] ?? '').toString();
-                                            final fUsername = (f['username'] ?? '').toString();
-                                            final initials = fName.isNotEmpty ? fName[0].toUpperCase() : (fUsername.isNotEmpty ? fUsername[0].toUpperCase() : '?');
-                                            return GestureDetector(
-                                              onTap: () {
-                                                _searchController.text = fUsername;
-                                                _searchUserRating();
-                                              },
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Container(
-                                                    width: 44, height: 44,
-                                                    decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.cyan.withValues(alpha: 0.15)),
-                                                    child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                                                      Center(child: Text(initials, style: const TextStyle(color: AppColors.cyan, fontWeight: FontWeight.bold, fontSize: 16))),
-                                                      if (fId.isNotEmpty)
-                                                        Image.network(
-                                                          '${ApiConfig.baseUrl}/api/users/$fId/profile-image',
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                                        ),
-                                                    ])),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  SizedBox(
-                                                    width: 52,
-                                                    child: Text(fUsername, style: TextStyle(fontSize: 10, color: AppThemeColors.secondaryText(context)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                    if (_searchedAvgRating != null) ...[
-                                      const SizedBox(height: 16),
-                                      tricolorBorder(radius: 20,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(22),
-                                          decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                                          child: Column(children: [
-                                            CircleAvatar(
-                                              radius: 32,
-                                              backgroundColor: AppColors.cyan.withValues(alpha: 0.12),
-                                              child: ClipOval(child: Stack(fit: StackFit.expand, children: [
-                                                Center(child: Text(
-                                                  (_searchedName?.isNotEmpty == true ? _searchedName![0] : _searchedUsername?[0] ?? '?').toUpperCase(),
-                                                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.cyan),
-                                                )),
-                                                if ((_searchedUserId ?? '').isNotEmpty)
-                                                  Image.network(
-                                                    '${ApiConfig.baseUrl}/api/users/$_searchedUserId/profile-image',
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                                  ),
-                                              ])),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            if (_searchedName?.isNotEmpty == true)
-                                              Text(_searchedName!, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-                                            if (_searchedUsername?.isNotEmpty == true)
-                                              Text('@$_searchedUsername', style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 13)),
-                                            if (_searchedEmail?.isNotEmpty == true)
-                                              Text(_searchedEmail!, style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
-                                            const SizedBox(height: 16),
-                                            if ((_searchedTotalRatings ?? 0) == 0)
-                                              const _Marquee(text: 'You are the first one to rate this user! ⭐')
-                                            else ...[
-                                              _starRow(_searchedAvgRating!, size: 30),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                _searchedAvgRating!.toStringAsFixed(2),
-                                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF0096C7)),
-                                              ),
-                                            ],
-                                            if (_searchedTotalRatings != null)
-                                              Text('${t('based_on_label')} $_searchedTotalRatings ${_searchedTotalRatings == 1 ? t('rating_singular_label') : t('ratings_plural_label')}',
-                                                style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 12)),
-                                            if (_searchedDistribution != null && (_searchedTotalRatings ?? 0) > 0) ...[
-                                              const SizedBox(height: 16),
-                                              Divider(height: 1, color: AppThemeColors.divider(context)),
-                                              const SizedBox(height: 14),
-                                              Text(t('rating_breakdown_label'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppThemeColors.secondaryText(context))),
-                                              const SizedBox(height: 10),
-                                              _distributionBars(_searchedDistribution!, _searchedTotalRatings!),
-                                            ],
-                                          ]),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-
-                          // ── Tab 3: History ─────────────────────────────────
-                          ListView(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            children: [
-                              // Given
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(children: [
-                                  const Icon(Icons.arrow_upward, color: Colors.blue, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(t('ratings_given_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.cyan)),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                                    child: Text('${ratingsGiven.length}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
-                                  ),
-                                ]),
-                              ),
-                              const SizedBox(height: 10),
-                              if (ratingsGiven.isEmpty)
-                                _emptyState(t('no_ratings_given_yet'), Icons.star_outline)
-                              else
-                                ...ratingsGiven.map((r) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _ratingCard(Map<String, dynamic>.from(r), isGiven: true),
-                                )),
-                              const SizedBox(height: 20),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(children: [
-                                  const Icon(Icons.arrow_downward, color: Colors.purple, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(t('ratings_received_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF6A1B9A))),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                                    child: Text('${ratingsReceived.length}', style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)),
-                                  ),
-                                ]),
-                              ),
-                              const SizedBox(height: 10),
-                              if (ratingsReceived.isEmpty)
-                                _emptyState(t('no_ratings_received_yet'), Icons.star_border)
-                              else
-                                ...ratingsReceived.map((r) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _ratingCard(Map<String, dynamic>.from(r), isGiven: false),
-                                )),
-                              if (ratingActivities.isNotEmpty) ...[
-                                const SizedBox(height: 20),
-                                Row(children: [
-                                  const Icon(Icons.timeline, color: Colors.teal, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(t('recent_activity_label'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.teal)),
-                                ]),
-                                const SizedBox(height: 10),
-                                ...ratingActivities.map((a) {
-                                  final isGiven = a['type'] == 'user_rated';
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: AppThemeColors.cardBg(context),
-                                      borderRadius: BorderRadius.circular(14),
-                                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
-                                    ),
-                                    child: Row(children: [
-                                      Container(
-                                        width: 36, height: 36,
-                                        decoration: BoxDecoration(
-                                          color: (isGiven ? Colors.blue : Colors.purple).withValues(alpha: 0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(isGiven ? Icons.star : Icons.star_border, color: isGiven ? Colors.blue : Colors.purple, size: 20),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                        Text(a['title'] ?? '', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppThemeColors.primaryText(context)), maxLines: 1),
-                                        Text(a['description'] ?? '', style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 11), maxLines: 1),
-                                      ])),
-                                      if (a['metadata']?['rating'] != null)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                                          child: Text('${a['metadata']['rating']} ★', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
-                                        ),
-                                    ]),
-                                  );
-                                }),
-                              ],
-                            ],
-                          ),
+                          _buildRateTab(),
+                          _buildSearchTab(),
+                          _buildHistoryTab(),
                         ],
                       ),
                 ),
@@ -1114,10 +1081,7 @@ class _MarqueeState extends State<_Marquee> with SingleTickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat();
     _animation = Tween<double>(begin: 1.0, end: -1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
@@ -1136,19 +1100,13 @@ class _MarqueeState extends State<_Marquee> with SingleTickerProviderStateMixin 
       child: ClipRect(
         child: AnimatedBuilder(
           animation: _animation,
-          builder: (context, child) {
-            return FractionalTranslation(
-              translation: Offset(_animation.value, 0),
-              child: child,
-            );
-          },
+          builder: (context, child) => FractionalTranslation(
+            translation: Offset(_animation.value, 0),
+            child: child,
+          ),
           child: Text(
             widget.text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.cyan,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.cyan),
             maxLines: 1,
           ),
         ),

@@ -5,6 +5,7 @@ import 'user_edit_page.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -415,32 +416,14 @@ class _UserDetailsPageState extends State<UserDetailsPage>
                 ),
 
                 // Tab Bar
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: AppColors.cyan,
-                    unselectedLabelColor: AppThemeColors.secondaryText(context),
-                    indicatorColor: AppColors.cyan,
-                    tabs: [
-                      Tab(text: t('profile')),
-                      Tab(text: t('stats_tab_label')),
-                      Tab(text: t('transactions')),
-                      Tab(text: t('activity')),
-                    ],
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: [
+                    AppTabItem(label: t('profile')),
+                    AppTabItem(label: t('stats_tab_label')),
+                    AppTabItem(label: t('transactions')),
+                    AppTabItem(label: t('activity')),
+                  ],
                 ),
 
                 // Tab Content

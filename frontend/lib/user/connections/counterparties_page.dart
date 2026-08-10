@@ -11,6 +11,7 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class CounterpartiesPage extends StatefulWidget {
   const CounterpartiesPage({super.key});
@@ -707,54 +708,12 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: TextStyle(color: AppThemeColors.primaryText(context)),
-                        onChanged: (value) {
-                          setState(() => _searchQuery = value);
-                          _searchDebounce?.cancel();
-                          _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-                            _fetchCounterparties(forceRefresh: true);
-                          });
-                        },
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          icon: const Icon(Icons.search,
-                              color: AppColors.cyan),
-                          hintText: t('search_counterparties'),
-                          suffixIcon: _searchQuery.isEmpty
-                              ? null
-                              : IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                    _searchDebounce?.cancel();
-                                    _fetchCounterparties(forceRefresh: true);
-                                  },
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: t('search_counterparties'),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                  },
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),

@@ -8,6 +8,7 @@ import '../../widgets/app_colors.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class AdminFeedbacksPage extends StatefulWidget {
   const AdminFeedbacksPage({Key? key}) : super(key: key);
@@ -427,67 +428,15 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                 ),
 
                 // Search bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Colors.orange,
-                          Colors.white,
-                          Colors.green
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(23),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search,
-                              color: AppThemeColors.mutedText(context), size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (v) {
-                                setState(() => _search = v);
-                                _applyFilter();
-                              },
-                              style: TextStyle(color: AppThemeColors.primaryText(context)),
-                              decoration: InputDecoration(
-                                hintText: t('search_feedback_hint'),
-                                hintStyle:
-                                    TextStyle(color: AppThemeColors.mutedText(context)),
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(
-                                        vertical: 4),
-                              ),
-                            ),
-                          ),
-                          if (_search.isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                setState(() => _search = '');
-                                _applyFilter();
-                              },
-                              child: Icon(Icons.clear,
-                                  color: AppThemeColors.mutedText(context), size: 18),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: t('search_feedback_hint'),
+                  onChanged: (v) {
+                    setState(() => _search = v);
+                    _applyFilter();
+                  },
+                  isLoading: _isLoading,
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 ),
 
                 // Count

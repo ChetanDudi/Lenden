@@ -12,6 +12,7 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/wave_widget.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class UserNotificationsPage extends StatefulWidget {
   const UserNotificationsPage({Key? key}) : super(key: key);
@@ -358,20 +359,12 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                   child: _buildSummaryCard(),
                 ),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    indicatorColor: AppColors.cyan,
-                    labelColor: AppThemeColors.primaryText(context),
-                    unselectedLabelColor: AppThemeColors.secondaryText(context),
-                    dividerColor: Colors.transparent,
-                    overlayColor: WidgetStateProperty.all(Colors.transparent),
-                    tabs: _tabCategories
-                        .map((cat) => Tab(text: _tabLabel(cat)))
-                        .toList(growable: false),
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabs: _tabCategories.map((cat) => AppTabItem(
+                    label: _tabLabel(cat),
+                  )).toList(),
                 ),
                 const SizedBox(height: 12),
                 Expanded(

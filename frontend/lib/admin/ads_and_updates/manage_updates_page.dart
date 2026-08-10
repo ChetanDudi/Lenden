@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -445,40 +446,12 @@ class _ManageUpdatesPageState extends State<ManageUpdatesPage>
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: AppColors.cyan,
-                        unselectedLabelColor: AppThemeColors.secondaryText(context),
-                        indicator: BoxDecoration(
-                          color: AppThemeColors.tinted(context,
-                              light: const Color(0xFFEAF5FF),
-                              dark: const Color(0xFF1B3A4A)),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        tabs: [
-                          Tab(text: t('create')),
-                          Tab(text: t('manage')),
-                        ],
-                      ),
-                    ),
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: [
+                    AppTabItem(label: t('create')),
+                    AppTabItem(label: t('manage')),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Expanded(

@@ -16,6 +16,7 @@ import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class UserManagementPage extends StatefulWidget {
   final String initialStatusFilter;
@@ -1277,47 +1278,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      tricolorBorder(
-                        radius: 16,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppThemeColors.cardBg(context),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            style: TextStyle(color: AppThemeColors.primaryText(context)),
-                            decoration: InputDecoration(
-                              hintText: t('search_users_by_name_email_username'),
-                              prefixIcon: const Icon(Icons.search,
-                                  color: AppColors.cyan),
-                              suffixIcon: _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _searchDebounceTimer?.cancel();
-                                        setState(() => _searchQuery = '');
-                                        _loadUsers();
-                                      },
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 16,
-                              ),
-                            ),
-                            onChanged: (value) {
-                              setState(() => _searchQuery = value);
-                              _searchDebounceTimer?.cancel();
-                              _searchDebounceTimer = Timer(
-                                const Duration(milliseconds: 300),
-                                _loadUsers,
-                              );
-                            },
-                          ),
-                        ),
+                      AppSearchBar(
+                        controller: _searchController,
+                        hintText: t('search_users_by_name_email_username'),
+                        onChanged: (value) {
+                          setState(() => _searchQuery = value);
+                          _searchDebounceTimer?.cancel();
+                          _searchDebounceTimer = Timer(
+                            const Duration(milliseconds: 300),
+                            _loadUsers,
+                          );
+                        },
+                        isLoading: _isLoading,
+                        margin: EdgeInsets.zero,
                       ),
                       const SizedBox(height: 16),
                       Row(

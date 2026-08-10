@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/wave_widget.dart' show DeepTopWaveClipper;
@@ -295,25 +296,19 @@ class _SmartInsightsPageState extends State<SmartInsightsPage>
                 ),
                 const SizedBox(height: 4),
                 // TabBar
-                TabBar(
+                AppTabBar(
                   controller: _tabController,
                   isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelColor: AppColors.cyan,
-                  unselectedLabelColor: AppThemeColors.secondaryText(context),
-                  indicatorColor: AppColors.cyan,
-                  labelStyle: TextStyle(fontSize: context.sp(12), fontWeight: FontWeight.bold),
-                  unselectedLabelStyle: TextStyle(fontSize: context.sp(12)),
                   tabs: const [
-                    Tab(text: 'Spending'),
-                    Tab(text: 'Predictions'),
-                    Tab(text: 'Tips'),
-                    Tab(text: 'Health Score'),
-                    Tab(text: 'Goal Forecast'),
-                    Tab(text: 'Weekly'),
-                    Tab(text: 'Alerts'),
-                    Tab(text: 'Subscriptions'),
-                    Tab(text: 'My Profile'),
+                    AppTabItem(label: 'Spending'),
+                    AppTabItem(label: 'Predictions'),
+                    AppTabItem(label: 'Tips'),
+                    AppTabItem(label: 'Health Score'),
+                    AppTabItem(label: 'Goal Forecast'),
+                    AppTabItem(label: 'Weekly'),
+                    AppTabItem(label: 'Alerts'),
+                    AppTabItem(label: 'Subscriptions'),
+                    AppTabItem(label: 'My Profile'),
                   ],
                 ),
                 // Body

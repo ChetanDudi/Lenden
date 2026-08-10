@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 
@@ -364,27 +365,12 @@ class _UserOffersPageState extends State<UserOffersPage>
                     ],
                   ),
                 ),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.07),
-                          blurRadius: 8),
-                    ],
-                  ),
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: const Color(0xFF7C3AED),
-                    unselectedLabelColor: Colors.black54,
-                    indicatorColor: const Color(0xFF7C3AED),
-                    tabs: const [
-                      Tab(text: 'Active Offers'),
-                      Tab(text: 'Claim History'),
-                    ],
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    AppTabItem(label: 'Active Offers'),
+                    AppTabItem(label: 'Claim History'),
+                  ],
                 ),
                 if (_tabController.index == 0) _buildFilterBar(),
                 Expanded(

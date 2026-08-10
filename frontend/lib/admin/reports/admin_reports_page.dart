@@ -5,6 +5,7 @@ import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
+import '../../widgets/search_tab_bar.dart';
 
 class AdminReportsPage extends StatefulWidget {
   const AdminReportsPage({super.key});
@@ -194,21 +195,14 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           ),
 
           // Tabs
-          Container(
-            color: AppThemeColors.cardBg(context),
-            child: TabBar(
-              controller: _tabs,
-              isScrollable: true,
-              labelColor: AppColors.cyan,
-              unselectedLabelColor: AppThemeColors.secondaryText(context),
-              indicatorColor: AppColors.cyan,
-              tabs: const [
-                Tab(text: 'Platform'),
-                Tab(text: 'Top Users'),
-                Tab(text: 'Categories'),
-                Tab(text: 'User Lookup'),
-              ],
-            ),
+          AppTabBar(
+            controller: _tabs,
+            tabs: const [
+              AppTabItem(label: 'Platform'),
+              AppTabItem(label: 'Top Users'),
+              AppTabItem(label: 'Categories'),
+              AppTabItem(label: 'User Lookup'),
+            ],
           ),
 
           Expanded(

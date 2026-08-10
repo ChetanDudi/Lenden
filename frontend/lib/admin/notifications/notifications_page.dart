@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../utils/pickers.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'package:provider/provider.dart';
 import '../../session.dart';
 import '../../utils/api_client.dart';
@@ -571,42 +572,13 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage>
                   child: _buildSummaryCard(context),
                 ),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.white, Colors.green],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context).withValues(alpha: 0.96),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        indicator: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: AppColors.cyan,
-                        ),
-                        labelColor: Colors.white,
-                        unselectedLabelColor: AppColors.cyan,
-                        dividerColor: Colors.transparent,
-                        overlayColor:
-                            WidgetStateProperty.all(Colors.transparent),
-                        tabs: [
-                          Tab(text: t('inbox')),
-                          Tab(text: t('sent')),
-                          Tab(text: t('compose')),
-                        ],
-                      ),
-                    ),
-                  ),
+                AppTabBar(
+                  controller: _tabController,
+                  tabs: [
+                    AppTabItem(label: t('inbox')),
+                    AppTabItem(label: t('sent')),
+                    AppTabItem(label: t('compose')),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Expanded(

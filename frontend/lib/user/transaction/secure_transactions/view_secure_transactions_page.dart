@@ -21,6 +21,7 @@ import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/budget_limit_banner.dart';
 import '../../../widgets/free_attempts_banner.dart';
+import '../../../widgets/search_tab_bar.dart';
 import '../../budget/budget_messages_page.dart';
 import '../../budget/budget_planning_page.dart';
 
@@ -2059,51 +2060,17 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                     ),
                     const SizedBox(height: 6),
                     const FreeAttemptsBanner(featureKey: 'secure_transactions'),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: Container(
-                        padding: const EdgeInsets.all(2), // border width
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Colors.white, Colors.green],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: TextField(
-                          controller: _globalSearchController,
-                          decoration: InputDecoration(
-                            hintText: loc('search_transactions_hint_message'),
-                            prefixIcon:
-                                Icon(Icons.search, color: AppColors.cyan),
-                            filled: true,
-                            fillColor: AppThemeColors.cardBg(context),
-                            contentPadding: EdgeInsets.symmetric(
-                                vertical: 0, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onChanged: (v) {
-                            setState(() => globalSearch = v);
-                            _searchDebounceTimer?.cancel();
-                            _searchDebounceTimer = Timer(
-                              const Duration(milliseconds: 300),
-                              fetchTransactions,
-                            );
-                          },
-                        ),
-                      ),
+                    AppSearchBar(
+                      controller: _globalSearchController,
+                      hintText: loc('search_transactions_hint_message'),
+                      onChanged: (v) {
+                        setState(() => globalSearch = v);
+                        _searchDebounceTimer?.cancel();
+                        _searchDebounceTimer = Timer(
+                          const Duration(milliseconds: 300),
+                          fetchTransactions,
+                        );
+                      },
                     ),
                     const SizedBox(height: 8),
                     _buildFilterToolbar(),

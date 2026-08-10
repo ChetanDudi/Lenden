@@ -23,6 +23,7 @@ import './recurring_templates_page.dart';
 import './scheduled_transactions_page.dart';
 import '../../../utils/responsive.dart';
 import '../../../utils/theme_helper.dart';
+import '../../../widgets/search_tab_bar.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/wave_widget.dart';
 import '../../../widgets/budget_limit_banner.dart';
@@ -1415,50 +1416,17 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           Row(
             children: [
               Expanded(
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppThemeColors.divider(context)),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      Icon(Icons.search, size: 17, color: AppThemeColors.mutedText(context)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context)),
-                          decoration: InputDecoration(
-                            hintText: t('search_by_description_amount_user_hint'),
-                            hintStyle: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                            isDense: true,
-                          ),
-                          onChanged: (v) {
-                            setState(() => searchQuery = v);
-                            _searchDebounceTimer?.cancel();
-                            _searchDebounceTimer = Timer(const Duration(milliseconds: 300), fetchQuickTransactions);
-                          },
-                        ),
-                      ),
-                      if (searchQuery.isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            setState(() => searchQuery = '');
-                            fetchQuickTransactions();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(Icons.close_rounded, size: 16, color: AppThemeColors.mutedText(context)),
-                          ),
-                        ),
-                    ],
-                  ),
+                child: AppSearchBar(
+                  controller: _searchController,
+                  hintText: t('search_by_description_amount_user_hint'),
+                  margin: EdgeInsets.zero,
+                  onChanged: (v) {
+                    setState(() => searchQuery = v);
+                    _searchDebounceTimer?.cancel();
+                    _searchDebounceTimer = Timer(
+                        const Duration(milliseconds: 300),
+                        fetchQuickTransactions);
+                  },
                 ),
               ),
               const SizedBox(width: 8),

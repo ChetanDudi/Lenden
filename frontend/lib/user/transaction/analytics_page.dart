@@ -8,6 +8,7 @@ import '../../utils/api_client.dart';
 import '../../widgets/currency_display.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/search_tab_bar.dart';
 import 'quick_transactions/quick_transactions_page.dart';
 import 'secure_transactions/view_secure_transactions_page.dart';
 import '../../utils/responsive.dart';
@@ -2437,49 +2438,14 @@ class _AnalyticsPageState extends State<AnalyticsPage>
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                colors: [Colors.orange, Colors.white, Colors.green],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Container(
-              margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  color: AppColors.cyan,
-                ),
-                dividerColor: Colors.transparent,
-                labelColor: Colors.white,
-                unselectedLabelColor: AppColors.cyan,
-                overlayColor: WidgetStateProperty.all(Colors.transparent),
-                tabs: [
-                  const Tab(text: 'Overview'),
-                  Tab(text: t('secure_trxns_tab_label')),
-                  Tab(text: t('quick_trxns_tab_label')),
-                  Tab(text: t('groups_trxns_tab_label')),
-                ],
-              ),
-            ),
-          ),
+        AppTabBar(
+          controller: _tabController,
+          tabs: [
+            AppTabItem(label: 'Overview'),
+            AppTabItem(label: t('secure_trxns_tab_label')),
+            AppTabItem(label: t('quick_trxns_tab_label')),
+            AppTabItem(label: t('groups_trxns_tab_label')),
+          ],
         ),
         const SizedBox(height: 14),
         Expanded(
