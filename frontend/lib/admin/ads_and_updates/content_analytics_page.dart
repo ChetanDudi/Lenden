@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../utils/responsive.dart';
@@ -139,7 +140,7 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
                             ),
                           )
                         else if (_error != null)
-                          _buildMessageCard(_error!, true)
+                          errorStateWidget(context, _error!, _loadAnalytics)
                         else ...[
                           _buildSummarySection(),
                           const SizedBox(height: 16),
@@ -481,22 +482,4 @@ class _AdminContentAnalyticsPageState extends State<AdminContentAnalyticsPage> {
     );
   }
 
-  Widget _buildMessageCard(String message, bool isError) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppThemeColors.tinted(context,
-            light: isError ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
-            dark: isError ? const Color(0xFF3A2020) : const Color(0xFF1E3324)),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(
-          color: isError ? Colors.redAccent : Colors.green.shade800,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
 }

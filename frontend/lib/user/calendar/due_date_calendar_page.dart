@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class DueDateCalendarPage extends StatefulWidget {
   const DueDateCalendarPage({super.key});
@@ -14,6 +15,7 @@ class DueDateCalendarPage extends StatefulWidget {
 
 class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
   bool _loading = true;
+  String? _error;
   Map<String, List<Map<String, dynamic>>> _itemsByDay = {};
   DateTime _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _selectedDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -27,7 +29,7 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
   String _dayKey(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
   Future<void> _fetchDueDates() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final res = await ApiClient.get('/api/calendar/due-dates');
       if (res.statusCode == 200) {
@@ -45,10 +47,10 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
           _loading = false;
         });
       } else {
-        setState(() => _loading = false);
+        setState(() { _error = 'Failed to load due dates. Please try again.'; _loading = false; });
       }
     } catch (e) {
-      setState(() => _loading = false);
+      setState(() { _error = 'Failed to load due dates. Please try again.'; _loading = false; });
     }
   }
 
@@ -85,7 +87,9 @@ class _DueDateCalendarPageState extends State<DueDateCalendarPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
+          : _error != null
+              ? errorStateWidget(context, _error!, _fetchDueDates)
+              : RefreshIndicator(
               onRefresh: _fetchDueDates,
               child: ListView(
                 padding: const EdgeInsets.all(16),

@@ -42,6 +42,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   List<Map<String, dynamic>> _birthdayFriends = [];
   final Set<String> _wishedFriendIds = {};
   final Map<String, int> _giftedCoins = {};
+  Set<String> _closeFriendIds = {};
   bool _suggestionsLoading = true;
   final Set<String> _pendingOutgoingIds = {};
   final Set<String> _selectedForGroup = {};
@@ -67,6 +68,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     _tabController = TabController(length: 5, vsync: this);
     _fetchFriends();
     _fetchFriendBalances();
+    _fetchCloseFriendIds();
   }
 
   @override
@@ -132,6 +134,34 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     } finally {
       if (mounted) setState(() => _loadingBalances = false);
     }
+  }
+
+  Future<void> _fetchCloseFriendIds() async {
+    try {
+      final res = await ApiClient.get('/api/user/favourites');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final friends = (data['closeFriends'] as List?) ?? [];
+        if (mounted) setState(() => _closeFriendIds = friends.map((f) => f['_id'].toString()).toSet());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleCloseFriend(String userId) async {
+    try {
+      final res = await ApiClient.post('/api/user/favourites/close-friend/$userId');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          if (data['added'] == true) {
+            _closeFriendIds.add(userId);
+          } else {
+            _closeFriendIds.remove(userId);
+          }
+        });
+        showSnack(context, data['message'] ?? 'Updated');
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadTopRated() async {
@@ -914,6 +944,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
     final canSeeRatings = session.hasFeature('view_rankings') && !session.subscriptionAdminDeactivated;
     final isBirthdayToday = _birthdayFriends.any(
         (b) => b['_id']?.toString() == friendId && (b['daysUntil'] ?? 99) == 0);
+    final isClose = _closeFriendIds.contains(friendId);
 
     return tricolorBorder(radius: 20,
       glow: isBirthdayToday,
@@ -1117,6 +1148,18 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                     _iconActionBtn(Icons.person_remove, Colors.red,
                       () => _removeFriend(friendId),
                       tooltip: t('remove_friend_tooltip'),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: Icon(
+                        isClose ? Icons.star_rounded : Icons.star_border_rounded,
+                        color: isClose ? Colors.amber : AppThemeColors.secondaryText(context),
+                        size: 20,
+                      ),
+                      tooltip: isClose ? 'Remove from close friends' : 'Add to close friends',
+                      onPressed: () => _toggleCloseFriend(friendId),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                     ),
                   ],
                 ),

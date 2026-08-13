@@ -7,6 +7,7 @@ import '../../widgets/app_colors.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/app_widgets.dart';
 
 class FraudAlertsPage extends StatefulWidget {
   const FraudAlertsPage({Key? key}) : super(key: key);
@@ -331,9 +332,7 @@ class _FraudAlertsPageState extends State<FraudAlertsPage> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Text(_error!,
-                                  style: TextStyle(color: AppThemeColors.primaryText(context))))
+                          ? errorStateWidget(context, _error!, _fetchAlerts)
                           : _alerts.isEmpty
                               ? Center(
                                   child: Text(t('no_fraud_alerts_found'),

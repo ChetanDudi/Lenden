@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
@@ -78,7 +79,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
       }
     } catch (e) {
       setState(() {
-        _error = '${AppLocalizations.of(context).t('error_prefix')} $e';
+        _error = AppLocalizations.of(context).t('unable_to_connect_check_internet_message');
         _isLoading = false;
       });
     }
@@ -389,26 +390,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red[300]),
-                                  const SizedBox(height: 12),
-                                  Text(_error!,
-                                      style: const TextStyle(
-                                          color: Colors.red)),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: _fetchLogs,
-                                    child: Text(t('retry')),
-                                  ),
-                                ],
-                              ),
-                            )
+                          ? errorStateWidget(context, _error!, _fetchLogs)
                           : _logs.isEmpty
                               ? Center(
                                   child: Column(

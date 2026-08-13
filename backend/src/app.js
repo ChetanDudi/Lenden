@@ -121,6 +121,8 @@ app.get('/', (_req, res) => {
   res.json({ message: 'Lenden Backend API is running!', version: '1.0.0' });
 });
 
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
 // Catch-all route for undefined paths
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -166,6 +168,13 @@ cron.schedule('0 */4 * * *', () => {
     logger.error('Currency cron sync failed:', err.message)
   );
 });
+
+// Keep Render free tier awake — ping self every 14 minutes to prevent sleep
+if (process.env.RENDER_EXTERNAL_URL) {
+  cron.schedule('*/14 * * * *', () => {
+    fetch(`${process.env.RENDER_EXTERNAL_URL}/health`).catch(() => {});
+  });
+}
 
 // Chat and group-chat socket events are handled inside chatController and groupChatController,
 // which are wired up through apiRoutes(io) above.

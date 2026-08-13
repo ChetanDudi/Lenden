@@ -54,8 +54,37 @@ class _LendenWalletPageState extends State<LendenWalletPage>
   int _historyTotal = 0;
   bool _historyLoadingMore = false;
   static const _historyLimit = 20;
+  DateTime? _fromDate;
+  DateTime? _toDate;
 
   String t(String key) => AppLocalizations.of(context).t(key);
+
+  Widget _dateChip({required String label, required bool active, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? AppColors.cyan : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: active ? AppColors.cyan : Colors.grey.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_today_rounded, size: 13,
+                color: active ? Colors.white : AppThemeColors.secondaryText(context)),
+            const SizedBox(width: 5),
+            Text(label, style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w600,
+              color: active ? Colors.white : AppThemeColors.secondaryText(context),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
 
   Color _withdrawalStatusColor(String status) {
     switch (status) {
@@ -128,7 +157,9 @@ class _LendenWalletPageState extends State<LendenWalletPage>
       final page = resetPage ? 1 : _historyPage;
       final histPath = '/api/wallet/history?page=$page&limit=$_historyLimit'
           '${_historyType != 'all' ? '&type=$_historyType' : ''}'
-          '${_historySearch.isNotEmpty ? '&search=${Uri.encodeComponent(_historySearch)}' : ''}';
+          '${_historySearch.isNotEmpty ? '&search=${Uri.encodeComponent(_historySearch)}' : ''}'
+          '${_fromDate != null ? '&fromDate=${_fromDate!.toIso8601String().split('T').first}' : ''}'
+          '${_toDate != null ? '&toDate=${_toDate!.toIso8601String().split('T').first}' : ''}';
       final futures = resetPage
           ? [ApiClient.get('/api/wallet/balance'), ApiClient.get(histPath)]
           : [ApiClient.get(histPath)];
@@ -1145,6 +1176,83 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                                       ),
                                     ),
                                 ]),
+                              ),
+                              const SizedBox(height: 8),
+                              // Date-range filter
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
+                                  children: [
+                                    _dateChip(
+                                      label: _fromDate != null
+                                          ? 'From: ${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}'
+                                          : 'From Date',
+                                      active: _fromDate != null,
+                                      onTap: () async {
+                                        final d = await showDatePicker(
+                                          context: context,
+                                          initialDate: _fromDate ?? DateTime.now().subtract(const Duration(days: 30)),
+                                          firstDate: DateTime(2023),
+                                          lastDate: DateTime.now(),
+                                          builder: (ctx, child) => Theme(
+                                            data: Theme.of(ctx).copyWith(
+                                              colorScheme: ColorScheme.fromSeed(seedColor: AppColors.cyan),
+                                            ),
+                                            child: child!,
+                                          ),
+                                        );
+                                        if (d != null) {
+                                          setState(() => _fromDate = d);
+                                          _fetchWalletData();
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _dateChip(
+                                      label: _toDate != null
+                                          ? 'To: ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}'
+                                          : 'To Date',
+                                      active: _toDate != null,
+                                      onTap: () async {
+                                        final d = await showDatePicker(
+                                          context: context,
+                                          initialDate: _toDate ?? DateTime.now(),
+                                          firstDate: _fromDate ?? DateTime(2023),
+                                          lastDate: DateTime.now(),
+                                          builder: (ctx, child) => Theme(
+                                            data: Theme.of(ctx).copyWith(
+                                              colorScheme: ColorScheme.fromSeed(seedColor: AppColors.cyan),
+                                            ),
+                                            child: child!,
+                                          ),
+                                        );
+                                        if (d != null) {
+                                          setState(() => _toDate = d);
+                                          _fetchWalletData();
+                                        }
+                                      },
+                                    ),
+                                    if (_fromDate != null || _toDate != null) ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() { _fromDate = null; _toDate = null; });
+                                          _fetchWalletData();
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                          ),
+                                          child: const Text('Clear', style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 10),
 

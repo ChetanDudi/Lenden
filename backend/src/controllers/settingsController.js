@@ -78,7 +78,7 @@ const changePassword = async (req, res) => {
         recipients: [userId], recipientModel: 'User', category: 'system',
         message: "Your password was changed successfully. If this wasn't you, contact support immediately.",
       }).catch(() => {});
-      sendToUser(User, userId, { title: 'Password Changed ðŸ”', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
+      sendToUser(User, userId, { title: 'Password Changed 🔐', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
     }
   } catch (error) {
     console.error('Error changing password:', error);
@@ -898,7 +898,7 @@ const confirmSetPassword = async (req, res) => {
         recipients: [userId], recipientModel: 'User', category: 'system',
         message: "A password has been set for your LenDen account. If this wasn't you, contact support immediately.",
       }).catch(() => {});
-      sendToUser(User, userId, { title: 'Password Changed ðŸ”', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
+      sendToUser(User, userId, { title: 'Password Changed 🔐', body: "Your password was changed. If this wasn't you, contact support.", data: { type: 'security' } });
     }
   } catch (error) {
     console.error('Error confirming set-password:', error);

@@ -541,86 +541,223 @@ class PasswordStrengthMeter extends StatelessWidget {
 // ERROR STATE
 // ════════════════════════════════════════════════════════════════════════════
 
-/// Full-screen centered error card with a retry button.
-/// Replaces identical `_buildErrorState` methods across 6+ pages.
+bool _isNetworkMessage(String msg) {
+  final lower = msg.toLowerCase();
+  return lower.contains('internet') ||
+      lower.contains('connection') ||
+      lower.contains('network') ||
+      lower.contains('offline') ||
+      lower.contains('socket') ||
+      lower.contains('unreachable');
+}
+
+/// Full-page animated error card. Auto-detects network vs server errors from [message].
+/// Pass [isNetwork] to override auto-detection.
+/// Pass [onRetry] = null to hide the retry button.
 Widget errorStateWidget(
   BuildContext context,
   String message,
-  VoidCallback onRetry,
-) {
-  final t = AppLocalizations.of(context).t;
-  return Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.red[300]!, Colors.orange[400]!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(21),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+  VoidCallback? onRetry, {
+  bool? isNetwork,
+}) =>
+    _AppErrorWidget(message: message, onRetry: onRetry, isNetwork: isNetwork);
+
+class _AppErrorWidget extends StatefulWidget {
+  final String message;
+  final VoidCallback? onRetry;
+  final bool? isNetwork;
+  const _AppErrorWidget({required this.message, this.onRetry, this.isNetwork});
+
+  @override
+  State<_AppErrorWidget> createState() => _AppErrorWidgetState();
+}
+
+class _AppErrorWidgetState extends State<_AppErrorWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500))
+      ..repeat(reverse: true);
+    _scale = Tween<double>(begin: 1.0, end: 1.10)
+        .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context).t;
+    final network = widget.isNetwork ?? _isNetworkMessage(widget.message);
+
+    final IconData icon;
+    final Color iconBg, iconColor;
+    final List<Color> gradColors;
+    final String title, subtitle;
+
+    if (network) {
+      icon = Icons.wifi_off_rounded;
+      iconBg = const Color(0xFFFFEBEE);
+      iconColor = const Color(0xFFE53935);
+      gradColors = [const Color(0xFFEF5350), const Color(0xFFFF8A65)];
+      title = t('no_internet_connection_title');
+      subtitle = t('check_connection_and_retry_message');
+    } else {
+      icon = Icons.cloud_off_rounded;
+      iconBg = const Color(0xFFE3F2FD);
+      iconColor = const Color(0xFF1565C0);
+      gradColors = [const Color(0xFF42A5F5), const Color(0xFF26C6DA)];
+      title = t('oops_something_went_wrong');
+      subtitle = widget.message;
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: AppThemeColors.cardBg(context),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
-                    child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    t('oops_something_went_wrong'),
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context)),
+                gradient: LinearGradient(
+                  colors: gradColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: gradColors.first.withValues(alpha: 0.25),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: AppColors.tricolorGradientColors,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+                decoration: BoxDecoration(
+                  color: AppThemeColors.cardBg(context),
+                  borderRadius: BorderRadius.circular(21),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ScaleTransition(
+                      scale: _scale,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: iconBg,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: iconColor.withValues(alpha: 0.20),
+                              blurRadius: 16,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Icon(icon, size: 52, color: iconColor),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: iconColor,
+                        letterSpacing: -0.3,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppThemeColors.secondaryText(context),
+                        height: 1.5,
+                      ),
+                    ),
+                    if (network) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: iconColor.withValues(alpha: 0.6),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            t('no_connection_label'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppThemeColors.mutedText(context),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              borderRadius: BorderRadius.circular(30),
             ),
-            padding: const EdgeInsets.all(2),
-            child: ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.cyan,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                elevation: 0,
+            if (widget.onRetry != null) ...[
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: gradColors,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradColors.first.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(2),
+                child: ElevatedButton.icon(
+                  onPressed: widget.onRetry,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(t('retry'),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: iconColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 36, vertical: 13),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28)),
+                    elevation: 0,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

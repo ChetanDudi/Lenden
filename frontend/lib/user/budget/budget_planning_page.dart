@@ -389,7 +389,7 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                     isScrollable: true,
                     tabAlignment: TabAlignment.start,
                     labelPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                    labelColor: AppColors.cyan,
+                    labelColor: Colors.white,
                     unselectedLabelColor: AppThemeColors.secondaryText(context),
                     indicator: BoxDecoration(
                       color: AppColors.cyan,
@@ -410,6 +410,53 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                     ],
                   ),
                 ),
+                // Spending-vs-budget summary bar
+                if (_status != null && !_isLoading && !_hasError) Builder(builder: (ctx) {
+                  final spent = (_status!['spent']?['overall'] as num? ?? 0).toDouble();
+                  final limit = (_budget?['limits']?['overall'] as num? ?? 0).toDouble();
+                  if (limit <= 0 && spent <= 0) return const SizedBox.shrink();
+                  final pct = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 1.0;
+                  final barColor = pct > 0.9 ? Colors.red : pct > 0.75 ? Colors.orange : AppColors.cyan;
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.cardBg(ctx),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppThemeColors.border(ctx)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Monthly Spending',
+                                style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(ctx))),
+                            Text(
+                              limit > 0
+                                ? '₹${_fmt.format(spent)} / ₹${_fmt.format(limit)}'
+                                : '₹${_fmt.format(spent)} spent',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        if (limit > 0) ...[
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: pct,
+                              backgroundColor: AppThemeColors.border(ctx),
+                              valueColor: AlwaysStoppedAnimation(barColor),
+                              minHeight: 6,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
                 // Body
                 Expanded(
                   child: _isLoading
@@ -429,7 +476,10 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                                     backgroundColor: AppColors.cyan, foregroundColor: Colors.white),
                               ),
                             ]))
-                          : TabBarView(
+                          : RefreshIndicator(
+                              onRefresh: _fetchData,
+                              color: AppColors.cyan,
+                              child: TabBarView(
                                   controller: _tabController,
                                   children: [
                                     const PersonalBudgetTab(),
@@ -479,6 +529,7 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                                     ),
                                   ],
                                 ),
+                          ),
                 ),
               ],
             ),

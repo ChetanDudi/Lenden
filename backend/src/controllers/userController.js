@@ -1,4 +1,5 @@
 ﻿const User = require('../models/user');
+const Note = require('../models/note');
 const Admin = require('../models/admin');
 const PendingRegistration = require('../models/pendingRegistration');
 const bcrypt = require('bcrypt');
@@ -317,9 +318,10 @@ exports.login = async (req, res) => {
         Notification.create({
           sender: user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [user._id], recipientModel: 'User', category: 'system',
+          title: 'New Login Detected 🔐',
           message: `New login to your account from ${req.ip || 'unknown location'}.`,
-        }).catch(() => {});
-        sendToUser(User, user._id, { title: 'New Login Detected ðŸ”', body: `New login from ${req.ip || 'unknown'}.`, data: { type: 'security_login' } });
+        }).catch((e) => console.error('Login notification failed:', e.message));
+        sendToUser(User, user._id, { title: 'New Login Detected 🔐', body: `New login from ${req.ip || 'unknown'}.`, data: { type: 'security_login' } });
       }
 
       // Device management: enforce single-device login if needed
@@ -743,9 +745,10 @@ exports.verifyLoginOtp = async (req, res) => {
         Notification.create({
           sender: user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [user._id], recipientModel: 'User', category: 'system',
+          title: 'New Login Detected 🔐',
           message: `New login to your account from ${ipAddress || 'unknown location'}.`,
-        }).catch(() => {});
-        sendToUser(User, user._id, { title: 'New Login Detected ðŸ”', body: `New login from ${ipAddress || 'unknown'}.`, data: { type: 'security_login' } });
+        }).catch((e) => console.error('OTP login notification failed:', e.message));
+        sendToUser(User, user._id, { title: 'New Login Detected 🔐', body: `New login from ${ipAddress || 'unknown'}.`, data: { type: 'security_login' } });
       }
 
       // Register device
@@ -1103,6 +1106,84 @@ exports.applyDailyLoginRewardOnAppOpen = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// GET /api/user/favourites — returns all 3 lists populated
+exports.getFavourites = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate('closeFriends', 'name username email profileImage avgRating')
+      .populate('closeCounterparties', 'name username email profileImage avgRating')
+      .populate('bookmarkedNotes', 'title content createdAt updatedAt')
+      .lean();
+    res.json({
+      closeFriends: user.closeFriends || [],
+      closeCounterparties: user.closeCounterparties || [],
+      bookmarkedNotes: user.bookmarkedNotes || [],
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// POST /api/user/favourites/close-friend/:userId — toggle
+exports.toggleCloseFriend = async (req, res) => {
+  try {
+    const targetId = req.params.userId;
+    const user = await User.findById(req.user._id).select('closeFriends friends');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Must already be a friend
+    const isFriend = user.friends.some(id => id.toString() === targetId);
+    if (!isFriend) return res.status(400).json({ message: 'User is not in your friends list' });
+    const isClose = user.closeFriends.some(id => id.toString() === targetId);
+    if (isClose) {
+      await User.findByIdAndUpdate(req.user._id, { $pull: { closeFriends: targetId } });
+      return res.json({ added: false, message: 'Removed from close friends' });
+    } else {
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { closeFriends: targetId } });
+      return res.json({ added: true, message: 'Added to close friends' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// POST /api/user/favourites/close-counterparty/:userId — toggle
+exports.toggleCloseCounterparty = async (req, res) => {
+  try {
+    const targetId = req.params.userId;
+    const user = await User.findById(req.user._id).select('closeCounterparties');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const isClose = user.closeCounterparties.some(id => id.toString() === targetId);
+    if (isClose) {
+      await User.findByIdAndUpdate(req.user._id, { $pull: { closeCounterparties: targetId } });
+      return res.json({ added: false, message: 'Removed from close counterparties' });
+    } else {
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { closeCounterparties: targetId } });
+      return res.json({ added: true, message: 'Added to close counterparties' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// POST /api/user/favourites/bookmarked-note/:noteId — toggle
+exports.toggleBookmarkedNote = async (req, res) => {
+  try {
+    const noteId = req.params.noteId;
+    const user = await User.findById(req.user._id).select('bookmarkedNotes');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const isBookmarked = user.bookmarkedNotes.some(id => id.toString() === noteId);
+    if (isBookmarked) {
+      await User.findByIdAndUpdate(req.user._id, { $pull: { bookmarkedNotes: noteId } });
+      return res.json({ added: false, message: 'Note unbookmarked' });
+    } else {
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { bookmarkedNotes: noteId } });
+      return res.json({ added: true, message: 'Note bookmarked' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 

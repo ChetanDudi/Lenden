@@ -47,6 +47,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
   String _viewCurrency = 'INR';
   String _searchQuery = '';
   String? _filterCategory;
+  DateTime? _budgetEndDate;
 
   final _numFmt  = NumberFormat('#,##0.##', 'en_IN');
   final _dtFmt   = DateFormat('dd MMM yyyy, hh:mm a');
@@ -73,12 +74,26 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body) as Map<String, dynamic>;
         _expenses   = (data['expenses'] as List).cast<Map<String, dynamic>>();
-        _byCategory = (data['byCategory'] as List).cast<Map<String, dynamic>>();
-        _total      = (data['total'] as num?)?.toDouble() ?? 0;
+        // Compute totals client-side so the summary always matches the visible list
+        _total = _expenses
+            .where((e) => (e['status'] as String? ?? 'active') == 'active')
+            .fold(0.0, (s, e) => s + ((e['amount'] as num?)?.toDouble() ?? 0));
+        final catMap = <String, double>{};
+        for (final e in _expenses) {
+          if ((e['status'] as String? ?? 'active') == 'active') {
+            final cat = e['category'] as String? ?? '';
+            catMap[cat] = (catMap[cat] ?? 0) + ((e['amount'] as num?)?.toDouble() ?? 0);
+          }
+        }
+        _byCategory = catMap.entries
+            .map((kvp) => <String, dynamic>{'category': kvp.key, 'amount': kvp.value})
+            .toList()
+          ..sort((a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
         final b      = data['budget'] as Map<String, dynamic>;
         _limit       = (b['limit'] as num?)?.toDouble() ?? 0;
         _isEditable  = (b['isEditable'] as bool?) ?? false;
-        _allocations = (b['allocations'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        _allocations   = (b['allocations'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        _budgetEndDate = b['endDate'] != null ? DateTime.tryParse(b['endDate'] as String) : null;
         if (widget.readOnly) _isEditable = false;
       } else {
         _error = json.decode(resp.body)['error'] ?? 'Failed to load expenses.';
@@ -101,9 +116,43 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     return AppColors.cyan;
   }
 
+  List<String> get _dynamicCategories => _expenses
+      .map((e) => e['category'] as String? ?? '')
+      .where((c) => c.isNotEmpty && !kBudgetCategories.contains(c))
+      .toSet()
+      .toList()
+    ..sort();
+
+  // Quick-access subset shown in the add-expense chip row before "View more"
+  static const _kQuickCategories = ['Food', 'Groceries', 'Shopping', 'Bills', 'Entertainment'];
+
+  String _catSort = 'highest'; // highest | lowest | az | za
+  bool _showAllCategories = false;
+  bool _showAllExpenses = false;
+
+  List<Map<String, dynamic>> get _sortedByCategory {
+    final list = List<Map<String, dynamic>>.from(_byCategory);
+    switch (_catSort) {
+      case 'lowest':
+        list.sort((a, b) => ((a['amount'] as double?) ?? 0).compareTo((b['amount'] as double?) ?? 0));
+        break;
+      case 'az':
+        list.sort((a, b) => (a['category'] as String? ?? '').compareTo(b['category'] as String? ?? ''));
+        break;
+      case 'za':
+        list.sort((a, b) => (b['category'] as String? ?? '').compareTo(a['category'] as String? ?? ''));
+        break;
+      default: // highest
+        list.sort((a, b) => ((b['amount'] as double?) ?? 0).compareTo((a['amount'] as double?) ?? 0));
+    }
+    return list;
+  }
+
   List<Map<String, dynamic>> get _filtered {
     var list = _expenses;
-    if (_filterCategory != null) {
+    if (_filterCategory == '_scheduled_only_') {
+      list = list.where((e) => (e['status'] as String?) == 'scheduled').toList();
+    } else if (_filterCategory != null) {
       list = list.where((e) =>
           (e['category'] as String? ?? '').toLowerCase() ==
           _filterCategory!.toLowerCase()).toList();
@@ -119,8 +168,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     return list;
   }
 
-  List<_ExpenseGroup> get _grouped {
-    final expenses = _filtered;
+  List<_ExpenseGroup> _makeGroups(List<Map<String, dynamic>> expenses) {
     final now   = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -204,7 +252,12 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     final pct   = _limit > 0 ? (_total / _limit) * 100 : 0.0;
     final color = _progressColor(pct);
     final left  = _limit - _total;
-    final groups = _grouped;
+    final allFiltered = _filtered;
+    final needsExpenseToggle = allFiltered.length > 5;
+    final displayedExpenses = (_showAllExpenses || !needsExpenseToggle)
+        ? allFiltered
+        : allFiltered.take(5).toList();
+    final groups = _makeGroups(displayedExpenses);
 
     // Quick stats
     final count    = _expenses.length;
@@ -303,64 +356,115 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
 
                 // ── Category breakdown ────────────────────────────────────
                 if (_byCategory.isNotEmpty) ...[
-                  Text('By Category',
-                      style: TextStyle(fontSize: context.sp(13),
-                          fontWeight: FontWeight.bold,
-                          color: AppThemeColors.primaryText(context))),
-                  const SizedBox(height: 8),
-                  tricolorBorder(
-                    radius: 14,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppThemeColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: _byCategory.map((c) {
-                          final amt    = (c['amount'] as num?)?.toDouble() ?? 0;
-                          final catPct = _total > 0 ? (amt / _total) * 100 : 0.0;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Column(children: [
-                              Row(children: [
-                                _categoryIcon(c['category'] as String? ?? ''),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(c['category'] as String? ?? '',
-                                      style: TextStyle(fontSize: context.sp(13),
-                                          color: AppThemeColors.primaryText(context))),
-                                ),
-                                Text(_fmt(amt), style: TextStyle(
-                                    fontSize: context.sp(13),
-                                    fontWeight: FontWeight.bold,
-                                    color: AppThemeColors.primaryText(context))),
-                                const SizedBox(width: 6),
-                                SizedBox(
-                                  width: 36,
-                                  child: Text('${catPct.toStringAsFixed(0)}%',
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(fontSize: context.sp(11),
-                                          color: AppThemeColors.secondaryText(context))),
-                                ),
-                              ]),
-                              const SizedBox(height: 4),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: (catPct / 100).clamp(0.0, 1.0),
-                                  minHeight: 5,
-                                  backgroundColor: AppThemeColors.scaffoldBg(context),
-                                  valueColor: AlwaysStoppedAnimation(AppColors.cyan),
-                                ),
-                              ),
-                            ]),
-                          );
-                        }).toList(),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Text('By Category',
+                        style: TextStyle(fontSize: context.sp(13),
+                            fontWeight: FontWeight.bold,
+                            color: AppThemeColors.primaryText(context))),
+                    SizedBox(
+                      height: 28,
+                      child: ListView(
+                        shrinkWrap: true,
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          _catSortChip('highest', Icons.arrow_downward_rounded, 'Highest'),
+                          const SizedBox(width: 4),
+                          _catSortChip('lowest', Icons.arrow_upward_rounded, 'Lowest'),
+                          const SizedBox(width: 4),
+                          _catSortChip('az', Icons.sort_by_alpha_rounded, 'A–Z'),
+                          const SizedBox(width: 4),
+                          _catSortChip('za', Icons.sort_by_alpha_rounded, 'Z–A'),
+                        ],
                       ),
                     ),
-                  ),
+                  ]),
+                  const SizedBox(height: 8),
+                  Builder(builder: (context) {
+                    final allCats = _sortedByCategory;
+                    final needsCatToggle = allCats.length > 5;
+                    final displayCats = (_showAllCategories || !needsCatToggle)
+                        ? allCats
+                        : allCats.take(5).toList();
+                    return tricolorBorder(
+                      radius: 14,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            ...displayCats.map((c) {
+                              final amt    = (c['amount'] as num?)?.toDouble() ?? 0;
+                              final catPct = _total > 0 ? (amt / _total) * 100 : 0.0;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Column(children: [
+                                  Row(children: [
+                                    _categoryIcon(c['category'] as String? ?? ''),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(c['category'] as String? ?? '',
+                                          style: TextStyle(fontSize: context.sp(13),
+                                              color: AppThemeColors.primaryText(context))),
+                                    ),
+                                    Text(_fmt(amt), style: TextStyle(
+                                        fontSize: context.sp(13),
+                                        fontWeight: FontWeight.bold,
+                                        color: AppThemeColors.primaryText(context))),
+                                    const SizedBox(width: 6),
+                                    SizedBox(
+                                      width: 36,
+                                      child: Text('${catPct.toStringAsFixed(0)}%',
+                                          textAlign: TextAlign.right,
+                                          style: TextStyle(fontSize: context.sp(11),
+                                              color: AppThemeColors.secondaryText(context))),
+                                    ),
+                                  ]),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: (catPct / 100).clamp(0.0, 1.0),
+                                      minHeight: 5,
+                                      backgroundColor: AppThemeColors.scaffoldBg(context),
+                                      valueColor: AlwaysStoppedAnimation(AppColors.cyan),
+                                    ),
+                                  ),
+                                ]),
+                              );
+                            }),
+                            if (needsCatToggle)
+                              GestureDetector(
+                                onTap: () => setState(() => _showAllCategories = !_showAllCategories),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                    Icon(
+                                      _showAllCategories ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                                      size: 16, color: AppColors.cyan,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _showAllCategories
+                                          ? 'View less'
+                                          : 'View more (${allCats.length - 5} more)',
+                                      style: TextStyle(
+                                        fontSize: context.sp(12),
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.cyan,
+                                      ),
+                                    ),
+                                  ]),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                 ],
 
                 // ── Search bar ────────────────────────────────────────────
@@ -381,11 +485,26 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                       children: [
                         _filterChip('All', _filterCategory == null,
                             () => setState(() => _filterCategory = null)),
-                        ...categories.map((cat) => _filterChip(
-                              cat, _filterCategory == cat,
-                              () => setState(() => _filterCategory =
-                                  _filterCategory == cat ? null : cat),
-                            )),
+                        ...categories.map((cat) {
+                          final cnt = _expenses.where((e) =>
+                              (e['category'] as String? ?? '') == cat).length;
+                          return _filterChip(
+                            '$cat ($cnt)',
+                            _filterCategory == cat,
+                            () => setState(() => _filterCategory =
+                                _filterCategory == cat ? null : cat),
+                          );
+                        }),
+                        if (_expenses.any((e) =>
+                            (e['status'] as String?) == 'scheduled'))
+                          _filterChip(
+                            'Scheduled',
+                            _filterCategory == '_scheduled_only_',
+                            () => setState(() => _filterCategory =
+                                _filterCategory == '_scheduled_only_'
+                                    ? null
+                                    : '_scheduled_only_'),
+                          ),
                       ],
                     ),
                   ),
@@ -395,9 +514,9 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                 Row(children: [
                   Expanded(
                     child: Text(
-                      _filtered.isEmpty
+                      allFiltered.isEmpty
                           ? 'No expenses'
-                          : 'Expenses (${_filtered.length}${_filtered.length != count ? ' of $count' : ''})',
+                          : 'Expenses (${allFiltered.length}${allFiltered.length != count ? ' of $count' : ''})',
                       style: TextStyle(fontSize: context.sp(13),
                           fontWeight: FontWeight.bold,
                           color: AppThemeColors.primaryText(context)),
@@ -413,11 +532,11 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
           ),
 
           // ── Grouped expense list ──────────────────────────────────────────
-          if (_filtered.isEmpty && !_loading)
+          if (allFiltered.isEmpty && !_loading)
             SliverToBoxAdapter(child: _buildEmpty(canEdit))
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, needsExpenseToggle ? 0 : 100),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) {
@@ -434,6 +553,42 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   },
                   childCount: groups.fold<int>(
                       0, (s, g) => s + 1 + g.items.length),
+                ),
+              ),
+            ),
+
+          // ── View more / less expenses toggle ─────────────────────────────
+          if (needsExpenseToggle)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                child: GestureDetector(
+                  onTap: () => setState(() => _showAllExpenses = !_showAllExpenses),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppThemeColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.cyan.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(
+                        _showAllExpenses ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                        size: 18, color: AppColors.cyan,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _showAllExpenses
+                            ? 'View less'
+                            : 'View more (${allFiltered.length - 5} more)',
+                        style: TextStyle(
+                          fontSize: context.sp(13),
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.cyan,
+                        ),
+                      ),
+                    ]),
+                  ),
                 ),
               ),
             ),
@@ -468,6 +623,34 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
             ),
           ]),
         ),
+      ),
+    );
+  }
+
+  Widget _catSortChip(String value, IconData icon, String label) {
+    final selected = _catSort == value;
+    return GestureDetector(
+      onTap: () => setState(() => _catSort = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.cyan : AppThemeColors.cardBg(context),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppColors.cyan : AppThemeColors.border(context),
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 11,
+              color: selected ? Colors.white : AppThemeColors.secondaryText(context)),
+          const SizedBox(width: 3),
+          Text(label, style: TextStyle(
+            fontSize: context.sp(10),
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            color: selected ? Colors.white : AppThemeColors.secondaryText(context),
+          )),
+        ]),
       ),
     );
   }
@@ -522,11 +705,14 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
   }
 
   Widget _buildExpenseCard(Map<String, dynamic> e, bool canEdit) {
-    final amount = (e['amount'] as num?)?.toDouble() ?? 0;
-    final cat    = e['category'] as String? ?? '';
-    final desc   = e['description'] as String? ?? '';
-    final raw    = e['date'] as String?;
-    final date   = raw != null ? DateTime.parse(raw).toLocal() : null;
+    final amount      = (e['amount'] as num?)?.toDouble() ?? 0;
+    final cat         = e['category'] as String? ?? '';
+    final desc        = e['description'] as String? ?? '';
+    final raw         = e['date'] as String?;
+    final date        = raw != null ? DateTime.parse(raw).toLocal() : null;
+    final isScheduled = (e['status'] as String?) == 'scheduled';
+    final rawSched    = e['scheduledFor'] as String?;
+    final scheduledFor = rawSched != null ? DateTime.parse(rawSched).toLocal() : null;
 
     return tricolorBorder(
       radius: 14,
@@ -557,14 +743,51 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                     style: TextStyle(fontSize: context.sp(10),
                         color: AppThemeColors.secondaryText(context))),
               ],
+              if (isScheduled && scheduledFor != null) ...[
+                const SizedBox(height: 3),
+                Row(children: [
+                  Icon(Icons.schedule, size: 12, color: Colors.orange.shade600),
+                  const SizedBox(width: 4),
+                  Text('Scheduled for ${DateFormat('dd MMM yyyy').format(scheduledFor)}',
+                      style: TextStyle(fontSize: context.sp(10),
+                          color: Colors.orange.shade600,
+                          fontWeight: FontWeight.w500)),
+                ]),
+              ],
             ]),
           ),
           const SizedBox(width: 8),
-          Text(_fmt(amount),
-              style: TextStyle(fontSize: context.sp(15),
-                  fontWeight: FontWeight.bold,
-                  color: AppThemeColors.primaryText(context))),
-          if (canEdit)
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            if (isScheduled) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('Scheduled',
+                    style: TextStyle(fontSize: context.sp(10),
+                        color: Colors.orange.shade700,
+                        fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 2),
+            ],
+            Opacity(
+              opacity: isScheduled ? 0.6 : 1.0,
+              child: Text(_fmt(amount),
+                  style: TextStyle(fontSize: context.sp(15),
+                      fontWeight: FontWeight.bold,
+                      color: AppThemeColors.primaryText(context))),
+            ),
+          ]),
+          if (canEdit) ...[
+            IconButton(
+              icon: const Icon(Icons.copy_outlined, size: 18),
+              onPressed: () => _duplicateExpense(e),
+              tooltip: 'Duplicate',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert, size: 18,
                   color: AppThemeColors.secondaryText(context)),
@@ -592,6 +815,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                     ])),
               ],
             ),
+          ],
         ]),
       ),
     );
@@ -605,6 +829,32 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
       'description': e['description'],
       'date':        DateTime.now().toIso8601String(),
     };
+  }
+
+  Future<void> _duplicateExpense(Map<String, dynamic> expense) async {
+    try {
+      final body = <String, dynamic>{
+        'amount':      expense['amount'],
+        'category':    expense['category'],
+        'description': expense['description'] ?? '',
+        'date':        DateTime.now().toUtc().toIso8601String(),
+      };
+      if (expense['allocationName'] != null) {
+        body['allocationName'] = expense['allocationName'];
+      }
+      final resp = await ApiClient.post(
+          '/api/personal-budget/${widget.budgetId}/expenses', body: body);
+      if (!mounted) return;
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        showSnack(context, 'Expense duplicated');
+        _load();
+      } else {
+        final err = json.decode(resp.body);
+        showSnack(context, err['error'] ?? 'Could not duplicate.', isError: true);
+      }
+    } catch (e) {
+      if (mounted) showSnack(context, 'Error: $e', isError: true);
+    }
   }
 
   Widget _buildEmpty(bool canEdit) {
@@ -656,9 +906,15 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     bool customCat  = !kBudgetCategories.contains(category);
     final customCatCtrl = TextEditingController(text: customCat ? category : '');
     String? selectedAllocation = existing?['allocationName'] as String?;
-    DateTime date = existing?['date'] != null
-        ? DateTime.parse(existing!['date'] as String).toLocal()
-        : DateTime.now();
+    bool _expandCats = false; // "View more categories" toggle
+    bool scheduleForLater = (existing?['status'] as String?) == 'scheduled' &&
+        existing?['scheduledFor'] != null;
+    // When editing a scheduled expense, show the scheduled date/time in pickers
+    DateTime date = scheduleForLater && existing?['scheduledFor'] != null
+        ? DateTime.parse(existing!['scheduledFor'] as String).toLocal()
+        : (existing?['date'] != null
+            ? DateTime.parse(existing!['date'] as String).toLocal()
+            : DateTime.now());
     TimeOfDay time = TimeOfDay.fromDateTime(date);
     bool saving = false;
     final df = DateFormat('dd MMM yyyy');
@@ -682,7 +938,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
             child: ListView(controller: sc, children: [
               Center(child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.shade400,
+                  decoration: BoxDecoration(color: AppThemeColors.divider(context),
                       borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text(isNew ? AppLocalizations.of(context).t('add_expense') : AppLocalizations.of(context).t('edit_expense'),
@@ -715,60 +971,142 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
               Text('Category', style: TextStyle(fontSize: context.sp(12),
                   color: AppThemeColors.secondaryText(context))),
               const SizedBox(height: 6),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                ...kBudgetCategories.map((c) => GestureDetector(
-                      onTap: () => setS(() { category = c; customCat = false; }),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: (!customCat && category == c)
-                              ? AppColors.cyan
-                              : AppThemeColors.cardBg(context),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: (!customCat && category == c)
-                                ? AppColors.cyan
-                                : AppColors.cyan.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Text(c,
-                              style: TextStyle(
-                                fontSize: context.sp(12),
-                                color: (!customCat && category == c)
-                                    ? Colors.white
-                                    : AppThemeColors.primaryText(context),
-                                fontWeight: (!customCat && category == c)
-                                    ? FontWeight.bold : FontWeight.normal,
-                              )),
-                        ]),
-                      ),
-                    )),
-                GestureDetector(
-                  onTap: () => setS(() => customCat = true),
+              Builder(builder: (_) {
+                // Always visible: quick standard set + current selection (so it's never hidden)
+                final stdVisible = _expandCats
+                    ? kBudgetCategories
+                    : _kQuickCategories;
+                // Force-include the current selection even when collapsed
+                final extraForced = (!customCat &&
+                        !stdVisible.contains(category) &&
+                        !_dynamicCategories.contains(category))
+                    ? [category]
+                    : <String>[];
+                final hiddenCount = _expandCats
+                    ? 0
+                    : kBudgetCategories
+                        .where((c) => !_kQuickCategories.contains(c))
+                        .length;
+
+                Widget _stdChip(String c) => GestureDetector(
+                  onTap: () => setS(() {
+                    category = c;
+                    customCat = false;
+                    customCatCtrl.clear();
+                    final match = _allocations.firstWhere(
+                      (a) => (a['name'] as String? ?? '').toLowerCase() == c.toLowerCase(),
+                      orElse: () => <String, dynamic>{},
+                    );
+                    if (match.isNotEmpty) selectedAllocation = match['name'] as String?;
+                  }),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
-                      color: customCat ? Colors.amber : AppThemeColors.cardBg(context),
+                      color: (!customCat && category == c) ? AppColors.cyan : AppThemeColors.cardBg(context),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: customCat
-                            ? Colors.amber
-                            : Colors.amber.withValues(alpha: 0.4),
+                        color: (!customCat && category == c) ? AppColors.cyan : AppColors.cyan.withValues(alpha: 0.3),
                       ),
                     ),
-                    child: Text('Custom…',
-                        style: TextStyle(
-                          fontSize: context.sp(12),
-                          color: customCat
-                              ? Colors.white
-                              : AppThemeColors.primaryText(context),
-                        )),
+                    child: Text(c, style: TextStyle(
+                      fontSize: context.sp(12),
+                      color: (!customCat && category == c) ? Colors.white : AppThemeColors.primaryText(context),
+                      fontWeight: (!customCat && category == c) ? FontWeight.bold : FontWeight.normal,
+                    )),
                   ),
-                ),
-              ]),
+                );
+
+                Widget _dynChip(String c) => GestureDetector(
+                  onTap: () => setS(() { category = c; customCat = false; customCatCtrl.clear(); }),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: (!customCat && category == c) ? Colors.purple.shade400 : AppThemeColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: (!customCat && category == c) ? Colors.purple.shade400 : Colors.purple.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(c, style: TextStyle(
+                      fontSize: context.sp(12),
+                      color: (!customCat && category == c) ? Colors.white : AppThemeColors.primaryText(context),
+                      fontWeight: (!customCat && category == c) ? FontWeight.bold : FontWeight.normal,
+                    )),
+                  ),
+                );
+
+                return Wrap(spacing: 6, runSpacing: 6, children: [
+                  ...stdVisible.map(_stdChip),
+                  ...extraForced.map(_stdChip),
+                  ..._dynamicCategories.map(_dynChip),
+                  // "View more / View less" toggle chip
+                  if (hiddenCount > 0)
+                    GestureDetector(
+                      onTap: () => setS(() => _expandCats = true),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppThemeColors.border(context)),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.expand_more_rounded, size: 14,
+                              color: AppThemeColors.secondaryText(context)),
+                          const SizedBox(width: 4),
+                          Text('+$hiddenCount more', style: TextStyle(
+                            fontSize: context.sp(12),
+                            color: AppThemeColors.secondaryText(context),
+                          )),
+                        ]),
+                      ),
+                    ),
+                  if (_expandCats)
+                    GestureDetector(
+                      onTap: () => setS(() => _expandCats = false),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppThemeColors.border(context)),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.expand_less_rounded, size: 14,
+                              color: AppThemeColors.secondaryText(context)),
+                          const SizedBox(width: 4),
+                          Text('View less', style: TextStyle(
+                            fontSize: context.sp(12),
+                            color: AppThemeColors.secondaryText(context),
+                          )),
+                        ]),
+                      ),
+                    ),
+                  // Custom category chip always last
+                  GestureDetector(
+                    onTap: () => setS(() => customCat = true),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: customCat ? Colors.amber : AppThemeColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: customCat ? Colors.amber : Colors.amber.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text('Custom…', style: TextStyle(
+                        fontSize: context.sp(12),
+                        color: customCat ? Colors.white : AppThemeColors.primaryText(context),
+                      )),
+                    ),
+                  ),
+                ]);
+              }),
               if (customCat) ...[
                 const SizedBox(height: 10),
                 TextField(
@@ -875,6 +1213,49 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                 const SizedBox(height: 14),
               ],
 
+              // ── Schedule for later ─────────────────────────────────────
+              tricolorBorder(
+                radius: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppThemeColors.cardBg(context),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.schedule, size: 18,
+                        color: scheduleForLater
+                            ? Colors.orange.shade600
+                            : AppThemeColors.secondaryText(context)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Schedule for later',
+                            style: TextStyle(fontSize: context.sp(13),
+                                color: AppThemeColors.primaryText(context))),
+                        if (scheduleForLater)
+                          Text('Pick date & time below',
+                              style: TextStyle(fontSize: context.sp(11),
+                                  color: Colors.orange.shade600)),
+                      ]),
+                    ),
+                    Switch(
+                      value: scheduleForLater,
+                      activeColor: Colors.orange.shade600,
+                      onChanged: (v) => setS(() {
+                        scheduleForLater = v;
+                        if (v && !date.isAfter(DateTime.now())) {
+                          final tomorrow = DateTime.now().add(const Duration(days: 1));
+                          date = DateTime(tomorrow.year, tomorrow.month,
+                              tomorrow.day, time.hour, time.minute);
+                        }
+                      }),
+                    ),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 14),
+
               // Date + Time
               Row(children: [
                 Expanded(child: tricolorBorder(
@@ -883,8 +1264,12 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                     onTap: () async {
                       final d = await showAppDatePicker(
                         context: ctx, initialDate: date,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 1)),
+                        firstDate: scheduleForLater
+                            ? DateTime.now().add(const Duration(days: 1))
+                            : DateTime(2020),
+                        lastDate: scheduleForLater
+                            ? (_budgetEndDate ?? DateTime.now().add(const Duration(days: 365)))
+                            : DateTime.now().add(const Duration(days: 1)),
                       );
                       if (d != null) setS(() => date = DateTime(
                           d.year, d.month, d.day, time.hour, time.minute));
@@ -899,12 +1284,17 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text('Date', style: TextStyle(fontSize: context.sp(11),
-                            color: AppThemeColors.secondaryText(context))),
+                        Text(scheduleForLater ? 'Schedule Date' : 'Date',
+                            style: TextStyle(fontSize: context.sp(11),
+                            color: scheduleForLater
+                                ? Colors.orange.shade600
+                                : AppThemeColors.secondaryText(context))),
                         const SizedBox(height: 4),
                         Row(children: [
-                          const Icon(Icons.calendar_today_rounded,
-                              size: 14, color: AppColors.cyan),
+                          Icon(Icons.calendar_today_rounded, size: 14,
+                              color: scheduleForLater
+                                  ? Colors.orange.shade600
+                                  : AppColors.cyan),
                           const SizedBox(width: 6),
                           Text(df.format(date),
                               style: TextStyle(fontSize: context.sp(13),
@@ -938,12 +1328,17 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text('Time', style: TextStyle(fontSize: context.sp(11),
-                            color: AppThemeColors.secondaryText(context))),
+                        Text(scheduleForLater ? 'Schedule Time' : 'Time',
+                            style: TextStyle(fontSize: context.sp(11),
+                            color: scheduleForLater
+                                ? Colors.orange.shade600
+                                : AppThemeColors.secondaryText(context))),
                         const SizedBox(height: 4),
                         Row(children: [
-                          const Icon(Icons.access_time_rounded,
-                              size: 14, color: AppColors.cyan),
+                          Icon(Icons.access_time_rounded, size: 14,
+                              color: scheduleForLater
+                                  ? Colors.orange.shade600
+                                  : AppColors.cyan),
                           const SizedBox(width: 6),
                           Text(time.format(ctx),
                               style: TextStyle(fontSize: context.sp(13),
@@ -986,15 +1381,22 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                       showSnack(context, 'Enter a category.', isError: true);
                       return;
                     }
+                    if (scheduleForLater && !date.isAfter(DateTime.now())) {
+                      showSnack(context, 'Schedule date must be in the future.',
+                          isError: true);
+                      return;
+                    }
                     setS(() => saving = true);
                     try {
-                      final body = {
+                      final body = <String, dynamic>{
                         'amount':          amt,
                         'category':        cat,
                         'description':     descCtrl.text.trim(),
                         'date':            date.toUtc().toIso8601String(),
                         if (selectedAllocation != null)
                           'allocationName': selectedAllocation,
+                        if (scheduleForLater)
+                          'scheduledFor': date.toUtc().toIso8601String(),
                       };
                       final expId = existing?['_id'] as String?;
                       final resp  = (isNew)
@@ -1047,15 +1449,74 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
   Future<void> _deleteExpense(String expenseId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(AppLocalizations.of(context).t('delete_expense')),
-        content: Text(AppLocalizations.of(context).t('delete_budget_confirm')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
-              child: Text(AppLocalizations.of(context).t('cancel'))),
-          TextButton(onPressed: () => Navigator.pop(context, true),
-              child: Text(AppLocalizations.of(context).t('delete'), style: const TextStyle(color: Colors.red))),
-        ],
+      builder: (dialogCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.red.shade700, Colors.red.shade400],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_forever_rounded,
+                    color: Colors.white, size: 32),
+              ),
+              const SizedBox(height: 10),
+              Text(AppLocalizations.of(dialogCtx).t('delete_expense'),
+                  style: const TextStyle(color: Colors.white,
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: Text(AppLocalizations.of(dialogCtx).t('delete_budget_confirm'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14,
+                    color: AppThemeColors.secondaryText(dialogCtx))),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: AppThemeColors.border(dialogCtx)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(AppLocalizations.of(dialogCtx).t('cancel'),
+                      style: TextStyle(color: AppThemeColors.secondaryText(dialogCtx))),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogCtx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(AppLocalizations.of(dialogCtx).t('delete'),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ]),
+          ),
+        ]),
       ),
     );
     if (confirmed == true) {

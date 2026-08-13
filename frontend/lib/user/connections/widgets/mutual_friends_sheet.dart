@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
+import '../../../widgets/app_widgets.dart';
 import '../../../utils/avatar_helpers.dart' as ah;
 import '../../../utils/api_client.dart';
 import '../../../api_config.dart';
@@ -127,10 +128,7 @@ class _MutualFriendsSheetState extends State<MutualFriendsSheet> {
               child: CircularProgressIndicator(color: AppColors.cyan),
             )
           else if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(_error!, style: const TextStyle(color: Colors.red)),
-            )
+            errorStateWidget(context, _error!, null)
           else if (_mutuals.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),

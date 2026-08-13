@@ -6,6 +6,7 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/search_tab_bar.dart';
+import '../../widgets/app_widgets.dart';
 
 class AdminBudgetPage extends StatefulWidget {
   const AdminBudgetPage({super.key});
@@ -1275,13 +1276,7 @@ class _AdminExpenseSheetState extends State<_AdminExpenseSheet>
           child: _loading
               ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
               : _error != null
-                  ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 8),
-                      ElevatedButton(onPressed: _load,
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan),
-                          child: const Text('Retry', style: TextStyle(color: Colors.white))),
-                    ]))
+                  ? errorStateWidget(context, _error!, _load)
                   : TabBarView(controller: _tabs, children: [
                       _buildExpenseList(_active, deleted: false),
                       _buildExpenseList(_deleted, deleted: true),

@@ -5,6 +5,7 @@ import '../../profile/profile_page.dart';
 import '../../utils/api_client.dart';
 import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
@@ -459,26 +460,7 @@ class _AdminFeedbacksPageState extends State<AdminFeedbacksPage> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red[300]),
-                                  const SizedBox(height: 12),
-                                  Text(_error!,
-                                      style: const TextStyle(
-                                          color: Colors.red)),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: _fetchFeedbacks,
-                                    child: Text(t('retry')),
-                                  ),
-                                ],
-                              ),
-                            )
+                          ? errorStateWidget(context, _error!, _fetchFeedbacks)
                           : _filtered.isEmpty
                               ? Center(
                                   child: Column(

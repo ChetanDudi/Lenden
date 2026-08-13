@@ -8,6 +8,7 @@ import 'edit_profile_page.dart';
 import '../widgets/app_colors.dart';
 import '../utils/theme_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/app_widgets.dart';
 import '../widgets/wave_widget.dart' show DeepTopWaveClipper;
 import '../widgets/avatar_action_sheet.dart';
 import '../widgets/birthday_banner.dart';
@@ -28,6 +29,9 @@ class _ProfilePageState extends State<ProfilePage> {
   int _imageRefreshKey = 0;
   ImageProvider? _cachedAvatarImage;
   int _lastAvatarKey = -1;
+  bool _statsLoading = true;
+  double _totalLent = 0;
+  double _totalBorrowed = 0;
 
   @override
   void initState() {
@@ -36,6 +40,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchProfile() async {
+    setState(() { _loading = true; _error = null; });
     final session = Provider.of<SessionProvider>(context, listen: false);
     if (widget.email != null && widget.email!.isNotEmpty) {
       // Fetch profile by email (admin viewing another user)
@@ -43,23 +48,24 @@ class _ProfilePageState extends State<ProfilePage> {
           '/api/users/profile-by-email?email=${Uri.encodeComponent(widget.email!)}';
       try {
         final response = await ApiClient.get(path);
+        if (!mounted) return;
         if (response.statusCode == 200) {
           setState(() {
             _profile = jsonDecode(response.body);
             _loading = false;
+            _error = null;
             _imageRefreshKey++;
           });
         } else {
           setState(() {
             _error = AppLocalizations.of(context).t('user_not_found');
-            _profile = null;
             _loading = false;
           });
         }
       } catch (e) {
+        if (!mounted) return;
         setState(() {
           _error = AppLocalizations.of(context).t('error_loading_profile');
-          _profile = null;
           _loading = false;
         });
       }
@@ -77,25 +83,49 @@ class _ProfilePageState extends State<ProfilePage> {
     final path = isAdmin ? '/api/admins/me' : '/api/users/me';
     try {
       final response = await ApiClient.get(path);
+      if (!mounted) return;
       if (response.statusCode == 200) {
         setState(() {
           _profile = jsonDecode(response.body);
           _loading = false;
+          _error = null;
           _imageRefreshKey++; // Force avatar rebuild
         });
+        _fetchStats();
       } else {
         setState(() {
           _error = AppLocalizations.of(context).t('error_loading_profile');
-          _profile = null;
           _loading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = AppLocalizations.of(context).t('error_loading_profile');
-        _profile = null;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final response = await ApiClient.get('/api/analytics/quick');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        setState(() {
+          _totalLent = (data['totalLent'] is num)
+              ? (data['totalLent'] as num).toDouble()
+              : double.tryParse(data['totalLent']?.toString() ?? '') ?? 0.0;
+          _totalBorrowed = (data['totalBorrowed'] is num)
+              ? (data['totalBorrowed'] as num).toDouble()
+              : double.tryParse(data['totalBorrowed']?.toString() ?? '') ?? 0.0;
+          _statsLoading = false;
+        });
+      } else {
+        setState(() => _statsLoading = false);
+      }
+    } catch (_) {
+      setState(() => _statsLoading = false);
     }
   }
 
@@ -239,6 +269,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ? Map<String, dynamic>.from(user!['trustScore'])
                         : const <String, dynamic>{},
                   ),
+                  const SizedBox(height: 8),
+                  _statsCard(user),
                   const SizedBox(height: 32),
                   if (isViewingOwnProfile) ...[
                     ElevatedButton(
@@ -287,30 +319,10 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          if (_loading) const Center(child: CircularProgressIndicator()),
-          if (_error != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.error_outline, color: Colors.red, size: 40),
-                    const SizedBox(height: 12),
-                    Text(_error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() { _loading = true; _error = null; });
-                        _fetchProfile();
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: Text(AppLocalizations.of(context).t('retry')),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          if (_loading && user == null)
+            const Center(child: CircularProgressIndicator()),
+          if (_error != null && user == null)
+            errorStateWidget(context, _error!, _fetchProfile),
         ],
       ),
     );
@@ -512,6 +524,153 @@ class _ProfilePageState extends State<ProfilePage> {
         ])),
         trailing,
       ]),
+    );
+  }
+
+  Widget _statItem(BuildContext ctx, String label, String value, IconData icon) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: AppColors.cyan, size: ctx.sp(22)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: ctx.sp(18),
+            fontWeight: FontWeight.bold,
+            color: AppThemeColors.primaryText(ctx),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: ctx.sp(11),
+            color: AppThemeColors.secondaryText(ctx),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _verticalDivider() {
+    return SizedBox(
+      height: 48,
+      child: VerticalDivider(
+        color: AppThemeColors.border(context).withValues(alpha: 0.5),
+        thickness: 1,
+        width: 1,
+      ),
+    );
+  }
+
+  Widget _statsCard(Map<String, dynamic>? user) {
+    final friendCount = user?['friendCount'] ?? 0;
+    final quickCount = user?['quickTransactionCount'] ?? 0;
+    final secureCount = user?['secureTransactionCount'] ?? 0;
+
+    final netLent = _totalLent - _totalBorrowed;
+    final isNetLent = netLent >= 0;
+    final netColor = isNetLent ? const Color(0xFF2E7D32) : AppColors.tricolorOrange;
+    final netLabel = isNetLent ? 'Net Lent' : 'Net Borrowed';
+    final netValue = _statsLoading
+        ? '--'
+        : '₹${netLent.abs().toStringAsFixed(0)}';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppThemeColors.border(context).withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 13, 16, 8),
+            child: Row(children: [
+              Container(
+                width: 3,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: AppColors.cyan,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'ACTIVITY',
+                style: TextStyle(
+                  fontSize: context.sp(10),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.cyan,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ]),
+          ),
+          Divider(
+            height: 1,
+            color: AppThemeColors.border(context).withValues(alpha: 0.4),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _statItem(context, 'Friends', '$friendCount', Icons.people_rounded),
+                _verticalDivider(),
+                _statItem(context, 'Quick Txns', '$quickCount', Icons.flash_on_rounded),
+                _verticalDivider(),
+                _statItem(context, 'Secure Txns', '$secureCount', Icons.security_rounded),
+              ],
+            ),
+          ),
+          Divider(
+            height: 1,
+            indent: 16,
+            endIndent: 16,
+            color: AppThemeColors.border(context).withValues(alpha: 0.3),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  isNetLent ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                  color: netColor,
+                  size: context.sp(18),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  netLabel,
+                  style: TextStyle(
+                    fontSize: context.sp(13),
+                    color: AppThemeColors.secondaryText(context),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  netValue,
+                  style: TextStyle(
+                    fontSize: context.sp(16),
+                    fontWeight: FontWeight.bold,
+                    color: netColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

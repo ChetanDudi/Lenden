@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class MyDisputesPage extends StatefulWidget {
   const MyDisputesPage({super.key});
@@ -80,7 +81,7 @@ class _MyDisputesPageState extends State<MyDisputesPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
+              ? errorStateWidget(context, _error!, _fetchDisputes)
               : _disputes.isEmpty
                   ? Center(
                       child: Column(

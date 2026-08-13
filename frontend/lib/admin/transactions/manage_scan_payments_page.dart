@@ -45,7 +45,7 @@ class _ManageScanPaymentsPageState extends State<ManageScanPaymentsPage> {
         setState(() { _error = (data?['error'] ?? t('failed_to_load_scan_payments')).toString(); _loading = false; });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = '${t('error_prefix')} $e'; _loading = false; });
+      if (mounted) setState(() { _error = t('unable_to_connect_check_internet_message'); _loading = false; });
     }
   }
 
@@ -61,7 +61,7 @@ class _ManageScanPaymentsPageState extends State<ManageScanPaymentsPage> {
         showStylishSnackBar(context, data['error'] ?? t('action_failed_label'), isError: true);
       }
     } catch (e) {
-      if (mounted) showStylishSnackBar(context, '${t('error_prefix')} $e', isError: true);
+      if (mounted) showStylishSnackBar(context, t('unable_to_connect_check_internet_message'), isError: true);
     }
   }
 
@@ -106,7 +106,7 @@ class _ManageScanPaymentsPageState extends State<ManageScanPaymentsPage> {
         showStylishSnackBar(context, data['error'] ?? t('action_failed_label'), isError: true);
       }
     } catch (e) {
-      if (mounted) showStylishSnackBar(context, '${t('error_prefix')} $e', isError: true);
+      if (mounted) showStylishSnackBar(context, t('unable_to_connect_check_internet_message'), isError: true);
     }
   }
 
@@ -168,7 +168,7 @@ class _ManageScanPaymentsPageState extends State<ManageScanPaymentsPage> {
               child: _loading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
                 : _error != null
-                  ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+                  ? errorStateWidget(context, _error!, _fetch)
                   : _payments.isEmpty
                     ? Center(child: Text(t('no_scan_payment_requests_message'), style: TextStyle(color: AppThemeColors.secondaryText(context))))
                     : RefreshIndicator(

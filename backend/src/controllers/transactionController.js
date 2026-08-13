@@ -674,10 +674,10 @@ exports.createTransaction = async (req, res) => {
           await Notification.create({
             sender: user._id, senderModel: 'User', recipientType: 'specific-users',
             recipients: [counterparty._id], recipientModel: 'User', category: 'transaction',
-            message: `${userEmail} recorded a ${role} transaction of â‚¹${amount} with you.`,
+            message: `${userEmail} recorded a ${role} transaction of ₹${amount} with you.`,
           });
         }
-        sendToUser(User, counterparty._id, { title: 'New Transaction ðŸ“', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
+        sendToUser(User, counterparty._id, { title: 'New Transaction 🔐', body: `${userEmail} recorded a transaction with you.`, data: { type: 'quick_transaction' } });
       }
     } catch (e) {
       console.error('Failed to log transaction activity:', e);
@@ -1021,7 +1021,7 @@ exports.clearTransaction = async (req, res) => {
               message: `${email} cleared their side of the transaction. It is now ${transaction.userCleared && transaction.counterpartyCleared ? 'fully cleared' : 'partially cleared'}.`,
             });
           }
-          sendToUser(User, otherPartyDoc._id, { title: 'New Transaction ðŸ“', body: `${email} cleared their side of the transaction.`, data: { type: 'quick_transaction' } });
+          sendToUser(User, otherPartyDoc._id, { title: 'New Transaction 🔐', body: `${email} cleared their side of the transaction.`, data: { type: 'quick_transaction' } });
         }
       } catch (e) {
         console.error('Failed to log transaction activity:', e);
@@ -1436,17 +1436,17 @@ exports.processPartialPayment = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Partial payment of â‚¹${amount} sent to ${payeeEmail} successfully.`,
+          message: `Partial payment of ₹${amount} sent to ${payeeEmail} successfully.`,
         }));
       }
       if (payeeUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [payee._id], recipientModel: 'User', category: 'transaction',
-          message: `You received a partial payment of â‚¹${amount} from ${payerEmail}.`,
+          message: `You received a partial payment of ₹${amount} from ${payerEmail}.`,
         }));
       }
-      sendToUser(User, payee._id, { title: 'New Transaction ðŸ“', body: `You received a partial payment of â‚¹${amount} from ${payerEmail}.`, data: { type: 'quick_transaction' } });
+      sendToUser(User, payee._id, { title: 'New Transaction 🔐', body: `You received a partial payment of ₹${amount} from ${payerEmail}.`, data: { type: 'quick_transaction' } });
       return Promise.all(notifs);
     }).catch(() => {});
 

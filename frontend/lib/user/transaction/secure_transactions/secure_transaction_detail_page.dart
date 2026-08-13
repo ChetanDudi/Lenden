@@ -66,6 +66,9 @@ class _SecureTransactionDetailPageState
   DateTime _now = DateTime.now();
   Timer? _countdownTimer;
   bool _needsRefresh = false;
+  bool _isCloseCounterparty = false;
+  String? _counterpartyUserId;
+  bool _togglingClose = false;
 
   @override
   void initState() {
@@ -80,6 +83,7 @@ class _SecureTransactionDetailPageState
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
+    _fetchCounterpartyInfo();
   }
 
   @override
@@ -211,6 +215,51 @@ class _SecureTransactionDetailPageState
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return null;
+  }
+
+  Future<void> _fetchCounterpartyInfo() async {
+    final email = (_t['counterpartyEmail'] ?? '').toString();
+    if (email.isEmpty) return;
+    try {
+      final profileRes = await ApiClient.get(
+          '/api/users/profile-by-email?email=${Uri.encodeComponent(email)}');
+      if (profileRes.statusCode == 200) {
+        final profile = jsonDecode(profileRes.body) as Map<String, dynamic>;
+        final userId = profile['_id']?.toString();
+        if (userId != null && userId.isNotEmpty) {
+          final favRes = await ApiClient.get('/api/user/favourites');
+          if (favRes.statusCode == 200 && mounted) {
+            final favData = jsonDecode(favRes.body);
+            final closeList = (favData['closeCounterparties'] ?? []) as List;
+            final isClose = closeList.any((item) {
+              if (item is Map) return item['_id']?.toString() == userId;
+              return item.toString() == userId;
+            });
+            setState(() {
+              _counterpartyUserId = userId;
+              _isCloseCounterparty = isClose;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleCloseCounterparty() async {
+    if (_counterpartyUserId == null) return;
+    setState(() => _togglingClose = true);
+    try {
+      final res = await ApiClient.post(
+          '/api/user/favourites/close-counterparty/$_counterpartyUserId',
+          body: {});
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _isCloseCounterparty = data['added'] == true);
+        showSnack(context, data['message'] ?? 'Updated');
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _togglingClose = false);
+    }
   }
 
   // "Pay Now" is now the same two-sided-OTP, real-wallet-transfer flow as
@@ -1841,6 +1890,25 @@ class _SecureTransactionDetailPageState
                               ),
                             ),
                           ),
+                          if (_counterpartyUserId != null) ...[
+                            const SizedBox(height: 8),
+                            ActionChip(
+                              avatar: Icon(
+                                _isCloseCounterparty ? Icons.person_pin_rounded : Icons.person_add_alt_1_rounded,
+                                size: 16,
+                                color: _isCloseCounterparty ? AppColors.cyan : AppThemeColors.secondaryText(context),
+                              ),
+                              label: Text(
+                                _isCloseCounterparty ? 'Close Counterparty' : 'Add as Close',
+                                style: TextStyle(fontSize: 12, color: _isCloseCounterparty ? AppColors.cyan : AppThemeColors.secondaryText(context)),
+                              ),
+                              onPressed: _togglingClose ? null : _toggleCloseCounterparty,
+                              backgroundColor: _isCloseCounterparty
+                                  ? AppColors.cyan.withValues(alpha: 0.1)
+                                  : AppThemeColors.surfaceBg(context),
+                              side: BorderSide(color: _isCloseCounterparty ? AppColors.cyan.withValues(alpha: 0.3) : Colors.transparent),
+                            ),
+                          ],
                           if (t['interestType'] != null && t['interestRate'] != null) ...[
                             const SizedBox(height: 10),
                             Container(

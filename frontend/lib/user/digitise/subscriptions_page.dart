@@ -153,7 +153,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     } catch (e) {
       if (!mounted) return;
       final t = AppLocalizations.of(context).t;
-      setState(() => _plansError = '${t('error_prefix')} $e');
+      setState(() => _plansError = t('unable_to_connect_check_internet_message'));
     } finally {
       if (mounted) setState(() => _isLoadingPlans = false);
     }
@@ -184,7 +184,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     } catch (e) {
       if (!mounted) return;
       final t = AppLocalizations.of(context).t;
-      setState(() => _benefitsError = '${t('error_prefix')} $e');
+      setState(() => _benefitsError = t('unable_to_connect_check_internet_message'));
     } finally {
       if (mounted) setState(() => _isLoadingBenefits = false);
     }
@@ -214,7 +214,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
     } catch (e) {
       if (!mounted) return;
       final t = AppLocalizations.of(context).t;
-      setState(() => _faqsError = '${t('error_prefix')} $e');
+      setState(() => _faqsError = t('unable_to_connect_check_internet_message'));
     } finally {
       if (mounted) setState(() => _isLoadingFaqs = false);
     }
@@ -752,10 +752,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               ),
               child: TabBar(
                 controller: _tabController,
-                isScrollable: false,
-                tabAlignment: TabAlignment.fill,
-                padding: const EdgeInsets.all(4),
-                labelPadding: EdgeInsets.zero,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                 indicator: BoxDecoration(
                   color: AppColors.cyan,
                   borderRadius: BorderRadius.circular(20),

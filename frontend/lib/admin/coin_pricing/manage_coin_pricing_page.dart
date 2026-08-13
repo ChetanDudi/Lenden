@@ -412,29 +412,7 @@ class _ManageCoinPricingPageState extends State<ManageCoinPricingPage> {
   }
 
   Widget _buildError() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline_rounded,
-              color: Colors.redAccent, size: 48),
-          const SizedBox(height: 12),
-          Text(_error!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppThemeColors.secondaryText(context))),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _loadConfig,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.cyan,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
+    return errorStateWidget(context, _error!, _loadConfig);
   }
 
   // ── Coin value card ───────────────────────────────────────────────────────

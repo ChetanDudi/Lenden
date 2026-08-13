@@ -2,6 +2,7 @@
 import '../../../utils/avatar_helpers.dart' as ah;
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
+import '../../../widgets/app_widgets.dart';
 import '../../../utils/api_client.dart';
 import '../../../api_config.dart';
 import '../../../utils/theme_helper.dart';
@@ -73,6 +74,7 @@ class GroupMembersPage extends StatefulWidget {
 class _GroupMembersPageState extends State<GroupMembersPage> {
   late List<dynamic> _members;
   bool _loading = false;
+  String? _error;
   String _filter = 'active';
   final _addEmailCtrl = TextEditingController();
 
@@ -102,7 +104,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final res = await ApiClient.get('/api/group-transactions/user-groups');
       if (res.statusCode == 200) {
@@ -117,7 +119,11 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           setState(() =>
               _members = List<dynamic>.from(group['members'] ?? []));
         }
+      } else {
+        if (mounted) setState(() => _error = 'Failed to load members. Please try again.');
       }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Failed to load members. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -458,7 +464,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
           // Member list
           Expanded(
-            child: filtered.isEmpty
+            child: _error != null
+                ? errorStateWidget(context, _error!, _refresh)
+                : filtered.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

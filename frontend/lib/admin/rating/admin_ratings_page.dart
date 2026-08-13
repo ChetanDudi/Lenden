@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'dart:convert';
 import '../../profile/profile_page.dart';
 import '../../utils/api_client.dart';
@@ -577,26 +578,7 @@ class _AdminRatingsPageState extends State<AdminRatingsPage> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red[300]),
-                                  const SizedBox(height: 12),
-                                  Text(_error!,
-                                      style: const TextStyle(
-                                          color: Colors.red)),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: _fetchRatings,
-                                    child: Text(t('retry')),
-                                  ),
-                                ],
-                              ),
-                            )
+                          ? errorStateWidget(context, _error!, _fetchRatings)
                           : _ratings.isEmpty
                               ? Center(
                                   child: Column(

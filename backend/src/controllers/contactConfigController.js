@@ -248,7 +248,7 @@ exports.replyToMessage = async (req, res) => {
         deliveryStatus: 'sent',
         sentAt: new Date(),
       });
-      sendToUser(User, doc.userId, { title: 'Support Reply ðŸ“©', body: 'Your message has been replied to.', data: { type: 'support_reply' } });
+      sendToUser(User, doc.userId, { title: 'Support Reply 📩', body: 'Your message has been replied to.', data: { type: 'support_reply' } });
     }
 
     res.json({ success: true, message: updated });

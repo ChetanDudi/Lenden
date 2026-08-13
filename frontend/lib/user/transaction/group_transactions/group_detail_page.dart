@@ -1,6 +1,7 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_colors.dart';
+import '../../../widgets/app_widgets.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../../../session.dart';
@@ -90,6 +91,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   late Map<String, dynamic> _group;
   bool _loading = false;
   bool _uploadingImage = false;
+  String? _error;
   String? _userEmail;
   bool _isCreator = false;
 
@@ -104,7 +106,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final res = await ApiClient.get('/api/group-transactions/user-groups');
       if (res.statusCode == 200) {
@@ -116,7 +118,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
           orElse: () => _group,
         );
         if (mounted) setState(() => _group = updated);
+      } else {
+        if (mounted) setState(() => _error = 'Failed to load group details. Please try again.');
       }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Failed to load group details. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1057,7 +1063,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 ),
 
                 // ── Scrollable body ───────────────────────────────────
-                Expanded(child: RefreshIndicator(
+                Expanded(child: _error != null
+                    ? errorStateWidget(context, _error!, _refresh)
+                    : RefreshIndicator(
                   onRefresh: _refresh,
                   color: AppColors.cyan,
                   child: SingleChildScrollView(

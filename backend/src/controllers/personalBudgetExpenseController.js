@@ -38,13 +38,16 @@ exports.addExpense = async (req, res) => {
       return res.status(403).json({ error: 'Cannot add expenses after budget deadline or when budget is closed.' });
     }
 
-    const { amount, category, description, date, allocationName } = req.body;
+    const { amount, category, description, date, allocationName, scheduledFor } = req.body;
     if (!amount || !category) return res.status(400).json({ error: 'amount and category are required.' });
 
     const prevTotal = await PersonalBudgetExpense.aggregate([
-      { $match: { budget: budget._id, isDeleted: { $ne: true } } },
+      { $match: { budget: budget._id, isDeleted: { $ne: true }, status: 'active' } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]).then(r => r[0]?.total ?? 0);
+
+    const parsedScheduledFor = scheduledFor ? new Date(scheduledFor) : null;
+    const isScheduled = parsedScheduledFor && parsedScheduledFor > new Date();
 
     const expense = await PersonalBudgetExpense.create({
       budget:         budget._id,
@@ -54,9 +57,13 @@ exports.addExpense = async (req, res) => {
       allocationName: allocationName?.trim() || null,
       description:    description?.trim() || '',
       date:           date ? new Date(date) : new Date(),
+      scheduledFor:   parsedScheduledFor,
+      status:         isScheduled ? 'scheduled' : 'active',
     });
 
-    const newTotal = prevTotal + expense.amount;
+    // Only active expenses count toward limit thresholds
+    const activeAmount = isScheduled ? 0 : expense.amount;
+    const newTotal = prevTotal + activeAmount;
     const prevPct  = budget.limit > 0 ? (prevTotal / budget.limit) * 100 : 0;
     const newPct   = budget.limit > 0 ? (newTotal  / budget.limit) * 100 : 0;
 
@@ -82,21 +89,30 @@ exports.getExpenses = async (req, res) => {
     const budget = await getBudgetForUser(req.params.budgetId, req.user._id);
     if (!budget) return res.status(404).json({ error: 'Budget not found.' });
 
+    // Auto-transition scheduled expenses whose scheduledFor date has passed
+    const now = new Date();
+    await PersonalBudgetExpense.updateMany(
+      { budget: budget._id, isDeleted: { $ne: true }, status: 'scheduled', scheduledFor: { $lte: now } },
+      { $set: { status: 'active' } }
+    );
+
     const expenses = await PersonalBudgetExpense.find({ budget: budget._id, isDeleted: { $ne: true } })
       .sort({ date: -1 }).lean();
 
-    const total = expenses.reduce((s, e) => s + e.amount, 0);
+    // Only active expenses count toward total spend
+    const total = expenses.reduce((s, e) => s + (e.status === 'active' ? e.amount : 0), 0);
 
-    // Category breakdown
+    // Category breakdown (active expenses only for amounts; all expenses for counts)
     const byCategory = {};
     for (const e of expenses) {
-      byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
+      if (!byCategory[e.category]) byCategory[e.category] = { amount: 0 };
+      if (e.status === 'active') byCategory[e.category].amount += e.amount;
     }
 
-    // Per-allocation spending
+    // Per-allocation spending (active only)
     const byAllocation = {};
     for (const e of expenses) {
-      if (e.allocationName) {
+      if (e.allocationName && e.status === 'active') {
         byAllocation[e.allocationName] = (byAllocation[e.allocationName] || 0) + e.amount;
       }
     }
@@ -110,7 +126,7 @@ exports.getExpenses = async (req, res) => {
       expenses,
       total,
       byCategory: Object.entries(byCategory)
-        .map(([cat, amt]) => ({ category: cat, amount: amt }))
+        .map(([cat, data]) => ({ category: cat, amount: data.amount }))
         .sort((a, b) => b.amount - a.amount),
       budget: {
         _id:        budget._id,

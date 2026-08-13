@@ -259,6 +259,9 @@ const userSchema = new mongoose.Schema({
       createdAt: { type: Date, default: Date.now }
     }
   ],
+  closeFriends:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  closeCounterparties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  bookmarkedNotes:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'Note' }],
 }, { timestamps: true });
 
 userSchema.index({ email: 1 });

@@ -1,5 +1,7 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
+const QuickTransaction = require('../models/quickTransaction');
+const Transaction = require('../models/transaction');
 const { computeTrustScore } = require('../utils/trustScore');
 const { FEATURES, hasFeature } = require('../utils/subscriptionFeatures');
 
@@ -16,7 +18,15 @@ exports.getUserProfile = async (req, res) => {
     if (userObj.profileImage) {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;
     }
-    userObj.trustScore = await computeTrustScore(user.email);
+    const [quickCount, secureCount, trustScore] = await Promise.all([
+      QuickTransaction.countDocuments({ users: user.email }),
+      Transaction.countDocuments({ userEmail: user.email }),
+      computeTrustScore(user.email),
+    ]);
+    userObj.trustScore = trustScore;
+    userObj.friendCount = user.friends?.length ?? 0;
+    userObj.quickTransactionCount = quickCount;
+    userObj.secureTransactionCount = secureCount;
     res.json(userObj);
   } catch (err) {
     console.error(err);

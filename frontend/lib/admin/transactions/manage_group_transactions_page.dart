@@ -892,9 +892,7 @@ class _ManageGroupTransactionsPageState
                   child: loading
                       ? const Center(child: CircularProgressIndicator())
                       : error != null
-                          ? Center(
-                              child: Text(error!,
-                                  style: const TextStyle(color: Colors.red)))
+                          ? errorStateWidget(context, error!, _fetchGroups)
                           : SingleChildScrollView(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                               child: Column(

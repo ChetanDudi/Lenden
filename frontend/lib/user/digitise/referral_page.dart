@@ -19,6 +19,7 @@ class ReferralPage extends StatefulWidget {
 
 class _ReferralPageState extends State<ReferralPage> {
   bool _loading = true;
+  String? _error;
   String _referralCode = '';
   String _inviteLink = '';
   String _message = '';
@@ -43,7 +44,7 @@ class _ReferralPageState extends State<ReferralPage> {
   }
 
   Future<void> _fetchReferralInfo() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final res = await ApiClient.get('/api/referral/me');
       if (res.statusCode == 200) {
@@ -66,10 +67,10 @@ class _ReferralPageState extends State<ReferralPage> {
           _loading = false;
         });
       } else {
-        setState(() => _loading = false);
+        setState(() { _error = 'Failed to load referral info. Please try again.'; _loading = false; });
       }
     } catch (_) {
-      setState(() => _loading = false);
+      setState(() { _error = 'Failed to load referral info. Please try again.'; _loading = false; });
     }
   }
 
@@ -179,7 +180,9 @@ class _ReferralPageState extends State<ReferralPage> {
           SafeArea(
             child: _loading
               ? const Center(child: CircularProgressIndicator(color: Colors.white))
-              : RefreshIndicator(
+              : _error != null
+                ? errorStateWidget(context, _error!, _fetchReferralInfo)
+                : RefreshIndicator(
                   onRefresh: _fetchReferralInfo,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),

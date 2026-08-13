@@ -57,6 +57,9 @@ class _QuickTransactionDetailPageState
   bool _isLoading = false;
   bool _didMutate = false;
   String? _currentUserEmail;
+  bool _isCloseCounterparty = false;
+  String? _counterpartyUserId;
+  bool _togglingClose = false;
 
   @override
   void initState() {
@@ -65,6 +68,52 @@ class _QuickTransactionDetailPageState
     final session = Provider.of<SessionProvider>(context, listen: false);
     _currentUserEmail =
         (session.user?['email'] ?? '').toString().toLowerCase().trim();
+    _fetchCounterpartyInfo();
+  }
+
+  Future<void> _fetchCounterpartyInfo() async {
+    final email = _counterpartyEmail;
+    if (email.isEmpty) return;
+    try {
+      final profileRes = await ApiClient.get(
+          '/api/users/profile-by-email?email=${Uri.encodeComponent(email)}');
+      if (profileRes.statusCode == 200) {
+        final profile = jsonDecode(profileRes.body) as Map<String, dynamic>;
+        final userId = profile['_id']?.toString();
+        if (userId != null && userId.isNotEmpty) {
+          final favRes = await ApiClient.get('/api/user/favourites');
+          if (favRes.statusCode == 200 && mounted) {
+            final favData = jsonDecode(favRes.body);
+            final closeList = (favData['closeCounterparties'] ?? []) as List;
+            final isClose = closeList.any((item) {
+              if (item is Map) return item['_id']?.toString() == userId;
+              return item.toString() == userId;
+            });
+            setState(() {
+              _counterpartyUserId = userId;
+              _isCloseCounterparty = isClose;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleCloseCounterparty() async {
+    if (_counterpartyUserId == null) return;
+    setState(() => _togglingClose = true);
+    try {
+      final res = await ApiClient.post(
+          '/api/user/favourites/close-counterparty/$_counterpartyUserId',
+          body: {});
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() => _isCloseCounterparty = data['added'] == true);
+        showSnack(context, data['message'] ?? 'Updated');
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _togglingClose = false);
+    }
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -725,6 +774,26 @@ class _QuickTransactionDetailPageState
           _counterpartyEmail,
           Icons.person_outline,
         ),
+        if (_counterpartyUserId != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: ActionChip(
+              avatar: Icon(
+                _isCloseCounterparty ? Icons.person_pin_rounded : Icons.person_add_alt_1_rounded,
+                size: 16,
+                color: _isCloseCounterparty ? AppColors.cyan : AppThemeColors.secondaryText(context),
+              ),
+              label: Text(
+                _isCloseCounterparty ? 'Close Counterparty' : 'Add as Close',
+                style: TextStyle(fontSize: 12, color: _isCloseCounterparty ? AppColors.cyan : AppThemeColors.secondaryText(context)),
+              ),
+              onPressed: _togglingClose ? null : _toggleCloseCounterparty,
+              backgroundColor: _isCloseCounterparty
+                  ? AppColors.cyan.withValues(alpha: 0.1)
+                  : AppThemeColors.surfaceBg(context),
+              side: BorderSide(color: _isCloseCounterparty ? AppColors.cyan.withValues(alpha: 0.3) : Colors.transparent),
+            ),
+          ),
       ],
     );
   }

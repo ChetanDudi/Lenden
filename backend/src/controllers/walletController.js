@@ -122,7 +122,7 @@ exports.verifyManualTopUp = async (req, res) => {
       return res.status(400).json({ error: 'Unexpected payment currency.' });
     }
     if (payment.amount !== expectedAmountInPaise) {
-      return res.status(400).json({ error: `Payment amount does not match â‚¹${amount}.` });
+      return res.status(400).json({ error: `Payment amount does not match ₹${amount}.` });
     }
     // The Payment Handle link has no notes tying a payment to a user, so a
     // captured ID is redeemable by whoever submits it first. Cap how long it stays
@@ -171,7 +171,7 @@ exports.verifyManualTopUp = async (req, res) => {
         senderModel: 'User',
         recipientType: 'all-admins',
         recipientModel: 'Admin',
-        message: `Wallet top-up: â‚¹${addedAmount} added by ${u?.name || u?.email || 'a user'} via Razorpay (Payment ID: ${capturedPaymentId}).`,
+        message: `Wallet top-up: ₹${addedAmount} added by ${u?.name || u?.email || 'a user'} via Razorpay (Payment ID: ${capturedPaymentId}).`,
         category: 'transaction',
         deliveryStatus: 'sent',
         sentAt: new Date(),
@@ -298,20 +298,20 @@ exports.pay = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Payment of â‚¹${amount} sent to ${receiver.email} successfully.`,
+          message: `Payment of ₹${amount} sent to ${receiver.email} successfully.`,
         }));
       }
       if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
-          message: `You received â‚¹${amount} from ${req.user.email}.`,
+          message: `You received ₹${amount} from ${req.user.email}.`,
         }));
       }
       if (receiverUser?.notificationSettings?.pushNotifications !== false) {
         sendToUser(User, receiver._id, {
-          title: 'Payment Received ðŸ’¸',
-          body: `You received â‚¹${amount} from ${req.user.email}.`,
+          title: 'Payment Received 💸',
+          body: `You received ₹${amount} from ${req.user.email}.`,
           data: { type: 'wallet_credit', amount: String(amount) },
         });
       }
@@ -595,7 +595,7 @@ exports.setWalletPin = async (req, res) => {
           message: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
         });
         sendToUser(User, req.user._id, {
-          title: 'Transaction PIN Updated ðŸ”',
+          title: 'Transaction PIN Updated 🔐',
           body: "Your transaction PIN was updated. If this wasn't you, contact support immediately.",
           data: { type: 'security' },
         });
@@ -688,20 +688,20 @@ exports.payToUserWithOtp = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `Payment of â‚¹${amount} sent to ${receiver.email} successfully.`,
+          message: `Payment of ₹${amount} sent to ${receiver.email} successfully.`,
         }));
       }
       if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
-          message: `You received â‚¹${amount} from ${senderDoc.email}.`,
+          message: `You received ₹${amount} from ${senderDoc.email}.`,
         }));
       }
       if (receiverUser?.notificationSettings?.pushNotifications !== false) {
         sendToUser(User, receiver._id, {
-          title: 'Payment Received ðŸ’¸',
-          body: `You received â‚¹${amount} from ${senderDoc.email}.`,
+          title: 'Payment Received 💸',
+          body: `You received ₹${amount} from ${senderDoc.email}.`,
           data: { type: 'wallet_credit', amount: String(amount) },
         });
       }
@@ -768,20 +768,20 @@ exports.qrPay = async (req, res) => {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [req.user._id], recipientModel: 'User', category: 'transaction',
-          message: `QR payment of â‚¹${parsedAmount} sent to ${receiver.email} successfully.`,
+          message: `QR payment of ₹${parsedAmount} sent to ${receiver.email} successfully.`,
         }));
       }
       if (receiverUser?.notificationSettings?.transactionNotifications !== false) {
         notifs.push(Notification.create({
           sender: req.user._id, senderModel: 'User', recipientType: 'specific-users',
           recipients: [receiver._id], recipientModel: 'User', category: 'transaction',
-          message: `You received â‚¹${parsedAmount} from ${req.user.email} via QR.`,
+          message: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
         }));
       }
       if (receiverUser?.notificationSettings?.pushNotifications !== false) {
         sendToUser(User, receiver._id, {
-          title: 'Payment Received ðŸ’¸',
-          body: `You received â‚¹${parsedAmount} from ${req.user.email} via QR.`,
+          title: 'Payment Received 💸',
+          body: `You received ₹${parsedAmount} from ${req.user.email} via QR.`,
           data: { type: 'wallet_credit', amount: String(parsedAmount) },
         });
       }
@@ -880,7 +880,7 @@ exports.paySubscription = async (req, res) => {
           message: `Your "${plan.name}" subscription is now active.`,
         });
         sendToUser(User, req.user._id, {
-          title: 'Subscription Activated ðŸŽ‰',
+          title: 'Subscription Activated 🎉',
           body: `Your "${plan.name}" plan is now active.`,
           data: { type: 'subscription_activated' },
         });
@@ -890,7 +890,7 @@ exports.paySubscription = async (req, res) => {
         senderModel: 'User',
         recipientType: 'all-admins',
         recipientModel: 'Admin',
-        message: `New subscription: ${u?.name || u?.email || 'A user'} purchased "${plan.name}" for â‚¹${actualPrice.toLocaleString('en-IN')} via wallet.`,
+        message: `New subscription: ${u?.name || u?.email || 'A user'} purchased "${plan.name}" for ₹${actualPrice.toLocaleString('en-IN')} via wallet.`,
         category: 'subscription',
         deliveryStatus: 'sent',
         sentAt: new Date(),

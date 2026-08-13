@@ -27,6 +27,7 @@ class _ActivityPageState extends State<ActivityPage> {
   Map<String, dynamic> stats = {};
   bool loading = true;
   bool loadingStats = true;
+  String? _error;
   String? selectedType;
   DateTime? startDate;
   DateTime? endDate;
@@ -106,9 +107,10 @@ class _ActivityPageState extends State<ActivityPage> {
         currentPage = 1;
         loading = true;
         _visibleCount = 5;
+        _error = null;
       });
     } else {
-      setState(() => loading = true);
+      setState(() { loading = true; _error = null; });
     }
 
     try {
@@ -174,12 +176,10 @@ class _ActivityPageState extends State<ActivityPage> {
         // Calculate insights after loading activities
         _calculateActivityInsights();
       } else {
-        setState(() => loading = false);
-        _showErrorDialog(AppLocalizations.of(context).t('failed_to_load_activities'));
+        setState(() { loading = false; _error = AppLocalizations.of(context).t('failed_to_load_activities'); });
       }
     } catch (e) {
-      setState(() => loading = false);
-      _showErrorDialog('${AppLocalizations.of(context).t('error_prefix')} $e');
+      setState(() { loading = false; _error = AppLocalizations.of(context).t('unable_to_connect_check_internet_message'); });
     }
   }
 
@@ -718,6 +718,11 @@ class _ActivityPageState extends State<ActivityPage> {
                       const SliverFillRemaining(
                         hasScrollBody: false,
                         child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_error != null)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: errorStateWidget(context, _error!, () => fetchActivities(refresh: true)),
                       )
                     else if (activities.isEmpty)
                       SliverFillRemaining(
@@ -1427,7 +1432,7 @@ class _ActivityPageState extends State<ActivityPage> {
       setState(() {
         activity['bookmarked'] = isBookmarked; // Revert on failure
       });
-      _showErrorDialog('${t('error_prefix')} $e');
+      _showErrorDialog(t('unable_to_connect_check_internet_message'));
     }
   }
 
@@ -1627,7 +1632,7 @@ class _ActivityPageState extends State<ActivityPage> {
                               showSnack(context, errorData['error'] ?? t('failed_to_delete_activity'), isError: true);
                             }
                           } catch (e) {
-                            showSnack(context, '${t('error_prefix')} $e', isError: true);
+                            showSnack(context, t('unable_to_connect_check_internet_message'), isError: true);
                           }
                         },
                         icon: const Icon(Icons.delete_forever,

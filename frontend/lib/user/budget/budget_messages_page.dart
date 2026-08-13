@@ -4,6 +4,7 @@ import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 
 class BudgetMessagesPage extends StatefulWidget {
   const BudgetMessagesPage({super.key});
@@ -137,11 +138,7 @@ class _BudgetMessagesPageState extends State<BudgetMessagesPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
           : _error != null
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(_error!, style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                  const SizedBox(height: 12),
-                  TextButton(onPressed: _fetch, child: const Text('Retry', style: TextStyle(color: AppColors.cyan))),
-                ]))
+              ? errorStateWidget(context, _error!, _fetch)
               : _messages.isEmpty
                   ? _buildEmpty(context)
                   : ListView.separated(

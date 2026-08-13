@@ -1,5 +1,6 @@
 module.exports = (router, { auth, isAdmin, io }) => {
   const friendController = require('../../controllers/friendController');
+  const userController = require('../../controllers/userController');
   const ratingController = require('../../controllers/ratingController');
   const AppratingController = require('../../controllers/AppratingController');
   const leaderboardController = require('../../controllers/leaderboardController');
@@ -59,4 +60,10 @@ module.exports = (router, { auth, isAdmin, io }) => {
 
   // 1-to-1 chat
   router.get('/chat/messages/:transactionId', auth, chatController.getMessages);
+
+  // Favourites (close friends, close counterparties, bookmarked notes)
+  router.get('/user/favourites', auth, userController.getFavourites);
+  router.post('/user/favourites/close-friend/:userId', auth, userController.toggleCloseFriend);
+  router.post('/user/favourites/close-counterparty/:userId', auth, userController.toggleCloseCounterparty);
+  router.post('/user/favourites/bookmarked-note/:noteId', auth, userController.toggleBookmarkedNote);
 };

@@ -1110,6 +1110,12 @@ exports.getRandomActiveAd = async (req, res) => {
       ad = ad || eligibleAds[eligibleAds.length - 1];
     }
 
+    // Unique ETag per call prevents 304 — ad selection is random so responses may always differ.
+    // Express only auto-generates an ETag when none is set, so setting one here locks it in.
+    const uniqueTag = `"${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}"`;
+    res.setHeader('ETag', uniqueTag);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
     if (!ad) {
       return res.json({ ad: null });
     }

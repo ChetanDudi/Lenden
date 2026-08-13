@@ -56,6 +56,7 @@ exports.getUserCounterparties = async (req, res) => {
       .lean();
 
     let counterpartiesList = profiles.map((p) => ({
+      _id: p._id.toString(),
       email: p.email,
       name: p.name,
       gender: p.gender || null,

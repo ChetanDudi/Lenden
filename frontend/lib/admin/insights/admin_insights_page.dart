@@ -6,6 +6,7 @@ import '../widgets/top_wave_clipper.dart';
 import '../../widgets/app_colors.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/search_tab_bar.dart';
+import '../../widgets/app_widgets.dart';
 
 class AdminInsightsPage extends StatefulWidget {
   const AdminInsightsPage({super.key});
@@ -647,13 +648,8 @@ class _AdminInsightsPageState extends State<AdminInsightsPage>
     child: child,
   );
 
-  Widget _errorView(String msg, VoidCallback retry) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    Icon(Icons.error_outline_rounded, size: 48, color: Colors.red.withValues(alpha: 0.7)),
-    const SizedBox(height: 12),
-    Text(msg, style: TextStyle(color: AppThemeColors.secondaryText(context))),
-    const SizedBox(height: 12),
-    ElevatedButton(onPressed: retry, style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan), child: const Text('Retry', style: TextStyle(color: Colors.white))),
-  ]));
+  Widget _errorView(String msg, VoidCallback retry) =>
+      errorStateWidget(context, msg, retry);
 
   Widget _emptyView(String msg, IconData icon) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
     Icon(icon, size: 56, color: AppThemeColors.secondaryText(context).withValues(alpha: 0.5)),

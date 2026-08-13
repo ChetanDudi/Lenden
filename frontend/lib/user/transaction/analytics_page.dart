@@ -2676,71 +2676,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
     }
 
     if (error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.red[300]!, Colors.orange[400]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(21),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                  decoration: BoxDecoration(color: AppThemeColors.cardBg(context), borderRadius: BorderRadius.circular(18)),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
-                        child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red[400]),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(t('oops_something_went_wrong_message'),
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700]),
-                          textAlign: TextAlign.center),
-                      const SizedBox(height: 8),
-                      Text(error, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppThemeColors.secondaryText(context))),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: AppColors.tricolorGradientColors,
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: const EdgeInsets.all(2),
-                child: ElevatedButton.icon(
-                  onPressed: _refreshActiveTab,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cyan,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    elevation: 0,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return errorStateWidget(context, error, _refreshActiveTab);
     }
 
     if (analytics == null) {

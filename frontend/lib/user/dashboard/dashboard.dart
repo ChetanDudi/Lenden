@@ -43,6 +43,7 @@ import '../../widgets/birthday_banner.dart';
 import '../reports/reports_page.dart';
 import '../budget/budget_planning_page.dart';
 import '../insights/smart_insights_page.dart';
+import '../favorites/favorites_page.dart';
 import 'widgets/dashboard_clipper.dart';
 import 'widgets/dashboard_analytics_card.dart';
 import 'widgets/dashboard_option_card.dart';
@@ -282,6 +283,10 @@ class _UserDashboardPageState extends State<UserDashboardPage>
 
     try {
       final res = await ApiClient.get('/api/ads/random');
+      if (res.statusCode != 200) {
+        _scheduleNextAd();
+        return;
+      }
       final data = jsonDecode(res.body);
       final ad = data['ad'];
       if (!mounted || ad == null) {
@@ -782,7 +787,7 @@ class _UserDashboardPageState extends State<UserDashboardPage>
             context, MaterialPageRoute(builder: (_) => ActivityPage()));
         break;
       case 'favourites':
-        _showFavouritesDialog();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesPage()));
         break;
       case 'offers':
         Navigator.push(
@@ -819,143 +824,6 @@ class _UserDashboardPageState extends State<UserDashboardPage>
         );
         break;
     }
-  }
-
-  void _showFavouritesDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 16,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: AppThemeColors.isDark(context)
-                    ? [const Color(0xFF0F2E33), const Color(0xFF123840)]
-                    : [const Color(0xFFE0F7FA), const Color(0xFFB2EBF2)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Text(
-                    t('favourites_label'),
-                    style: TextStyle(
-                      fontSize: context.sp(22),
-                      fontWeight: FontWeight.bold,
-                      color: AppThemeColors.tinted(context,
-                          light: const Color(0xFF00796B),
-                          dark: const Color(0xFF4DD0E1)),
-                    ),
-                  ),
-                ),
-                _buildFavouriteItem(
-                  context,
-                  icon: Icons.shield,
-                  text: t('secure_label'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UserTransactionsPage(
-                          initialShowFavouritesOnly: true,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                _buildFavouriteItem(
-                  context,
-                  icon: Icons.group,
-                  text: t('groups_label'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => GroupTransactionPage(
-                          initialShowFavouritesOnly: true,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                _buildFavouriteItem(
-                  context,
-                  icon: Icons.bolt,
-                  text: t('quick_label'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => QuickTransactionsPage(
-                          initialShowFavouritesOnly: true,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: 20),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFavouriteItem(BuildContext context,
-      {required IconData icon,
-      required String text,
-      required VoidCallback onTap}) {
-    final favColor = AppThemeColors.tinted(context,
-        light: const Color(0xFF00796B), dark: const Color(0xFF4DD0E1));
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        decoration: BoxDecoration(
-          color: AppThemeColors.isDark(context)
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: favColor),
-            SizedBox(width: 20),
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: context.sp(16),
-                fontWeight: FontWeight.w500,
-                color: favColor,
-              ),
-            ),
-            Spacer(),
-            Icon(Icons.arrow_forward_ios, color: favColor, size: 16),
-          ],
-        ),
-      ),
-    );
   }
 
   @override

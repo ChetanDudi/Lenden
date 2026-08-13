@@ -604,9 +604,7 @@ class _ManageSupportQueriesPageState extends State<ManageSupportQueriesPage> {
                   child: _isLoading
                       ? Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Text(_error!,
-                                  style: TextStyle(color: Colors.red)))
+                          ? errorStateWidget(context, _error!, () => _fetchAllQueries())
                           : filteredQueries.isEmpty
                               ? Center(child: Text(t('no_support_queries_found'),
                                   style: TextStyle(color: AppThemeColors.secondaryText(context))))

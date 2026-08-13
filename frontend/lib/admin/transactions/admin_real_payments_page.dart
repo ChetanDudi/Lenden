@@ -6,6 +6,7 @@ import '../../widgets/app_colors.dart';
 import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/search_tab_bar.dart';
+import '../../widgets/app_widgets.dart';
 
 class AdminRealPaymentsPage extends StatefulWidget {
   const AdminRealPaymentsPage({super.key});
@@ -353,8 +354,7 @@ class _TopUpsTabState extends State<_TopUpsTab>
             const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
           else if (_error != null)
-            SliverFillRemaining(
-                child: Center(child: Text(_error!, style: const TextStyle(color: Colors.red))))
+            SliverFillRemaining(child: errorStateWidget(context, _error!, _fetch))
           else if (_topups.isEmpty)
             const SliverFillRemaining(
                 child: Center(child: Text('No wallet top-ups found.')))
@@ -649,8 +649,7 @@ class _WithdrawalsTabState extends State<_WithdrawalsTab>
             const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
           else if (_error != null)
-            SliverFillRemaining(
-                child: Center(child: Text(_error!, style: const TextStyle(color: Colors.red))))
+            SliverFillRemaining(child: errorStateWidget(context, _error!, _fetch))
           else if (_filtered.isEmpty)
             const SliverFillRemaining(child: Center(child: Text('No withdrawals found.')))
           else
@@ -1085,8 +1084,7 @@ class _SubscriptionsTabState extends State<_SubscriptionsTab>
             const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
           else if (_error != null)
-            SliverFillRemaining(
-                child: Center(child: Text(_error!, style: const TextStyle(color: Colors.red))))
+            SliverFillRemaining(child: errorStateWidget(context, _error!, _fetch))
           else if (_filtered.isEmpty)
             const SliverFillRemaining(child: Center(child: Text('No subscriptions found.')))
           else

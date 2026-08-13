@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../widgets/app_colors.dart';
+import '../../../widgets/app_widgets.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
@@ -121,18 +122,7 @@ class _GroupStatsPageState extends State<GroupStatsPage> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.error_outline, size: 48, color: AppThemeColors.mutedText(context)),
-                              const SizedBox(height: 12),
-                              Text(_error!, style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                              const SizedBox(height: 12),
-                              TextButton(onPressed: _load, child: Text(t('retry'))),
-                            ],
-                          ),
-                        )
+                      ? errorStateWidget(context, _error!, _load)
                       : _buildContent(context, t, isDark),
             ),
           ],

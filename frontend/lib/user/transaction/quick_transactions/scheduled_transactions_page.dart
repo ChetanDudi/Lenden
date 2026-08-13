@@ -16,6 +16,7 @@ class ScheduledTransactionsPage extends StatefulWidget {
 class _ScheduledTransactionsPageState extends State<ScheduledTransactionsPage> {
   List<Map<String, dynamic>> _scheduled = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -24,7 +25,7 @@ class _ScheduledTransactionsPageState extends State<ScheduledTransactionsPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final res = await ApiClient.get('/api/quick-transactions/scheduled');
       if (res.statusCode == 200) {
@@ -32,8 +33,12 @@ class _ScheduledTransactionsPageState extends State<ScheduledTransactionsPage> {
         if (mounted) {
           setState(() => _scheduled = List<Map<String, dynamic>>.from(data['scheduled'] ?? []));
         }
+      } else {
+        if (mounted) setState(() => _error = 'Failed to load scheduled transactions. Please try again.');
       }
-    } catch (_) {} finally {
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Failed to load scheduled transactions. Please try again.');
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -123,7 +128,9 @@ class _ScheduledTransactionsPageState extends State<ScheduledTransactionsPage> {
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : _scheduled.isEmpty
+                  : _error != null
+                      ? errorStateWidget(context, _error!, _load)
+                      : _scheduled.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,

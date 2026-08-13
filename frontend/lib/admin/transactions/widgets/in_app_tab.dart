@@ -10,6 +10,7 @@ import '../../../utils/pickers.dart';
 import '../../../utils/api_client.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../widgets/search_tab_bar.dart';
+import '../../../widgets/app_widgets.dart';
 
 
 // ── Category metadata ─────────────────────────────────────────────────────────
@@ -627,9 +628,7 @@ class _InAppTabState extends State<InAppTab> with AutomaticKeepAliveClientMixin 
             const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))
           else if (_error != null)
-            SliverFillRemaining(
-                child: Center(
-                    child: Text(_error!, style: const TextStyle(color: Colors.red))))
+            SliverFillRemaining(child: errorStateWidget(context, _error!, _fetch))
           else if (_txns.isEmpty)
             SliverFillRemaining(
                 child: Center(
@@ -1635,9 +1634,7 @@ class _UserDrilldownSheetState extends State<_UserDrilldownSheet> {
                   ? const Center(
                       child: CircularProgressIndicator(color: AppColors.cyan))
                   : _error != null
-                      ? Center(
-                          child: Text(_error!,
-                              style: const TextStyle(color: Colors.red)))
+                      ? errorStateWidget(context, _error!, _fetch)
                       : _txns.isEmpty
                           ? Center(
                               child: Text('No in-app transactions found.',

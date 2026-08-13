@@ -34,6 +34,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   Map<String, Map<String, dynamic>> _birthdayByEmail = {};
   final Set<String> _wishedFriendIds = {};
   final Map<String, int> _giftedCoins = {};
+  final Set<String> _closeCounterpartyIds = {};
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
     _fetchCounterparties();
     _fetchFriends();
     _loadBirthdayFriends();
+    _fetchCloseCounterparties();
   }
 
   @override
@@ -165,6 +167,37 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
             _giftedCoins.addAll(gifted);
           });
         }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchCloseCounterparties() async {
+    try {
+      final res = await ApiClient.get('/api/user/favourites');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        final list = (data['closeCounterparties'] as List?) ?? [];
+        setState(() {
+          _closeCounterpartyIds
+            ..clear()
+            ..addAll(list.map((c) => c['_id'].toString()));
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleCloseCounterparty(String userId) async {
+    try {
+      final res = await ApiClient.post('/api/user/favourites/close-counterparty/$userId');
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          if (data['added'] == true) {
+            _closeCounterpartyIds.add(userId);
+          } else {
+            _closeCounterpartyIds.remove(userId);
+          }
+        });
       }
     } catch (_) {}
   }
@@ -974,6 +1007,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                             final bid = bInfo?['_id']?.toString() ?? '';
                                             final hasWished = bInfo != null && _wishedFriendIds.contains(bid);
                                             final giftedAmt = bid.isNotEmpty ? (_giftedCoins[bid] ?? 0) : 0;
+                                            final cpId = cp['_id']?.toString() ?? '';
                                             return _CounterpartyGridCard(
                                               counterparty: cp,
                                               avatarProvider: _buildAvatarProvider(cp),
@@ -981,6 +1015,10 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                               birthdayInfo: bInfo,
                                               hasWished: hasWished,
                                               giftedAmount: giftedAmt,
+                                              isClose: cpId.isNotEmpty && _closeCounterpartyIds.contains(cpId),
+                                              onToggleClose: cpId.isNotEmpty
+                                                  ? () => _toggleCloseCounterparty(cpId)
+                                                  : null,
                                               onTap: () => _openCounterparty(cp),
                                             );
                                           },
@@ -1017,6 +1055,8 @@ class _CounterpartyGridCard extends StatelessWidget {
   final Map<String, dynamic>? birthdayInfo;
   final bool hasWished;
   final int giftedAmount;
+  final bool isClose;
+  final VoidCallback? onToggleClose;
 
   const _CounterpartyGridCard({
     required this.counterparty,
@@ -1026,6 +1066,8 @@ class _CounterpartyGridCard extends StatelessWidget {
     this.birthdayInfo,
     this.hasWished = false,
     this.giftedAmount = 0,
+    this.isClose = false,
+    this.onToggleClose,
   });
 
   @override
@@ -1099,6 +1141,26 @@ class _CounterpartyGridCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  Positioned(
+                    bottom: 8, right: 8,
+                    child: GestureDetector(
+                      onTap: onToggleClose,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: isClose
+                              ? Colors.orange.withValues(alpha: 0.9)
+                              : Colors.black.withValues(alpha: 0.28),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isClose ? Icons.handshake_rounded : Icons.handshake_outlined,
+                          size: 13,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
                   if (birthdayInfo != null)
                     Positioned(
                       top: 8, left: 8,

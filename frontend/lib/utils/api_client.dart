@@ -111,7 +111,7 @@ class ApiClient {
           throw UnsupportedError('Unsupported HTTP method: $method');
       }
     } catch (e) {
-      if (e is SocketException) {
+      if (e is SocketException || e is http.ClientException) {
         return http.Response('{"error":"No internet connection. Please check your network and try again."}', 503);
       }
       rethrow;

@@ -8,6 +8,7 @@ import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/search_tab_bar.dart';
+import '../../widgets/app_widgets.dart';
 
 class TrackUserActivityPage extends StatefulWidget {
   @override
@@ -369,10 +370,7 @@ class _TrackUserActivityPageState extends State<TrackUserActivityPage> {
                   child: _loading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Text(_error!,
-                                  style:
-                                      const TextStyle(color: Colors.red)))
+                          ? errorStateWidget(context, _error!, () => _fetchUserActivity(_searchedTerm!))
                           : _searchedTerm == null || _activities.isEmpty
                               ? _buildEmptyState()
                               : filtered.isEmpty

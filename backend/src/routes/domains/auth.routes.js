@@ -1,4 +1,5 @@
 module.exports = (router, { auth, sessionTimeout, loginLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter, upload, isAdmin }) => {
+  const rateLimit = require('express-rate-limit');
   const userController = require('../../controllers/userController');
   const forgotPasswordController = require('../../controllers/forgotPasswordController');
   const profileController = require('../../controllers/profileController');
@@ -6,19 +7,37 @@ module.exports = (router, { auth, sessionTimeout, loginLimiter, otpSendLimiter, 
   const settingsController = require('../../controllers/settingsController');
   const adminController = require('../../controllers/adminController');
 
+  // Username/email availability checks — throttled to prevent enumeration oracles.
+  const checkLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please slow down.' },
+  });
+
+  // Token refresh — generous but still blocks scripted token-farming loops.
+  const tokenRefreshLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many token refresh attempts. Please try again later.' },
+  });
+
   // Registration & login
-  router.post('/users/register', userController.register);
+  router.post('/users/register', loginLimiter, userController.register);
   router.post('/users/verify-otp', otpVerifyLimiter, userController.verifyOtp);
   router.post('/users/resend-otp', otpSendLimiter, userController.resendOtp);
   router.post('/users/login', loginLimiter, userController.login);
-  router.post('/users/google-login', userController.googleLogin);
-  router.post('/users/check-username', userController.checkUsername);
-  router.post('/users/check-email', userController.checkEmail);
+  router.post('/users/google-login', loginLimiter, userController.googleLogin);
+  router.post('/users/check-username', checkLimiter, userController.checkUsername);
+  router.post('/users/check-email', checkLimiter, userController.checkEmail);
   router.get('/users/list', auth, isAdmin, userController.listUsers);
   router.post('/users/send-login-otp', otpSendLimiter, userController.sendLoginOtp);
   router.post('/users/verify-login-otp', otpVerifyLimiter, userController.verifyLoginOtp);
   router.post('/users/login-with-otp', otpVerifyLimiter, userController.verifyLoginOtp);
-  router.post('/users/recover-account', userController.recoverAccount);
+  router.post('/users/recover-account', otpSendLimiter, userController.recoverAccount);
 
   // Password reset (unauthenticated)
   router.post('/users/send-reset-otp', otpSendLimiter, forgotPasswordController.sendResetOtp);
@@ -26,7 +45,7 @@ module.exports = (router, { auth, sessionTimeout, loginLimiter, otpSendLimiter, 
   router.post('/users/reset-password', passwordResetLimiter, forgotPasswordController.resetPassword);
 
   // Token & session management
-  router.post('/users/refresh-token', userController.refreshToken);
+  router.post('/users/refresh-token', tokenRefreshLimiter, userController.refreshToken);
   router.post('/users/fcm-token', auth, userController.saveFcmToken);
   router.post('/users/logout', userController.logout);
   router.post('/users/logout-all-devices', auth, userController.logoutAllDevices);

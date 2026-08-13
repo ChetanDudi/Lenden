@@ -321,26 +321,32 @@ exports.sendFriendRequest = async (req, res) => {
     await logFriendActivity(user._id, 'friend_request_sent', { to: target.email });
     await logFriendActivity(target._id, 'friend_request_received', { from: user.email });
 
-    // Notification for recipient (if enabled)
-    const recipientUser = await User.findById(target._id, 'notificationSettings');
-    if (recipientUser?.notificationSettings?.friendNotifications !== false) {
-      await Notification.create({
-        sender: user._id,
-        senderModel: 'User',
-        recipientType: 'specific-users',
-        recipients: [target._id],
-        recipientModel: 'User',
-        category: 'friend',
-        message: `Friend request from ${user.name || user.username || user.email}`,
-      });
-      sendToUser(User, target._id, {
-        title: 'New Friend Request 👋',
-        body: `${user.name || user.username || user.email} sent you a friend request.`,
-        data: { type: 'friend_request' },
-      });
-    }
-
+    // Respond immediately — notification failures must never block the success response
     res.status(201).json({ message: 'Request sent', requestId: request._id });
+
+    // Fire-and-forget: send notification to recipient if enabled
+    User.findById(target._id, 'notificationSettings')
+      .then((recipientUser) => {
+        if (recipientUser?.notificationSettings?.friendNotifications === false) return;
+        const senderName = user.name || user.username || user.email;
+        return Notification.create({
+          sender: user._id,
+          senderModel: 'User',
+          recipientType: 'specific-users',
+          recipients: [target._id],
+          recipientModel: 'User',
+          category: 'friend',
+          title: 'New Friend Request 👋',
+          message: `Friend request from ${senderName}`,
+        }).then(() => {
+          sendToUser(User, target._id, {
+            title: 'New Friend Request 👋',
+            body: `${senderName} sent you a friend request.`,
+            data: { type: 'friend_request' },
+          });
+        });
+      })
+      .catch((err) => console.error('Friend request notification failed:', err.message));
   } catch (error) {
     if (error.code === 11000) {
       return res.status(200).json({ message: 'Request already pending' });

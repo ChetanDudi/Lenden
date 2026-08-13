@@ -22,7 +22,6 @@ const walletTransactionSchema = new mongoose.Schema({
   sourceType: {
     type: String,
     enum: ['p2p', 'qr_internal', 'qr_external', 'quick', 'secure', 'group', 'subscription', 'coins', 'withdrawal'],
-    default: null,
   },
   adminFlagged: { type: Boolean, default: false },
   status: { type: String, enum: ['processing', 'processed', 'failed', 'reversed'] },

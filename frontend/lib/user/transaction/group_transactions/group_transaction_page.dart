@@ -230,11 +230,11 @@ class _GroupTransactionPageState extends State<GroupTransactionPage> {
         final data = json.decode(res.body);
         final loaded =
             List<Map<String, dynamic>>.from(data['groups'] ?? []);
+        userGroups = loaded;
+        _filterAndSearchGroups(); // populate filteredGroups while groupsLoading is still true
         setState(() {
-          userGroups = loaded;
           groupsLoading = false;
         });
-        _filterAndSearchGroups();
       } else {
         final t = AppLocalizations.of(context).t;
         setState(() {

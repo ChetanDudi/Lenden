@@ -500,10 +500,7 @@ class _ManageQuickTransactionsPageState
                   child: _loading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Text(_error!,
-                                  style: const TextStyle(
-                                      color: Colors.red)))
+                          ? errorStateWidget(context, _error!, _fetchTransactions)
                           : SingleChildScrollView(
                               padding: const EdgeInsets.fromLTRB(
                                   16, 8, 16, 24),

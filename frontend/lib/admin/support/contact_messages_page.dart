@@ -914,27 +914,7 @@ class _ContactMessagesPageState extends State<ContactMessagesPage> {
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red[300]),
-                                  const SizedBox(height: 12),
-                                  Text(_error!,
-                                      style: const TextStyle(
-                                          color: Colors.red)),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        _fetchMessages(reset: true),
-                                    child: Text(t('retry')),
-                                  ),
-                                ],
-                              ),
-                            )
+                          ? errorStateWidget(context, _error!, () => _fetchMessages(reset: true))
                           : _messages.isEmpty
                               ? Center(
                                   child: Column(

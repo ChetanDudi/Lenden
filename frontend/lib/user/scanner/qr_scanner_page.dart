@@ -123,7 +123,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
     if (uri.scheme == 'lenden' && uri.host == 'pay') {
       await _handleLenDenPay(uri);
     } else {
-      _resetProcessing();
+      // Don't restart scanner here — _showUnknownQrDialog restarts it on dismiss
       _showUnknownQrDialog(raw);
     }
   }
@@ -249,7 +249,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
           ],
         ),
       ),
-    );
+    ).whenComplete(_resetProcessing);
   }
 
   // ── LenDen wallet-to-wallet ────────────────────────────────────────────────

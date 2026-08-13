@@ -74,7 +74,7 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
       if (!mounted) return;
       final t = AppLocalizations.of(context).t;
       setState(() {
-        _error = '${t('error_prefix')} $e';
+        _error = t('unable_to_connect_check_internet_message');
         _isLoading = false;
       });
     }
@@ -88,23 +88,7 @@ class _PremiumBenefitsTabState extends State<PremiumBenefitsTab> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 48, color: Colors.red[300]),
-                      const SizedBox(height: 12),
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _fetchBenefits,
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: Text(t('retry')),
-                      ),
-                    ],
-                  ),
-                )
+              ? errorStateWidget(context, _error!, _fetchBenefits)
               : _benefits.isEmpty
                   ? Center(
                       child: Column(
