@@ -78,15 +78,21 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
         _total = _expenses
             .where((e) => (e['status'] as String? ?? 'active') == 'active')
             .fold(0.0, (s, e) => s + ((e['amount'] as num?)?.toDouble() ?? 0));
-        final catMap = <String, double>{};
+        final catAmounts = <String, double>{};
+        final catCounts  = <String, int>{};
         for (final e in _expenses) {
           if ((e['status'] as String? ?? 'active') == 'active') {
             final cat = e['category'] as String? ?? '';
-            catMap[cat] = (catMap[cat] ?? 0) + ((e['amount'] as num?)?.toDouble() ?? 0);
+            catAmounts[cat] = (catAmounts[cat] ?? 0) + ((e['amount'] as num?)?.toDouble() ?? 0);
+            catCounts[cat]  = (catCounts[cat]  ?? 0) + 1;
           }
         }
-        _byCategory = catMap.entries
-            .map((kvp) => <String, dynamic>{'category': kvp.key, 'amount': kvp.value})
+        _byCategory = catAmounts.entries
+            .map((kvp) => <String, dynamic>{
+              'category': kvp.key,
+              'amount':   kvp.value,
+              'count':    catCounts[kvp.key] ?? 0,
+            })
             .toList()
           ..sort((a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
         final b      = data['budget'] as Map<String, dynamic>;
@@ -141,6 +147,9 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
         break;
       case 'za':
         list.sort((a, b) => (b['category'] as String? ?? '').compareTo(a['category'] as String? ?? ''));
+        break;
+      case 'most_used':
+        list.sort((a, b) => ((b['count'] as int?) ?? 0).compareTo((a['count'] as int?) ?? 0));
         break;
       default: // highest
         list.sort((a, b) => ((b['amount'] as double?) ?? 0).compareTo((a['amount'] as double?) ?? 0));
@@ -367,6 +376,8 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                         shrinkWrap: true,
                         scrollDirection: Axis.horizontal,
                         children: [
+                          _catSortChip('most_used', Icons.trending_up_rounded, 'Most Used'),
+                          const SizedBox(width: 4),
                           _catSortChip('highest', Icons.arrow_downward_rounded, 'Highest'),
                           const SizedBox(width: 4),
                           _catSortChip('lowest', Icons.arrow_upward_rounded, 'Lowest'),
@@ -399,6 +410,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                             ...displayCats.map((c) {
                               final amt    = (c['amount'] as num?)?.toDouble() ?? 0;
                               final catPct = _total > 0 ? (amt / _total) * 100 : 0.0;
+                              final count = (c['count'] as int?) ?? 0;
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
                                 child: Column(children: [
@@ -406,9 +418,18 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                                     _categoryIcon(c['category'] as String? ?? ''),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Text(c['category'] as String? ?? '',
-                                          style: TextStyle(fontSize: context.sp(13),
-                                              color: AppThemeColors.primaryText(context))),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(c['category'] as String? ?? '',
+                                              style: TextStyle(fontSize: context.sp(13),
+                                                  color: AppThemeColors.primaryText(context))),
+                                          if (count > 0)
+                                            Text('$count expense${count == 1 ? '' : 's'}',
+                                                style: TextStyle(fontSize: context.sp(10),
+                                                    color: AppThemeColors.mutedText(context))),
+                                        ],
+                                      ),
                                     ),
                                     Text(_fmt(amt), style: TextStyle(
                                         fontSize: context.sp(13),
@@ -972,33 +993,47 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   color: AppThemeColors.secondaryText(context))),
               const SizedBox(height: 6),
               Builder(builder: (_) {
-                // Always visible: quick standard set + current selection (so it's never hidden)
+                // Top categories sorted by use count from existing expenses
+                final sortedByCount = List<Map<String, dynamic>>.from(_byCategory)
+                  ..sort((a, b) => ((b['count'] as int?) ?? 0).compareTo((a['count'] as int?) ?? 0));
+                final frequentCatNames = sortedByCount
+                    .where((c) => ((c['count'] as int?) ?? 0) > 0)
+                    .map((c) => c['category'] as String)
+                    .take(5)
+                    .toList();
+
+                // Standard cats (not in frequent)
                 final stdVisible = _expandCats
-                    ? kBudgetCategories
-                    : _kQuickCategories;
-                // Force-include the current selection even when collapsed
+                    ? kBudgetCategories.where((c) => !frequentCatNames.contains(c)).toList()
+                    : _kQuickCategories.where((c) => !frequentCatNames.contains(c)).toList();
+                // Force-include current selection if it's not shown anywhere
                 final extraForced = (!customCat &&
+                        !frequentCatNames.contains(category) &&
                         !stdVisible.contains(category) &&
                         !_dynamicCategories.contains(category))
                     ? [category]
                     : <String>[];
+                // Dynamic (user-custom) cats not in frequent
+                final dynNotFrequent = _dynamicCategories.where((c) => !frequentCatNames.contains(c)).toList();
                 final hiddenCount = _expandCats
                     ? 0
                     : kBudgetCategories
-                        .where((c) => !_kQuickCategories.contains(c))
+                        .where((c) => !_kQuickCategories.contains(c) && !frequentCatNames.contains(c))
                         .length;
 
+                void _selectStd(String c) => setS(() {
+                  category = c;
+                  customCat = false;
+                  customCatCtrl.clear();
+                  final match = _allocations.firstWhere(
+                    (a) => (a['name'] as String? ?? '').toLowerCase() == c.toLowerCase(),
+                    orElse: () => <String, dynamic>{},
+                  );
+                  if (match.isNotEmpty) selectedAllocation = match['name'] as String?;
+                });
+
                 Widget _stdChip(String c) => GestureDetector(
-                  onTap: () => setS(() {
-                    category = c;
-                    customCat = false;
-                    customCatCtrl.clear();
-                    final match = _allocations.firstWhere(
-                      (a) => (a['name'] as String? ?? '').toLowerCase() == c.toLowerCase(),
-                      orElse: () => <String, dynamic>{},
-                    );
-                    if (match.isNotEmpty) selectedAllocation = match['name'] as String?;
-                  }),
+                  onTap: () => _selectStd(c),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -1037,74 +1072,139 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                   ),
                 );
 
-                return Wrap(spacing: 6, runSpacing: 6, children: [
-                  ...stdVisible.map(_stdChip),
-                  ...extraForced.map(_stdChip),
-                  ..._dynamicCategories.map(_dynChip),
-                  // "View more / View less" toggle chip
-                  if (hiddenCount > 0)
-                    GestureDetector(
-                      onTap: () => setS(() => _expandCats = true),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppThemeColors.cardBg(context),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppThemeColors.border(context)),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.expand_more_rounded, size: 14,
-                              color: AppThemeColors.secondaryText(context)),
-                          const SizedBox(width: 4),
-                          Text('+$hiddenCount more', style: TextStyle(
-                            fontSize: context.sp(12),
-                            color: AppThemeColors.secondaryText(context),
-                          )),
-                        ]),
-                      ),
-                    ),
-                  if (_expandCats)
-                    GestureDetector(
-                      onTap: () => setS(() => _expandCats = false),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppThemeColors.cardBg(context),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppThemeColors.border(context)),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.expand_less_rounded, size: 14,
-                              color: AppThemeColors.secondaryText(context)),
-                          const SizedBox(width: 4),
-                          Text('View less', style: TextStyle(
-                            fontSize: context.sp(12),
-                            color: AppThemeColors.secondaryText(context),
-                          )),
-                        ]),
-                      ),
-                    ),
-                  // Custom category chip always last
-                  GestureDetector(
-                    onTap: () => setS(() => customCat = true),
+                // Frequently used chip — orange with ×N count badge
+                Widget _freqChip(String c) {
+                  final cnt = (sortedByCount.firstWhere(
+                    (x) => x['category'] == c, orElse: () => <String, dynamic>{'count': 0})['count'] as int?) ?? 0;
+                  final sel = !customCat && category == c;
+                  final isStd = kBudgetCategories.contains(c);
+                  return GestureDetector(
+                    onTap: () => isStd ? _selectStd(c) : setS(() { category = c; customCat = false; customCatCtrl.clear(); }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: customCat ? Colors.amber : AppThemeColors.cardBg(context),
+                        color: sel ? Colors.deepOrange.shade400 : Colors.orange.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: customCat ? Colors.amber : Colors.amber.withValues(alpha: 0.4),
+                          color: sel ? Colors.deepOrange.shade400 : Colors.orange.withValues(alpha: 0.45),
                         ),
                       ),
-                      child: Text('Custom…', style: TextStyle(
-                        fontSize: context.sp(12),
-                        color: customCat ? Colors.white : AppThemeColors.primaryText(context),
-                      )),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(c, style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: sel ? Colors.white : Colors.deepOrange.shade700,
+                          fontWeight: sel ? FontWeight.bold : FontWeight.w600,
+                        )),
+                        const SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: sel ? Colors.white.withValues(alpha: 0.25) : Colors.orange.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text('×$cnt', style: TextStyle(
+                            fontSize: context.sp(10),
+                            fontWeight: FontWeight.bold,
+                            color: sel ? Colors.white : Colors.deepOrange.shade600,
+                          )),
+                        ),
+                      ]),
                     ),
-                  ),
+                  );
+                }
+
+                Widget _label(String text, IconData icon, Color color) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(icon, size: 11, color: color),
+                    const SizedBox(width: 4),
+                    Text(text, style: TextStyle(
+                      fontSize: context.sp(10),
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                      letterSpacing: 0.4,
+                    )),
+                  ]),
+                );
+
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // ── Frequently used ──────────────────────────────
+                  if (frequentCatNames.isNotEmpty) ...[
+                    _label('FREQUENTLY USED', Icons.trending_up_rounded, Colors.deepOrange.shade500),
+                    Wrap(spacing: 6, runSpacing: 6, children: frequentCatNames.map(_freqChip).toList()),
+                    const SizedBox(height: 12),
+                  ],
+                  // ── All categories ───────────────────────────────
+                  _label('ALL CATEGORIES', Icons.grid_view_rounded, AppThemeColors.secondaryText(context)),
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    ...stdVisible.map(_stdChip),
+                    ...extraForced.map(_stdChip),
+                    ...dynNotFrequent.map(_dynChip),
+                    if (hiddenCount > 0)
+                      GestureDetector(
+                        onTap: () => setS(() => _expandCats = true),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: AppThemeColors.cardBg(context),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppThemeColors.border(context)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.expand_more_rounded, size: 14,
+                                color: AppThemeColors.secondaryText(context)),
+                            const SizedBox(width: 4),
+                            Text('+$hiddenCount more', style: TextStyle(
+                              fontSize: context.sp(12),
+                              color: AppThemeColors.secondaryText(context),
+                            )),
+                          ]),
+                        ),
+                      ),
+                    if (_expandCats)
+                      GestureDetector(
+                        onTap: () => setS(() => _expandCats = false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: AppThemeColors.cardBg(context),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppThemeColors.border(context)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.expand_less_rounded, size: 14,
+                                color: AppThemeColors.secondaryText(context)),
+                            const SizedBox(width: 4),
+                            Text('View less', style: TextStyle(
+                              fontSize: context.sp(12),
+                              color: AppThemeColors.secondaryText(context),
+                            )),
+                          ]),
+                        ),
+                      ),
+                    // Custom category chip always last
+                    GestureDetector(
+                      onTap: () => setS(() => customCat = true),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: customCat ? Colors.amber : AppThemeColors.cardBg(context),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: customCat ? Colors.amber : Colors.amber.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text('Custom…', style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: customCat ? Colors.white : AppThemeColors.primaryText(context),
+                        )),
+                      ),
+                    ),
+                  ]),
                 ]);
               }),
               if (customCat) ...[

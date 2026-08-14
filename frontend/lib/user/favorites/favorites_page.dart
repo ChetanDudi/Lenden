@@ -154,7 +154,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                 badge: _closeFriends.length,
                                 onTap: () => Navigator.push(context,
                                     MaterialPageRoute(builder: (_) =>
-                                        const FriendsPage())).then((_) => _fetchFavourites()),
+                                        const FriendsPage(initialShowCloseOnly: true))).then((_) => _fetchFavourites()),
                               ),
                               _navRow(
                                 icon: Icons.handshake_rounded,
@@ -166,7 +166,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                 badge: _closeCounterparties.length,
                                 onTap: () => Navigator.push(context,
                                     MaterialPageRoute(builder: (_) =>
-                                        const CounterpartiesPage())).then((_) => _fetchFavourites()),
+                                        const CounterpartiesPage(initialShowCloseOnly: true))).then((_) => _fetchFavourites()),
                               ),
                             ]),
                             _sectionCard(t('notes'), [

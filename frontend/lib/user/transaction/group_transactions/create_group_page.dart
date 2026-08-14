@@ -301,8 +301,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                       title: Text(name.isNotEmpty ? name : email,
                                           style: TextStyle(color: AppThemeColors.primaryText(context))),
                                       subtitle: name.isNotEmpty
-                                          ? Text(email,
-                                              style: TextStyle(color: AppThemeColors.secondaryText(context)))
+                                          ? SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              child: Text(
+                                                email,
+                                                style: TextStyle(color: AppThemeColors.secondaryText(context)),
+                                                softWrap: false,
+                                              ),
+                                            )
                                           : null,
                                       trailing: isBlocked
                                           ? Text(t('blocked_label'),

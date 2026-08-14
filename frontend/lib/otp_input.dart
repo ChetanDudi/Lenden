@@ -149,22 +149,40 @@ class _OtpInputState extends State<OtpInput> {
 
     if (!widget.showVisibilityToggle) return otpRow;
 
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(child: otpRow),
-        const SizedBox(width: 8),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip: _isObscured ? 'Show PIN' : 'Hide PIN',
-          onPressed: widget.enabled
-              ? () => setState(() => _isObscured = !_isObscured)
-              : null,
-          icon: Icon(
-            _isObscured
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
-            color: AppThemeColors.primaryText(context),
+        otpRow,
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: widget.enabled
+                ? () => setState(() => _isObscured = !_isObscured)
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _isObscured
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 16,
+                    color: AppThemeColors.secondaryText(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _isObscured ? 'Show' : 'Hide',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppThemeColors.secondaryText(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],

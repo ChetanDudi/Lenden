@@ -14,7 +14,8 @@ import '../../widgets/wave_widget.dart';
 import '../../widgets/search_tab_bar.dart';
 
 class CounterpartiesPage extends StatefulWidget {
-  const CounterpartiesPage({super.key});
+  final bool initialShowCloseOnly;
+  const CounterpartiesPage({super.key, this.initialShowCloseOnly = false});
 
   @override
   State<CounterpartiesPage> createState() => _CounterpartiesPageState();
@@ -35,10 +36,12 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   final Set<String> _wishedFriendIds = {};
   final Map<String, int> _giftedCoins = {};
   final Set<String> _closeCounterpartyIds = {};
+  bool _showCloseOnly = false;
 
   @override
   void initState() {
     super.initState();
+    _showCloseOnly = widget.initialShowCloseOnly;
     _fetchCounterparties();
     _fetchFriends();
     _loadBirthdayFriends();
@@ -686,7 +689,9 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
-    final filtered = _counterparties;
+    final filtered = _showCloseOnly
+        ? _counterparties.where((cp) => _closeCounterpartyIds.contains(cp['_id']?.toString())).toList()
+        : _counterparties;
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
@@ -794,6 +799,26 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                           _genderChip(t('female_label'), 'Female', icon: Icons.female),
                           const SizedBox(width: 6),
                           _genderChip(t('other_gender_label'), 'Other', icon: Icons.person_outline),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => setState(() => _showCloseOnly = !_showCloseOnly),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: _showCloseOnly ? Colors.orange : AppThemeColors.cardBg(context),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _showCloseOnly ? Colors.orange : Colors.grey.withValues(alpha: 0.35)),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.handshake_rounded, size: 13,
+                                  color: _showCloseOnly ? Colors.white : Colors.orange),
+                                const SizedBox(width: 4),
+                                Text('Close only', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                  color: _showCloseOnly ? Colors.white : AppThemeColors.secondaryText(context))),
+                              ]),
+                            ),
+                          ),
                         ]),
                       ),
                     ],

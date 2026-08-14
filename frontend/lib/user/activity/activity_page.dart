@@ -110,7 +110,10 @@ class _ActivityPageState extends State<ActivityPage> {
         _error = null;
       });
     } else {
-      setState(() { loading = true; _error = null; });
+      setState(() {
+        loading = true;
+        _error = null;
+      });
     }
 
     try {
@@ -176,10 +179,17 @@ class _ActivityPageState extends State<ActivityPage> {
         // Calculate insights after loading activities
         _calculateActivityInsights();
       } else {
-        setState(() { loading = false; _error = AppLocalizations.of(context).t('failed_to_load_activities'); });
+        setState(() {
+          loading = false;
+          _error = AppLocalizations.of(context).t('failed_to_load_activities');
+        });
       }
     } catch (e) {
-      setState(() { loading = false; _error = AppLocalizations.of(context).t('unable_to_connect_check_internet_message'); });
+      setState(() {
+        loading = false;
+        _error = AppLocalizations.of(context)
+            .t('unable_to_connect_check_internet_message');
+      });
     }
   }
 
@@ -587,12 +597,10 @@ class _ActivityPageState extends State<ActivityPage> {
 
   // ── date-grouped flat list ─────────────────────────────────────────────────
 
-  bool get _hasMore =>
-      _visibleCount < activities.length || hasNextPage;
+  bool get _hasMore => _visibleCount < activities.length || hasNextPage;
 
-  int get _remainingCount => totalItems > _visibleCount
-      ? totalItems - _visibleCount
-      : 0;
+  int get _remainingCount =>
+      totalItems > _visibleCount ? totalItems - _visibleCount : 0;
 
   List<dynamic> get _groupedActivities {
     if (activities.isEmpty) return [];
@@ -631,7 +639,8 @@ class _ActivityPageState extends State<ActivityPage> {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
       child: Row(children: [
         Container(
-          width: 3, height: 13,
+          width: 3,
+          height: 13,
           decoration: BoxDecoration(
             color: AppColors.cyan,
             borderRadius: BorderRadius.circular(2),
@@ -665,7 +674,8 @@ class _ActivityPageState extends State<ActivityPage> {
         foregroundColor: Colors.white,
         title: Text(
           t('activity_log_title'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
@@ -685,7 +695,9 @@ class _ActivityPageState extends State<ActivityPage> {
       body: Stack(
         children: [
           Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: ClipPath(
               clipper: const DeepTopWaveClipper(),
               child: Container(
@@ -722,7 +734,8 @@ class _ActivityPageState extends State<ActivityPage> {
                     else if (_error != null)
                       SliverFillRemaining(
                         hasScrollBody: false,
-                        child: errorStateWidget(context, _error!, () => fetchActivities(refresh: true)),
+                        child: errorStateWidget(context, _error!,
+                            () => fetchActivities(refresh: true)),
                       )
                     else if (activities.isEmpty)
                       SliverFillRemaining(
@@ -733,10 +746,12 @@ class _ActivityPageState extends State<ActivityPage> {
                       SliverList.builder(
                         itemCount: grouped.length + (_hasMore ? 1 : 0),
                         itemBuilder: (context, index) {
-                          if (index == grouped.length) return _buildLoadMoreButton();
+                          if (index == grouped.length)
+                            return _buildLoadMoreButton();
                           final item = grouped[index];
                           if (item is String) return _buildDateHeader(item);
-                          return _buildActivityCard(item as Map<String, dynamic>);
+                          return _buildActivityCard(
+                              item as Map<String, dynamic>);
                         },
                       ),
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -754,7 +769,7 @@ class _ActivityPageState extends State<ActivityPage> {
     final t = AppLocalizations.of(context).t;
     return AppSearchBar(
       controller: _searchController,
-      hintText: t('search_activities_hint'),
+      hintText: t('search activities'),
       isLoading: false,
       onChanged: (value) {
         setState(() => searchQuery = value);
@@ -1067,8 +1082,7 @@ class _ActivityPageState extends State<ActivityPage> {
           const SizedBox(height: 8),
           Text(
             t('activities_will_appear_here'),
-            style:
-                TextStyle(color: AppThemeColors.mutedText(context)),
+            style: TextStyle(color: AppThemeColors.mutedText(context)),
           ),
         ],
       ),
@@ -1086,8 +1100,9 @@ class _ActivityPageState extends State<ActivityPage> {
     final displayDescription = _formatActivityDescription(activity);
     final isBookmarked = activity['bookmarked'] ?? false;
     final isRating = type == 'user_rated' || type == 'user_rating_received';
-    final ratingValue =
-        metadata != null && metadata['rating'] != null ? metadata['rating'] : null;
+    final ratingValue = metadata != null && metadata['rating'] != null
+        ? metadata['rating']
+        : null;
     final color = isRating ? Colors.amber : _getActivityColor(type);
 
     return Container(
@@ -1190,8 +1205,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   Row(
                     children: [
                       Icon(Icons.access_time,
-                          size: 11,
-                          color: AppThemeColors.mutedText(context)),
+                          size: 11, color: AppThemeColors.mutedText(context)),
                       const SizedBox(width: 3),
                       Expanded(
                         child: Text(
@@ -1251,8 +1265,8 @@ class _ActivityPageState extends State<ActivityPage> {
                               value: 'delete',
                               child: ListTile(
                                 dense: true,
-                                leading: const Icon(Icons.delete,
-                                    color: Colors.red),
+                                leading:
+                                    const Icon(Icons.delete, color: Colors.red),
                                 title: Text(t('delete')),
                               ),
                             ),
@@ -1399,9 +1413,8 @@ class _ActivityPageState extends State<ActivityPage> {
     final isBookmarked = activity['bookmarked'] ?? false;
 
     ElegantNotification.info(
-      title: Text(isBookmarked
-          ? t('unbookmarking_label')
-          : t('bookmarking_label')),
+      title: Text(
+          isBookmarked ? t('unbookmarking_label') : t('bookmarking_label')),
       description: Text(t('please_wait_ellipsis')),
     ).show(context);
 
@@ -1626,13 +1639,20 @@ class _ActivityPageState extends State<ActivityPage> {
                               });
                               _calculateActivityInsights();
 
-                              showSnack(context, t('activity_deleted_successfully'));
+                              showSnack(
+                                  context, t('activity_deleted_successfully'));
                             } else {
                               final errorData = json.decode(response.body);
-                              showSnack(context, errorData['error'] ?? t('failed_to_delete_activity'), isError: true);
+                              showSnack(
+                                  context,
+                                  errorData['error'] ??
+                                      t('failed_to_delete_activity'),
+                                  isError: true);
                             }
                           } catch (e) {
-                            showSnack(context, t('unable_to_connect_check_internet_message'), isError: true);
+                            showSnack(context,
+                                t('unable_to_connect_check_internet_message'),
+                                isError: true);
                           }
                         },
                         icon: const Icon(Icons.delete_forever,
@@ -1766,6 +1786,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 });
               }
             }
+
             return Dialog(
               insetPadding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -1793,446 +1814,462 @@ class _ActivityPageState extends State<ActivityPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.max,
                     children: [
-                    // Header with gradient background
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.cyan, AppColors.cyan],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                      // Header with gradient background
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.cyan, AppColors.cyan],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
                         ),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          // Close button at the top right
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const SizedBox(
-                                  width: 40), // Spacer to center the content
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.filter_list_alt,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                              // Close button
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
+                        child: Column(
+                          children: [
+                            // Close button at the top right
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const SizedBox(
+                                    width: 40), // Spacer to center the content
+                                Container(
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(
-                                    Icons.close,
+                                    Icons.filter_list_alt,
                                     color: Colors.white,
-                                    size: 20,
+                                    size: 28,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            t('filter_activities_title'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            t('customize_activity_view'),
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Filter Content
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Activity Type Filter with enhanced styling
-                            Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.orange,
-                                    Colors.white,
-                                    Colors.green
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: AppThemeColors.cardBg(context),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: showTypeOptions,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 12),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.radio_button_checked,
-                                          color: AppColors.cyan,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.cyan
-                                                .withValues(alpha: 0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: const Icon(
-                                            Icons.category,
-                                            color: AppColors.cyan,
-                                            size: 20,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                t('activity_type_label'),
-                                                style: const TextStyle(
-                                                  color: AppColors.cyan,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              SingleChildScrollView(
-                                                scrollDirection: Axis.horizontal,
-                                                child: Text(
-                                                  tempSelectedType == null
-                                                      ? t('all_types')
-                                                      : _getActivityTypeDisplayName(
-                                                          tempSelectedType!),
-                                                  maxLines: 1,
-                                                  softWrap: false,
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    color: AppThemeColors
-                                                        .primaryText(context),
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Icon(Icons.chevron_right,
-                                            color: Colors.grey),
-                                      ],
+                                // Close button
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: Colors.grey.withValues(alpha: 0.18)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Switch(
-                                    value: tempShowBookmarkedOnly,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        tempShowBookmarkedOnly = value;
-                                      });
-                                    },
-                                    activeColor: AppColors.cyan,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.bookmark,
-                                      color: Colors.orange),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Text(
-                                        t('show_bookmarked_only'),
-                                        maxLines: 1,
-                                        softWrap: false,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: AppThemeColors.primaryText(
-                                              context),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              ],
                             ),
                             const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppThemeColors.cardBg(context),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: Colors.grey.withValues(alpha: 0.18)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Switch(
-                                    value: tempShowFriendOnly,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        tempShowFriendOnly = value;
-                                      });
-                                    },
-                                    activeColor: AppColors.cyan,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.people, color: Colors.teal),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Text(
-                                        t('friends_activity_only'),
-                                        maxLines: 1,
-                                        softWrap: false,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: AppThemeColors.primaryText(
-                                              context),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              t('filter_activities_title'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-
-                            const SizedBox(height: 16),
-
-                            // Date Range Section
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: Colors.grey.withValues(alpha: 0.2)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange.withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(
-                                          Icons.date_range,
-                                          color: Colors.orange,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        t('date_range_label'),
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppThemeColors.primaryText(
-                                              context),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // Date Range Buttons
-                                  SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                    children: [
-                                      _buildDateButton(
-                                        context: context,
-                                        label: t('start_date'),
-                                        date: tempStartDate,
-                                        onPressed: () async {
-                                          final date = await showAppDatePicker(
-                                            context: context,
-                                            initialDate:
-                                                tempStartDate ?? DateTime.now(),
-                                            firstDate: DateTime(2020),
-                                            lastDate: DateTime.now(),
-                                          );
-                                          if (date != null) {
-                                            setState(
-                                                () => tempStartDate = date);
-                                          }
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8),
-                                        child: const Icon(Icons.arrow_forward,
-                                            color: Colors.grey),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildDateButton(
-                                        context: context,
-                                        label: t('end_date'),
-                                        date: tempEndDate,
-                                        onPressed: () async {
-                                          final date = await showAppDatePicker(
-                                            context: context,
-                                            initialDate:
-                                                tempEndDate ?? DateTime.now(),
-                                            firstDate: DateTime(2020),
-                                            lastDate: DateTime.now(),
-                                          );
-                                          if (date != null) {
-                                            setState(() => tempEndDate = date);
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  ),
-                                ],
+                            const SizedBox(height: 4),
+                            Text(
+                              t('customize_activity_view'),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 14,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    ),
 
-                    // Action Buttons
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  tempSelectedType = null;
-                                  tempStartDate = null;
-                                  tempEndDate = null;
-                                  tempShowBookmarkedOnly = false;
-                                  tempShowFriendOnly = false;
-                                });
-                              },
-                              icon: const Icon(Icons.clear_all,
-                                  color: Colors.red),
-                              label: Text(
-                                t('clear_all'),
-                                style: const TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: const BorderSide(color: Colors.red),
+                      // Filter Content
+                      Flexible(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Activity Type Filter with enhanced styling
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Colors.orange,
+                                        Colors.white,
+                                        Colors.green
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: AppThemeColors.cardBg(context),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(12),
+                                      onTap: showTypeOptions,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 12),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.radio_button_checked,
+                                              color: AppColors.cyan,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.cyan
+                                                    .withValues(alpha: 0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(
+                                                Icons.category,
+                                                color: AppColors.cyan,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    t('activity_type_label'),
+                                                    style: const TextStyle(
+                                                      color: AppColors.cyan,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  SingleChildScrollView(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    child: Text(
+                                                      tempSelectedType == null
+                                                          ? t('all_types')
+                                                          : _getActivityTypeDisplayName(
+                                                              tempSelectedType!),
+                                                      maxLines: 1,
+                                                      softWrap: false,
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        color: AppThemeColors
+                                                            .primaryText(
+                                                                context),
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Icon(Icons.chevron_right,
+                                                color: Colors.grey),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppThemeColors.cardBg(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: Colors.grey
+                                            .withValues(alpha: 0.18)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Switch(
+                                        value: tempShowBookmarkedOnly,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            tempShowBookmarkedOnly = value;
+                                          });
+                                        },
+                                        activeColor: AppColors.cyan,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.bookmark,
+                                          color: Colors.orange),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Text(
+                                            t('show_bookmarked_only'),
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: AppThemeColors.primaryText(
+                                                  context),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppThemeColors.cardBg(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: Colors.grey
+                                            .withValues(alpha: 0.18)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Switch(
+                                        value: tempShowFriendOnly,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            tempShowFriendOnly = value;
+                                          });
+                                        },
+                                        activeColor: AppColors.cyan,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.people,
+                                          color: Colors.teal),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Text(
+                                            t('friends_activity_only'),
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: AppThemeColors.primaryText(
+                                                  context),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                // Date Range Section
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.2)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(
+                                              Icons.date_range,
+                                              color: Colors.orange,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            t('date_range_label'),
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppThemeColors.primaryText(
+                                                  context),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      // Date Range Buttons
+                                      SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            _buildDateButton(
+                                              context: context,
+                                              label: t('start_date'),
+                                              date: tempStartDate,
+                                              onPressed: () async {
+                                                final date =
+                                                    await showAppDatePicker(
+                                                  context: context,
+                                                  initialDate: tempStartDate ??
+                                                      DateTime.now(),
+                                                  firstDate: DateTime(2020),
+                                                  lastDate: DateTime.now(),
+                                                );
+                                                if (date != null) {
+                                                  setState(() =>
+                                                      tempStartDate = date);
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8),
+                                              child: const Icon(
+                                                  Icons.arrow_forward,
+                                                  color: Colors.grey),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            _buildDateButton(
+                                              context: context,
+                                              label: t('end_date'),
+                                              date: tempEndDate,
+                                              onPressed: () async {
+                                                final date =
+                                                    await showAppDatePicker(
+                                                  context: context,
+                                                  initialDate: tempEndDate ??
+                                                      DateTime.now(),
+                                                  firstDate: DateTime(2020),
+                                                  lastDate: DateTime.now(),
+                                                );
+                                                if (date != null) {
+                                                  setState(
+                                                      () => tempEndDate = date);
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                this.setState(() {
-                                  selectedType = tempSelectedType;
-                                  startDate = tempStartDate;
-                                  endDate = tempEndDate;
-                                  _showBookmarkedOnly =
-                                      tempShowBookmarkedOnly;
-                                  _showFriendOnly = tempShowFriendOnly;
-                                  currentPage = 1;
-                                });
-                                Navigator.of(context).pop();
-                                fetchActivities(refresh: true);
-                                fetchStats();
-                              },
-                              icon:
-                                  const Icon(Icons.check, color: Colors.white),
-                              label: Text(
-                                t('apply_filters'),
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.cyan,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 2,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+
+                      // Action Buttons
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    tempSelectedType = null;
+                                    tempStartDate = null;
+                                    tempEndDate = null;
+                                    tempShowBookmarkedOnly = false;
+                                    tempShowFriendOnly = false;
+                                  });
+                                },
+                                icon: const Icon(Icons.clear_all,
+                                    color: Colors.red),
+                                label: Text(
+                                  t('clear_all'),
+                                  style: const TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                style: TextButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: const BorderSide(color: Colors.red),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  this.setState(() {
+                                    selectedType = tempSelectedType;
+                                    startDate = tempStartDate;
+                                    endDate = tempEndDate;
+                                    _showBookmarkedOnly =
+                                        tempShowBookmarkedOnly;
+                                    _showFriendOnly = tempShowFriendOnly;
+                                    currentPage = 1;
+                                  });
+                                  Navigator.of(context).pop();
+                                  fetchActivities(refresh: true);
+                                  fetchStats();
+                                },
+                                icon: const Icon(Icons.check,
+                                    color: Colors.white),
+                                label: Text(
+                                  t('apply_filters'),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.cyan,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  elevation: 2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -2301,14 +2338,12 @@ class _ActivityPageState extends State<ActivityPage> {
         decoration: BoxDecoration(
           color: selected
               ? AppThemeColors.tinted(context,
-                  light: const Color(0xFFE9F8FC),
-                  dark: const Color(0xFF13242A))
+                  light: const Color(0xFFE9F8FC), dark: const Color(0xFF13242A))
               : AppThemeColors.cardBg(context),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected
-                ? AppColors.cyan
-                : Colors.grey.withValues(alpha: 0.20),
+            color:
+                selected ? AppColors.cyan : Colors.grey.withValues(alpha: 0.20),
           ),
         ),
         child: Row(
@@ -2350,4 +2385,3 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 }
-

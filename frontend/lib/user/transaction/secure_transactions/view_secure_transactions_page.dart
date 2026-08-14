@@ -402,6 +402,43 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     await fetchTransactions(append: true);
   }
 
+  bool _isSecureFavourited(Map t) {
+    final email = Provider.of<SessionProvider>(context, listen: false).user?['email'];
+    if (email == null) return false;
+    final favList = t['favourite'];
+    return favList is List && favList.contains(email);
+  }
+
+  Future<void> _toggleSecureFavourite(Map<String, dynamic> t) async {
+    final tid = t['transactionId']?.toString() ?? '';
+    if (tid.isEmpty) return;
+    final email = Provider.of<SessionProvider>(context, listen: false).user?['email'];
+    if (email == null) return;
+    final fav = List<dynamic>.from(t['favourite'] is List ? t['favourite'] : []);
+    final isFav = fav.contains(email);
+    // Optimistic update
+    if (isFav) { fav.remove(email); } else { fav.add(email); }
+    setState(() {
+      for (final list in [lending, borrowing]) {
+        final idx = list.indexWhere((tx) => tx['transactionId']?.toString() == tid);
+        if (idx != -1) list[idx] = {...Map<String, dynamic>.from(list[idx]), 'favourite': List<dynamic>.from(fav)};
+      }
+    });
+    try {
+      final res = await ApiClient.put('/api/transactions/$tid/favourite', body: {'email': email});
+      if (res.statusCode != 200 && mounted) {
+        // Revert on failure
+        if (isFav) { fav.add(email); } else { fav.remove(email); }
+        setState(() {
+          for (final list in [lending, borrowing]) {
+            final idx = list.indexWhere((tx) => tx['transactionId']?.toString() == tid);
+            if (idx != -1) list[idx] = {...Map<String, dynamic>.from(list[idx]), 'favourite': List<dynamic>.from(fav)};
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
   Widget _buildTransactionCard(Map t, bool isLending) {
     final tr = AppLocalizations.of(context).t;
     final user = Provider.of<SessionProvider>(context, listen: false).user;
@@ -497,6 +534,18 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                         Text('${tr('time')}: $timeStr',
                             style: TextStyle(fontSize: 14, color: AppThemeColors.primaryText(context))),
                         Spacer(),
+                        GestureDetector(
+                          onTap: () => _toggleSecureFavourite(Map<String, dynamic>.from(t)),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            child: Icon(
+                              _isSecureFavourited(t) ? Icons.favorite : Icons.favorite_border,
+                              color: _isSecureFavourited(t) ? Colors.redAccent : Colors.grey,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 4),
                         Icon(Icons.chevron_right, color: Colors.teal, size: 20),
                       ],
                     ),

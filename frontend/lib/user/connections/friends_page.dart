@@ -20,7 +20,8 @@ import './widgets/mutual_friends_sheet.dart';
 import '../../widgets/search_tab_bar.dart';
 
 class FriendsPage extends StatefulWidget {
-  const FriendsPage({Key? key}) : super(key: key);
+  final bool initialShowCloseOnly;
+  const FriendsPage({Key? key, this.initialShowCloseOnly = false}) : super(key: key);
 
   @override
   State<FriendsPage> createState() => _FriendsPageState();
@@ -43,6 +44,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   final Set<String> _wishedFriendIds = {};
   final Map<String, int> _giftedCoins = {};
   Set<String> _closeFriendIds = {};
+  bool _showCloseOnly = false;
   bool _suggestionsLoading = true;
   final Set<String> _pendingOutgoingIds = {};
   final Set<String> _selectedForGroup = {};
@@ -66,6 +68,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _showCloseOnly = widget.initialShowCloseOnly;
     _fetchFriends();
     _fetchFriendBalances();
     _fetchCloseFriendIds();
@@ -1496,6 +1499,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final pendingCount = _incoming.length;
+    final displayFriends = _showCloseOnly
+        ? _friends.where((f) => _closeFriendIds.contains(f['_id']?.toString())).toList()
+        : _friends;
 
     return Scaffold(
       backgroundColor: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF121212)),
@@ -1814,7 +1820,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                 ],
 
                                 // â”€â”€ Friends list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                                _sectionHeader(t('your_friends_label'), _friends.length),
+                                _sectionHeader(t('your_friends_label'), displayFriends.length),
                                 const SizedBox(height: 10),
                                 // Search box
                                 Container(
@@ -1872,8 +1878,30 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     _sortChipF(t('sort_rating_label'), 'rating'),
                                   ]),
                                 ),
+                                const SizedBox(height: 6),
+                                // Close friends filter
+                                GestureDetector(
+                                  onTap: () => setState(() => _showCloseOnly = !_showCloseOnly),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 160),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: _showCloseOnly ? Colors.amber : AppThemeColors.cardBg(context),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: _showCloseOnly ? Colors.amber : AppThemeColors.divider(context)),
+                                    ),
+                                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                      Icon(Icons.star_rounded, size: 13,
+                                        color: _showCloseOnly ? Colors.white : Colors.amber),
+                                      const SizedBox(width: 4),
+                                      Text('Close friends only',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                          color: _showCloseOnly ? Colors.white : AppThemeColors.secondaryText(context))),
+                                    ]),
+                                  ),
+                                ),
                                 const SizedBox(height: 10),
-                                if (_friends.isEmpty)
+                                if (displayFriends.isEmpty)
                                   Center(
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 32),
@@ -1881,10 +1909,12 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                         Icon(Icons.people_outline, size: 64, color: AppThemeColors.divider(context)),
                                         const SizedBox(height: 8),
                                         Text(
-                                          _friendsQuery.isNotEmpty ? '${t('no_match_for_prefix')} "$_friendsQuery"' : t('no_friends_yet'),
+                                          _showCloseOnly
+                                              ? 'No close friends yet'
+                                              : (_friendsQuery.isNotEmpty ? '${t('no_match_for_prefix')} "$_friendsQuery"' : t('no_friends_yet')),
                                           style: TextStyle(color: AppThemeColors.secondaryText(context)),
                                         ),
-                                        if (_friendsQuery.isEmpty) ...[
+                                        if (_friendsQuery.isEmpty && !_showCloseOnly) ...[
                                           const SizedBox(height: 4),
                                           Text(t('search_above_to_add_friends'), style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
                                         ],
@@ -1892,14 +1922,14 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                     ),
                                   )
                                 else
-                                  ..._friends.take(_friendsVisibleCount).toList().asMap().entries.map(
+                                  ...displayFriends.take(_friendsVisibleCount).toList().asMap().entries.map(
                                     (e) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _buildFriendCard(e.value, e.key)),
                                   ),
-                                if (_friends.length > _friendsVisibleCount)
+                                if (displayFriends.length > _friendsVisibleCount)
                                   Center(
                                     child: TextButton.icon(
                                       icon: const Icon(Icons.expand_more),
-                                      label: Text('${t('show_label')} ${_friends.length - _friendsVisibleCount} ${t('more_label')}'),
+                                      label: Text('${t('show_label')} ${displayFriends.length - _friendsVisibleCount} ${t('more_label')}'),
                                       onPressed: () => setState(() => _friendsVisibleCount += 10),
                                     ),
                                   ),

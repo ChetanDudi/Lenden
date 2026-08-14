@@ -1192,9 +1192,9 @@ class _TransactionPageState extends State<TransactionPage> {
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (ctx) => DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.92,
+          initialChildSize: 0.95,
+          minChildSize: 0.7,
+          maxChildSize: 1.0,
           expand: false,
           builder: (_, scrollController) => StatefulBuilder(
             builder: (ctx2, setSheetState) {

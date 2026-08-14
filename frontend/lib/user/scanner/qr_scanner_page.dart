@@ -131,124 +131,321 @@ class _QrScannerPageState extends State<QrScannerPage> {
   // ── Non-LenDen QR ─────────────────────────────────────────────────────────
   void _showUnknownQrDialog(String raw) {
     final uri = Uri.tryParse(raw);
-    final isUrl = uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+    final isUrl  = uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+    final isUpi  = uri != null && uri.scheme == 'upi';
+    final isMail = uri != null && uri.scheme == 'mailto';
+    final isTel  = uri != null && uri.scheme == 'tel';
+    final isWifi = raw.toUpperCase().startsWith('WIFI:');
+
+    // Classify
+    final String typeLabel;
+    final IconData typeIcon;
+    final Color typeColor;
+    if (isUpi)       { typeLabel = 'UPI Payment';   typeIcon = Icons.currency_rupee_rounded;     typeColor = const Color(0xFF2E7D32); }
+    else if (isUrl)  { typeLabel = 'Website / URL'; typeIcon = Icons.language_rounded;            typeColor = const Color(0xFF1565C0); }
+    else if (isMail) { typeLabel = 'Email';          typeIcon = Icons.email_rounded;               typeColor = const Color(0xFFC62828); }
+    else if (isTel)  { typeLabel = 'Phone Number';  typeIcon = Icons.phone_rounded;               typeColor = const Color(0xFF00695C); }
+    else if (isWifi) { typeLabel = 'Wi-Fi Network'; typeIcon = Icons.wifi_rounded;                typeColor = const Color(0xFF0277BD); }
+    else             { typeLabel = 'Text';           typeIcon = Icons.text_snippet_outlined;      typeColor = Colors.blueGrey; }
+
+    // Parse UPI fields (pa, pn, am, cu, tn)
+    final Map<String, String> upi = {};
+    if (isUpi && uri != null) {
+      uri.queryParameters.forEach((k, v) => upi[k] = Uri.decodeComponent(v));
+    }
+
+    // Parse Wi-Fi fields (S=ssid, T=security, P=password)
+    final Map<String, String> wifi = {};
+    if (isWifi) {
+      final body = raw.replaceFirst(RegExp(r'^WIFI:', caseSensitive: false), '');
+      for (final part in body.split(';')) {
+        final colon = part.indexOf(':');
+        if (colon > 0) wifi[part.substring(0, colon).toUpperCase()] = part.substring(colon + 1);
+      }
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      backgroundColor: Theme.of(context).cardColor,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark    = AppThemeColors.isDark(ctx);
+        final cardBg    = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+        final surfaceBg = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F6F8);
+        final divClr    = isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.07);
+        final labelClr  = isDark ? Colors.white54 : Colors.black45;
+        final valueClr  = isDark ? Colors.white   : Colors.black87;
+
+        Widget infoRow(IconData icon, String label, String value, {Color? iconColor}) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 34, height: 34,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: (iconColor ?? typeColor).withValues(alpha: isDark ? 0.22 : 0.10),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 17, color: iconColor ?? typeColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(label.toUpperCase(),
+                    style: TextStyle(fontSize: 10, color: labelClr,
+                        fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                const SizedBox(height: 3),
+                SelectableText(value,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: valueClr)),
+              ])),
+            ]),
+          );
+        }
+
+        Widget divider() => Divider(height: 1, color: divClr, indent: 46);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.orange, size: 22),
+
+              // Header banner
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: typeColor.withValues(alpha: isDark ? 0.15 : 0.07),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: typeColor.withValues(alpha: isDark ? 0.25 : 0.15)),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Not a LenDen QR',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('This QR code is from another app or website.',
-                          style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Scanned Content',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey)),
-                  const SizedBox(height: 6),
-                  SelectableText(
-                    raw,
-                    style: const TextStyle(fontSize: 13),
-                    maxLines: 6,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: raw));
-                      Navigator.pop(ctx);
-                      showSnack(context, 'Copied to clipboard.');
-                    },
-                    icon: const Icon(Icons.copy_rounded, size: 16),
-                    label: const Text('Copy'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Row(children: [
+                  Container(
+                    width: 46, height: 46,
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: isDark ? 0.28 : 0.13),
+                      borderRadius: BorderRadius.circular(13),
                     ),
+                    child: Icon(typeIcon, color: typeColor, size: 23),
                   ),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: typeColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(typeLabel,
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold,
+                                color: typeColor, letterSpacing: 0.3)),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: isDark ? 0.2 : 0.10),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text('External QR',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+                                color: Colors.orange)),
+                      ),
+                    ]),
+                    const SizedBox(height: 5),
+                    Text('Not a LenDen QR code',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: valueClr)),
+                    Text('This code is from another app or service.',
+                        style: TextStyle(fontSize: 11.5, color: labelClr, height: 1.3)),
+                  ])),
+                ]),
+              ),
+
+              // Parsed content card
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                decoration: BoxDecoration(
+                  color: surfaceBg,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: divClr),
                 ),
-                if (isUrl) ...[
-                  const SizedBox(width: 10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    if (isUpi) ...[
+                      if (upi['pn']?.isNotEmpty == true)
+                        infoRow(Icons.person_rounded, 'Pay To', upi['pn']!),
+                      if (upi['pa']?.isNotEmpty == true) ...[
+                        divider(),
+                        infoRow(Icons.account_balance_wallet_outlined, 'UPI ID', upi['pa']!,
+                            iconColor: const Color(0xFF2E7D32)),
+                      ],
+                      if (upi['am']?.isNotEmpty == true) ...[
+                        divider(),
+                        infoRow(Icons.currency_rupee_rounded, 'Amount',
+                            '₹${upi['am']}${upi['cu'] != null && upi['cu'] != 'INR' ? ' ${upi['cu']}' : ''}',
+                            iconColor: const Color(0xFF2E7D32)),
+                      ],
+                      if (upi['tn']?.isNotEmpty == true) ...[
+                        divider(),
+                        infoRow(Icons.notes_rounded, 'Note / Remark', upi['tn']!),
+                      ],
+                      if (upi.isEmpty)
+                        infoRow(Icons.qr_code_rounded, 'Raw Value', raw),
+                    ] else if (isUrl) ...[
+                      infoRow(Icons.link_rounded, 'URL', raw, iconColor: const Color(0xFF1565C0)),
+                    ] else if (isMail) ...[
+                      infoRow(Icons.email_rounded, 'Email Address',
+                          uri!.path.isNotEmpty ? uri.path : raw,
+                          iconColor: const Color(0xFFC62828)),
+                    ] else if (isTel) ...[
+                      infoRow(Icons.phone_rounded, 'Phone Number',
+                          uri!.path.isNotEmpty ? uri.path : raw,
+                          iconColor: const Color(0xFF00695C)),
+                    ] else if (isWifi) ...[
+                      if (wifi['S']?.isNotEmpty == true)
+                        infoRow(Icons.wifi_rounded, 'Network Name (SSID)', wifi['S']!,
+                            iconColor: const Color(0xFF0277BD)),
+                      if (wifi['T']?.isNotEmpty == true) ...[
+                        divider(),
+                        infoRow(Icons.security_rounded, 'Security Type', wifi['T']!),
+                      ],
+                      if (wifi['P']?.isNotEmpty == true) ...[
+                        divider(),
+                        infoRow(Icons.lock_rounded, 'Password', wifi['P']!, iconColor: Colors.orange),
+                      ],
+                    ] else ...[
+                      if (raw.length <= 80)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          child: SelectableText(raw,
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
+                                  color: valueClr, letterSpacing: 0.1)),
+                        )
+                      else ...[
+                        infoRow(Icons.text_snippet_outlined, 'Scanned Content', ''),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 90),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: SelectableText(raw,
+                                style: TextStyle(fontSize: 13, color: valueClr, height: 1.55)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ]),
+                ),
+              ),
+
+              // Action buttons
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 14, 16,
+                    MediaQuery.of(ctx).padding.bottom + 16),
+                child: Row(children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: raw));
                         Navigator.pop(ctx);
-                        try {
-                          await launchUrl(Uri.parse(raw), mode: LaunchMode.externalApplication);
-                        } catch (_) {
-                          if (mounted) showSnack(context, 'Could not open this URL.', isError: true);
-                        }
+                        showSnack(context, 'Copied to clipboard.');
                       },
-                      icon: const Icon(Icons.open_in_browser_rounded, size: 16, color: Colors.white),
-                      label: const Text('Open URL', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _sky,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Copy'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: divClr),
                       ),
                     ),
                   ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
+                  if (isUrl) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          try {
+                            await launchUrl(Uri.parse(raw), mode: LaunchMode.externalApplication);
+                          } catch (_) {
+                            if (mounted) showSnack(context, 'Could not open this URL.', isError: true);
+                          }
+                        },
+                        icon: const Icon(Icons.open_in_browser_rounded, size: 16, color: Colors.white),
+                        label: const Text('Open URL', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1565C0),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (isMail) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          try {
+                            await launchUrl(uri!, mode: LaunchMode.externalApplication);
+                          } catch (_) {
+                            if (mounted) showSnack(context, 'Could not open email app.', isError: true);
+                          }
+                        },
+                        icon: const Icon(Icons.email_rounded, size: 16, color: Colors.white),
+                        label: const Text('Compose', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC62828),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (isTel) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          try {
+                            await launchUrl(uri!, mode: LaunchMode.externalApplication);
+                          } catch (_) {
+                            if (mounted) showSnack(context, 'Could not open phone app.', isError: true);
+                          }
+                        },
+                        icon: const Icon(Icons.phone_rounded, size: 16, color: Colors.white),
+                        label: const Text('Call', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00695C),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ]),
+              ),
+            ]),
+          ),
+        );
+      },
     ).whenComplete(_resetProcessing);
   }
 
