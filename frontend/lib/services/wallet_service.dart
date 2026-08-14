@@ -48,7 +48,7 @@ class WalletService {
       _decode(await ApiClient.get('/api/wallet/pin/status'));
 
   static Future<Map<String, dynamic>> sendPinOtp() async =>
-      _decode(await ApiClient.post('/api/wallet/auth/send-otp', body: {}));
+      _decode(await ApiClient.post('/api/wallet/pin/send-otp', body: {}));
 
   static Future<Map<String, dynamic>> verifyPinOtp(String otp) async =>
       _decode(await ApiClient.post('/api/wallet/pin/verify-otp',

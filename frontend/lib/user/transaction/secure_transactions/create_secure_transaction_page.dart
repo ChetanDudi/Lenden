@@ -2918,6 +2918,7 @@ class _TransactionPageState extends State<TransactionPage> {
       if (_currentStep < 6) {
         _currentStep++;
         _showStepList = false;
+        if (_currentStep == 5) { _userEmailError = null; _counterpartyEmailError = null; }
       } else {
         _showStepList = true;
       }
@@ -2944,7 +2945,13 @@ class _TransactionPageState extends State<TransactionPage> {
 
   void _goToStep(int index) {
     if (!_isStepAccessible(index)) return;
-    setState(() { _currentStep = index; _showStepList = false; _stepError = null; });
+    setState(() {
+      _currentStep = index;
+      _showStepList = false;
+      _stepError = null;
+      // Clear stale email errors when entering the verification step
+      if (index == 5) { _userEmailError = null; _counterpartyEmailError = null; }
+    });
   }
 
   static const List<String> _stepSubtitleKeys = [
@@ -3740,8 +3747,11 @@ class _TransactionPageState extends State<TransactionPage> {
               otpError: _userOtpError,
               otpSeconds: _userOtpSeconds,
               onSendOtp: () async {
-                final email = _userEmailController.text;
-                if (!await _checkEmailExists(email)) { setState(() => _userEmailError = t('email_not_registered_label')); return; }
+                final email = _userEmailController.text.trim();
+                if (email.isEmpty) { setState(() => _userEmailError = t('email_required_label')); return; }
+                // The user's own email is always registered — skip the existence
+                // check that was incorrectly showing "Email not registered" for
+                // the currently logged-in account.
                 setState(() => _userEmailError = null);
                 await _sendOtp(email, false);
               },
@@ -3786,17 +3796,17 @@ class _TransactionPageState extends State<TransactionPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(title: 'Final Review', subtitle: 'Your details are locked. Review and submit the transaction.', icon: Icons.check_circle_rounded),
+          // Compact verified status bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            margin: const EdgeInsets.only(bottom: 14),
+            margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: AppThemeColors.tinted(context, light: const Color(0xFFE0F7FA), dark: const Color(0xFF173238)),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
             ),
             child: Row(children: [
-              const Icon(Icons.lock, color: AppColors.cyan, size: 18),
+              const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
               const SizedBox(width: 10),
               Expanded(child: Text(t('details_locked_label'), style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600))),
               const Icon(Icons.verified, color: Colors.green, size: 18),
@@ -3804,31 +3814,30 @@ class _TransactionPageState extends State<TransactionPage> {
               const Text('Verified', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
             ]),
           ),
-          _reviewCard([
-            _reviewRow(Icons.people, 'Your Role', _role == 'lender' ? t('lender_giving_money_label') : t('borrower_taking_money_label'), Colors.blue),
-            _reviewRow(Icons.currency_exchange, 'Currency', _currency, Colors.teal),
-            _reviewRow(Icons.payments_outlined, 'Amount', amount != null ? '$sym${amount.toStringAsFixed(2)}' : '—', Colors.green),
-            _reviewRow(Icons.calendar_today, 'Date', _selectedDate != null ? DateFormat('MMM d, yyyy').format(_selectedDate!) : '—', Colors.orange),
-            _reviewRow(Icons.access_time, 'Time', _selectedTime != null ? _selectedTime!.format(context) : '—', Colors.purple),
-            _reviewRow(Icons.location_on, 'Place', _placeController.text.trim().isNotEmpty ? _placeController.text.trim() : '—', Colors.red),
-          ]),
-          const SizedBox(height: 14),
-          _reviewCard([
-            _reviewRow(Icons.percent_rounded, 'Interest', _interestType == 'none' ? 'None' : (_interestType == 'simple' ? 'Simple' : 'Compound'), Colors.orange),
-            if (_interestType != 'none')
-              _reviewRow(Icons.numbers_rounded, 'Rate', '${_interestRateController.text.trim()}%', Colors.red),
-            _reviewRow(Icons.event_rounded, 'Return Date', _expectedReturnDate != null ? DateFormat('MMM d, yyyy').format(_expectedReturnDate!) : '—', Colors.green),
-            _reviewRow(Icons.attach_file_rounded, 'Proofs', '${_pickedFiles.length} file(s)', Colors.blue),
-            _reviewRow(Icons.mail_outlined, 'Counterparty', _counterpartyEmailController.text.trim().isNotEmpty ? _counterpartyEmailController.text.trim() : '—', Colors.purple),
-          ]),
+
+          // Transaction preview (most important — shown first)
           if (amount != null) ...[
-            const SizedBox(height: 14),
             _buildTransactionPreviewCard(),
             if (_expectedReturnDate != null) ...[
               const SizedBox(height: 12),
               _buildRepaymentPreviewCard(),
             ],
+            const SizedBox(height: 14),
           ],
+
+          // Compact detail summary
+          _reviewCard([
+            _reviewRow(Icons.people, 'Role', _role == 'lender' ? t('lender_giving_money_label') : t('borrower_taking_money_label'), Colors.blue),
+            _reviewRow(Icons.payments_outlined, 'Amount', amount != null ? '$sym${amount.toStringAsFixed(2)}' : '—', Colors.green),
+            _reviewRow(Icons.mail_outlined, 'Counterparty', _counterpartyEmailController.text.trim().isNotEmpty ? _counterpartyEmailController.text.trim() : '—', Colors.purple),
+            _reviewRow(Icons.calendar_today, 'Date', _selectedDate != null ? DateFormat('MMM d, yyyy').format(_selectedDate!) : '—', Colors.orange),
+            _reviewRow(Icons.location_on, 'Place', _placeController.text.trim().isNotEmpty ? _placeController.text.trim() : '—', Colors.red),
+            _reviewRow(Icons.percent_rounded, 'Interest', _interestType == 'none' ? 'None' : (_interestType == 'simple' ? 'Simple' : 'Compound'), Colors.orange),
+            if (_interestType != 'none')
+              _reviewRow(Icons.numbers_rounded, 'Rate', '${_interestRateController.text.trim()}%', Colors.red),
+            _reviewRow(Icons.attach_file_rounded, 'Proofs', '${_pickedFiles.length} file(s)', Colors.blue),
+          ]),
+
           if (_transactionId != null) ...[
             const SizedBox(height: 14),
             Container(
@@ -3841,7 +3850,8 @@ class _TransactionPageState extends State<TransactionPage> {
               ]),
             ),
           ],
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 12),
           Text(t('review_submit_from_sticky_bar_message'), style: TextStyle(color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w600)),
         ],
       ),

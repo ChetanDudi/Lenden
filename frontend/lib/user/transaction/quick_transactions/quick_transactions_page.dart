@@ -2296,7 +2296,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                               // Added horizontal scroll for amount
                               scrollDirection: Axis.horizontal,
                               child: Text(
-                                '${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())} â€¢ ${(currencyData?.canConvert((transaction['currency'] ?? 'INR').toString(), selectedCurrency) ?? ((transaction['currency'] ?? 'INR').toString().toUpperCase() == selectedCurrency.toUpperCase())) ? selectedCurrency : (transaction['currency'] ?? 'INR')}',
+                                _formatDisplayAmount(transaction['amount'], transaction['currency']?.toString()),
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,

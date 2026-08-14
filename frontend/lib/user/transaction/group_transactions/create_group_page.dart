@@ -12,6 +12,7 @@ import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' as dart_io;
+import '../../../utils/avatar_helpers.dart' as ah;
 
 class CreateGroupPage extends StatefulWidget {
   final List<String>? prefillMemberEmails;
@@ -178,198 +179,374 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Future<void> _addMembersFromFriends() async {
     final t = AppLocalizations.of(context).t;
-    setState(() => _loadingFriends = true);
-    try {
-      final res = await ApiClient.get('/api/friends');
-      if (!mounted) return;
-      if (res.statusCode != 200) return;
-      final data = jsonDecode(res.body);
-      final friends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
-      final blocked = List<Map<String, dynamic>>.from(data['blockedUsers'] ?? []);
-      _blockedEmails = blocked
-          .map((u) => (u['email'] ?? '').toString().toLowerCase().trim())
-          .where((e) => e.isNotEmpty)
-          .toSet();
-      if (!mounted) return;
+    List<Map<String, dynamic>> allFriends;
+    if (_friends.isNotEmpty) {
+      allFriends = _friends;
+    } else {
+      setState(() => _loadingFriends = true);
+      try {
+        final res = await ApiClient.get('/api/friends');
+        if (!mounted) return;
+        if (res.statusCode != 200) { setState(() => _loadingFriends = false); return; }
+        final data = jsonDecode(res.body);
+        allFriends = List<Map<String, dynamic>>.from(data['friends'] ?? []);
+        final blocked = List<Map<String, dynamic>>.from(data['blockedUsers'] ?? []);
+        _blockedEmails = blocked
+            .map((u) => (u['email'] ?? '').toString().toLowerCase().trim())
+            .where((e) => e.isNotEmpty)
+            .toSet();
+        if (mounted) setState(() { _friends = allFriends; _loadingFriends = false; });
+      } catch (_) {
+        if (mounted) setState(() => _loadingFriends = false);
+        return;
+      }
+    }
+    if (!mounted) return;
 
-      final tempSelected = Set<String>.from(_memberEmails);
-      final selectableCount = friends
-          .where((f) => !_isBlocked((f['email'] ?? '').toString().toLowerCase().trim()))
-          .length;
-      bool selectAll = tempSelected.length == selectableCount && selectableCount > 0;
+    final tempSelected = Set<String>.from(_memberEmails);
 
-      await showDialog(
-        context: context,
-        builder: (context) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => Container(
-              padding: const EdgeInsets.all(16),
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
-              child: Container(
-                padding: const EdgeInsets.all(2),
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final filtered = allFriends.where((f) {
+              final email = (f['email'] ?? '').toString().toLowerCase();
+              final name = (f['name'] ?? f['username'] ?? '').toString().toLowerCase();
+              final q = searchQuery.toLowerCase();
+              return q.isEmpty || email.contains(q) || name.contains(q);
+            }).toList();
+            final selectableCount = allFriends.where((f) => !_isBlocked((f['email'] ?? '').toString())).length;
+            final allSelected = tempSelected.length >= selectableCount && selectableCount > 0;
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.4,
+              maxChildSize: 0.95,
+              builder: (_, scrollController) => Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: AppColors.tricolorGradient,
+                  color: AppThemeColors.cardBg(ctx),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppThemeColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 12),
-                      Text(t('select_friends_title'),
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppThemeColors.primaryText(context))),
-                      const SizedBox(height: 8),
-                      if (friends.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
+                child: Column(
+                  children: [
+                    // Drag handle
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: AppThemeColors.divider(ctx),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.cyan.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.people_rounded, color: AppColors.cyan, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Checkbox(
-                                value: selectAll,
-                                onChanged: (val) {
-                                  setDialogState(() {
-                                    if (val == true) {
-                                      tempSelected
-                                        ..clear()
-                                        ..addAll(friends
-                                            .where((f) => !_isBlocked(
-                                                (f['email'] ?? '').toString().toLowerCase().trim()))
-                                            .map((f) => (f['email'] ?? '').toString()));
-                                      selectAll = true;
-                                    } else {
-                                      tempSelected.clear();
-                                      selectAll = false;
-                                    }
-                                  });
-                                },
+                              Text(
+                                t('select_friends_title'),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppThemeColors.primaryText(ctx),
+                                ),
                               ),
-                              Text(t('select_all_label'),
-                                  style: TextStyle(color: AppThemeColors.primaryText(context))),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: () {
-                                  setDialogState(() {
-                                    tempSelected.clear();
-                                    selectAll = false;
-                                  });
-                                },
-                                child: Text(t('deselect_all_label')),
+                              Text(
+                                allFriends.length == 1
+                                    ? t('one_friend_label')
+                                    : '${allFriends.length} ${t('friends_count_label')}',
+                                style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(ctx)),
                               ),
                             ],
                           ),
+                          const Spacer(),
+                          if (tempSelected.isNotEmpty)
+                            TextButton(
+                              onPressed: () => setSheetState(() => tempSelected.clear()),
+                              child: Text(t('deselect_all_label'),
+                                  style: const TextStyle(color: AppColors.cyan, fontSize: 13)),
+                            ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: Icon(Icons.close, color: AppThemeColors.secondaryText(ctx), size: 22),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Select-all row
+                    if (allFriends.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: allSelected,
+                              activeColor: AppColors.cyan,
+                              onChanged: (val) {
+                                setSheetState(() {
+                                  if (val == true) {
+                                    tempSelected.addAll(allFriends
+                                        .where((f) => !_isBlocked((f['email'] ?? '').toString()))
+                                        .map((f) => (f['email'] ?? '').toString()));
+                                  } else {
+                                    tempSelected.clear();
+                                  }
+                                });
+                              },
+                            ),
+                            Text(t('select_all_label'),
+                                style: TextStyle(color: AppThemeColors.primaryText(ctx), fontSize: 14)),
+                            const Spacer(),
+                            if (tempSelected.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cyan.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${tempSelected.length} ${t('selected_label')}',
+                                  style: const TextStyle(color: AppColors.cyan, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                          ],
                         ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: friends.isEmpty
-                            ? Center(
-                                child: Text(t('no_friends_found_label'),
-                                    style: TextStyle(color: AppThemeColors.secondaryText(context))))
-                            : ListView.builder(
-                                itemCount: friends.length,
-                                itemBuilder: (context, index) {
-                                  final f = friends[index];
-                                  final email = (f['email'] ?? '').toString();
-                                  final name = (f['name'] ?? f['username'] ?? '').toString();
-                                  final isBlocked = _isBlocked(email);
-                                  final selected = tempSelected.contains(email);
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: isBlocked
-                                          ? AppThemeColors.surfaceBg(context)
-                                          : AppThemeColors.tinted(context,
-                                              light: _noteColor(index),
-                                              dark: _noteColor(index).withValues(alpha: 0.22)),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: selected ? Colors.blue : Colors.transparent),
-                                    ),
-                                    child: ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: isBlocked ? Colors.grey : Colors.blue.shade100,
-                                        child: Text(
-                                          name.isNotEmpty ? name[0].toUpperCase() : email[0].toUpperCase(),
-                                          style: TextStyle(color: isBlocked ? Colors.grey : Colors.blue),
+                      ),
+
+                    // Search box
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppThemeColors.surfaceBg(ctx),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: TextField(
+                          autofocus: false,
+                          style: TextStyle(color: AppThemeColors.primaryText(ctx)),
+                          onChanged: (v) => setSheetState(() => searchQuery = v),
+                          decoration: InputDecoration(
+                            hintText: t('search_by_name_or_email_placeholder'),
+                            hintStyle: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14),
+                            prefixIcon: Icon(Icons.search, color: AppThemeColors.mutedText(ctx), size: 20),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Divider(height: 1, color: AppThemeColors.divider(ctx)),
+
+                    // Friend list
+                    Expanded(
+                      child: allFriends.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.people_outline, size: 48, color: AppThemeColors.mutedText(ctx)),
+                                  const SizedBox(height: 12),
+                                  Text(t('no_friends_found_label'),
+                                      style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14)),
+                                ],
+                              ),
+                            )
+                          : filtered.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.search_off, size: 48, color: AppThemeColors.mutedText(ctx)),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        '${t('no_match_for_label')} "$searchQuery"',
+                                        style: TextStyle(color: AppThemeColors.mutedText(ctx), fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.separated(
+                                  controller: scrollController,
+                                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (_, idx) {
+                                    final f = filtered[idx];
+                                    final email = (f['email'] ?? '').toString();
+                                    final name = (f['name'] ?? f['username'] ?? '').toString();
+                                    final isBlocked = _isBlocked(email);
+                                    final isSelected = tempSelected.contains(email);
+                                    final displayName = name.isNotEmpty ? name : email;
+                                    final initials = ah.initials(name, email);
+                                    final color = ah.avatarColor(displayName);
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        if (isBlocked) return;
+                                        setSheetState(() {
+                                          if (isSelected) {
+                                            tempSelected.remove(email);
+                                          } else {
+                                            tempSelected.add(email);
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: isBlocked
+                                              ? Colors.red.withValues(alpha: 0.04)
+                                              : isSelected
+                                                  ? AppColors.cyan.withValues(alpha: 0.08)
+                                                  : AppThemeColors.surfaceBg(ctx),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: isBlocked
+                                                ? Colors.red.withValues(alpha: 0.2)
+                                                : isSelected
+                                                    ? AppColors.cyan.withValues(alpha: 0.5)
+                                                    : AppThemeColors.border(ctx),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Avatar
+                                            Container(
+                                              width: 46, height: 46,
+                                              decoration: BoxDecoration(
+                                                color: isBlocked
+                                                    ? Colors.red[100]
+                                                    : color.withValues(alpha: 0.18),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  initials,
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isBlocked ? Colors.red : color,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 14),
+
+                                            // Name & email
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    name.isNotEmpty ? name : email,
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: isBlocked
+                                                          ? Colors.red[700]
+                                                          : AppThemeColors.primaryText(ctx),
+                                                    ),
+                                                  ),
+                                                  if (name.isNotEmpty)
+                                                    Text(
+                                                      email,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: isBlocked
+                                                            ? Colors.red[400]
+                                                            : AppThemeColors.secondaryText(ctx),
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            // Trailing: blocked label or checkbox
+                                            if (isBlocked)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Text(t('blocked_label'),
+                                                    style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w600)),
+                                              )
+                                            else
+                                              Checkbox(
+                                                value: isSelected,
+                                                activeColor: AppColors.cyan,
+                                                onChanged: (_) {
+                                                  setSheetState(() {
+                                                    if (isSelected) {
+                                                      tempSelected.remove(email);
+                                                    } else {
+                                                      tempSelected.add(email);
+                                                    }
+                                                  });
+                                                },
+                                              ),
+                                          ],
                                         ),
                                       ),
-                                      title: Text(name.isNotEmpty ? name : email,
-                                          style: TextStyle(color: AppThemeColors.primaryText(context))),
-                                      subtitle: name.isNotEmpty
-                                          ? SingleChildScrollView(
-                                              scrollDirection: Axis.horizontal,
-                                              child: Text(
-                                                email,
-                                                style: TextStyle(color: AppThemeColors.secondaryText(context)),
-                                                softWrap: false,
-                                              ),
-                                            )
-                                          : null,
-                                      trailing: isBlocked
-                                          ? Text(t('blocked_label'),
-                                              style: const TextStyle(color: Colors.red, fontSize: 12))
-                                          : Checkbox(
-                                              value: selected,
-                                              onChanged: (val) {
-                                                setDialogState(() {
-                                                  if (val == true) {
-                                                    tempSelected.add(email);
-                                                  } else {
-                                                    tempSelected.remove(email);
-                                                  }
-                                                  selectAll = tempSelected.length == selectableCount;
-                                                });
-                                              },
-                                            ),
-                                      onTap: isBlocked
-                                          ? null
-                                          : () {
-                                              setDialogState(() {
-                                                if (selected) {
-                                                  tempSelected.remove(email);
-                                                } else {
-                                                  tempSelected.add(email);
-                                                }
-                                                selectAll = tempSelected.length == selectableCount;
-                                              });
-                                            },
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.cyan,
-                            minimumSize: const Size.fromHeight(44),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text(t('done')),
+                                    );
+                                  },
+                                ),
+                    ),
+
+                    // Done button pinned at bottom
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.cyan,
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 4,
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(
+                          tempSelected.isEmpty
+                              ? t('done')
+                              : '${t('done')} (${tempSelected.length})',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ),
-        ),
-      );
+            );
+          },
+        );
+      },
+    );
 
-      if (mounted) {
-        setState(() => _memberEmails = tempSelected.toList());
-      }
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _loadingFriends = false);
+    if (mounted) {
+      setState(() => _memberEmails = tempSelected.toList());
     }
   }
 

@@ -24,6 +24,7 @@ module.exports = (router, { auth, otpSendLimiter, otpVerifyLimiter, manualPaymen
 
   // Wallet transaction PIN management
   router.get('/wallet/pin/status', auth, walletController.getWalletPinStatus);
+  router.post('/wallet/pin/send-otp', auth, otpSendLimiter, walletController.sendWalletPinSetupOtpHandler);
   router.post('/wallet/pin/verify-otp', auth, otpVerifyLimiter, walletController.verifyWalletOtp);
   router.post('/wallet/pin/set', auth, walletController.setWalletPin);
   router.post('/wallet/pin/remove', auth, walletController.removeWalletPin);

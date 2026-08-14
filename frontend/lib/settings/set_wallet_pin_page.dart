@@ -22,7 +22,7 @@ class SetWalletPinPage extends StatefulWidget {
   State<SetWalletPinPage> createState() => _SetWalletPinPageState();
 }
 
-enum _Mode { loading, noPin, hasPin, setNew, change, forgotPin, remove }
+enum _Mode { loading, loadError, noPin, hasPin, setNew, change, forgotPin, remove }
 
 class _SetWalletPinPageState extends State<SetWalletPinPage> {
   _Mode _mode = _Mode.loading;
@@ -67,7 +67,7 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
       setState(() =>
           _mode = (data['hasPin'] == true) ? _Mode.hasPin : _Mode.noPin);
     } catch (_) {
-      if (mounted) setState(() => _mode = _Mode.noPin);
+      if (mounted) setState(() => _mode = _Mode.loadError);
     }
   }
 
@@ -491,7 +491,9 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cyan,
+                    backgroundColor: _sendingOtp
+                        ? AppColors.cyan.withValues(alpha: 0.7)
+                        : AppColors.cyan,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
@@ -505,7 +507,7 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
                     : const Icon(Icons.send_rounded,
                         color: Colors.white, size: 14),
                 label: Text(
-                  t('send_otp_label'),
+                  _sendingOtp ? 'Sending OTP...' : t('send_otp_label'),
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -514,6 +516,11 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
                 onPressed: _sendingOtp ? null : _sendOtp,
               ),
             ),
+            // Show errors from a failed send attempt (e.g. rate limit)
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              _errBox(),
+            ],
           ],
         ]),
       );
@@ -679,6 +686,45 @@ class _SetWalletPinPageState extends State<SetWalletPinPage> {
       body: _mode == _Mode.loading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.cyan))
+          : _mode == _Mode.loadError
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded,
+                        size: 48,
+                        color: AppThemeColors.mutedText(context)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Could not load PIN status.\nPlease check your connection and try again.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: AppThemeColors.secondaryText(context)),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.cyan,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded,
+                          color: Colors.white, size: 16),
+                      label: const Text('Retry',
+                          style: TextStyle(color: Colors.white)),
+                      onPressed: () {
+                        setState(() => _mode = _Mode.loading);
+                        _loadPinStatus();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            )
           : SafeArea(
               child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
