@@ -65,16 +65,36 @@ exports.getHistory = async (req, res) => {
       startingBalance = currentBalance - (newerAgg[0]?.net ?? 0);
     }
 
+    // When a type filter is active, unfiltered transactions between consecutive
+    // filtered rows cause the naive running-balance walk to be wrong. Fetch ALL
+    // transaction types in the same time window so the walk stays accurate.
+    let allTxnsInWindow = txns;
+    if (txns.length > 0 && type && type !== 'all') {
+      const oldest = txns[txns.length - 1].createdAt;
+      const newest = txns[0].createdAt;
+      allTxnsInWindow = await WalletTransaction.find({
+        user: req.user._id,
+        createdAt: { $gte: oldest, $lte: newest },
+      }).sort({ createdAt: -1 }).lean();
+    }
+
+    const filteredIds = new Set(txns.map(t => t._id.toString()));
     let runningBalance = startingBalance;
-    const withBalance = txns.map(txn => {
-      const balanceAfter = runningBalance;
+    const balanceMap = new Map();
+    for (const txn of allTxnsInWindow) {
+      if (filteredIds.has(txn._id.toString())) {
+        balanceMap.set(txn._id.toString(), runningBalance);
+      }
       if (txn.type === 'credit' || txn.type === 'topup') {
         runningBalance -= txn.amount;
       } else {
         runningBalance += txn.amount;
       }
-      return { ...txn, balanceAfter };
-    });
+    }
+    const withBalance = txns.map(txn => ({
+      ...txn,
+      balanceAfter: balanceMap.get(txn._id.toString()) ?? runningBalance,
+    }));
 
     res.json({
       transactions: withBalance,
@@ -275,7 +295,7 @@ exports.pay = async (req, res) => {
         throw Object.assign(new Error('Insufficient wallet balance'), { status: 400, userMessage: 'Insufficient LenDen wallet balance. Please top up your wallet and try again.' });
       }
       if (sender._id.equals(receiver._id)) {
-        throw Object.assign(new Error('Cannot pay yourself'), { status: 400 });
+        throw Object.assign(new Error('Cannot pay yourself'), { status: 400, userMessage: 'You cannot pay yourself.' });
       }
 
       await User.findByIdAndUpdate(receiver._id, { $inc: { walletBalance: amount } }, { session });
@@ -510,15 +530,17 @@ exports.verifyWalletOtp = async (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    // Mark the pending walletPayOTP as verified so the subsequent PIN set
-    // request can consume it. We avoid removing the OTP here because the
-    // frontend flow verifies the code first then calls /wallet/pin/set â€” if
-    // the OTP is removed on verify, the later set call will find no pending
-    // OTP and fail with "No OTP is pending". Keep the code+expiry and add
-    // a verified flag which setWalletPin will accept.
+    // Reject if already verified (prevents reuse within the expiry window)
+    if (user.walletPayOTP?.verified) {
+      return res.status(400).json({ error: 'OTP has already been used. Please request a new one.' });
+    }
+
+    // Mark verified so setWalletPin can consume it; the verified flag also
+    // prevents this OTP from being submitted a second time.
     user.walletPayOTP = {
       ...(user.walletPayOTP || {}),
       verified: true,
+      verifiedAt: new Date(),
     };
     await user.save();
     res.json({ verified: true, message: 'OTP verified successfully.' });

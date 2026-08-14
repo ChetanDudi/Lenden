@@ -544,7 +544,7 @@ exports.createTransaction = async (req, res) => {
       category
     } = req.body;
 
-    const user = await User.findById(req.user._id).select('email blockedUsers');
+    const user = await User.findById(req.user._id).select('email blockedUsers freeUserTransactionsRemaining');
     if (!user) return res.status(400).json({ error: 'User not found' });
 
     if (user.email !== userEmail) {

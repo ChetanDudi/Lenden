@@ -130,6 +130,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   Future<void> _loadBlockedUsers() async {
     try {
       final res = await ApiClient.get('/api/friends');
+      if (!mounted) return;
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final blocked =
@@ -149,6 +150,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     if (session.hasFeature('quick_transactions')) return;
     try {
       final res = await ApiClient.get('/api/limits/daily');
+      if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() {
           _dailyLimits = jsonDecode(res.body);
@@ -816,24 +818,30 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
 
     if (confirmed == true) {
       if (!transactions.any((txn) => txn['_id'] == id)) return;
-
-      final res = await ApiClient.delete('/api/quick-transactions/$id');
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        setState(() {
-          transactions.removeWhere((txn) => txn['_id'] == id);
-          filteredTransactions = List.from(transactions);
-          _applyPinSort();
-        });
-        ElegantNotification.success(
-          title: Text(t('deleted_label')),
-          description: Text(t('quick_transaction_deleted_message')),
-        ).show(context);
-      } else {
-        final error = json.decode(res.body)['error'];
-        ElegantNotification.error(
+      try {
+        final res = await ApiClient.delete('/api/quick-transactions/$id');
+        if (!mounted) return;
+        if (res.statusCode == 200) {
+          setState(() {
+            transactions.removeWhere((txn) => txn['_id'] == id);
+            filteredTransactions = List.from(transactions);
+            _applyPinSort();
+          });
+          ElegantNotification.success(
+            title: Text(t('deleted_label')),
+            description: Text(t('quick_transaction_deleted_message')),
+          ).show(context);
+        } else {
+          final error = json.decode(res.body)['error'] ?? t('error');
+          ElegantNotification.error(
+            title: Text(t('error')),
+            description: Text(error.toString()),
+          ).show(context);
+        }
+      } catch (_) {
+        if (mounted) ElegantNotification.error(
           title: Text(t('error')),
-          description: Text(error),
+          description: Text(t('network_error')),
         ).show(context);
       }
     }
@@ -1072,9 +1080,13 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
             date.month == now.month &&
             date.day == now.day) {
           label = todayLabel;
-        } else if (date.year == now.year &&
-            date.month == now.month &&
-            date.day == now.subtract(const Duration(days: 1)).day) {
+        } else if (() {
+              final yesterday = DateTime(now.year, now.month, now.day)
+                  .subtract(const Duration(days: 1));
+              return date.year == yesterday.year &&
+                  date.month == yesterday.month &&
+                  date.day == yesterday.day;
+            }()) {
           label = yesterdayLabel;
         } else {
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -1164,25 +1176,31 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
 
   Future<void> _requestSettlement(Map<String, dynamic> transaction) async {
     final t = AppLocalizations.of(context).t;
-    final res = await ApiClient.post(
-      '/api/quick-transactions/${transaction['_id']}/request-settlement',
-      body: {},
-    );
-    final body = jsonDecode(res.body);
-    if (!mounted) return;
-    if (res.statusCode == 200) {
-      // Refresh the list so users are re-enriched (raw API has string users, not objects)
-      fetchQuickTransactions();
-      ElegantNotification.success(
-        title: Text(t('settlement_requested_title')),
-        description: Text(t('other_user_can_accept_or_reject_message')),
-      ).show(context);
-    } else {
-      ElegantNotification.error(
+    try {
+      final res = await ApiClient.post(
+        '/api/quick-transactions/${transaction['_id']}/request-settlement',
+        body: {},
+      );
+      if (!mounted) return;
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        fetchQuickTransactions();
+        ElegantNotification.success(
+          title: Text(t('settlement_requested_title')),
+          description: Text(t('other_user_can_accept_or_reject_message')),
+        ).show(context);
+      } else {
+        ElegantNotification.error(
+          title: Text(t('error')),
+          description: Text(
+              (body['error'] ?? t('unable_to_request_settlement_message'))
+                  .toString()),
+        ).show(context);
+      }
+    } catch (_) {
+      if (mounted) ElegantNotification.error(
         title: Text(t('error')),
-        description: Text(
-            (body['error'] ?? t('unable_to_request_settlement_message'))
-                .toString()),
+        description: Text(t('network_error')),
       ).show(context);
     }
   }
@@ -1223,27 +1241,34 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
       return;
     }
 
-    // Reject â€” no payment needed, update backend directly
-    final res = await ApiClient.post(
-      '/api/quick-transactions/${transaction['_id']}/respond-settlement',
-      body: {'action': 'reject'},
-    );
-    final body = jsonDecode(res.body);
-    if (!mounted) return;
-    if (res.statusCode == 200) {
-      fetchQuickTransactions();
-      ElegantNotification.success(
-        title: Text(t('settlement_rejected_title')),
-        description: Text(
-            (body['message'] ?? t('settlement_rejected_success_message'))
-                .toString()),
-      ).show(context);
-    } else {
-      ElegantNotification.error(
+    // Reject — no payment needed, update backend directly
+    try {
+      final res = await ApiClient.post(
+        '/api/quick-transactions/${transaction['_id']}/respond-settlement',
+        body: {'action': 'reject'},
+      );
+      if (!mounted) return;
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        fetchQuickTransactions();
+        ElegantNotification.success(
+          title: Text(t('settlement_rejected_title')),
+          description: Text(
+              (body['message'] ?? t('settlement_rejected_success_message'))
+                  .toString()),
+        ).show(context);
+      } else {
+        ElegantNotification.error(
+          title: Text(t('error')),
+          description: Text(
+              (body['error'] ?? t('unable_to_reject_settlement_message'))
+                  .toString()),
+        ).show(context);
+      }
+    } catch (_) {
+      if (mounted) ElegantNotification.error(
         title: Text(t('error')),
-        description: Text(
-            (body['error'] ?? t('unable_to_reject_settlement_message'))
-                .toString()),
+        description: Text(t('network_error')),
       ).show(context);
     }
   }
@@ -2272,11 +2297,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                               scrollDirection: Axis.horizontal,
                               child: Text(
                                 '${_formatDisplayAmount(transaction['amount'], transaction['currency']?.toString())} â€¢ ${(currencyData?.canConvert((transaction['currency'] ?? 'INR').toString(), selectedCurrency) ?? ((transaction['currency'] ?? 'INR').toString().toUpperCase() == selectedCurrency.toUpperCase())) ? selectedCurrency : (transaction['currency'] ?? 'INR')}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ), // note cards keep a fixed light bg (_getNoteColor); black87 stays readable regardless of theme
+                                  color: AppThemeColors.primaryText(context),
+                                ),
                               ),
                             ),
                           ),
@@ -2461,7 +2486,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                           transaction['description'] ?? '',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[700],
+                            color: AppThemeColors.primaryText(context),
                           ),
                         ),
                       ),
@@ -2479,7 +2504,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                                   .toString(),
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: AppThemeColors.secondaryText(context),
                               ),
                             ),
                             SizedBox(width: 16),
@@ -2487,7 +2512,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                               '${transaction['date']?.substring(0, 10)} at ${transaction['time']}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: AppThemeColors.secondaryText(context),
                               ),
                             ),
                           ],
@@ -2501,7 +2526,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                                 '${creatorName['name'] ?? creatorName['email'] ?? t('unknown_label')}'),
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[700],
+                          color: AppThemeColors.secondaryText(context),
                           fontStyle: FontStyle.italic,
                         ),
                       ),

@@ -686,13 +686,13 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_loadFailed) ...[
-                    const Icon(Icons.videocam_off_outlined,
-                        size: 40, color: Colors.black45),
+                    Icon(Icons.videocam_off_outlined,
+                        size: 40, color: AppThemeColors.secondaryText(context)),
                     const SizedBox(height: 10),
                     Text(
                       t('video_failed_to_load_message'),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, color: Colors.black87),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(context)),
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(
@@ -705,8 +705,8 @@ class _AdVideoPlayerState extends State<_AdVideoPlayer> {
                     const SizedBox(height: 14),
                     Text(
                       t('loading_video_message'),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, color: Colors.black87),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: AppThemeColors.primaryText(context)),
                     ),
                   ],
                   const SizedBox(height: 6),

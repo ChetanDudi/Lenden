@@ -899,7 +899,7 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                         child: CircleAvatar(
                           radius: 21,
-                          backgroundColor: Colors.white,
+                          backgroundColor: AppThemeColors.cardBg(context),
                           child: ClipOval(child: _buildOtherUserAvatar()),
                         ),
                       ),
@@ -1285,7 +1285,7 @@ class _ChatPageState extends State<ChatPage> {
                 Text(_replyingTo['message'],
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.black54)),
+                    style: TextStyle(color: AppThemeColors.secondaryText(context))),
               ],
             ),
           ),

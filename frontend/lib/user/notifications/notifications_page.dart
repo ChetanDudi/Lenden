@@ -166,7 +166,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(t('cancel'), style: const TextStyle(color: Colors.grey)),
+            child: Text(t('cancel'), style: TextStyle(color: AppThemeColors.secondaryText(ctx))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../../widgets/app_colors.dart';
+import '../../../../utils/theme_helper.dart';
 import '../../../../l10n/app_localizations.dart';
 import './group_expense_helpers.dart';
 
@@ -124,12 +125,12 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppThemeColors.surfaceBg(context),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(label,
                   style: TextStyle(
-                      color: Colors.grey[700],
+                      color: AppThemeColors.primaryText(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 13)),
             ),
@@ -262,7 +263,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: AppThemeColors.surfaceBg(context),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close_rounded,
@@ -305,7 +306,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                 hintText: t('description_hint_dinner_hotel_message'),
                 prefixIcon: const Icon(Icons.description_outlined),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: AppThemeColors.surfaceBg(context),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none),
@@ -332,7 +333,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                       decoration: BoxDecoration(
                         color: selected
                             ? const Color(0xFF2E7D32)
-                            : Colors.grey[100],
+                            : AppThemeColors.surfaceBg(context),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: selected
@@ -356,7 +357,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                               fontWeight: FontWeight.w600,
                               color: selected
                                   ? Colors.white
-                                  : Colors.grey[700],
+                                  : AppThemeColors.primaryText(context),
                             ),
                           ),
                         ],
@@ -381,7 +382,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                       prefixIcon:
                           const Icon(Icons.currency_rupee_rounded),
                       filled: true,
-                      fillColor: Colors.grey[100],
+                      fillColor: AppThemeColors.surfaceBg(context),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none),
@@ -432,7 +433,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: AppThemeColors.surfaceBg(context),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: DropdownButtonHideUnderline(
@@ -493,7 +494,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                       decoration: BoxDecoration(
-                        color: sel ? AppColors.cyan : Colors.grey[100],
+                        color: sel ? AppColors.cyan : AppThemeColors.surfaceBg(context),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: sel ? AppColors.cyan : Colors.grey[300]!,
@@ -512,7 +513,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: sel ? Colors.white : Colors.grey[700],
+                              color: sel ? Colors.white : AppThemeColors.primaryText(context),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -571,7 +572,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF2E7D32).withValues(alpha: 0.08)
-                        : Colors.grey[100],
+                        : AppThemeColors.surfaceBg(context),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
@@ -735,7 +736,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                 decoration: InputDecoration(
                                   hintText: '0.00',
                                   filled: true,
-                                  fillColor: Colors.grey[100],
+                                  fillColor: AppThemeColors.surfaceBg(context),
                                   contentPadding:
                                       const EdgeInsets.symmetric(
                                           horizontal: 10, vertical: 8),

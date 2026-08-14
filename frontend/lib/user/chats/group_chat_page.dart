@@ -586,7 +586,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              color: const Color(0xFFFAF9F6),
+              color: AppThemeColors.cardBg(context),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -671,15 +671,15 @@ class _GroupChatPageState extends State<GroupChatPage> {
                             ),
                             title: _buildHorizontalScrollText(
                               displayName,
-                              const TextStyle(
+                              TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black87,
+                                color: AppThemeColors.primaryText(context),
                               ),
                             ),
-                            subtitle: const Text(
+                            subtitle: Text(
                               'Member',
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: AppThemeColors.secondaryText(context),
                                 fontSize: 12,
                               ),
                             ),
@@ -1166,7 +1166,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     if (userId == null || userId.isEmpty) return fallback;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: Colors.white,
+      backgroundColor: AppThemeColors.cardBg(context),
       child: ClipOval(
         child: Image.network(
           '${ApiConfig.baseUrl}/api/users/$userId/profile-image',
@@ -1366,7 +1366,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,
-        backgroundColor: const Color(0xFFFAF9F6),
+        backgroundColor: AppThemeColors.scaffoldBg(context),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -1455,8 +1455,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   children: [
                     Text(widget.groupTitle,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.black87,
+                        style: TextStyle(
+                            color: AppThemeColors.primaryText(context),
                             fontWeight: FontWeight.w800,
                             fontSize: 16)),
                     Consumer<SessionProvider>(
@@ -1464,11 +1464,11 @@ class _GroupChatPageState extends State<GroupChatPage> {
                         if (session.hasFeature('group_chat')) {
                           return SizedBox.shrink();
                         }
-                        return const Text(
+                        return Text(
                           'Daily message limit: 3',
                           style: TextStyle(
                               fontSize: 11.5,
-                              color: Colors.black54,
+                              color: AppThemeColors.secondaryText(context),
                               fontWeight: FontWeight.w600),
                         );
                       },
@@ -1661,8 +1661,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   Text(message['parentMessageId']?['message'] ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54)),
+                      style: TextStyle(
+                          fontSize: 12, color: AppThemeColors.secondaryText(context))),
                 ],
               ),
             ),

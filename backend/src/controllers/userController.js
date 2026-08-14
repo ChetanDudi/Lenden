@@ -663,6 +663,7 @@ exports.sendLoginOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + OTP_EXPIRY_MS);
     record.loginOTP = { code: otp, expiry, sentAt: new Date() };
+    await record.save(); // persist before emailing so OTP is never lost
 
     try {
       await sendLoginOTP(email, otp);
@@ -670,8 +671,6 @@ exports.sendLoginOtp = async (req, res) => {
       console.error('[sendLoginOtp] Email send failed:', emailErr.message);
       return res.status(503).json({ error: 'Could not send OTP email. Please check your email address and try again.' });
     }
-
-    await record.save();
     res.status(200).json({ message: 'OTP sent to email', userType, name: record.name });
   } catch (err) {
     console.error('âŒ Error in sendLoginOtp:', err.message);

@@ -158,8 +158,8 @@ class _LendenWalletPageState extends State<LendenWalletPage>
       final histPath = '/api/wallet/history?page=$page&limit=$_historyLimit'
           '${_historyType != 'all' ? '&type=$_historyType' : ''}'
           '${_historySearch.isNotEmpty ? '&search=${Uri.encodeComponent(_historySearch)}' : ''}'
-          '${_fromDate != null ? '&fromDate=${_fromDate!.toIso8601String().split('T').first}' : ''}'
-          '${_toDate != null ? '&toDate=${_toDate!.toIso8601String().split('T').first}' : ''}';
+          '${_fromDate != null ? '&startDate=${_fromDate!.toIso8601String().split('T').first}' : ''}'
+          '${_toDate != null ? '&endDate=${_toDate!.toIso8601String().split('T').first}' : ''}';
       final futures = resetPage
           ? [ApiClient.get('/api/wallet/balance'), ApiClient.get(histPath)]
           : [ApiClient.get(histPath)];
@@ -205,13 +205,14 @@ class _LendenWalletPageState extends State<LendenWalletPage>
 
   Future<void> _loadMoreHistory() async {
     if (_historyLoadingMore || _transactions.length >= _historyTotal) return;
-    final nextPage = _historyPage + 1;
-    _historyPage = nextPage;
-    try {
-      await _fetchWalletData(resetPage: false);
-    } catch (_) {
-      // Revert page increment so a retry fetches the correct page
-      if (mounted) setState(() => _historyPage = nextPage - 1);
+    final int pageBeforeFetch = _historyPage;
+    _historyPage += 1;
+    final int countBefore = _transactions.length;
+    await _fetchWalletData(resetPage: false);
+    // If fetch failed (no new transactions appended), revert the page counter
+    // so the next load-more attempt retries the same page.
+    if (mounted && _transactions.length == countBefore) {
+      setState(() => _historyPage = pageBeforeFetch);
     }
   }
 
@@ -705,8 +706,8 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                               ),
                                               icon: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.cyan),
-                                              label: const Text('Scan QR',
-                                                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.cyan)),
+                                              label: Text(t('scan_qr_code_label'),
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.cyan)),
                                               onPressed: () => Navigator.push(context,
                                                   MaterialPageRoute(builder: (_) => const QrScannerPage())),
                                             ),
@@ -1247,7 +1248,7 @@ class _LendenWalletPageState extends State<LendenWalletPage>
                                             borderRadius: BorderRadius.circular(20),
                                             border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                                           ),
-                                          child: const Text('Clear', style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
+                                          child: Text(t('clear'), style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
                                         ),
                                       ),
                                     ],

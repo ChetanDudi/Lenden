@@ -406,7 +406,7 @@ class _SecureTransactionDetailPageState
                                 padding: const EdgeInsets.only(top: 16),
                                 child: CircleAvatar(
                                     radius: 28,
-                                    backgroundColor: Colors.white,
+                                    backgroundColor: AppThemeColors.cardBg(context),
                                     child: Icon(Icons.delete_forever,
                                         color: Colors.red[600], size: 40))))),
                   ]),
@@ -842,7 +842,7 @@ class _SecureTransactionDetailPageState
                     color: color, fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 2),
             Text(label,
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                style: TextStyle(color: AppThemeColors.secondaryText(context), fontSize: 11)),
           ],
         ),
       ),
@@ -869,15 +869,15 @@ class _SecureTransactionDetailPageState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey,
+                        color: AppThemeColors.secondaryText(context),
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(value,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 13,
-                        color: Colors.black87,
+                        color: AppThemeColors.primaryText(context),
                         fontWeight: FontWeight.w600)),
               ],
             ),
@@ -1544,7 +1544,7 @@ class _SecureTransactionDetailPageState
                                     ? loc('remaining_after_partial_payments_message').replaceFirst('{count}', '$partialCount')
                                     : loc('full_amount_to_settle_label'),
                                 style: TextStyle(
-                                    color: Colors.grey.shade600, fontSize: 12),
+                                    color: AppThemeColors.secondaryText(context), fontSize: 12),
                               ),
                             ),
                           ],
@@ -1756,7 +1756,7 @@ class _SecureTransactionDetailPageState
                                   onTap: _copyTransactionId,
                                   child: _detailRow(
                                       Icons.confirmation_number,
-                                      Colors.grey.shade600,
+                                      AppThemeColors.secondaryText(context),
                                       loc('transaction_id_label'),
                                       '${t['transactionId'] ?? '—'}  📋'),
                                 ),
@@ -1983,7 +1983,7 @@ class _SecureTransactionDetailPageState
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Category', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                                    Text('Category', style: TextStyle(fontSize: 11, color: AppThemeColors.secondaryText(context), fontWeight: FontWeight.w500)),
                                     Text(_stCatLabel((t['category'] ?? 'other').toString()),
                                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.deepPurple)),
                                   ],

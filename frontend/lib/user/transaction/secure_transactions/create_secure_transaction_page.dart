@@ -911,7 +911,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       top: 16,
                       child: CircleAvatar(
                         radius: 28,
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppThemeColors.cardBg(context),
                         child: Icon(icon, color: accentColor, size: 34),
                       ),
                     ),
@@ -1043,7 +1043,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       top: 16,
                       child: CircleAvatar(
                         radius: 28,
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppThemeColors.cardBg(context),
                         child: Icon(icon, color: accentColor, size: 34),
                       ),
                     ),

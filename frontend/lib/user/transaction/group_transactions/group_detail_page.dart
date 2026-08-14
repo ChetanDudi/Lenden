@@ -1532,13 +1532,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                           Expanded(
                                             child: RichText(
                                               text: TextSpan(
-                                                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                                style: TextStyle(fontSize: 13, color: AppThemeColors.primaryText(context)),
                                                 children: [
                                                   TextSpan(
                                                     text: fromShort,
                                                     style: TextStyle(
                                                       fontWeight: FontWeight.bold,
-                                                      color: fromMe ? AppColors.cyan : Colors.black87,
+                                                      color: fromMe ? AppColors.cyan : AppThemeColors.primaryText(context),
                                                     ),
                                                   ),
                                                   TextSpan(text: ' ${t('pays_label')} '),

@@ -5,6 +5,7 @@ import '../../utils/theme_helper.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../l10n/app_localizations.dart';
 
 class BudgetMessagesPage extends StatefulWidget {
   const BudgetMessagesPage({super.key});
@@ -17,6 +18,7 @@ class _BudgetMessagesPageState extends State<BudgetMessagesPage> {
   List<Map<String, dynamic>> _messages = [];
   bool _loading = true;
   String? _error;
+  String t(String key) => AppLocalizations.of(context).t(key);
 
   @override
   void initState() {
@@ -78,9 +80,9 @@ class _BudgetMessagesPageState extends State<BudgetMessagesPage> {
         title: Text('Clear all messages?', style: TextStyle(fontSize: context.sp(15), fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(ctx))),
         content: Text('This will remove all budget limit messages.', style: TextStyle(fontSize: context.sp(12), color: AppThemeColors.secondaryText(ctx))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('cancel'))),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Clear All', style: TextStyle(color: Colors.red))),
+              child: Text(t('clear_all'), style: const TextStyle(color: Colors.red))),
         ],
       ),
     );

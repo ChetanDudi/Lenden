@@ -110,6 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _fetchStats() async {
     try {
       final response = await ApiClient.get('/api/analytics/quick');
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         setState(() {
@@ -122,10 +123,10 @@ class _ProfilePageState extends State<ProfilePage> {
           _statsLoading = false;
         });
       } else {
-        setState(() => _statsLoading = false);
+        if (mounted) setState(() => _statsLoading = false);
       }
     } catch (_) {
-      setState(() => _statsLoading = false);
+      if (mounted) setState(() => _statsLoading = false);
     }
   }
 

@@ -4,6 +4,7 @@ import '../../utils/api_client.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/app_colors.dart';
 import '../../widgets/app_widgets.dart';
+import '../../l10n/app_localizations.dart';
 
 class LendingBudgetPage extends StatefulWidget {
   const LendingBudgetPage({super.key});
@@ -13,6 +14,7 @@ class LendingBudgetPage extends StatefulWidget {
 }
 
 class _LendingBudgetPageState extends State<LendingBudgetPage> {
+  String t(String key) => AppLocalizations.of(context).t(key);
   bool _loading = true;
   bool _saving = false;
   Map<String, dynamic>? _budget;
@@ -91,7 +93,7 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
       appBar: AppBar(
-        title: Text('Monthly Lending Budget',
+        title: Text(t('monthly_lending_budget'),
             style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -115,7 +117,7 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('This Month',
+                          Text(t('this_month'),
                               style: TextStyle(color: AppThemeColors.mutedText(context), fontSize: 13)),
                           const SizedBox(height: 6),
                           Text(
@@ -210,7 +212,7 @@ class _LendingBudgetPageState extends State<LendingBudgetPage> {
                               width: 20,
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2))
-                          : const Text('Save', style: TextStyle(color: Colors.white)),
+                          : Text(t('save'), style: const TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
