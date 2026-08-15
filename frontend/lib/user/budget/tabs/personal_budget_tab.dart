@@ -249,8 +249,9 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
       totalSpent += convertCurrency(spent, currency, _viewCurrency);
       if (pct >= 80) atRisk++; else healthy++;
     }
-    final overallPct = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0.0;
-    final healthC    = _healthColor(overallPct);
+    final overallPct    = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0.0;
+    final overallPctStr = overallPct > 9999 ? '>9999' : overallPct.toStringAsFixed(1);
+    final healthC       = _healthColor(overallPct);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -275,19 +276,26 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
               AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan),
         ]),
         const SizedBox(height: 12),
-        Row(children: [
-          _overviewStat(AppLocalizations.of(context).t('total_limit'), _fmtC(totalLimit, _viewCurrency),
-              AppThemeColors.primaryText(context)),
-          _overviewDivider(),
-          _overviewStat(AppLocalizations.of(context).t('total_spent'), _fmtC(totalSpent, _viewCurrency), healthC),
-          _overviewDivider(),
-          _overviewStat(AppLocalizations.of(context).t('pb_healthy'), '$healthy',
-              Colors.green.shade600, icon: Icons.check_circle_rounded),
-          _overviewDivider(),
-          _overviewStat(AppLocalizations.of(context).t('at_risk_label'), '$atRisk',
-              atRisk > 0 ? Colors.orange.shade700 : AppThemeColors.secondaryText(context),
-              icon: atRisk > 0 ? Icons.warning_rounded : null),
-        ]),
+        LayoutBuilder(builder: (context, cons) {
+          final statW = ((cons.maxWidth - 27) / 4).clamp(90.0, double.infinity);
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              SizedBox(width: statW, child: _overviewStat(AppLocalizations.of(context).t('total_limit'),
+                  _fmtC(totalLimit, _viewCurrency), AppThemeColors.primaryText(context))),
+              _overviewDivider(),
+              SizedBox(width: statW, child: _overviewStat(AppLocalizations.of(context).t('total_spent'),
+                  _fmtC(totalSpent, _viewCurrency), healthC)),
+              _overviewDivider(),
+              SizedBox(width: statW, child: _overviewStat(AppLocalizations.of(context).t('pb_healthy'),
+                  '$healthy', Colors.green.shade600, icon: Icons.check_circle_rounded)),
+              _overviewDivider(),
+              SizedBox(width: statW, child: _overviewStat(AppLocalizations.of(context).t('at_risk_label'),
+                  '$atRisk', atRisk > 0 ? Colors.orange.shade700 : AppThemeColors.secondaryText(context),
+                  icon: atRisk > 0 ? Icons.warning_rounded : null)),
+            ]),
+          );
+        }),
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
@@ -299,7 +307,7 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
           ),
         ),
         const SizedBox(height: 4),
-        Text('${overallPct.toStringAsFixed(1)}% of combined budget used  •  amounts in $_viewCurrency',
+        Text('$overallPctStr% of combined budget used  •  amounts in $_viewCurrency',
             style: TextStyle(fontSize: context.sp(10),
                 color: AppThemeColors.secondaryText(context))),
       ]),
@@ -308,19 +316,18 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
 
   Widget _overviewStat(String label, String value, Color valueColor,
       {IconData? icon}) {
-    return Expanded(
-      child: Column(children: [
-        if (icon != null) ...[
-          Icon(icon, color: valueColor, size: 14),
-          const SizedBox(height: 2),
-        ],
-        Text(value,
-            style: TextStyle(fontSize: context.sp(13),
-                fontWeight: FontWeight.bold, color: valueColor)),
-        Text(label, style: TextStyle(fontSize: context.sp(10),
-            color: AppThemeColors.secondaryText(context))),
-      ]),
-    );
+    return Column(children: [
+      if (icon != null) ...[
+        Icon(icon, color: valueColor, size: 14),
+        const SizedBox(height: 2),
+      ],
+      Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: context.sp(13),
+              fontWeight: FontWeight.bold, color: valueColor)),
+      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: context.sp(10),
+              color: AppThemeColors.secondaryText(context))),
+    ]);
   }
 
   Widget _overviewDivider() => Container(
@@ -412,20 +419,26 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
 
           // ── Always visible: amounts + progress ─────────────────────────
           const SizedBox(height: 14),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_fmtV(spent, currency), style: TextStyle(fontSize: context.sp(20),
-                  fontWeight: FontWeight.bold, color: color)),
-              Text(AppLocalizations.of(context).t('spent_label'), style: TextStyle(fontSize: context.sp(10),
-                  color: AppThemeColors.secondaryText(context))),
-            ]),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(_fmtV(limit, currency), style: TextStyle(fontSize: context.sp(20),
-                  fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
-              Text(AppLocalizations.of(context).t('limit_label'), style: TextStyle(fontSize: context.sp(10),
-                  color: AppThemeColors.secondaryText(context))),
-            ]),
-          ]),
+          LayoutBuilder(builder: (context, cons) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: cons.maxWidth),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(_fmtV(spent, currency), style: TextStyle(fontSize: context.sp(20),
+                      fontWeight: FontWeight.bold, color: color)),
+                  Text(AppLocalizations.of(context).t('spent_label'), style: TextStyle(fontSize: context.sp(10),
+                      color: AppThemeColors.secondaryText(context))),
+                ]),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text(_fmtV(limit, currency), style: TextStyle(fontSize: context.sp(20),
+                      fontWeight: FontWeight.bold, color: AppThemeColors.primaryText(context))),
+                  Text(AppLocalizations.of(context).t('limit_label'), style: TextStyle(fontSize: context.sp(10),
+                      color: AppThemeColors.secondaryText(context))),
+                ]),
+              ]),
+            ),
+          )),
           const SizedBox(height: 10),
           Stack(children: [
             ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(
@@ -446,7 +459,7 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
               Container(width: 8, height: 8,
                   decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
               const SizedBox(width: 4),
-              Text('${pct.toStringAsFixed(1)}% ${AppLocalizations.of(context).t('spent_label')}',
+              Text('${pct > 9999 ? ">9999" : pct.toStringAsFixed(1)}% ${AppLocalizations.of(context).t('spent_label')}',
                   style: TextStyle(fontSize: context.sp(10), color: color, fontWeight: FontWeight.w600)),
             ]),
             Row(children: [
@@ -460,21 +473,27 @@ class _PersonalBudgetTabState extends State<PersonalBudgetTab> {
             ]),
           ]),
           const SizedBox(height: 6),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(spent <= limit
-                ? '${_fmtV(limit - spent, currency)} ${AppLocalizations.of(context).t('remaining_label').toLowerCase()}'
-                : '${AppLocalizations.of(context).t('over_by_label')} ${_fmtV(spent - limit, currency)}',
-                style: TextStyle(fontSize: context.sp(11),
-                    color: spent <= limit ? Colors.green.shade600 : Colors.red.shade600,
-                    fontWeight: FontWeight.w600)),
-            if (timePct > 0 && pct > 0)
-              Text(pct > timePct
-                  ? AppLocalizations.of(context).t('pb_spending_fast')
-                  : AppLocalizations.of(context).t('pb_under_pace'),
-                  style: TextStyle(fontSize: context.sp(11),
-                      color: pct > timePct ? Colors.orange.shade700 : Colors.green.shade600,
-                      fontWeight: FontWeight.w600)),
-          ]),
+          LayoutBuilder(builder: (context, cons) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: cons.maxWidth),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text(spent <= limit
+                    ? '${_fmtV(limit - spent, currency)} ${AppLocalizations.of(context).t('remaining_label').toLowerCase()}'
+                    : '${AppLocalizations.of(context).t('over_by_label')} ${_fmtV(spent - limit, currency)}',
+                    style: TextStyle(fontSize: context.sp(11),
+                        color: spent <= limit ? Colors.green.shade600 : Colors.red.shade600,
+                        fontWeight: FontWeight.w600)),
+                if (timePct > 0 && pct > 0)
+                  Text(pct > timePct
+                      ? AppLocalizations.of(context).t('pb_spending_fast')
+                      : AppLocalizations.of(context).t('pb_under_pace'),
+                      style: TextStyle(fontSize: context.sp(11),
+                          color: pct > timePct ? Colors.orange.shade700 : Colors.green.shade600,
+                          fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          )),
 
           // ── Expanded section ───────────────────────────────────────────
           AnimatedCrossFade(

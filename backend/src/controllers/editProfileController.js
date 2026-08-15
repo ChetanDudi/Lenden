@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
+const { logProfileActivity } = require('./activityController');
 
 // Update user profile
 exports.updateUserProfile = async (req, res) => {
@@ -38,6 +39,7 @@ exports.updateUserProfile = async (req, res) => {
       userObj.profileImage = `${req.protocol}://${req.get('host')}/api/users/${userObj._id}/profile-image`;
     }
     res.json(userObj);
+    logProfileActivity(userId, 'profile_updated').catch(() => {});
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

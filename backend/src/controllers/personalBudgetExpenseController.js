@@ -3,6 +3,7 @@ const PersonalBudgetExpense = require('../models/personalBudgetExpense');
 const User                  = require('../models/user');
 const Notification          = require('../models/notification');
 const { sendToUser }        = require('../services/notificationService');
+const { createActivityLog } = require('./activityController');
 
 async function _notifyUser(userId, title, message, data = {}) {
   try {
@@ -78,6 +79,9 @@ exports.addExpense = async (req, res) => {
     }
 
     res.status(201).json(expense);
+    createActivityLog(req.user._id, 'budget_expense_added', 'Budget Expense Added',
+      `Added ${category} expense of ₹${parseFloat(amount)} to "${budget.name}"`,
+      { budgetId: budget._id, category, amount: parseFloat(amount) }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -200,6 +204,9 @@ exports.deleteExpense = async (req, res) => {
     expense.deletedAt = new Date();
     await expense.save();
     res.json({ success: true });
+    createActivityLog(req.user._id, 'budget_expense_deleted', 'Budget Expense Deleted',
+      `Deleted ${expense.category} expense from "${budget.name}"`,
+      { budgetId: budget._id, category: expense.category, amount: expense.amount }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

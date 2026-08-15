@@ -2324,7 +2324,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                                 Text(label, style: TextStyle(fontSize: 12, color: AppThemeColors.secondaryText(context))),
                                               ])),
                                               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                                Text('â‚¹${net.abs().toStringAsFixed(0)}',
+                                                Text('₹${net.abs().toStringAsFixed(0)}',
                                                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
                                                 Container(
                                                   margin: const EdgeInsets.only(top: 4),

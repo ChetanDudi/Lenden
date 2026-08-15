@@ -246,6 +246,75 @@ class _NotesPageState extends State<NotesPage> {
     showSnack(context, loc('copied_to_clipboard_message'));
   }
 
+  Future<void> _deleteAllNotes() async {
+    final toDelete = List<Map<String, dynamic>>.from(_displayedNotes);
+    if (toDelete.isEmpty) {
+      showSnack(context, 'No notes to delete.', isError: true);
+      return;
+    }
+    final loc = AppLocalizations.of(context).t;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppThemeColors.cardBg(ctx),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Text('Delete All Notes',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
+                  color: AppThemeColors.primaryText(ctx))),
+        ]),
+        content: Text(
+          'This will permanently delete all ${toDelete.length} note${toDelete.length == 1 ? '' : 's'}. This cannot be undone.',
+          style: TextStyle(fontSize: 14, color: AppThemeColors.secondaryText(ctx)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc('cancel'),
+                style: TextStyle(color: AppThemeColors.secondaryText(ctx), fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete All', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    int deleted = 0;
+    for (final note in toDelete) {
+      final res = await ApiClient.delete('/api/notes/${note['_id']}');
+      if (res.statusCode == 200) {
+        deleted++;
+        if (mounted) {
+          setState(() {
+            notes.removeWhere((n) => n['_id'] == note['_id']);
+            filterNotes(searchQuery);
+          });
+        }
+      }
+    }
+    if (mounted) {
+      showSnack(context, 'Deleted $deleted note${deleted == 1 ? '' : 's'}.',
+          isError: deleted < toDelete.length);
+    }
+  }
+
   void _showSortBottomSheet() {
     final t = AppLocalizations.of(context).t;
     showModalBottomSheet(
@@ -411,10 +480,15 @@ class _NotesPageState extends State<NotesPage> {
                         onPressed: _copyAllNotes,
                         tooltip: t('copy_all_notes'),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
+                        onPressed: _deleteAllNotes,
+                        tooltip: 'Delete all notes',
+                      ),
                     ],
                   ),
                 ),
-            
+
             // Search Bar
             AppSearchBar(
               controller: _searchCtrl,

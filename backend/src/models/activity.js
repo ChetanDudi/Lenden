@@ -63,6 +63,7 @@ const activitySchema = new mongoose.Schema({
       'quick_transaction_settlement_requested',
       'quick_transaction_settlement_accepted',
       'quick_transaction_settlement_rejected',
+      'quick_transaction_paid',
       // Friend activities
       'friend_request_sent',
       'friend_request_received',
@@ -73,8 +74,22 @@ const activitySchema = new mongoose.Schema({
       'user_blocked',
       'user_unblocked',
       'offer_accepted',
-      'transaction_updated_by_admin'
-        ],    required: true
+      'transaction_updated_by_admin',
+      // Support activities
+      'support_reply_edited',
+      'support_reply_deleted',
+      'support_query_status_updated',
+      // Wallet activities
+      'wallet_topup',
+      'wallet_payment',
+      'wallet_pin_set',
+      'wallet_pin_removed',
+      'withdrawal_requested',
+      // Personal budget activities
+      'budget_expense_added',
+      'budget_expense_deleted',
+    ],
+    required: true
   },
   title: {
     type: String,

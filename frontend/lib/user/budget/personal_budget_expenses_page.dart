@@ -299,19 +299,22 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                     ),
                     child: Column(children: [
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('Spent', style: TextStyle(fontSize: context.sp(11),
                               color: AppThemeColors.secondaryText(context))),
-                          Text(_fmt(_total), style: TextStyle(fontSize: context.sp(22),
+                          Text(_fmt(_total), maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: context.sp(22),
                               fontWeight: FontWeight.bold, color: color)),
-                        ]),
-                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                        ])),
+                        const SizedBox(width: 8),
+                        Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                           Text('Budget', style: TextStyle(fontSize: context.sp(11),
                               color: AppThemeColors.secondaryText(context))),
-                          Text(_fmt(_limit), style: TextStyle(fontSize: context.sp(22),
+                          Text(_fmt(_limit), maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: context.sp(22),
                               fontWeight: FontWeight.bold,
                               color: AppThemeColors.primaryText(context))),
-                        ]),
+                        ])),
                       ]),
                       const SizedBox(height: 12),
                       ClipRRect(
@@ -324,17 +327,23 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        Text('${pct.toStringAsFixed(1)}% used',
-                            style: TextStyle(fontSize: context.sp(11), color: color,
-                                fontWeight: FontWeight.w600)),
-                        Text(left >= 0 ? '${_fmt(left)} remaining'
-                            : 'Over by ${_fmt(-left)}',
-                            style: TextStyle(fontSize: context.sp(11),
-                                color: left >= 0
-                                    ? Colors.green.shade600 : Colors.red.shade600,
-                                fontWeight: FontWeight.w600)),
-                      ]),
+                      LayoutBuilder(builder: (context, cons) => SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: cons.maxWidth),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                            Text('${pct > 9999 ? ">9999" : pct.toStringAsFixed(1)}% used',
+                                style: TextStyle(fontSize: context.sp(11), color: color,
+                                    fontWeight: FontWeight.w600)),
+                            Text(left >= 0 ? '${_fmt(left)} remaining'
+                                : 'Over by ${_fmt(-left)}',
+                                style: TextStyle(fontSize: context.sp(11),
+                                    color: left >= 0
+                                        ? Colors.green.shade600 : Colors.red.shade600,
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
+                      )),
                       if (_viewCurrency != widget.budgetCurrency) ...[
                         const SizedBox(height: 6),
                         Text(
@@ -417,11 +426,13 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                                   Row(children: [
                                     _categoryIcon(c['category'] as String? ?? ''),
                                     const SizedBox(width: 8),
-                                    Expanded(
+                                    Flexible(
+                                      flex: 3,
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(c['category'] as String? ?? '',
+                                              maxLines: 1, overflow: TextOverflow.ellipsis,
                                               style: TextStyle(fontSize: context.sp(13),
                                                   color: AppThemeColors.primaryText(context))),
                                           if (count > 0)
@@ -431,10 +442,16 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
                                         ],
                                       ),
                                     ),
-                                    Text(_fmt(amt), style: TextStyle(
-                                        fontSize: context.sp(13),
-                                        fontWeight: FontWeight.bold,
-                                        color: AppThemeColors.primaryText(context))),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      flex: 2,
+                                      child: Text(_fmt(amt), maxLines: 1, overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.end,
+                                          style: TextStyle(
+                                          fontSize: context.sp(13),
+                                          fontWeight: FontWeight.bold,
+                                          color: AppThemeColors.primaryText(context))),
+                                    ),
                                     const SizedBox(width: 6),
                                     SizedBox(
                                       width: 36,
@@ -718,9 +735,12 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
               letterSpacing: 0.5,
             )),
         const Spacer(),
-        Text(_fmt(groupTotal),
-            style: TextStyle(fontSize: context.sp(12),
-                color: AppThemeColors.secondaryText(context))),
+        Flexible(
+          child: Text(_fmt(groupTotal), maxLines: 1, overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: TextStyle(fontSize: context.sp(12),
+                  color: AppThemeColors.secondaryText(context))),
+        ),
       ]),
     );
   }
@@ -731,9 +751,10 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     final desc        = e['description'] as String? ?? '';
     final raw         = e['date'] as String?;
     final date        = raw != null ? DateTime.parse(raw).toLocal() : null;
-    final isScheduled = (e['status'] as String?) == 'scheduled';
-    final rawSched    = e['scheduledFor'] as String?;
+    final isScheduled  = (e['status'] as String?) == 'scheduled';
+    final rawSched     = e['scheduledFor'] as String?;
     final scheduledFor = rawSched != null ? DateTime.parse(rawSched).toLocal() : null;
+    final allocation   = e['allocationName'] as String?;
 
     return tricolorBorder(
       radius: 14,
@@ -750,11 +771,24 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _badge(cat, AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan),
+                Flexible(child: _badge(cat, AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan)),
               ]),
+              if (allocation != null && allocation.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Row(children: [
+                  Icon(Icons.pie_chart_outline_rounded, size: 11, color: Colors.purple.shade400),
+                  const SizedBox(width: 3),
+                  Flexible(
+                    child: Text(allocation, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: context.sp(10),
+                            color: Colors.purple.shade400,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ]),
+              ],
               if (desc.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis,
+                Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: context.sp(12),
                         color: AppThemeColors.secondaryText(context))),
               ],
@@ -778,29 +812,33 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
             ]),
           ),
           const SizedBox(width: 8),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            if (isScheduled) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 120),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              if (isScheduled) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('Scheduled',
+                      style: TextStyle(fontSize: context.sp(10),
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.bold)),
                 ),
-                child: Text('Scheduled',
-                    style: TextStyle(fontSize: context.sp(10),
-                        color: Colors.orange.shade700,
-                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+              ],
+              Opacity(
+                opacity: isScheduled ? 0.6 : 1.0,
+                child: Text(_fmt(amount), maxLines: 1, overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(fontSize: context.sp(15),
+                        fontWeight: FontWeight.bold,
+                        color: AppThemeColors.primaryText(context))),
               ),
-              const SizedBox(height: 2),
-            ],
-            Opacity(
-              opacity: isScheduled ? 0.6 : 1.0,
-              child: Text(_fmt(amount),
-                  style: TextStyle(fontSize: context.sp(15),
-                      fontWeight: FontWeight.bold,
-                      color: AppThemeColors.primaryText(context))),
-            ),
-          ]),
+            ]),
+          ),
           if (canEdit) ...[
             IconButton(
               icon: const Icon(Icons.copy_outlined, size: 18),
@@ -1666,7 +1704,8 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(text, style: TextStyle(fontSize: context.sp(11), color: fg,
+      child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: context.sp(11), color: fg,
           fontWeight: FontWeight.w600)),
     );
   }

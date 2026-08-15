@@ -696,7 +696,9 @@ exports.createTransaction = async (req, res) => {
       message: "Transaction created successfully",
       transactionId: transaction.transactionId, 
       transaction,
-      freeUserTransactionsRemaining: user.freeUserTransactionsRemaining,
+      freeUserTransactionsRemaining: !subscribed && user.freeUserTransactionsRemaining > 0
+        ? user.freeUserTransactionsRemaining - 1
+        : user.freeUserTransactionsRemaining,
       referralReward,
       giftCardAwarded: awardedCard ? true : false,
       awardedCard: awardedCard

@@ -13,6 +13,7 @@ const { sendAccountDeletedEmail } = require('../utils/accountDeletedEmail');
 const Notification = require('../models/notification');
 const { sendToUser } = require('../services/notificationService');
 const { handleRouteError } = require('../utils/apiError');
+const { logProfileActivity } = require('./activityController');
 
 // Change Password
 const changePassword = async (req, res) => {
@@ -71,6 +72,7 @@ const changePassword = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Password changed successfully' });
+    logProfileActivity(userId, 'password_changed').catch(() => {});
 
     if (user.privacySettings?.loginNotifications !== false) {
       Notification.create({

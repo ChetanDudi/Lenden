@@ -10,6 +10,7 @@ const Admin = require('../models/admin');
 const { sendWalletPayOTP, sendWalletPinSetupOTP, sendWalletTransactionAuthOTP } = require('../utils/walletPayOtp');
 const Notification = require('../models/notification');
 const { sendToUser } = require('../services/notificationService');
+const { createActivityLog } = require('./activityController');
 
 exports.getBalance = async (req, res) => {
   try {
@@ -181,6 +182,7 @@ exports.verifyManualTopUp = async (req, res) => {
     });
 
     res.json({ message: 'Wallet topped up', addedAmount, balance: newBalance });
+    createActivityLog(req.user._id, 'wallet_topup', 'Wallet Topped Up', `Added ₹${addedAmount} to wallet`, { amount: addedAmount }).catch(() => {});
 
     // Notify all admins â€” best-effort, does not affect the response
     const capturedPaymentId = req.body.paymentId;
@@ -652,6 +654,7 @@ exports.setWalletPin = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Transaction PIN updated successfully.' });
+    createActivityLog(req.user._id, 'wallet_pin_set', 'Wallet PIN Updated', 'Transaction PIN was set or changed').catch(() => {});
 
     User.findById(req.user._id).select('privacySettings').then(u => {
       if (u?.privacySettings?.loginNotifications !== false) {
@@ -703,6 +706,7 @@ exports.removeWalletPin = async (req, res) => {
     user.walletPinLockedUntil = null;
     await user.save();
     res.json({ message: 'Transaction PIN removed.' });
+    createActivityLog(req.user._id, 'wallet_pin_removed', 'Wallet PIN Removed', 'Transaction PIN was removed').catch(() => {});
   } catch (err) {
     handleRouteError(res, err);
   }

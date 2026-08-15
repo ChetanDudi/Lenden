@@ -77,6 +77,7 @@ class _ActivityPageState extends State<ActivityPage> {
     'quick_transaction_deleted',
     'quick_transaction_cleared',
     'quick_transaction_cleared_all',
+    'quick_transaction_paid',
     'friend_request_sent',
     'friend_request_received',
     'friend_request_accepted',
@@ -86,6 +87,16 @@ class _ActivityPageState extends State<ActivityPage> {
     'user_blocked',
     'user_unblocked',
     'offer_accepted',
+    'wallet_topup',
+    'wallet_payment',
+    'wallet_pin_set',
+    'wallet_pin_removed',
+    'withdrawal_requested',
+    'budget_expense_added',
+    'budget_expense_deleted',
+    'support_reply_edited',
+    'support_reply_deleted',
+    'support_query_status_updated',
   ];
 
   @override
@@ -370,6 +381,28 @@ class _ActivityPageState extends State<ActivityPage> {
         return t('activity_type_user_unblocked');
       case 'offer_accepted':
         return t('activity_type_offer_accepted');
+      case 'wallet_topup':
+        return 'Wallet Top-up';
+      case 'wallet_payment':
+        return 'Wallet Payment';
+      case 'wallet_pin_set':
+        return 'Wallet PIN Set';
+      case 'wallet_pin_removed':
+        return 'Wallet PIN Removed';
+      case 'withdrawal_requested':
+        return 'Withdrawal Requested';
+      case 'budget_expense_added':
+        return 'Budget Expense Added';
+      case 'budget_expense_deleted':
+        return 'Budget Expense Deleted';
+      case 'quick_transaction_paid':
+        return 'Quick Transaction Paid';
+      case 'support_reply_edited':
+        return 'Support Reply Edited';
+      case 'support_reply_deleted':
+        return 'Support Reply Deleted';
+      case 'support_query_status_updated':
+        return 'Support Status Updated';
       default:
         return type.replaceAll('_', ' ').toUpperCase();
     }
@@ -436,6 +469,26 @@ class _ActivityPageState extends State<ActivityPage> {
         return Icons.check_circle;
       case 'offer_accepted':
         return Icons.local_offer;
+      case 'wallet_topup':
+        return Icons.account_balance_wallet_rounded;
+      case 'wallet_payment':
+        return Icons.send_rounded;
+      case 'wallet_pin_set':
+        return Icons.lock_rounded;
+      case 'wallet_pin_removed':
+        return Icons.lock_open_rounded;
+      case 'withdrawal_requested':
+        return Icons.arrow_circle_up_rounded;
+      case 'budget_expense_added':
+        return Icons.receipt_long_rounded;
+      case 'budget_expense_deleted':
+        return Icons.delete_rounded;
+      case 'quick_transaction_paid':
+        return Icons.flash_on;
+      case 'support_reply_edited':
+      case 'support_reply_deleted':
+      case 'support_query_status_updated':
+        return Icons.support_agent_rounded;
       default:
         return Icons.info;
     }
@@ -507,6 +560,26 @@ class _ActivityPageState extends State<ActivityPage> {
         return Colors.green;
       case 'offer_accepted':
         return Colors.indigo;
+      case 'wallet_topup':
+        return Colors.green;
+      case 'wallet_payment':
+        return Colors.blue;
+      case 'wallet_pin_set':
+      case 'wallet_pin_removed':
+        return Colors.purple;
+      case 'withdrawal_requested':
+        return Colors.orange;
+      case 'budget_expense_added':
+        return Colors.teal;
+      case 'budget_expense_deleted':
+        return Colors.red;
+      case 'quick_transaction_paid':
+        return Colors.cyan;
+      case 'support_reply_edited':
+      case 'support_query_status_updated':
+        return Colors.indigo;
+      case 'support_reply_deleted':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -530,15 +603,21 @@ class _ActivityPageState extends State<ActivityPage> {
         return DateFormat('MMM dd, yyyy • h:mm a').format(date);
       }
 
-      if (difference.inDays == 0) {
+      // Compare calendar days (not raw hours) so "yesterday" is always the
+      // previous calendar day, not just "24-48 hours ago".
+      final today = DateTime(now.year, now.month, now.day);
+      final actDay = DateTime(date.year, date.month, date.day);
+      final dayDiff = today.difference(actDay).inDays;
+
+      if (dayDiff == 0) {
         if (difference.inHours == 0) {
           return '${difference.inMinutes} ${t('minutes_ago')}';
         }
         return '${difference.inHours} ${t('hours_ago')}';
-      } else if (difference.inDays == 1) {
+      } else if (dayDiff == 1) {
         return t('yesterday');
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays} ${t('days_ago')}';
+      } else if (dayDiff < 7) {
+        return '$dayDiff ${t('days_ago')}';
       } else {
         return DateFormat('MMM dd, yyyy').format(date);
       }
