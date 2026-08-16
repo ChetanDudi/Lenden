@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/theme_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/responsive.dart';
@@ -462,20 +463,7 @@ class _BudgetPlanningPageState extends State<BudgetPlanningPage>
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
                       : _hasError
-                          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-                              const SizedBox(height: 12),
-                              Text(t('fetch_error_message'),
-                                  style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: _fetchData,
-                                icon: const Icon(Icons.refresh),
-                                label: Text(t('retry')),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.cyan, foregroundColor: Colors.white),
-                              ),
-                            ]))
+                          ? errorStateWidget(context, t('fetch_error_message'), _fetchData)
                           : RefreshIndicator(
                               onRefresh: _fetchData,
                               color: AppColors.cyan,

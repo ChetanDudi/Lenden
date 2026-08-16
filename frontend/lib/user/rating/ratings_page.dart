@@ -1035,7 +1035,9 @@ class _RatingsPageState extends State<RatingsPage> with SingleTickerProviderStat
                 Expanded(
                   child: loading
                     ? const Center(child: CircularProgressIndicator())
-                    : TabBarView(
+                    : error != null
+                        ? errorStateWidget(context, error!, fetchRatings)
+                        : TabBarView(
                         controller: _tabController,
                         children: [
                           _buildRateTab(),

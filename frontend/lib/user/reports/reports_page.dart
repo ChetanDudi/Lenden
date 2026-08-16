@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../utils/api_client.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/theme_helper.dart';
 import '../../widgets/search_tab_bar.dart';
 import '../../l10n/app_localizations.dart';
@@ -572,18 +573,7 @@ class _ReportsPageState extends State<ReportsPage>
                       : _isLoading
                           ? const Center(child: CircularProgressIndicator(color: AppColors.cyan))
                           : _hasError
-                              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-                                  const SizedBox(height: 12),
-                                  Text(t('fetch_error_message'), style: TextStyle(color: AppThemeColors.secondaryText(context))),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: _fetchReport,
-                                    icon: const Icon(Icons.refresh),
-                                    label: Text(t('retry')),
-                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, foregroundColor: Colors.white),
-                                  ),
-                                ]))
+                              ? errorStateWidget(context, t('fetch_error_message'), _fetchReport)
                               : TabBarView(
                                   controller: _tabController,
                                   children: [

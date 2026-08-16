@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../api_config.dart';
 import '../../utils/api_client.dart';
@@ -339,7 +340,40 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           SafeArea(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
+                : _fetchError != null
+                    ? errorStateWidget(context, _fetchError!, _loadLeaderboard)
+                    : rows.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.leaderboard_outlined, size: 72,
+                                    color: AppThemeColors.divider(context)),
+                                const SizedBox(height: 14),
+                                Text(t('no_more_users_ranking_msg'),
+                                    style: TextStyle(fontSize: 16,
+                                        color: AppThemeColors.secondaryText(context)),
+                                    textAlign: TextAlign.center),
+                                const SizedBox(height: 20),
+                                FilledButton.icon(
+                                  onPressed: _loadLeaderboard,
+                                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                                  label: Text(t('retry'),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 15)),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFFF06322),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 36, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
                     onRefresh: () async {
                       await _loadLeaderboard();
                       if (mounted && _fetchError == null) {

@@ -2774,19 +2774,21 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               else if (_secureTransactionsError != null)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF1F1),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFFF6B6B)),
                   ),
-                  child: Text(
-                    _secureTransactionsError!,
-                    style: const TextStyle(
-                      color: Color(0xFFC62828),
-                      fontWeight: FontWeight.w600,
+                  child: Row(children: [
+                    Expanded(child: Text(_secureTransactionsError!,
+                        style: const TextStyle(color: Color(0xFFC62828), fontWeight: FontWeight.w600))),
+                    TextButton.icon(
+                      onPressed: _fetchSecureTransactions,
+                      icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFFF06322)),
+                      label: const Text('Retry', style: TextStyle(color: Color(0xFFF06322), fontWeight: FontWeight.bold)),
                     ),
-                  ),
+                  ]),
                 )
               else ...[
                 SizedBox(
@@ -3218,19 +3220,21 @@ class _AnalyticsPageState extends State<AnalyticsPage>
               else if (_quickTransactionsError != null)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF1F1),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFFF6B6B)),
                   ),
-                  child: Text(
-                    _quickTransactionsError ?? t('unable_to_load_quick_insights_message'),
-                    style: const TextStyle(
-                      color: Color(0xFFC62828),
-                      fontWeight: FontWeight.w600,
+                  child: Row(children: [
+                    Expanded(child: Text(_quickTransactionsError ?? t('unable_to_load_quick_insights_message'),
+                        style: const TextStyle(color: Color(0xFFC62828), fontWeight: FontWeight.w600))),
+                    TextButton.icon(
+                      onPressed: _fetchQuickTransactions,
+                      icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFFF06322)),
+                      label: const Text('Retry', style: TextStyle(color: Color(0xFFF06322), fontWeight: FontWeight.bold)),
                     ),
-                  ),
+                  ]),
                 )
               else ...[
                 SizedBox(

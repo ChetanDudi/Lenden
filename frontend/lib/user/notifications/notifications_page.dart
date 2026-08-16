@@ -373,39 +373,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                           child: CircularProgressIndicator(color: AppColors.cyan),
                         )
                       : _hasError
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 32),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.cloud_off_outlined,
-                                        size: 56,
-                                        color: AppThemeColors.secondaryText(context)),
-                                    const SizedBox(height: 16),
-                                    Text(t('fetch_error_message'),
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            color: AppThemeColors.secondaryText(context)),
-                                        textAlign: TextAlign.center),
-                                    const SizedBox(height: 20),
-                                    ElevatedButton.icon(
-                                      onPressed: () => _fetchNotifications(viewAll: _isShowingAll),
-                                      icon: const Icon(Icons.refresh, color: Colors.white),
-                                      label: Text(t('retry'),
-                                          style: const TextStyle(color: Colors.white)),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.cyan,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(20)),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 28, vertical: 12),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
+                          ? errorStateWidget(context, t('fetch_error_message'), () => _fetchNotifications(viewAll: _isShowingAll))
                           : TabBarView(
                           controller: _tabController,
                           children: _tabCategories
@@ -530,7 +498,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          const SizedBox(height: 120),
+          const SizedBox(height: 100),
           Center(
             child: Column(
               children: [
@@ -543,6 +511,18 @@ class _UserNotificationsPageState extends State<UserNotificationsPage>
                 Text(
                   t('no_notifications_in_tab'),
                   style: TextStyle(fontSize: 16, color: AppThemeColors.secondaryText(context)),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => _fetchNotifications(viewAll: _isShowingAll),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFF06322),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
                 ),
               ],
             ),

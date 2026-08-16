@@ -770,9 +770,9 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Flexible(child: _badge(cat, AppColors.cyan.withValues(alpha: 0.12), AppColors.cyan)),
-              ]),
+              Text(cat, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: context.sp(12), color: AppColors.cyan,
+                      fontWeight: FontWeight.w600)),
               if (allocation != null && allocation.isNotEmpty) ...[
                 const SizedBox(height: 3),
                 Row(children: [
@@ -794,7 +794,7 @@ class _PersonalBudgetExpensesPageState extends State<PersonalBudgetExpensesPage>
               ],
               if (date != null) ...[
                 const SizedBox(height: 2),
-                Text(_dtFmt.format(date),
+                Text(_dtFmt.format(date), maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: context.sp(10),
                         color: AppThemeColors.secondaryText(context))),
               ],

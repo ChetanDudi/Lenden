@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import '../../utils/api_client.dart';
 import '../../utils/responsive.dart';
 import '../../utils/theme_helper.dart';
@@ -237,7 +238,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
                             ),
                           )
                         else if (_hasError)
-                          _buildErrorState()
+                          errorStateWidget(context, t('fetch_error_message'), _loadUpdates)
                         else if (_filteredUpdates.isEmpty)
                           _buildEmptyState()
                         else
@@ -415,62 +416,7 @@ class _UserUpdatesPageState extends State<UserUpdatesPage> {
     );
   }
 
-  // ── Error state (mirrors notifications page _hasError block) ─────────────
-
-  Widget _buildErrorState() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 60),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.cloud_off_outlined,
-                  size: 56,
-                  color: AppThemeColors.secondaryText(context)),
-              const SizedBox(height: 16),
-              Text(
-                t('no_internet_connection_title'),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppThemeColors.primaryText(context),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                t('check_connection_and_retry_message'),
-                style: TextStyle(
-                    fontSize: 14,
-                    color: AppThemeColors.secondaryText(context)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _loadUpdates,
-                icon: const Icon(Icons.refresh,
-                    color: Colors.white),
-                label: Text(t('retry_label'),
-                    style:
-                        const TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.cyan,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 28, vertical: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Empty state (mirrors notifications page empty-tab block) ─────────────
+  // ── Empty state ──────────────────────────────────────────────────────────
 
   Widget _buildEmptyState() {
     return Padding(

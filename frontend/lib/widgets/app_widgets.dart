@@ -551,8 +551,7 @@ bool _isNetworkMessage(String msg) {
       lower.contains('unreachable');
 }
 
-/// Full-page animated error card. Auto-detects network vs server errors from [message].
-/// Pass [isNetwork] to override auto-detection.
+/// Full-page Retry-branded error state. Auto-detects network vs server errors.
 /// Pass [onRetry] = null to hide the retry button.
 Widget errorStateWidget(
   BuildContext context,
@@ -581,9 +580,9 @@ class _AppErrorWidgetState extends State<_AppErrorWidget>
   void initState() {
     super.initState();
     _pulse = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1500))
+        vsync: this, duration: const Duration(milliseconds: 1800))
       ..repeat(reverse: true);
-    _scale = Tween<double>(begin: 1.0, end: 1.10)
+    _scale = Tween<double>(begin: 1.0, end: 1.07)
         .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
   }
 
@@ -593,165 +592,105 @@ class _AppErrorWidgetState extends State<_AppErrorWidget>
     super.dispose();
   }
 
+  static const _orange = Color(0xFFF06322);
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
     final network = widget.isNetwork ?? _isNetworkMessage(widget.message);
 
-    final IconData icon;
-    final Color iconBg, iconColor;
-    final List<Color> gradColors;
-    final String title, subtitle;
-
-    if (network) {
-      icon = Icons.wifi_off_rounded;
-      iconBg = const Color(0xFFFFEBEE);
-      iconColor = const Color(0xFFE53935);
-      gradColors = [const Color(0xFFEF5350), const Color(0xFFFF8A65)];
-      title = t('no_internet_connection_title');
-      subtitle = t('check_connection_and_retry_message');
-    } else {
-      icon = Icons.cloud_off_rounded;
-      iconBg = const Color(0xFFE3F2FD);
-      iconColor = const Color(0xFF1565C0);
-      gradColors = [const Color(0xFF42A5F5), const Color(0xFF26C6DA)];
-      title = t('oops_something_went_wrong');
-      subtitle = widget.message;
-    }
+    final heading = network
+        ? t('no_internet_connection_title')
+        : t('oops_something_went_wrong');
+    final subtitle = network
+        ? t('check_connection_and_retry_message')
+        : widget.message;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: gradColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: gradColors.first.withValues(alpha: 0.25),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
+            // ── Animated error icon ─────────────────────────────────────────
+            ScaleTransition(
+              scale: _scale,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+                width: 90,
+                height: 90,
                 decoration: BoxDecoration(
-                  color: AppThemeColors.cardBg(context),
-                  borderRadius: BorderRadius.circular(21),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ScaleTransition(
-                      scale: _scale,
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: iconBg,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: iconColor.withValues(alpha: 0.20),
-                              blurRadius: 16,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Icon(icon, size: 52, color: iconColor),
-                      ),
+                  color: _orange.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _orange.withValues(alpha: 0.22),
+                      blurRadius: 28,
+                      spreadRadius: 4,
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: iconColor,
-                        letterSpacing: -0.3,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppThemeColors.secondaryText(context),
-                        height: 1.5,
-                      ),
-                    ),
-                    if (network) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: iconColor.withValues(alpha: 0.6),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            t('no_connection_label'),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppThemeColors.mutedText(context),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
+                ),
+                child: Icon(
+                  network ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
+                  size: 46,
+                  color: _orange,
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+
+            // ── "Oops!" ─────────────────────────────────────────────────────
+            Text(
+              'Oops!',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+                color: AppThemeColors.primaryText(context),
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // ── Sub-heading (error type) ─────────────────────────────────────
+            Text(
+              heading,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: _orange,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+
+            // ── Error message ────────────────────────────────────────────────
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppThemeColors.secondaryText(context),
+                height: 1.55,
+              ),
+            ),
+
+            // ── Retry button ─────────────────────────────────────────────────
             if (widget.onRetry != null) ...[
-              const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: gradColors,
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: gradColors.first.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+              const SizedBox(height: 30),
+              FilledButton.icon(
+                onPressed: widget.onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(
+                  t('retry'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
                 ),
-                padding: const EdgeInsets.all(2),
-                child: ElevatedButton.icon(
-                  onPressed: widget.onRetry,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(t('retry'),
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: iconColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 36, vertical: 13),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28)),
-                    elevation: 0,
-                  ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40, vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
               ),
             ],
@@ -761,3 +700,4 @@ class _AppErrorWidgetState extends State<_AppErrorWidget>
     );
   }
 }
+

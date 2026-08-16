@@ -25,6 +25,8 @@ class _UserOffersPageState extends State<UserOffersPage>
   List<dynamic> _claimHistory = [];
   bool _loadingOffers = true;
   bool _loadingHistory = true;
+  String? _offersError;
+  String? _historyError;
   final Set<String> _accepting = {};
   String _sortBy = 'endsAt';
   String _order = 'asc';
@@ -70,7 +72,7 @@ class _UserOffersPageState extends State<UserOffersPage>
   }
 
   Future<void> _fetchOffers() async {
-    setState(() => _loadingOffers = true);
+    setState(() { _loadingOffers = true; _offersError = null; });
     final path =
         '/api/offers/available?sortBy=$_sortBy&order=$_order&claimStatus=$_claimStatus';
     final res = await ApiClient.get(path);
@@ -83,12 +85,11 @@ class _UserOffersPageState extends State<UserOffersPage>
       });
       return;
     }
-    setState(() => _loadingOffers = false);
-    _showMsg('Failed to fetch offers', isError: true);
+    setState(() { _loadingOffers = false; _offersError = 'Failed to fetch offers'; });
   }
 
   Future<void> _fetchHistory() async {
-    setState(() => _loadingHistory = true);
+    setState(() { _loadingHistory = true; _historyError = null; });
     final res = await ApiClient.get('/api/offers/my-claims?includeRevoked=true');
     if (!mounted) return;
     if (res.statusCode == 200) {
@@ -99,8 +100,7 @@ class _UserOffersPageState extends State<UserOffersPage>
       });
       return;
     }
-    setState(() => _loadingHistory = false);
-    _showMsg('Failed to fetch claim history', isError: true);
+    setState(() { _loadingHistory = false; _historyError = 'Failed to fetch claim history'; });
   }
 
   Future<void> _acceptOffer(Map<String, dynamic> offer) async {
@@ -226,6 +226,9 @@ class _UserOffersPageState extends State<UserOffersPage>
         ),
       );
     }
+    if (_offersError != null) {
+      return errorStateWidget(context, _offersError!, _fetchOffers);
+    }
     if (_offers.isEmpty) {
       return const Center(
         child: Column(
@@ -280,6 +283,9 @@ class _UserOffersPageState extends State<UserOffersPage>
           ],
         ),
       );
+    }
+    if (_historyError != null) {
+      return errorStateWidget(context, _historyError!, _fetchHistory);
     }
     if (_claimHistory.isEmpty) {
       return const Center(

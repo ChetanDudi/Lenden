@@ -31,6 +31,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   final TextEditingController _searchController = TextEditingController();
   Timer? _friendsDebounceTimer;
   bool _loading = true;
+  String? _loadError;
   bool _searching = false;
   String? _searchError;
   List<Map<String, dynamic>> _friends = [];
@@ -83,7 +84,7 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
   }
 
   Future<void> _fetchFriends() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _loadError = null; });
     try {
       final params = StringBuffer('/api/friends');
       final qp = <String>[];
@@ -119,8 +120,10 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
       _loadSuggestions();
       _loadTopRated();
       _loadBirthdayFriends();
+    } catch (_) {
+      if (mounted) setState(() => _loadError = 'Failed to load friends.');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -1594,7 +1597,9 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                 Expanded(
                   child: _loading
                     ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
+                    : _loadError != null
+                        ? errorStateWidget(context, _loadError!, _fetchFriends)
+                        : RefreshIndicator(
                         onRefresh: _fetchFriends,
                         color: AppColors.cyan,
                         child: TabBarView(
@@ -1917,6 +1922,18 @@ class _FriendsPageState extends State<FriendsPage> with SingleTickerProviderStat
                                         if (_friendsQuery.isEmpty && !_showCloseOnly) ...[
                                           const SizedBox(height: 4),
                                           Text(t('search_above_to_add_friends'), style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                                          const SizedBox(height: 20),
+                                          FilledButton.icon(
+                                            onPressed: _fetchFriends,
+                                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                                            label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: const Color(0xFFF06322),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                            ),
+                                          ),
                                         ],
                                       ]),
                                     ),

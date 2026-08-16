@@ -572,10 +572,7 @@ class _HelpSupportPageState extends State<HelpSupportPage> {
                   _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Text(_error!,
-                                  style:
-                                      const TextStyle(color: Colors.red)))
+                          ? errorStateWidget(context, _error!, _fetchUserQueries)
                           : filtered.isEmpty
                               ? Center(
                                   child: Padding(

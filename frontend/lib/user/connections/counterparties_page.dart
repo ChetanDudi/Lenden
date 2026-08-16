@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_colors.dart';
+import '../../widgets/app_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../utils/api_client.dart';
 import '../../session.dart';
@@ -28,6 +29,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
 
   List<Map<String, dynamic>> _counterparties = [];
   bool _isLoading = true;
+  String? _error;
   String _searchQuery = '';
   String _sortBy = 'count_desc';
   String? _filterGender;
@@ -80,7 +82,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() { _isLoading = true; _error = null; });
     try {
       final params = StringBuffer('/api/counterparties/user?email=${Uri.encodeComponent(email)}');
       if (_searchQuery.isNotEmpty) params.write('&search=${Uri.encodeComponent(_searchQuery)}');
@@ -96,7 +98,7 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
         if (!hasFilters) session.setCounterparties(list);
       }
     } catch (_) {
-      // Keep the page resilient if the request fails.
+      if (mounted) setState(() => _error = 'Failed to load counterparties.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -856,7 +858,9 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                       ? const SingleChildScrollView(
                           physics: AlwaysScrollableScrollPhysics(),
                           child: SizedBox(height: 300, child: Center(child: CircularProgressIndicator())))
-                      : filtered.isEmpty
+                      : _error != null
+                          ? errorStateWidget(context, _error!, () => _fetchCounterparties(forceRefresh: true))
+                          : filtered.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -873,6 +877,20 @@ class _CounterpartiesPageState extends State<CounterpartiesPage> {
                                       fontSize: 16,
                                     ),
                                   ),
+                                  if (_counterparties.isEmpty) ...[
+                                    const SizedBox(height: 20),
+                                    FilledButton.icon(
+                                      onPressed: () => _fetchCounterparties(forceRefresh: true),
+                                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                                      label: Text(t('retry'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: const Color(0xFFF06322),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             )

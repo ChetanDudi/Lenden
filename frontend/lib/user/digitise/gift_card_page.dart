@@ -24,6 +24,7 @@ class _GiftCardPageState extends State<GiftCardPage>
   List<Map<String, dynamic>> scratchedCards = [];
   bool isLoading = true;
   bool isScratching = false;
+  String? _error;
   int unscrachedCount = 0;
   int scratchedCount = 0;
 
@@ -63,6 +64,7 @@ class _GiftCardPageState extends State<GiftCardPage>
     if (mounted) {
       setState(() {
         isLoading = true;
+        _error = null;
       });
     }
     try {
@@ -107,8 +109,8 @@ class _GiftCardPageState extends State<GiftCardPage>
           scratchedCount = nextScratchedCount;
         });
       }
-    } catch (e) {
-      print('Error fetching gift cards: $e');
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Failed to load gift cards.');
     } finally {
       if (mounted) {
         setState(() {
@@ -447,7 +449,9 @@ class _GiftCardPageState extends State<GiftCardPage>
                 Expanded(
                   child: isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : TabBarView(
+                      : _error != null
+                          ? errorStateWidget(context, _error!, _fetchGiftCards)
+                          : TabBarView(
                           controller: _tabController,
                           children: [
                             // Unscratched Cards Tab
