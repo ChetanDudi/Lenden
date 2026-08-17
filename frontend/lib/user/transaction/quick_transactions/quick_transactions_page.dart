@@ -2476,6 +2476,12 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                             Colors.deepPurple,
                             _catIcon((transaction['category'] ?? 'other').toString()),
                           ),
+                          if (((transaction['editHistory'] as List?)?.length ?? 0) > 0)
+                            _buildStatusChip(
+                              '${(transaction['editHistory'] as List).length} edit${(transaction['editHistory'] as List).length == 1 ? '' : 's'}',
+                              Colors.purple.shade700,
+                              Icons.history_rounded,
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),

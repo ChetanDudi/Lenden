@@ -23,6 +23,7 @@ module.exports = (router, { auth, otpSendLimiter, otpVerifyLimiter, budgetCheck,
   router.get('/quick-transactions/scheduled', auth, quickTransactionController.getScheduledQuickTransactions);
   router.delete('/quick-transactions/:id/cancel-scheduled', auth, quickTransactionController.cancelScheduledQuickTransaction);
   router.get('/quick-transactions/friend-balances', auth, quickTransactionController.getFriendBalances);
+  router.get('/quick-transactions/:id', auth, quickTransactionController.getQuickTransactionById);
 
   // Secure transactions
   router.post('/transactions/create', auth, handleUsage('userTransaction'), budgetCheck('secure'), upload.array('files'), transactionController.createTransaction);

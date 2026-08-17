@@ -10,6 +10,7 @@ import '../../../utils/share_utils.dart';
 import '../../../widgets/payment_success_page.dart';
 import '../../wallet/widgets/payment_sheet.dart';
 import './create_edit_quick_transaction_page.dart';
+import './quick_transaction_history_page.dart';
 import '../../../utils/theme_helper.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -361,7 +362,9 @@ class _QuickTransactionDetailPageState
             result['transaction'] ??
             result;
         if (updated is Map) {
+          final enrichedUsers = _tx['users'];
           _tx = Map<String, dynamic>.from(updated);
+          _tx['users'] = enrichedUsers;
         }
       });
       _didMutate = true;
@@ -897,6 +900,26 @@ class _QuickTransactionDetailPageState
           label: t('duplicate_label'),
           subtitle: t('create_transaction_same_details_message'),
           onTap: _duplicateTransaction,
+        ),
+        _actionTile(
+          icon: Icons.history_rounded,
+          color: Colors.purple,
+          label: 'View Edit History',
+          subtitle: () {
+            final count = (_tx['editHistory'] as List?)?.length ?? 0;
+            return count == 0
+                ? 'No edits yet — history tracked from next edit'
+                : '$count edit${count == 1 ? '' : 's'} — tap to view full history';
+          }(),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => QuickTransactionHistoryPage(
+                transaction: Map<String, dynamic>.from(_tx),
+                currentUserEmail: _currentUserEmail ?? '',
+              ),
+            ),
+          ),
         ),
         _actionTile(
           icon: Icons.share,

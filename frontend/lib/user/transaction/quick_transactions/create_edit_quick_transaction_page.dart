@@ -112,12 +112,21 @@ class _CreateEditQuickTransactionPageState
       final currentUserEmail = _userEmail;
       if (currentUserEmail != null) {
         final users = widget.transaction!['users'] as List? ?? [];
-        final counterparty = users.cast<Map<String, dynamic>>().firstWhere(
-          (user) => user['email'] != currentUserEmail,
-          orElse: () => <String, dynamic>{},
-        );
-        _counterpartyEmailController.text =
-            counterparty.isNotEmpty ? (counterparty['email'] ?? '') : '';
+        String counterpartyEmail = '';
+        for (final user in users) {
+          String email = '';
+          if (user is Map) {
+            email = (user['email'] ?? '').toString();
+          } else if (user is String) {
+            email = user;
+          }
+          if (email.isNotEmpty &&
+              email.toLowerCase() != currentUserEmail.toLowerCase()) {
+            counterpartyEmail = email;
+            break;
+          }
+        }
+        _counterpartyEmailController.text = counterpartyEmail;
       }
       _role = widget.initialRole ?? widget.transaction!['role'] ?? 'lender';
       final rawCat = widget.transaction!['category'] ?? 'other';

@@ -435,10 +435,39 @@ exports.toggleQuickTransactionFavourite = async (req, res) => {
   }
 };
 
+exports.getQuickTransactionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userEmail = req.user.email;
+
+    const quickTransaction = await QuickTransaction.findById(id);
+    if (!quickTransaction) {
+      return res.status(404).json({ error: 'Quick transaction not found' });
+    }
+    if (!quickTransaction.users.includes(userEmail)) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const populated = await User.find({ email: { $in: quickTransaction.users } })
+      .select('email username name profileImage');
+    const userMap = Object.fromEntries(populated.map(u => [u.email, u]));
+    const enrichedUsers = quickTransaction.users.map(email => {
+      const u = userMap[email];
+      return u ? { email: u.email, name: u.name || u.username || '', profileImage: u.profileImage } : { email };
+    });
+
+    res.status(200).json({
+      quickTransaction: { ...quickTransaction.toObject(), users: enrichedUsers },
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 exports.updateQuickTransaction = async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount, currency, date, time, description, role } = req.body;
+    const { amount, currency, date, time, description, role, category } = req.body;
     const userEmail = req.user.email;
 
     const parsedAmount = parseFloat(amount);
@@ -460,12 +489,25 @@ exports.updateQuickTransaction = async (req, res) => {
       return res.status(403).json({ error: 'User not authorized to update this transaction' });
     }
 
+    quickTransaction.editHistory.push({
+      editedAt: new Date(),
+      editedBy: userEmail,
+      amount: quickTransaction.amount,
+      currency: quickTransaction.currency,
+      date: quickTransaction.date,
+      time: quickTransaction.time,
+      description: quickTransaction.description,
+      role: quickTransaction.role,
+      category: quickTransaction.category,
+    });
+
     quickTransaction.amount = parsedAmount;
     quickTransaction.currency = currency;
     quickTransaction.date = date;
     quickTransaction.time = time;
     quickTransaction.description = description;
     quickTransaction.role = role;
+    if (category) quickTransaction.category = category;
     resetSettlementState(quickTransaction);
 
     await quickTransaction.save();

@@ -81,6 +81,17 @@ const quickTransactionSchema = new mongoose.Schema({
   },
   settledViaPayment: { type: Boolean, default: false },
   paymentMethod: { type: String, enum: ['wallet', null], default: null },
+  editHistory: [{
+    editedAt: { type: Date, default: Date.now },
+    editedBy: { type: String },
+    amount: Number,
+    currency: String,
+    date: Date,
+    time: String,
+    description: String,
+    role: String,
+    category: String,
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
