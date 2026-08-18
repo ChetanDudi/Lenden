@@ -1444,7 +1444,7 @@ class _TransactionPageState extends State<TransactionPage> {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: ['png', 'jpg', 'jpeg'],
+      allowedExtensions: ['png', 'jpg', 'jpeg', 'pdf'],
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
@@ -1464,7 +1464,7 @@ class _TransactionPageState extends State<TransactionPage> {
     if (target == null) {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['png', 'jpg', 'jpeg'],
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'pdf'],
         withData: true,
       );
       if (result == null || result.files.isEmpty) return;
@@ -2882,7 +2882,6 @@ class _TransactionPageState extends State<TransactionPage> {
         if (double.tryParse(_amountController.text.trim()) == null) return 'Enter a valid amount';
         if (_selectedDate == null) return 'Transaction date is required';
         if (_selectedTime == null) return 'Transaction time is required';
-        if (_placeController.text.trim().isEmpty) return 'Place is required';
         return null;
       case 2:
         if (_interestType != 'none') {
@@ -3215,6 +3214,23 @@ class _TransactionPageState extends State<TransactionPage> {
               ])
             else
               Row(children: [
+                if (_currentStep > 0) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() {
+                      _stepError = null;
+                      _currentStep--;
+                      _showStepList = false;
+                    }),
+                    icon: const Icon(Icons.arrow_back_ios, size: 13),
+                    label: const Text('Back', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
+                      side: BorderSide(color: AppThemeColors.divider(context)),
+                      foregroundColor: AppThemeColors.primaryText(context),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _saveAndGoToList,

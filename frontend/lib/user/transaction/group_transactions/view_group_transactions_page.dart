@@ -1,4 +1,9 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:elegant_notification/elegant_notification.dart';
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import '../../../utils/share_utils.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -36,6 +41,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
   String selectedGroupFilter =
       'All Groups'; // 'All Groups', 'Joined Groups', 'Left Groups'
   bool _showFavouritesOnly = false;
+  String _groupSort = 'default'; // 'default' | 'name_asc' | 'expenses_desc' | 'pending_desc'
   int createdGroupsCount = 0; // Track groups created by user
   String? _displayCurrencyError;
   List<Map<String, String>> _currencies = [
@@ -622,6 +628,169 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     );
   }
 
+  List<Map<String, dynamic>> get _sortedGroups {
+    final list = List<Map<String, dynamic>>.from(userGroups);
+    switch (_groupSort) {
+      case 'name_asc':
+        list.sort((a, b) => (a['title'] ?? '').toString().compareTo((b['title'] ?? '').toString()));
+        break;
+      case 'expenses_desc':
+        list.sort((a, b) {
+          final ae = (b['expenses'] as List?)?.length ?? 0;
+          final be = (a['expenses'] as List?)?.length ?? 0;
+          return ae.compareTo(be);
+        });
+        break;
+      case 'pending_desc':
+        list.sort((a, b) {
+          final ap = (b['userPendingBalance'] as num?)?.toDouble() ?? 0;
+          final bp = (a['userPendingBalance'] as num?)?.toDouble() ?? 0;
+          return ap.compareTo(bp);
+        });
+        break;
+    }
+    return list;
+  }
+
+  Future<void> _addExpense(String groupId, Map<String, dynamic> expenseData) async {
+    final t = AppLocalizations.of(context).t;
+    setState(() { loading = true; error = null; });
+    try {
+      final res = await ApiClient.post('/api/group-transactions/$groupId/expenses', body: expenseData);
+      final data = res.body.isNotEmpty ? json.decode(res.body) : null;
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        await _fetchUserGroups();
+        if (mounted) showSnack(context, '✅ Expense added successfully');
+      } else {
+        setState(() { error = data?['error'] ?? t('something_went_wrong_retry_message'); });
+      }
+    } catch (e) {
+      setState(() { error = t('something_went_wrong_retry_message'); });
+    } finally {
+      if (mounted) setState(() { loading = false; });
+    }
+  }
+
+  void _showAddExpenseDialog(Map<String, dynamic> group) {
+    final t = AppLocalizations.of(context).t;
+    final groupId = group['_id']?.toString() ?? '';
+    final descController = TextEditingController();
+    final amountController = TextEditingController();
+    final members = List<Map<String, dynamic>>.from(group['members'] ?? []);
+    final lockedCurrency = _lockedCurrencyForUserInGroup(groupId, null);
+    String currency = lockedCurrency ?? 'INR';
+    List<String> selectedMembers = members.map((m) => (m['email'] ?? '').toString()).toList();
+    String splitType = 'equal';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: AppThemeColors.cardBg(context),
+          title: Row(children: [
+            const Icon(Icons.add_circle_rounded, color: AppColors.cyan, size: 22),
+            const SizedBox(width: 8),
+            Text('Add Expense', style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold, fontSize: 18)),
+          ]),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                controller: descController,
+                decoration: InputDecoration(
+                  labelText: t('description_label'),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: t('amount_label'),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: currency,
+                  onChanged: lockedCurrency != null ? null : (v) { if (v != null) setS(() => currency = v); },
+                  items: (_currencies.map((c) => c['code']!).toList())
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: splitType,
+                decoration: InputDecoration(
+                  labelText: t('split_type_label'),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: [
+                  DropdownMenuItem(value: 'equal', child: Text(t('equal_split_label'))),
+                  DropdownMenuItem(value: 'custom', child: Text(t('custom_split_label'))),
+                ],
+                onChanged: (v) { if (v != null) setS(() => splitType = v); },
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(t('select_members_label'), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              ...members.map((m) {
+                final email = (m['email'] ?? '').toString();
+                final name = (m['name'] ?? email).toString();
+                return CheckboxListTile(
+                  dense: true,
+                  title: Text(name, style: const TextStyle(fontSize: 13)),
+                  subtitle: Text(email, style: const TextStyle(fontSize: 11)),
+                  value: selectedMembers.contains(email),
+                  onChanged: (v) => setS(() {
+                    if (v == true) { selectedMembers.add(email); } else { selectedMembers.remove(email); }
+                  }),
+                );
+              }),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('cancel'))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.cyan, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              onPressed: () async {
+                if (descController.text.trim().isEmpty) {
+                  showSnack(context, t('enter_a_description_message'), isError: true);
+                  return;
+                }
+                final amount = double.tryParse(amountController.text.trim());
+                if (amount == null || amount <= 0) {
+                  showSnack(context, t('enter_a_valid_amount'), isError: true);
+                  return;
+                }
+                if (selectedMembers.isEmpty) {
+                  showSnack(context, t('select_at_least_one_member_message'), isError: true);
+                  return;
+                }
+                Navigator.pop(ctx);
+                await _addExpense(groupId, {
+                  'description': descController.text.trim(),
+                  'amount': amount,
+                  'currency': currency,
+                  'selectedMembers': selectedMembers,
+                  'splitType': splitType,
+                });
+              },
+              child: Text(t('add_label')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _editExpense(String groupId, String expenseId,
       Map<String, dynamic> expenseData) async {
     final t = AppLocalizations.of(context).t;
@@ -1201,6 +1370,187 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
         context, MaterialPageRoute(builder: (_) => const CreateGroupPage()));
   }
 
+  // ── CSV Export ────────────────────────────────────────────────────────────
+  Future<void> _exportCsv() async {
+    if (userGroups.isEmpty) {
+      ElegantNotification.error(
+        title: const Text('Nothing to export', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('No groups to export'),
+      ).show(context);
+      return;
+    }
+    final buf = StringBuffer();
+    buf.writeln('Group,Expense Description,Amount (INR),Currency,Added By,Date,Members');
+    String cell(dynamic v) => '"${(v ?? '').toString().replaceAll('"', '""')}"';
+    for (final group in userGroups) {
+      final groupTitle = (group['title'] ?? 'Unknown Group').toString();
+      final expenses = List<Map<String, dynamic>>.from(group['expenses'] ?? []);
+      if (expenses.isEmpty) {
+        buf.writeln([cell(groupTitle), cell('—'), cell('0.00'), cell('INR'), cell('—'), cell('—'), cell('—')].join(','));
+      }
+      for (final expense in expenses) {
+        final members = (expense['selectedMembers'] as List?)?.join('; ') ?? '';
+        final dateStr = (expense['createdAt'] ?? expense['date'] ?? '').toString().split('T').first;
+        buf.writeln([
+          cell(groupTitle),
+          cell(expense['description']),
+          cell((_expenseAmountInInr(expense)).toStringAsFixed(2)),
+          cell(expense['currency'] ?? 'INR'),
+          cell(expense['addedBy']),
+          cell(dateStr),
+          cell(members),
+        ].join(','));
+      }
+    }
+    final now = DateTime.now();
+    final filename = 'lenden_groups_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+    final ok = await shareTextFile(content: buf.toString(), filename: filename, subject: 'LenDen Group Transactions Export');
+    if (!ok && mounted) {
+      ElegantNotification.error(
+        title: const Text('Export failed', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('Could not export the file'),
+      ).show(context);
+    }
+  }
+
+  // ── PDF Export ────────────────────────────────────────────────────────────
+  Future<void> _exportPdf() async {
+    if (userGroups.isEmpty) {
+      ElegantNotification.error(
+        title: const Text('Nothing to export', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('No groups to export'),
+      ).show(context);
+      return;
+    }
+
+    const darkBg    = PdfColor.fromInt(0xFF0D1B2A);
+    const cyan      = PdfColor.fromInt(0xFF00BCD4);
+    const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
+    const textDark  = PdfColor.fromInt(0xFF1A1A1A);
+    const green     = PdfColor.fromInt(0xFF2E7D32);
+    const white70   = PdfColor(1, 1, 1, 0.7);
+
+    pw.Widget pCell(String text, {bool bold = false, PdfColor? color}) =>
+        pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          child: pw.Text(text, style: pw.TextStyle(fontSize: 8.5, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color ?? textDark)),
+        );
+
+    final now = DateTime.now();
+    final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
+    final totalExpenses = userGroups.fold(0, (s, g) => s + ((g['expenses'] as List?)?.length ?? 0));
+    final totalAmount = userGroups.fold(0.0, (s, g) {
+      final expenses = List<Map<String, dynamic>>.from(g['expenses'] ?? []);
+      return s + expenses.fold(0.0, (es, e) => es + _expenseAmountInInr(e));
+    });
+
+    final doc = pw.Document();
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        // Header
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: darkBg, borderRadius: pw.BorderRadius.all(pw.Radius.circular(12))),
+          padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('LenDen', style: pw.TextStyle(color: PdfColors.white, fontSize: 26, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text('Group Transactions Report', style: pw.TextStyle(color: cyan, fontSize: 13)),
+            pw.SizedBox(height: 12),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Text('${userGroups.length} group${userGroups.length == 1 ? '' : 's'} · $totalExpenses expense${totalExpenses == 1 ? '' : 's'}', style: pw.TextStyle(color: white70, fontSize: 10)),
+              pw.Text('Generated: $genLabel', style: pw.TextStyle(color: white70, fontSize: 10)),
+            ]),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Summary
+        pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 20),
+          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300, width: 0.5), borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8))),
+          padding: const pw.EdgeInsets.all(14),
+          child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text('Groups', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+              pw.Text('${userGroups.length}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: textDark)),
+            ]),
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text('Total Expenses', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+              pw.Text('$totalExpenses', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: textDark)),
+            ]),
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text('Total Amount (INR)', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+              pw.Text('₹${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
+            ]),
+          ]),
+        ),
+
+        // Per-group tables
+        for (final group in userGroups) ...[
+          pw.Container(
+            decoration: const pw.BoxDecoration(color: darkBg, borderRadius: pw.BorderRadius.all(pw.Radius.circular(6))),
+            padding: const pw.EdgeInsets.fromLTRB(12, 8, 12, 8),
+            margin: const pw.EdgeInsets.only(bottom: 6),
+            child: pw.Text((group['title'] ?? 'Unnamed Group').toString(),
+                style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 11)),
+          ),
+          () {
+            final expenses = List<Map<String, dynamic>>.from(group['expenses'] ?? []);
+            if (expenses.isEmpty) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 14, left: 4),
+                child: pw.Text('No expenses recorded.', style: pw.TextStyle(color: PdfColors.grey600, fontSize: 9)),
+              );
+            }
+            return pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(2.2),
+                1: const pw.FlexColumnWidth(1.2),
+                2: const pw.FlexColumnWidth(1.4),
+                3: const pw.FlexColumnWidth(1.2),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE0E0E0)),
+                  children: ['Description', 'Amount (INR)', 'Added By', 'Date']
+                      .map((h) => pCell(h, bold: true)).toList(),
+                ),
+                for (int i = 0; i < expenses.length; i++) () {
+                  final e = expenses[i];
+                  final amt = _expenseAmountInInr(e);
+                  final dateStr = (e['createdAt'] ?? e['date'] ?? '').toString().split('T').first;
+                  return pw.TableRow(
+                    decoration: pw.BoxDecoration(color: i.isEven ? lightGrey : null),
+                    children: [
+                      pCell((e['description'] ?? '—').toString()),
+                      pCell('₹${amt.toStringAsFixed(2)}', color: green),
+                      pCell((e['addedBy'] ?? '—').toString()),
+                      pCell(dateStr),
+                    ],
+                  );
+                }(),
+              ],
+            );
+          }(),
+          pw.SizedBox(height: 16),
+        ],
+      ],
+    ));
+
+    final bytes = await doc.save();
+    final filename = 'lenden_groups_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
+    final ok = await shareBytesFile(bytes: bytes, filename: filename, mimeType: 'application/pdf', subject: 'LenDen Group Transactions Report');
+    if (!ok && mounted) {
+      ElegantNotification.error(
+        title: const Text('Export failed', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('Could not export the PDF'),
+      ).show(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context).t;
@@ -1242,7 +1592,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
           ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.only(right: 4),
               child: Center(
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -1270,6 +1620,33 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                   ),
                 ),
               ),
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert_rounded, color: AppThemeColors.primaryText(context)),
+              onSelected: (value) {
+                if (value == 'export_csv') _exportCsv();
+                if (value == 'export_pdf') _exportPdf();
+              },
+              itemBuilder: (ctx) => [
+                if (userGroups.isNotEmpty) ...[
+                  const PopupMenuItem(
+                    value: 'export_csv',
+                    child: Row(children: [
+                      Icon(Icons.table_chart_outlined, size: 18),
+                      SizedBox(width: 12),
+                      Text('Export CSV'),
+                    ]),
+                  ),
+                  const PopupMenuItem(
+                    value: 'export_pdf',
+                    child: Row(children: [
+                      Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
+                      SizedBox(width: 12),
+                      Text('Export PDF'),
+                    ]),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -1556,6 +1933,32 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                               ],
                             ),
                           ),
+                          // Sort chips
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(children: [
+                                Text('Sort:', style: TextStyle(fontSize: 12, color: AppThemeColors.mutedText(context))),
+                                const SizedBox(width: 8),
+                                for (final opt in [
+                                  ('default', 'Default'),
+                                  ('name_asc', 'A–Z'),
+                                  ('expenses_desc', 'Most Expenses'),
+                                  ('pending_desc', 'Pending'),
+                                ])
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: ChoiceChip(
+                                      label: Text(opt.$2, style: const TextStyle(fontSize: 12)),
+                                      selected: _groupSort == opt.$1,
+                                      selectedColor: AppColors.cyan.withValues(alpha: 0.2),
+                                      onSelected: (_) => setState(() => _groupSort = opt.$1),
+                                    ),
+                                  ),
+                              ]),
+                            ),
+                          ),
                           // Groups List
                           userGroups.isEmpty &&
                                   _searchController.text.isNotEmpty
@@ -1589,9 +1992,9 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                       const NeverScrollableScrollPhysics(),
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 16),
-                                  itemCount: userGroups.length,
+                                  itemCount: _sortedGroups.length,
                                   itemBuilder: (context, index) {
-                                          final group = userGroups[index];
+                                          final group = _sortedGroups[index];
                                           final expenses =
                                               group['expenses'] ?? [];
                                           final members =
@@ -1873,6 +2276,16 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                                                                         group);
                                                                   },
                                                                 ),
+                                                              ),
+                                                              const SizedBox(width: 8),
+                                                              ElevatedButton.icon(
+                                                                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                                                                label: const Text('Add Expense', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor: AppColors.cyan,
+                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                                ),
+                                                                onPressed: () => _showAddExpenseDialog(group),
                                                               ),
                                                             ],
                                                           ),

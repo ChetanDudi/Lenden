@@ -1,5 +1,10 @@
 ﻿//This file is to view user transactions
 import 'package:flutter/material.dart';
+import 'package:elegant_notification/elegant_notification.dart';
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import '../../../utils/share_utils.dart';
 import '../../../utils/pickers.dart';
 import '../../../widgets/app_colors.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +12,6 @@ import '../../../session.dart';
 import 'dart:convert';
 import 'dart:math';
 import '../../../utils/api_client.dart';
-import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../../widgets/currency_display.dart';
 import 'secure_transaction_detail_page.dart';
@@ -612,14 +616,15 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                     // Amount (always visible - most important)
                     Row(
                       children: [
-                        Icon(Icons.attach_money, color: Colors.green, size: 20),
+                        Icon(Icons.attach_money,
+                            color: isLending ? Colors.green : Colors.red.shade700, size: 20),
                         SizedBox(width: 6),
                         Text(
                           '${tr('amount')}: ${_formatDisplayAmount((t['amount'] as num?) ?? 0, t['currency']?.toString())}',
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green[700]),
+                              color: isLending ? Colors.green[700] : Colors.red.shade700),
                         ),
                       ],
                     ),
@@ -2041,6 +2046,240 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     }
   }
 
+  // ── Monthly Summary ───────────────────────────────────────────────────────
+  Widget _buildMonthlySummary() {
+    final now = DateTime.now();
+    double monthLent = 0, monthBorrowed = 0;
+    int lentCount = 0, borrowedCount = 0;
+    for (final tx in lending) {
+      final d = DateTime.tryParse((tx['date'] ?? tx['createdAt'] ?? '').toString());
+      if (d != null && d.year == now.year && d.month == now.month) {
+        monthLent += (tx['amount'] as num?)?.toDouble() ?? 0;
+        lentCount++;
+      }
+    }
+    for (final tx in borrowing) {
+      final d = DateTime.tryParse((tx['date'] ?? tx['createdAt'] ?? '').toString());
+      if (d != null && d.year == now.year && d.month == now.month) {
+        monthBorrowed += (tx['amount'] as num?)?.toDouble() ?? 0;
+        borrowedCount++;
+      }
+    }
+    if (lentCount == 0 && borrowedCount == 0) return const SizedBox.shrink();
+    final sym = currencyData?.symbolFor(selectedCurrency.toUpperCase()) ?? '₹';
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppThemeColors.border(context)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('This Month', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text('$sym${monthLent.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+          Text('$lentCount lent', style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(context))),
+        ])),
+        Container(width: 1, height: 36, color: AppThemeColors.border(context)),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('This Month', style: TextStyle(fontSize: 11, color: AppThemeColors.mutedText(context), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text('$sym${monthBorrowed.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFC62828))),
+          Text('$borrowedCount borrowed', style: TextStyle(fontSize: 10, color: AppThemeColors.mutedText(context))),
+        ])),
+      ]),
+    );
+  }
+
+  // ── CSV Export ────────────────────────────────────────────────────────────
+  Future<void> _exportCsv() async {
+    final allTxns = [...lending, ...borrowing];
+    if (allTxns.isEmpty) {
+      ElegantNotification.error(
+        title: const Text('Nothing to export', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('No transactions to export'),
+      ).show(context);
+      return;
+    }
+    final buf = StringBuffer();
+    buf.writeln('Amount,Currency,Role,Description,Counterparty,Date,Time,You Cleared,Other Cleared,Expected Return,Overdue');
+    String cell(dynamic v) => '"${(v ?? '').toString().replaceAll('"', '""')}"';
+    final userEmail = Provider.of<SessionProvider>(context, listen: false).user?['email'] ?? '';
+    for (final tx in allTxns) {
+      final isCreator = tx['userEmail']?.toString() == userEmail;
+      final youCleared = (isCreator ? tx['userCleared'] : tx['counterpartyCleared']) == true;
+      final otherCleared = (isCreator ? tx['counterpartyCleared'] : tx['userCleared']) == true;
+      final counterparty = isCreator ? tx['counterpartyEmail'] : tx['userEmail'];
+      final isLending = lending.contains(tx);
+      final expectedReturn = (tx['expectedReturnDate'] ?? '').toString().split('T').first;
+      final expectedDt = DateTime.tryParse((tx['expectedReturnDate'] ?? '').toString());
+      final isOverdue = expectedDt != null && expectedDt.isBefore(DateTime.now()) && !youCleared;
+      buf.writeln([
+        cell(tx['amount']),
+        cell(tx['currency'] ?? 'INR'),
+        cell(isLending ? 'Lending' : 'Borrowing'),
+        cell(tx['description']),
+        cell(counterparty),
+        cell((tx['date'] ?? '').toString().split('T').first),
+        cell(tx['time']),
+        cell(youCleared ? 'Yes' : 'No'),
+        cell(otherCleared ? 'Yes' : 'No'),
+        cell(expectedReturn),
+        cell(isOverdue ? 'Yes' : 'No'),
+      ].join(','));
+    }
+    final now = DateTime.now();
+    final filename = 'lenden_secure_txns_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+    final ok = await shareTextFile(content: buf.toString(), filename: filename, subject: 'LenDen Secure Transactions Export');
+    if (!ok && mounted) {
+      ElegantNotification.error(
+        title: const Text('Export failed', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('Could not export the file'),
+      ).show(context);
+    }
+  }
+
+  // ── PDF Export ────────────────────────────────────────────────────────────
+  Future<void> _exportPdf() async {
+    final allTxns = [...lending, ...borrowing];
+    if (allTxns.isEmpty) {
+      ElegantNotification.error(
+        title: const Text('Nothing to export', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('No transactions to export'),
+      ).show(context);
+      return;
+    }
+
+    const darkBg    = PdfColor.fromInt(0xFF0D1B2A);
+    const cyan      = PdfColor.fromInt(0xFF00BCD4);
+    const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
+    const textDark  = PdfColor.fromInt(0xFF1A1A1A);
+    const green     = PdfColor.fromInt(0xFF2E7D32);
+    const red       = PdfColor.fromInt(0xFFC62828);
+    const orange    = PdfColor.fromInt(0xFFF06322);
+    const white70   = PdfColor(1, 1, 1, 0.7);
+
+    pw.Widget cell(String text, {bool bold = false, PdfColor? color}) =>
+        pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          child: pw.Text(text, style: pw.TextStyle(fontSize: 8.5, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color ?? textDark)),
+        );
+
+    final userEmail = Provider.of<SessionProvider>(context, listen: false).user?['email'] ?? '';
+    final now = DateTime.now();
+    final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
+    final lendingCount = lending.length;
+    final borrowingCount = borrowing.length;
+
+    final doc = pw.Document();
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        // Header
+        pw.Container(
+          decoration: const pw.BoxDecoration(color: darkBg, borderRadius: pw.BorderRadius.all(pw.Radius.circular(12))),
+          padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('LenDen', style: pw.TextStyle(color: PdfColors.white, fontSize: 26, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text('Secure Transactions Report', style: pw.TextStyle(color: cyan, fontSize: 13)),
+            pw.SizedBox(height: 12),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Text('$lendingCount lending · $borrowingCount borrowing', style: pw.TextStyle(color: white70, fontSize: 10)),
+              pw.Text('Generated: $genLabel', style: pw.TextStyle(color: white70, fontSize: 10)),
+            ]),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Summary
+        pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 20),
+          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300, width: 0.5), borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8))),
+          padding: const pw.EdgeInsets.all(14),
+          child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text('Total Lent', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+              pw.Text('${lending.fold(0.0, (s, t) => s + ((t['amount'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
+            ]),
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text('Total Borrowed', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+              pw.Text('${borrowing.fold(0.0, (s, t) => s + ((t['amount'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: red)),
+            ]),
+            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text('Total Transactions', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+              pw.Text('${allTxns.length}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: textDark)),
+            ]),
+          ]),
+        ),
+
+        // Table
+        pw.Text('Transactions', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: textDark)),
+        pw.SizedBox(height: 8),
+        pw.Table(
+          border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(1.4),
+            1: const pw.FlexColumnWidth(0.9),
+            2: const pw.FlexColumnWidth(2.0),
+            3: const pw.FlexColumnWidth(1.5),
+            4: const pw.FlexColumnWidth(1.0),
+            5: const pw.FlexColumnWidth(1.0),
+            6: const pw.FlexColumnWidth(1.0),
+          },
+          children: [
+            pw.TableRow(
+              decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE0E0E0)),
+              children: ['Amount', 'Role', 'Description', 'Counterparty', 'Date', 'You ✓', 'Status']
+                  .map((h) => cell(h, bold: true)).toList(),
+            ),
+            for (int i = 0; i < allTxns.length; i++) () {
+              final tx = allTxns[i];
+              final isLend = lending.contains(tx);
+              final isCreator = tx['userEmail']?.toString() == userEmail;
+              final youCleared = (isCreator ? tx['userCleared'] : tx['counterpartyCleared']) == true;
+              final otherCleared = (isCreator ? tx['counterpartyCleared'] : tx['userCleared']) == true;
+              final fullyCleared = youCleared && otherCleared;
+              final counterparty = (isCreator ? tx['counterpartyEmail'] : tx['userEmail'])?.toString() ?? '—';
+              final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+              final sym = currencyData?.symbolFor((tx['currency'] ?? 'INR').toString().toUpperCase()) ?? '₹';
+              final dateStr = (tx['date'] ?? '').toString().split('T').first;
+              final expectedDt = DateTime.tryParse((tx['expectedReturnDate'] ?? '').toString());
+              final isOverdue = expectedDt != null && expectedDt.isBefore(DateTime.now()) && !fullyCleared;
+              return pw.TableRow(
+                decoration: pw.BoxDecoration(color: i.isEven ? lightGrey : null),
+                children: [
+                  cell('$sym${amt.toStringAsFixed(2)}', bold: true, color: isLend ? green : red),
+                  cell(isLend ? 'Lending' : 'Borrowing'),
+                  cell((tx['description'] ?? '—').toString()),
+                  cell(counterparty),
+                  cell(dateStr),
+                  cell(youCleared ? 'Yes' : 'No', color: youCleared ? green : orange),
+                  cell(fullyCleared ? 'Cleared' : isOverdue ? 'Overdue' : 'Pending',
+                      color: fullyCleared ? green : isOverdue ? red : orange),
+                ],
+              );
+            }(),
+          ],
+        ),
+      ],
+    ));
+
+    final bytes = await doc.save();
+    final filename = 'lenden_secure_txns_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
+    final ok = await shareBytesFile(bytes: bytes, filename: filename, mimeType: 'application/pdf', subject: 'LenDen Secure Transactions Report');
+    if (!ok && mounted) {
+      ElegantNotification.error(
+        title: const Text('Export failed', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('Could not export the PDF'),
+      ).show(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context).t;
@@ -2065,6 +2304,35 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
         title: Text(loc('your_transactions_count_title').replaceFirst('{count}', '$totalTransactions'),
             style: TextStyle(color: AppThemeColors.primaryText(context), fontWeight: FontWeight.bold)),
         iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert_rounded, color: AppThemeColors.primaryText(context)),
+            onSelected: (value) {
+              if (value == 'export_csv') _exportCsv();
+              if (value == 'export_pdf') _exportPdf();
+            },
+            itemBuilder: (ctx) => [
+              if (lending.isNotEmpty || borrowing.isNotEmpty) ...[
+                const PopupMenuItem(
+                  value: 'export_csv',
+                  child: Row(children: [
+                    Icon(Icons.table_chart_outlined, size: 18),
+                    SizedBox(width: 12),
+                    Text('Export CSV'),
+                  ]),
+                ),
+                const PopupMenuItem(
+                  value: 'export_pdf',
+                  child: Row(children: [
+                    Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Export PDF'),
+                  ]),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -2122,6 +2390,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
                       },
                     ),
                     const SizedBox(height: 8),
+                    _buildMonthlySummary(),
                     _buildFilterToolbar(),
                     _buildActiveFilterSummary(),
                     _buildStatusLegend(),

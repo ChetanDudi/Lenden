@@ -26,6 +26,7 @@ class CreateGroupPage extends StatefulWidget {
 
 class _CreateGroupPageState extends State<CreateGroupPage> {
   final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _memberEmailController = TextEditingController();
   List<String> _memberEmails = [];
   bool _creatingGroup = false;
@@ -59,6 +60,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   void dispose() {
     _memberEmailController.removeListener(_updateFriendSuggestions);
     _titleController.dispose();
+    _descriptionController.dispose();
     _memberEmailController.dispose();
     super.dispose();
   }
@@ -624,6 +626,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     try {
       final res = await ApiClient.post('/api/group-transactions/with-coins', body: {
         'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
         'memberEmails': _memberEmails,
         'color': _colorHex(),
       });
@@ -730,6 +733,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     try {
       final res = await ApiClient.post('/api/group-transactions', body: {
         'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
         'memberEmails': _memberEmails,
         'color': _colorHex(),
       });
@@ -855,15 +859,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             height: 52,
                             width: 52,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade800],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              gradient: _selectedImage == null
+                                  ? LinearGradient(
+                                      colors: _selectedColor != null
+                                          ? [_selectedColor!.withValues(alpha: 0.65), _selectedColor!]
+                                          : [Colors.deepPurple.shade400, Colors.deepPurple.shade800],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : null,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.deepPurple.withValues(alpha: 0.25),
+                                  color: (_selectedColor ?? Colors.deepPurple).withValues(alpha: 0.25),
                                   blurRadius: 12,
                                   offset: const Offset(0, 6),
                                 ),
@@ -951,6 +959,21 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               decoration: decoration.copyWith(
                 labelText: t('group_title_label'),
                 prefixIcon: Icon(Icons.title,
+                    color: AppThemeColors.secondaryText(context)),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Group description (optional)
+            TextField(
+              controller: _descriptionController,
+              style: TextStyle(color: AppThemeColors.primaryText(context)),
+              maxLines: 2,
+              decoration: decoration.copyWith(
+                labelText: 'Description (optional)',
+                hintText: 'What is this group for?',
+                prefixIcon: Icon(Icons.notes_rounded,
                     color: AppThemeColors.secondaryText(context)),
               ),
             ),

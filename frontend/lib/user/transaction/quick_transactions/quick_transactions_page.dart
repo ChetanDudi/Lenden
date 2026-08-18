@@ -4,6 +4,9 @@ import '../../../widgets/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:share_plus/share_plus.dart';
@@ -100,6 +103,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
   Timer? _searchDebounceTimer;
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final Map<String, int> _clearActionTokens = {};
+  bool _groupByContact = false;
 
   @override
   void initState() {
@@ -1109,6 +1113,337 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     return sorted;
   }
 
+  // ─── Group by contact ────────────────────────────────────────────────────────
+
+  Map<String, List<Map<String, dynamic>>> _groupByContactName(
+      List<Map<String, dynamic>> items) {
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final tx in items) {
+      final cp = _counterpartyForViewer(tx);
+      final name = (() {
+        final n = (cp?['name'] ?? '').toString().trim();
+        return n.isNotEmpty ? n : (cp?['email'] ?? '—').toString();
+      })();
+      grouped.putIfAbsent(name, () => []).add(tx);
+    }
+    final sorted = grouped.entries.toList()
+      ..sort((a, b) {
+        final aT = a.value.fold<double>(
+            0, (s, x) => s + _displayNumericAmount(x).abs());
+        final bT = b.value.fold<double>(
+            0, (s, x) => s + _displayNumericAmount(x).abs());
+        return bT.compareTo(aT);
+      });
+    return Map.fromEntries(sorted);
+  }
+
+  // Net balance for a group: positive = you lent, negative = you owe
+  double _groupNetBalance(List<Map<String, dynamic>> txs) {
+    return txs.fold<double>(0, (sum, tx) {
+      final amt = _displayNumericAmount(tx);
+      return sum + (_roleForViewer(tx) == 'lender' ? amt : -amt);
+    });
+  }
+
+  // ─── Monthly summary ─────────────────────────────────────────────────────────
+
+  Widget _buildMonthlySummary() {
+    final now = DateTime.now();
+    double lentAmt = 0, borrowedAmt = 0;
+    int lentCount = 0, borrowedCount = 0;
+    for (final tx in filteredTransactions) {
+      final raw = (tx['createdAt'] ?? tx['date'] ?? '').toString();
+      final dt = DateTime.tryParse(raw)?.toLocal();
+      if (dt == null || dt.year != now.year || dt.month != now.month) continue;
+      final amt = _displayNumericAmount(tx);
+      if (_roleForViewer(tx) == 'lender') {
+        lentAmt += amt;
+        lentCount++;
+      } else {
+        borrowedAmt += amt;
+        borrowedCount++;
+      }
+    }
+    if (lentCount == 0 && borrowedCount == 0) return const SizedBox.shrink();
+    final sym = selectedCurrency.isEmpty ? '₹' :
+        (currencyData?.symbolFor(selectedCurrency) ?? selectedCurrency);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: BoxDecoration(
+        color: AppThemeColors.cardBg(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppThemeColors.divider(context)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_month_rounded,
+              size: 15, color: AppColors.cyan),
+          const SizedBox(width: 6),
+          Text('This month:',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppThemeColors.mutedText(context))),
+          const SizedBox(width: 10),
+          if (lentCount > 0) ...[
+            Icon(Icons.north_east_rounded,
+                size: 13, color: Colors.green.shade600),
+            const SizedBox(width: 3),
+            Text(
+              '$sym${lentAmt.toStringAsFixed(0)} ($lentCount)',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade700),
+            ),
+          ],
+          if (lentCount > 0 && borrowedCount > 0)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text('·',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+          if (borrowedCount > 0) ...[
+            Icon(Icons.south_west_rounded,
+                size: 13, color: Colors.red.shade600),
+            const SizedBox(width: 3),
+            Text(
+              '$sym${borrowedAmt.toStringAsFixed(0)} ($borrowedCount)',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade700),
+            ),
+          ],
+          const Spacer(),
+          Text('lent · owed',
+              style: TextStyle(
+                  fontSize: 9, color: AppThemeColors.mutedText(context))),
+        ],
+      ),
+    );
+  }
+
+  // ─── CSV export ──────────────────────────────────────────────────────────────
+
+  Future<void> _exportCsv() async {
+    if (filteredTransactions.isEmpty) {
+      ElegantNotification.error(
+        title: const Text('Nothing to export',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('No transactions match the current filters'),
+      ).show(context);
+      return;
+    }
+    final buf = StringBuffer();
+    buf.writeln(
+        'Amount,Currency,Role,Category,Description,Counterparty,Date,Time,Status,Settlement,Edits,Created');
+    for (final tx in filteredTransactions) {
+      final cp = _counterpartyForViewer(tx);
+      final cpName =
+          (cp?['name']?.toString().isNotEmpty == true ? cp!['name'] : cp?['email'])
+                  ?.toString() ??
+              '';
+      String cell(dynamic v) {
+        final s = (v ?? '').toString().replaceAll('"', '""');
+        return '"$s"';
+      }
+      buf.writeln([
+        cell(tx['amount']),
+        cell(tx['currency'] ?? 'INR'),
+        cell(_roleForViewer(tx)),
+        cell(_catLabel((tx['category'] ?? 'other').toString())),
+        cell(tx['description']),
+        cell(cpName),
+        cell((tx['date'] ?? '').toString().split('T').first),
+        cell(tx['time']),
+        cell(tx['cleared'] == true ? 'Cleared' : 'Pending'),
+        cell(tx['settlementStatus'] ?? 'none'),
+        cell((tx['editHistory'] as List?)?.length ?? 0),
+        cell((tx['createdAt'] ?? '').toString().split('T').first),
+      ].join(','));
+    }
+    final now = DateTime.now();
+    final filename =
+        'lenden_quick_txns_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+    final ok = await shareTextFile(
+        content: buf.toString(),
+        filename: filename,
+        subject: 'LenDen Quick Transactions Export');
+    if (!ok && mounted) {
+      ElegantNotification.error(
+        title: const Text('Export failed',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('Could not export the file'),
+      ).show(context);
+    }
+  }
+
+  // ── PDF Export ───────────────────────────────────────────────────────────
+  Future<void> _exportPdf() async {
+    if (filteredTransactions.isEmpty) {
+      ElegantNotification.error(
+        title: const Text('Nothing to export', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('No transactions match the current filters'),
+      ).show(context);
+      return;
+    }
+
+    const darkBg    = PdfColor.fromInt(0xFF0D1B2A);
+    const cyan      = PdfColor.fromInt(0xFF00BCD4);
+    const lightGrey = PdfColor.fromInt(0xFFF5F5F5);
+    const textDark  = PdfColor.fromInt(0xFF1A1A1A);
+    const green     = PdfColor.fromInt(0xFF2E7D32);
+    const red       = PdfColor.fromInt(0xFFC62828);
+    const orange    = PdfColor.fromInt(0xFFF06322);
+    const white70   = PdfColor(1, 1, 1, 0.7);
+
+    pw.Widget _cell(String text, {bool bold = false, PdfColor? color}) =>
+        pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: pw.Text(text,
+              style: pw.TextStyle(
+                fontSize: 9,
+                fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+                color: color ?? textDark,
+              )),
+        );
+
+    pw.TableRow _hdr(List<String> cols) => pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFE0E0E0)),
+          children: cols.map((c) => _cell(c, bold: true)).toList(),
+        );
+
+    final now = DateTime.now();
+    final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
+
+    final doc = pw.Document();
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => [
+        // ── Header ──────────────────────────────────────────────────────
+        pw.Container(
+          decoration: const pw.BoxDecoration(
+            color: darkBg,
+            borderRadius: pw.BorderRadius.all(pw.Radius.circular(12)),
+          ),
+          padding: const pw.EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('LenDen', style: pw.TextStyle(color: PdfColors.white, fontSize: 26, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text('Quick Transactions Report', style: pw.TextStyle(color: cyan, fontSize: 13)),
+            pw.SizedBox(height: 12),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Text('${filteredTransactions.length} transaction${filteredTransactions.length == 1 ? '' : 's'}',
+                  style: pw.TextStyle(color: white70, fontSize: 10)),
+              pw.Text('Generated: $genLabel', style: pw.TextStyle(color: white70, fontSize: 10)),
+            ]),
+          ]),
+        ),
+        pw.SizedBox(height: 20),
+
+        // ── Summary ─────────────────────────────────────────────────────
+        () {
+          final totalLent = filteredTransactions
+              .where((x) => _roleForViewer(x) == 'lender')
+              .fold(0.0, (s, x) => s + ((x['amount'] as num?)?.toDouble() ?? 0));
+          final totalOwed = filteredTransactions
+              .where((x) => _roleForViewer(x) == 'borrower')
+              .fold(0.0, (s, x) => s + ((x['amount'] as num?)?.toDouble() ?? 0));
+          final cleared = filteredTransactions.where((x) => x['cleared'] == true).length;
+          final cur = filteredTransactions.isNotEmpty
+              ? (filteredTransactions.first['currency'] ?? 'INR').toString()
+              : 'INR';
+          final sym = (currencyData?.symbolFor(cur.toUpperCase()) ?? cur);
+          return pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 20),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+            ),
+            padding: const pw.EdgeInsets.all(14),
+            child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.Text('Total Lent', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                pw.Text('$sym${totalLent.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
+              ]),
+              pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.Text('Total Owed', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                pw.Text('$sym${totalOwed.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: red)),
+              ]),
+              pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.Text('Cleared', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                pw.Text('$cleared / ${filteredTransactions.length}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: textDark)),
+              ]),
+            ]),
+          );
+        }(),
+
+        // ── Transaction Table ────────────────────────────────────────────
+        pw.Text('Transactions', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: textDark)),
+        pw.SizedBox(height: 8),
+        pw.Table(
+          border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(1.6), // Amount
+            1: const pw.FlexColumnWidth(1.0), // Role
+            2: const pw.FlexColumnWidth(1.2), // Category
+            3: const pw.FlexColumnWidth(2.0), // Description
+            4: const pw.FlexColumnWidth(1.6), // With
+            5: const pw.FlexColumnWidth(1.2), // Date
+            6: const pw.FlexColumnWidth(1.0), // Status
+          },
+          children: [
+            _hdr(['Amount', 'Role', 'Category', 'Description', 'With', 'Date', 'Status']),
+            for (final tx in filteredTransactions) () {
+              final role = _roleForViewer(tx);
+              final cp = _counterpartyForViewer(tx);
+              final cpName = (cp?['name']?.toString().isNotEmpty == true
+                  ? cp!['name']
+                  : cp?['email'])?.toString() ?? '—';
+              final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+              final sym = currencyData?.symbolFor((tx['currency'] ?? 'INR').toString().toUpperCase()) ?? '₹';
+              final cleared = tx['cleared'] == true;
+              final dateStr = (tx['date'] ?? '').toString().split('T').first;
+              return pw.TableRow(
+                decoration: pw.BoxDecoration(color: filteredTransactions.indexOf(tx).isEven ? lightGrey : null),
+                children: [
+                  _cell('$sym${amt.toStringAsFixed(2)}',
+                      bold: true, color: role == 'lender' ? green : red),
+                  _cell(role == 'lender' ? 'Lent' : 'Borrowed'),
+                  _cell(_catLabel((tx['category'] ?? 'other').toString())),
+                  _cell((tx['description'] ?? '—').toString()),
+                  _cell(cpName),
+                  _cell(dateStr),
+                  _cell(cleared ? 'Cleared' : 'Pending',
+                      color: cleared ? green : orange),
+                ],
+              );
+            }(),
+          ],
+        ),
+      ],
+    ));
+
+    final bytes = await doc.save();
+    final filename =
+        'lenden_quick_txns_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
+    final ok = await shareBytesFile(
+      bytes: bytes,
+      filename: filename,
+      mimeType: 'application/pdf',
+      subject: 'LenDen Quick Transactions Report',
+    );
+    if (!ok && mounted) {
+      ElegantNotification.error(
+        title: const Text('Export failed', style: TextStyle(fontWeight: FontWeight.bold)),
+        description: const Text('Could not export the PDF'),
+      ).show(context);
+    }
+  }
+
   String _settlementStatus(Map<String, dynamic> transaction) {
     return (transaction['settlementStatus'] ?? 'none').toString().toLowerCase();
   }
@@ -1602,8 +1937,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     final t = AppLocalizations.of(context).t;
     final displayedTransactions =
         _showAll ? filteredTransactions : filteredTransactions.take(3).toList();
-    final groupedTransactions =
-        _groupDisplayedTransactions(displayedTransactions);
+    final groupedTransactions = _groupByContact
+        ? _groupByContactName(displayedTransactions)
+        : _groupDisplayedTransactions(displayedTransactions);
 
     return Scaffold(
       backgroundColor: AppThemeColors.scaffoldBg(context),
@@ -1640,26 +1976,84 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           ),
           iconTheme: IconThemeData(color: AppThemeColors.primaryText(context)),
           actions: [
-            // Stats button
-            if (!loading && error == null && transactions.isNotEmpty)
-              IconButton(
-                icon: Icon(Icons.analytics_outlined, color: AppThemeColors.primaryText(context)),
-                tooltip: t('open_quick_analytics_label'),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsPage())),
-              ),
-            IconButton(
-              icon: Icon(Icons.schedule_rounded, color: AppThemeColors.primaryText(context)),
-              tooltip: t('scheduled_transactions_title'),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduledTransactionsPage()));
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert_rounded, color: AppThemeColors.primaryText(context)),
+              onSelected: (value) {
+                switch (value) {
+                  case 'group_contact':
+                    setState(() => _groupByContact = !_groupByContact);
+                    break;
+                  case 'export_csv':
+                    _exportCsv();
+                    break;
+                  case 'export_pdf':
+                    _exportPdf();
+                    break;
+                  case 'analytics':
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsPage()));
+                    break;
+                  case 'scheduled':
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduledTransactionsPage()));
+                    break;
+                  case 'recurring':
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringTemplatesPage()));
+                    break;
+                }
               },
-            ),
-            IconButton(
-              icon: Icon(Icons.repeat_rounded, color: AppThemeColors.primaryText(context)),
-              tooltip: t('recurring_templates_title'),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringTemplatesPage()));
-              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'group_contact',
+                  child: Row(children: [
+                    Icon(_groupByContact ? Icons.calendar_today_rounded : Icons.group_rounded,
+                        size: 18, color: _groupByContact ? AppColors.cyan : null),
+                    const SizedBox(width: 12),
+                    Text(_groupByContact ? 'View by date' : 'Group by contact'),
+                  ]),
+                ),
+                if (!loading && error == null && filteredTransactions.isNotEmpty)
+                  const PopupMenuItem(
+                    value: 'export_csv',
+                    child: Row(children: [
+                      Icon(Icons.table_chart_outlined, size: 18),
+                      SizedBox(width: 12),
+                      Text('Export CSV'),
+                    ]),
+                  ),
+                if (!loading && error == null && filteredTransactions.isNotEmpty)
+                  const PopupMenuItem(
+                    value: 'export_pdf',
+                    child: Row(children: [
+                      Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.red),
+                      SizedBox(width: 12),
+                      Text('Export PDF'),
+                    ]),
+                  ),
+                if (!loading && error == null && transactions.isNotEmpty)
+                  const PopupMenuItem(
+                    value: 'analytics',
+                    child: Row(children: [
+                      Icon(Icons.analytics_outlined, size: 18),
+                      SizedBox(width: 12),
+                      Text('Analytics'),
+                    ]),
+                  ),
+                const PopupMenuItem(
+                  value: 'scheduled',
+                  child: Row(children: [
+                    Icon(Icons.schedule_rounded, size: 18),
+                    SizedBox(width: 12),
+                    Text('Scheduled'),
+                  ]),
+                ),
+                const PopupMenuItem(
+                  value: 'recurring',
+                  child: Row(children: [
+                    Icon(Icons.repeat_rounded, size: 18),
+                    SizedBox(width: 12),
+                    Text('Recurring'),
+                  ]),
+                ),
+              ],
             ),
           ],
           flexibleSpace: ClipPath(
@@ -1762,12 +2156,26 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(14, 10, 14, 120),
                           children: [
+                            // Monthly summary
+                            _buildMonthlySummary(),
                             // Stats strip (compact, shown inline at the top of list)
                             if (transactions.isNotEmpty)
                               _buildCompactStatsStrip(t),
                             const SizedBox(height: 10),
                             ...groupedTransactions.entries.expand((entry) {
                               final sectionIndex = groupedTransactions.keys.toList().indexOf(entry.key);
+                              final sectionTxs = entry.value;
+                              final netBal = _groupByContact ? _groupNetBalance(sectionTxs) : 0.0;
+                              final netStr = netBal == 0
+                                  ? 'Settled'
+                                  : netBal > 0
+                                      ? '+${_formatDisplayAmount(netBal, selectedCurrency)} lent'
+                                      : '${_formatDisplayAmount(netBal.abs(), selectedCurrency)} owed';
+                              final netColor = netBal > 0
+                                  ? Colors.green.shade600
+                                  : netBal < 0
+                                      ? Colors.red.shade600
+                                      : AppThemeColors.mutedText(context);
                               return <Widget>[
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4, bottom: 8),
@@ -1778,6 +2186,17 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                                     ),
                                     const SizedBox(width: 6),
                                     Text(entry.key, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppThemeColors.secondaryText(context), letterSpacing: 0.5)),
+                                    if (_groupByContact) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: netColor.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(netStr, style: TextStyle(fontSize: 10, color: netColor, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
                                   ]),
                                 ),
                                 ...entry.value.asMap().entries.map((item) => Padding(
@@ -2300,7 +2719,9 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: AppThemeColors.primaryText(context),
+                                  color: roleForViewer == 'lender'
+                                    ? const Color(0xFF2E7D32)
+                                    : const Color(0xFFC62828),
                                 ),
                               ),
                             ),
@@ -2482,6 +2903,11 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                               Colors.purple.shade700,
                               Icons.history_rounded,
                             ),
+                          if (!isCleared && (() {
+                            final created = DateTime.tryParse(transaction['createdAt']?.toString() ?? '');
+                            return created != null && DateTime.now().difference(created).inDays > 30;
+                          })())
+                            _buildStatusChip('Overdue', Colors.red.shade700, Icons.alarm_rounded),
                         ],
                       ),
                       const SizedBox(height: 12),
