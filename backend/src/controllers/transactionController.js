@@ -2,15 +2,15 @@
 const Transaction = require('../models/transaction');
 const User = require('../models/user');
 const WalletTransaction = require('../models/walletTransaction');
-const lendingborrowingotp = require('../utils/lendingborrowingotp');
-const { sendTransactionReceipt, sendTransactionClearedNotification } = require('../utils/lendingborrowingotp');
+const lendingborrowingotp = require('../utils/email/lendingborrowingotp');
+const { sendTransactionReceipt, sendTransactionClearedNotification } = require('../utils/email/lendingborrowingotp');
 const { logTransactionActivity } = require('./activityController');
 const { awardGiftCard, shouldAwardGiftCard } = require('./userGiftCardController');
 const multer = require('multer');
 const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg'];
 const PDFDocument = require('pdfkit');
 
-const { sendReceiptEmail } = require('../utils/receiptEmail');
+const { sendReceiptEmail } = require('../utils/email/receiptEmail');
 const { processReferralRewardOnFirstCreation } = require('../utils/referralService');
 const { validateCoinCreationAccess } = require('../utils/coinUsageGuard');
 const { handleRouteError } = require('../utils/apiError');

@@ -1430,6 +1430,15 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
     const green     = PdfColor.fromInt(0xFF2E7D32);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
+    String pdfSym(String code) {
+      const safe = <String, String>{
+        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
+        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
+        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
+      };
+      return safe[code.toUpperCase()] ?? code.toUpperCase();
+    }
+
     pw.Widget pCell(String text, {bool bold = false, PdfColor? color}) =>
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 5),
@@ -1482,7 +1491,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Total Amount (INR)', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-              pw.Text('₹${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
+              pw.Text('${pdfSym('INR')}${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
             ]),
           ]),
         ),
@@ -1526,7 +1535,7 @@ class _ViewGroupTransactionsPageState extends State<ViewGroupTransactionsPage>
                     decoration: pw.BoxDecoration(color: i.isEven ? lightGrey : null),
                     children: [
                       pCell((e['description'] ?? '—').toString()),
-                      pCell('₹${amt.toStringAsFixed(2)}', color: green),
+                      pCell('${pdfSym('INR')}${amt.toStringAsFixed(2)}', color: green),
                       pCell((e['addedBy'] ?? '—').toString()),
                       pCell(dateStr),
                     ],

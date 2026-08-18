@@ -2162,6 +2162,15 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     const orange    = PdfColor.fromInt(0xFFF06322);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
+    String pdfSym(String code) {
+      const safe = <String, String>{
+        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
+        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
+        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
+      };
+      return safe[code.toUpperCase()] ?? code.toUpperCase();
+    }
+
     pw.Widget cell(String text, {bool bold = false, PdfColor? color}) =>
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 5),
@@ -2173,6 +2182,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
     final genLabel = DateFormat('d MMM yyyy, h:mm a').format(now);
     final lendingCount = lending.length;
     final borrowingCount = borrowing.length;
+    final summarySym = pdfSym((allTxns.isNotEmpty ? (allTxns.first['currency'] ?? 'INR') : 'INR').toString().toUpperCase());
 
     final doc = pw.Document();
     doc.addPage(pw.MultiPage(
@@ -2204,11 +2214,11 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
           child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Total Lent', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-              pw.Text('${lending.fold(0.0, (s, t) => s + ((t['amount'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
+              pw.Text('$summarySym${lending.fold(0.0, (s, t) => s + ((t['amount'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: green)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Total Borrowed', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-              pw.Text('${borrowing.fold(0.0, (s, t) => s + ((t['amount'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: red)),
+              pw.Text('$summarySym${borrowing.fold(0.0, (s, t) => s + ((t['amount'] as num?)?.toDouble() ?? 0)).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: red)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Total Transactions', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
@@ -2246,7 +2256,7 @@ class _UserTransactionsPageState extends State<UserTransactionsPage>
               final fullyCleared = youCleared && otherCleared;
               final counterparty = (isCreator ? tx['counterpartyEmail'] : tx['userEmail'])?.toString() ?? '—';
               final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-              final sym = currencyData?.symbolFor((tx['currency'] ?? 'INR').toString().toUpperCase()) ?? '₹';
+              final sym = pdfSym((tx['currency'] ?? 'INR').toString().toUpperCase());
               final dateStr = (tx['date'] ?? '').toString().split('T').first;
               final expectedDt = DateTime.tryParse((tx['expectedReturnDate'] ?? '').toString());
               final isOverdue = expectedDt != null && expectedDt.isBefore(DateTime.now()) && !fullyCleared;

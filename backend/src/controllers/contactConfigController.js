@@ -3,7 +3,7 @@ const ContactMessage = require('../models/contactMessage');
 const { CONTACT_CATEGORIES } = require('../models/contactMessage');
 const Notification = require('../models/notification');
 const User = require('../models/user');
-const { sendEmail } = require('../utils/sendEmailApi');
+const { sendContactReplyEmail } = require('../utils/email/contactReplyEmail');
 const { sendToUser } = require('../services/notificationService');
 const { handleRouteError } = require('../utils/apiError');
 
@@ -206,26 +206,12 @@ exports.replyToMessage = async (req, res) => {
       return res.status(409).json({ error: 'A reply has already been sent for this message.' });
     }
 
-    await sendEmail({
-      to: doc.email,
-      subject: `Re: ${doc.subject || 'Your Inquiry'} - Lenden Support`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-          <div style="background:linear-gradient(135deg,#00B4D8,#48CAE4);padding:24px;border-radius:12px 12px 0 0;">
-            <h2 style="color:white;margin:0;">Lenden Support</h2>
-          </div>
-          <div style="padding:24px;background:#fff;border-radius:0 0 12px 12px;border:1px solid #e0e0e0;">
-            <p style="color:#555;margin:0 0 16px;">Hi ${doc.name},</p>
-            <p style="color:#333;margin:0 0 20px;">Thank you for reaching out. Here is our response:</p>
-            <div style="background:#f0f9fc;border-left:4px solid #00B4D8;padding:16px;border-radius:4px;margin:0 0 24px;">
-              <p style="color:#333;margin:0;line-height:1.6;">${replyText.trim().replace(/\n/g, '<br>')}</p>
-            </div>
-            <p style="color:#999;font-size:12px;margin:0 0 4px;"><strong>Your original message:</strong></p>
-            <p style="color:#aaa;font-size:12px;font-style:italic;margin:0 0 24px;">"${doc.message}"</p>
-            <p style="color:#555;margin:0;">Best regards,<br><strong>Lenden Support Team</strong></p>
-          </div>
-        </div>
-      `,
+    await sendContactReplyEmail({
+      name: doc.name,
+      email: doc.email,
+      subject: doc.subject,
+      originalMessage: doc.message,
+      replyText,
     });
 
     const updated = await ContactMessage.findByIdAndUpdate(

@@ -1,7 +1,7 @@
 const User = require('../models/user');
 const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
-const { sendPasswordResetOTP } = require('../utils/passwordresetemailotp');
+const { sendPasswordResetOTP } = require('../utils/email/passwordresetemailotp');
 
 const OTP_EXPIRY_MS = 2 * 60 * 1000; // 2 minutes
 

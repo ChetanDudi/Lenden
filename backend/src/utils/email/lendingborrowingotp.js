@@ -1,8 +1,8 @@
 const { sendEmail } = require('./sendEmailApi');
-const User = require('../models/user');
+const User = require('../../models/user');
 const { shouldSendNotification } = require('./shouldSendNotification');
 const { shell, otpBlock } = require('./emailTemplate');
-const OtpRecord = require('../models/otpRecord');
+const OtpRecord = require('../../models/otpRecord');
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();

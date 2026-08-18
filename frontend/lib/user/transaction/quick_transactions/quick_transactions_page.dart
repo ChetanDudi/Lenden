@@ -1299,6 +1299,15 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
     const orange    = PdfColor.fromInt(0xFFF06322);
     const white70   = PdfColor(1, 1, 1, 0.7);
 
+    String pdfSym(String code) {
+      const safe = <String, String>{
+        'USD': r'$', 'CAD': r'$', 'AUD': r'$', 'HKD': r'$', 'SGD': r'$', 'NZD': r'$', 'MXN': r'$',
+        'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥',
+        'CHF': 'Fr', 'INR': 'Rs.', 'RUB': 'RUB', 'KRW': 'KRW', 'BRL': r'R$', 'ZAR': 'R',
+      };
+      return safe[code.toUpperCase()] ?? code.toUpperCase();
+    }
+
     pw.Widget _cell(String text, {bool bold = false, PdfColor? color}) =>
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -1356,7 +1365,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
           final cur = filteredTransactions.isNotEmpty
               ? (filteredTransactions.first['currency'] ?? 'INR').toString()
               : 'INR';
-          final sym = (currencyData?.symbolFor(cur.toUpperCase()) ?? cur);
+          final sym = pdfSym(cur);
           return pw.Container(
             margin: const pw.EdgeInsets.only(bottom: 20),
             decoration: pw.BoxDecoration(
@@ -1404,7 +1413,7 @@ class _QuickTransactionsPageState extends State<QuickTransactionsPage>
                   ? cp!['name']
                   : cp?['email'])?.toString() ?? '—';
               final amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-              final sym = currencyData?.symbolFor((tx['currency'] ?? 'INR').toString().toUpperCase()) ?? '₹';
+              final sym = pdfSym((tx['currency'] ?? 'INR').toString().toUpperCase());
               final cleared = tx['cleared'] == true;
               final dateStr = (tx['date'] ?? '').toString().split('T').first;
               return pw.TableRow(

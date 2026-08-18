@@ -17,7 +17,7 @@ const Feedback = require('../models/feedback');
 const AdminAuditLog = require('../models/adminAuditLog');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sendAdminWelcomeEmail, sendAdminRemovalEmail } = require('../utils/adminEmailNotifications');
+const { sendAdminWelcomeEmail, sendAdminRemovalEmail } = require('../utils/email/adminEmailNotifications');
 const { logAdminAudit } = require('../utils/adminAuditLogger');
 
 const roundToTwo = (value) => Number((Number(value || 0)).toFixed(2));

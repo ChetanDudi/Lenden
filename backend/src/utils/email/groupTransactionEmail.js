@@ -1,5 +1,5 @@
 const { sendEmail } = require('./sendEmailApi');
-const User = require('../models/user');
+const User = require('../../models/user');
 const { shell } = require('./emailTemplate');
 const { shouldSendNotification } = require('./shouldSendNotification');
 
